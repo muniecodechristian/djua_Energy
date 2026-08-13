@@ -1,5 +1,10 @@
+<<<<<<< HEAD
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+=======
+import React, { useState } from 'react';
+import { motion } from 'framer-motion';
+>>>>>>> 0dd217c31f2f9001975ff823ab57880aa9df9366
 import {
   ComposableMap,
   Geographies,
@@ -12,6 +17,7 @@ import {
 import {
   Search, Filter, MapPin, Layers,
   Plus, Minus, Box, Calendar,
+<<<<<<< HEAD
   Activity, ArrowRight, ExternalLink, ShieldAlert
 } from 'lucide-react';
 import { io } from 'socket.io-client';
@@ -22,6 +28,14 @@ const geoUrl = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
 
 // KPI statiques de la flotte — la carte Géofence sera dynamique
 const staticKpis = [
+=======
+  Activity, ArrowRight, ExternalLink
+} from 'lucide-react';
+
+const geoUrl = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
+
+const kpis = [
+>>>>>>> 0dd217c31f2f9001975ff823ab57880aa9df9366
   { title: 'KITS ACTIFS', value: '158,742', sub: '+2.1% ce mois', color: 'text-orange-400', stroke: '#f97316', spark: [12, 14, 13, 15, 16, 15, 18] },
   { title: 'EN LIGNE', value: '147,510', sub: '92.9% de la flotte', color: 'text-orange-400', stroke: '#f97316', spark: [100, 105, 102, 110, 115, 120, 125] },
   { title: 'AVERTISSEMENT', value: '7,810', sub: '4.9% de la flotte', color: 'text-orange-400', stroke: '#f97316', spark: [18, 16, 14, 15, 12, 13, 11] },
@@ -43,6 +57,7 @@ const mapMarkers = [
   { id: 10, name: 'Hub Kikwit', lat: -5.0410, lng: 18.8162, status: 'normal', count: 4100 },
 ];
 
+<<<<<<< HEAD
 // Événements initiaux statiques (maintenu pour le fallback)
 const initialLiveFeedEvents = [
   { id: 'static-1', type: 'alert',   text: 'KIT-K-87391 Alerte Surchauffe (Kinshasa)',          time: '14:08', badge: 'Avertissement', color: 'text-orange-400 border-orange-500/20', isGeofence: false },
@@ -50,6 +65,14 @@ const initialLiveFeedEvents = [
   { id: 'static-3', type: 'maint',   text: 'KIT-K-99210 Maintenance terminée (Lubumbashi)',       time: '13:58', badge: 'Résolu',         color: 'text-orange-400 border-orange-500/20', isGeofence: false },
   { id: 'static-4', type: 'install', text: 'KIT-K-33410 Nouveau kit activé (Matadi)',             time: '13:45', badge: 'Actif',          color: 'text-orange-400 border-orange-500/20', isGeofence: false },
   { id: 'static-5', type: 'alert',   text: 'KIT-K-00129 Batterie Critique <15% (Mbuji-Mayi)',    time: '13:30', badge: 'Critique',       color: 'text-orange-400 border-orange-500/20', isGeofence: false },
+=======
+const liveFeedEvents = [
+  { id: 1, type: 'alert', text: 'KIT-K-87391 Alerte Surchauffe (Kinshasa)', time: '14:08', badge: 'Avertissement', color: 'text-orange-400 border-orange-500/20' },
+  { id: 2, type: 'connect', text: 'KIT-K-10293 Télémétrie rétablie (Goma)', time: '14:05', badge: 'En ligne', color: 'text-orange-400 border-orange-500/20' },
+  { id: 3, type: 'maint', text: 'KIT-K-99210 Maintenance terminée (Lubumbashi)', time: '13:58', badge: 'Résolu', color: 'text-orange-400 border-orange-500/20' },
+  { id: 4, type: 'install', text: 'KIT-K-33410 Nouveau kit activé (Matadi)', time: '13:45', badge: 'Actif', color: 'text-orange-400 border-orange-500/20' },
+  { id: 5, type: 'alert', text: 'KIT-K-00129 Batterie Critique <15% (Mbuji-Mayi)', time: '13:30', badge: 'Critique', color: 'text-orange-400 border-orange-500/20' },
+>>>>>>> 0dd217c31f2f9001975ff823ab57880aa9df9366
 ];
 
 const MiniSparkline = ({ data, stroke }) => (
@@ -63,6 +86,7 @@ const MiniSparkline = ({ data, stroke }) => (
 );
 
 export default function FleetMonitoring() {
+<<<<<<< HEAD
   const [selectedKit, setSelectedKit]         = useState('KIT-K-87391');
   const [mapTab, setMapTab]                   = useState('VUE CARTE');
   const [feedFilter, setFeedFilter]           = useState('Tous');
@@ -147,10 +171,15 @@ export default function FleetMonitoring() {
   const filteredEvents = feedFilter === 'Géofence'
     ? liveFeedEvents.filter(e => e.isGeofence)
     : liveFeedEvents;
+=======
+  const [selectedKit, setSelectedKit] = useState('KIT-K-87391');
+  const [mapTab, setMapTab] = useState('Vue Carte');
+>>>>>>> 0dd217c31f2f9001975ff823ab57880aa9df9366
 
   const staggerContainer = { hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.04 } } };
   const fadeUp = { hidden: { opacity: 0, y: 12 }, visible: { opacity: 1, y: 0, transition: { duration: 0.35 } } };
 
+<<<<<<< HEAD
   // ─── KPI dynamique : on ajoute la carte géofence en tête des KPIs ────────────
   const kpis = [
     {
@@ -170,6 +199,11 @@ export default function FleetMonitoring() {
   return (
     <div className="min-h-screen text-slate-200 p-4 md:p-6 font-['Montserrat',sans-serif] space-y-5">
 
+=======
+  return (
+    <div className="min-h-screen text-slate-200 p-4 md:p-6 font-['Montserrat',sans-serif] space-y-5">
+      
+>>>>>>> 0dd217c31f2f9001975ff823ab57880aa9df9366
       {/* HEADER BAR */}
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-slate-700">
         <div>
@@ -197,6 +231,7 @@ export default function FleetMonitoring() {
         </div>
       </motion.div>
 
+<<<<<<< HEAD
       {/* KPI CARDS — inclut maintenant la carte GÉOFENCE dynamique */}
       <motion.div variants={staggerContainer} initial="hidden" animate="visible" className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-3">
         {kpis.map((kpi, idx) => (
@@ -212,6 +247,16 @@ export default function FleetMonitoring() {
               </div>
               <div className="my-1.5">
                 <span className={`text-lg font-bold tracking-tight ${kpi.isLive && geofenceAlertCount > 0 ? 'text-red-400' : 'text-white'}`}>{kpi.value}</span>
+=======
+      {/* KPI CARDS */}
+      <motion.div variants={staggerContainer} initial="hidden" animate="visible" className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
+        {kpis.map((kpi, idx) => (
+          <motion.div key={idx} variants={fadeUp}>
+            <div className="bg-transparent border border-slate-800 rounded-xl p-3 flex flex-col justify-between hover:border-slate-600 transition-colors">
+              <span className="text-[9px] font-semibold text-slate-400 tracking-wider uppercase truncate">{kpi.title}</span>
+              <div className="my-1.5">
+                <span className="text-lg font-bold text-white tracking-tight">{kpi.value}</span>
+>>>>>>> 0dd217c31f2f9001975ff823ab57880aa9df9366
                 <span className={`block text-[9px] ${kpi.color} font-medium mt-0.5`}>{kpi.sub}</span>
               </div>
               <div className="flex justify-end mt-1">
@@ -224,7 +269,11 @@ export default function FleetMonitoring() {
 
       {/* MAIN GRID */}
       <motion.div variants={staggerContainer} initial="hidden" animate="visible" className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+<<<<<<< HEAD
 
+=======
+        
+>>>>>>> 0dd217c31f2f9001975ff823ab57880aa9df9366
         {/* PANNEAU DE FILTRES */}
         <motion.div variants={fadeUp} className="lg:col-span-3">
           <div className="bg-transparent border border-slate-800 rounded-xl p-4 flex flex-col h-full space-y-4">
@@ -290,11 +339,14 @@ export default function FleetMonitoring() {
                     <input type="checkbox" defaultChecked className="rounded border-slate-700 bg-transparent text-orange-600 focus:ring-0 accent-orange-500" />
                     <span className="w-2 h-2 rounded-full bg-orange-500"></span> Hors ligne / Critique
                   </label>
+<<<<<<< HEAD
                   {/* Filtre géofencing */}
                   <label className="flex items-center gap-2 text-[11px] text-red-400 cursor-pointer border border-red-900/30 rounded-lg px-2 py-1 mt-1 bg-red-950/10">
                     <input type="checkbox" defaultChecked className="rounded border-slate-700 bg-transparent focus:ring-0 accent-red-500" />
                     <ShieldAlert size={11} className="text-red-400" /> Sortie de Géofence
                   </label>
+=======
+>>>>>>> 0dd217c31f2f9001975ff823ab57880aa9df9366
                 </div>
               </div>
 
@@ -328,7 +380,11 @@ export default function FleetMonitoring() {
         {/* CARTE DYNAMIQUE RDC */}
         <motion.div variants={fadeUp} className="lg:col-span-6">
           <div className="bg-transparent border border-slate-800 rounded-xl overflow-hidden flex flex-col h-full min-h-[460px] relative">
+<<<<<<< HEAD
 
+=======
+            
+>>>>>>> 0dd217c31f2f9001975ff823ab57880aa9df9366
             <div className="p-3 border-b border-slate-800 flex items-center justify-between z-10">
               <div className="flex gap-4">
                 {['VUE CARTE', 'VUE GRILLE'].map((tab) => (
@@ -346,6 +402,7 @@ export default function FleetMonitoring() {
               </div>
 
               <div className="flex items-center gap-2">
+<<<<<<< HEAD
                 {/* Badge géofence si alertes actives */}
                 {geofenceAlertCount > 0 && (
                   <span className="text-[10px] text-red-400 border border-red-800/50 bg-red-950/20 px-2 py-1 rounded flex items-center gap-1.5 animate-pulse font-semibold">
@@ -353,6 +410,8 @@ export default function FleetMonitoring() {
                     {geofenceAlertCount} GÉOFENCE
                   </span>
                 )}
+=======
+>>>>>>> 0dd217c31f2f9001975ff823ab57880aa9df9366
                 <span className="text-[10px] text-slate-300 border border-slate-800 px-2 py-1 rounded uppercase tracking-wider font-medium">
                   ZONE : RÉPUBLIQUE DÉMOCRATIQUE DU CONGO
                 </span>
@@ -378,7 +437,11 @@ export default function FleetMonitoring() {
                         key={geo.rsmKey}
                         geography={geo}
                         fill="transparent"
+<<<<<<< HEAD
                         stroke="#334155"
+=======
+                        stroke="#334155" // slate-700
+>>>>>>> 0dd217c31f2f9001975ff823ab57880aa9df9366
                         strokeWidth={0.6}
                         style={{
                           default: { outline: "none" },
@@ -431,27 +494,41 @@ export default function FleetMonitoring() {
                 <button className="p-1.5 text-slate-300 hover:bg-slate-800/50 cursor-pointer"><Minus size={14} /></button>
               </div>
 
+<<<<<<< HEAD
               {/* Légende */}
+=======
+              {/* Légende en bas à gauche */}
+>>>>>>> 0dd217c31f2f9001975ff823ab57880aa9df9366
               <div className="absolute left-3 bottom-3 border border-slate-800 p-2.5 rounded-lg text-[10px] space-y-1 z-10 font-medium backdrop-blur-sm">
                 <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-orange-500"></span> Normal (147,510)</div>
                 <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-orange-500"></span> Avertissement (7,810)</div>
                 <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-orange-500"></span> Critique (3,422)</div>
+<<<<<<< HEAD
                 {geofenceAlertCount > 0 && (
                   <div className="flex items-center gap-2 text-red-400 border-t border-slate-700/50 pt-1">
                     <ShieldAlert size={10} /> Géofence ({geofenceAlertCount})
                   </div>
                 )}
               </div>
+=======
+              </div>
+
+>>>>>>> 0dd217c31f2f9001975ff823ab57880aa9df9366
             </div>
           </div>
         </motion.div>
 
         {/* DÉTAILS DU KIT SÉLECTIONNÉ */}
         <motion.div variants={fadeUp} className="lg:col-span-3">
+<<<<<<< HEAD
           <div className={`bg-transparent rounded-xl p-4 flex flex-col h-full justify-between space-y-4 border transition-colors ${
             isKitBreached ? 'border-red-800/60 shadow-[0_0_15px_rgba(239,68,68,0.06)]' : 'border-slate-800'
           }`}>
 
+=======
+          <div className="bg-transparent border border-slate-800 rounded-xl p-4 flex flex-col h-full justify-between space-y-4">
+            
+>>>>>>> 0dd217c31f2f9001975ff823ab57880aa9df9366
             <div>
               <div className="flex justify-between items-center pb-2 border-b border-slate-800 mb-3">
                 <h3 className="text-xs font-bold text-white uppercase tracking-wider">KIT SÉLECTIONNÉ</h3>
@@ -460,6 +537,7 @@ export default function FleetMonitoring() {
                 </span>
               </div>
 
+<<<<<<< HEAD
               {/* Alerte géofence sur le kit */}
               {isKitBreached && (
                 <AnimatePresence>
@@ -477,6 +555,8 @@ export default function FleetMonitoring() {
                 </AnimatePresence>
               )}
 
+=======
+>>>>>>> 0dd217c31f2f9001975ff823ab57880aa9df9366
               <div className="flex items-center gap-3 border border-slate-800 p-3 rounded-xl">
                 <div className="w-12 h-14 bg-transparent rounded-lg flex items-center justify-center border border-slate-800 flex-shrink-0">
                   <Box size={24} className="text-orange-400" />
@@ -535,12 +615,17 @@ export default function FleetMonitoring() {
 
       </motion.div>
 
+<<<<<<< HEAD
       {/* FLUX D'ACTIVITÉ EN TEMPS RÉEL — avec onglet GÉOFENCE dédié */}
+=======
+      {/* FLUX D'ACTIVITÉ EN TEMPS RÉEL */}
+>>>>>>> 0dd217c31f2f9001975ff823ab57880aa9df9366
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
         <div className="bg-transparent border border-slate-800 rounded-xl p-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3 pb-2 border-b border-slate-800">
             <div className="flex items-center gap-3">
               <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
+<<<<<<< HEAD
                 <Activity size={14} className="text-orange-400" /> ÉVÉNEMENTS EN DIRECT
               </h3>
               <div className="flex gap-2 flex-wrap">
@@ -557,16 +642,29 @@ export default function FleetMonitoring() {
                     }`}
                   >
                     {f === 'Géofence' && geofenceAlertCount > 0 ? `${f} (${geofenceAlertCount})` : f}
+=======
+                <Activity size={14} className="text-orange-400" /> ÉVÉNEMENTS TÉLÉMÉTRIE EN DIRECT
+              </h3>
+              <div className="flex gap-2">
+                {['Tous', 'Erreurs', 'Maintenance', 'Installations'].map((f, i) => (
+                  <button key={i} className={`text-[10px] font-medium uppercase tracking-wider px-2.5 py-1 rounded cursor-pointer transition-colors ${i === 0 ? 'border border-orange-600 text-orange-400' : 'bg-transparent text-slate-400 hover:text-slate-200 border border-slate-800'}`}>
+                    {f}
+>>>>>>> 0dd217c31f2f9001975ff823ab57880aa9df9366
                   </button>
                 ))}
               </div>
             </div>
+<<<<<<< HEAD
+=======
+
+>>>>>>> 0dd217c31f2f9001975ff823ab57880aa9df9366
             <button className="text-[10px] text-orange-400 hover:text-orange-300 font-semibold uppercase tracking-wider flex items-center gap-1 cursor-pointer">
               VOIR LE JOURNAL COMPLET <ArrowRight size={10} />
             </button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-5 gap-3">
+<<<<<<< HEAD
             <AnimatePresence mode="popLayout">
               {filteredEvents.slice(0, 5).map((evt) => (
                 <motion.div
@@ -592,6 +690,19 @@ export default function FleetMonitoring() {
                 </motion.div>
               ))}
             </AnimatePresence>
+=======
+            {liveFeedEvents.map((evt) => (
+              <div key={evt.id} className="bg-transparent p-2.5 rounded-xl border border-slate-800 flex items-center justify-between gap-2 hover:border-slate-700 transition-colors">
+                <div className="min-w-0">
+                  <span className={`text-[8px] px-1.5 py-0.2 rounded font-semibold uppercase tracking-wider border inline-block mb-1 ${evt.color}`}>
+                    {evt.badge}
+                  </span>
+                  <p className="text-[10px] font-bold text-slate-200 truncate">{evt.text}</p>
+                </div>
+                <span className="text-[9px] text-slate-500 font-mono flex-shrink-0">{evt.time}</span>
+              </div>
+            ))}
+>>>>>>> 0dd217c31f2f9001975ff823ab57880aa9df9366
           </div>
         </div>
       </motion.div>

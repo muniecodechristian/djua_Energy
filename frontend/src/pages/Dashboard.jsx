@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+=======
+import React, { useState } from 'react';
+>>>>>>> 0dd217c31f2f9001975ff823ab57880aa9df9366
 import {
   ComposableMap,
   Geographies,
@@ -12,7 +16,11 @@ import {
   Pie,
   Cell,
   ResponsiveContainer,
+<<<<<<< HEAD
   Tooltip as RechartsTooltip
+=======
+  Tooltip
+>>>>>>> 0dd217c31f2f9001975ff823ab57880aa9df9366
 } from 'recharts';
 import {
   Search,
@@ -29,6 +37,7 @@ import {
   Cpu,
   Box,
   RefreshCw,
+<<<<<<< HEAD
   Globe,
   MapPin,
   X
@@ -44,10 +53,29 @@ import {
 
 const geoUrl = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
 
+=======
+  Globe
+} from 'lucide-react';
+
+const geoUrl = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
+
+const mapMarkers = [
+  { name: "Kinshasa", coordinates: [15.3222, -4.325], status: "operational", hubs: "64,210", load: "94.2%" },
+  { name: "Lubumbashi", coordinates: [27.4794, -11.6609], status: "operational", hubs: "28,400", load: "88.5%" },
+  { name: "Goma", coordinates: [29.2285, -1.6792], status: "critical", hubs: "12,150", load: "62.1%" },
+  { name: "Kisangani", coordinates: [25.1900, 0.5153], status: "warning", hubs: "9,830", load: "78.4%" },
+  { name: "Bukavu", coordinates: [28.8608, -2.5083], status: "warning", hubs: "8,920", load: "74.9%" },
+  { name: "Matadi", coordinates: [13.4500, -5.8167], status: "operational", hubs: "15,200", load: "91.0%" },
+  { name: "Mbuji-Mayi", coordinates: [23.6000, -6.1500], status: "warning", hubs: "11,410", load: "69.3%" },
+  { name: "Kananga", coordinates: [22.4167, -5.8958], status: "critical", hubs: "8,622", load: "58.8%" },
+];
+
+>>>>>>> 0dd217c31f2f9001975ff823ab57880aa9df9366
 const generateSparklineData = (base) =>
   Array.from({ length: 15 }, () => ({ value: base + Math.floor(Math.random() * 20 - 10) }));
 
 const kpiData = [
+<<<<<<< HEAD
   {
     title: "Total Smart Hubs",
     value: "158 742",
@@ -92,6 +120,52 @@ const kpiData = [
     strokeColor: "#FF7900",
     icon: <Zap size={18} className="text-[#FF7900]" />,
     data: generateSparklineData(500)
+=======
+  { 
+    title: "Total Smart Hubs", 
+    value: "158 742", 
+    change: "+2.4% vs hier", 
+    isPositive: true,
+    strokeColor: "#FF7900", 
+    icon: <Box size={18} className="text-[#FF7900]" />, 
+    data: generateSparklineData(150) 
+  },
+  { 
+    title: "Opérationnels", 
+    value: "142 389", 
+    change: "89.7% du parc", 
+    isPositive: true,
+    strokeColor: "#10b981", 
+    icon: <CheckCircle2 size={18} className="text-emerald-400" />, 
+    data: generateSparklineData(140) 
+  },
+  { 
+    title: "À Risque", 
+    value: "7 842", 
+    change: "4.9% du parc", 
+    isPositive: false,
+    strokeColor: "#f59e0b", 
+    icon: <AlertTriangle size={18} className="text-amber-400" />, 
+    data: generateSparklineData(20) 
+  },
+  { 
+    title: "Hors Ligne", 
+    value: "8 511", 
+    change: "5.4% du parc", 
+    isPositive: false,
+    strokeColor: "#ef4444", 
+    icon: <XCircle size={18} className="text-rose-400" />, 
+    data: generateSparklineData(15) 
+  },
+  { 
+    title: "Énergie Produite", 
+    value: "518.4 MWh", 
+    change: "+4.1% vs hier", 
+    isPositive: true,
+    strokeColor: "#FF7900", 
+    icon: <Zap size={18} className="text-[#FF7900]" />, 
+    data: generateSparklineData(500) 
+>>>>>>> 0dd217c31f2f9001975ff823ab57880aa9df9366
   },
 ];
 
@@ -131,7 +205,6 @@ const Card = ({ children, className = "" }) => (
     {children}
   </div>
 );
-
 const parseCoordinate = (val) => {
   if (val === null || val === undefined) return null;
   const num = typeof val === 'number' ? val : parseFloat(String(val).replace(',', '.'));
@@ -223,11 +296,35 @@ export default function Dashboard() {
     <div className="min-h-screen text-zinc-100 p-4 md:p-8 font-sans bg-transparent selection:bg-[#FF7900]/30 selection:text-white relative">
       <div className="space-y-6 relative z-10 max-w-[1600px] mx-auto">
 
+=======
+export default function Dashboard() {
+  const [activeCity, setActiveCity] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefresh = () => {
+    setIsRefreshing(true);
+    setTimeout(() => setIsRefreshing(false), 800);
+  };
+
+  return (
+    <div className="min-h-screen text-zinc-100 p-4 md:p-8 font-sans bg-transparent selection:bg-[#FF7900]/30 selection:text-white relative">
+
+      <div className="space-y-6 relative z-10 max-w-[1600px] mx-auto">
+        
+   
+
+        {/* 1. KPI GRID */}
+>>>>>>> 0dd217c31f2f9001975ff823ab57880aa9df9366
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
           {kpiData.map((kpi, index) => (
             <Card key={index} className="p-5 flex flex-col justify-between group cursor-default relative">
               <div className="absolute inset-0 bg-gradient-to-b from-white/[0.03] to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+<<<<<<< HEAD
 
+=======
+              
+>>>>>>> 0dd217c31f2f9001975ff823ab57880aa9df9366
               <div className="relative z-10">
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-[11px] font-semibold text-zinc-400 uppercase tracking-widest">{kpi.title}</span>
@@ -244,6 +341,7 @@ export default function Dashboard() {
               <div className="h-12 mt-4 w-full relative z-10 opacity-70 group-hover:opacity-100 transition-opacity duration-300">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={kpi.data}>
+<<<<<<< HEAD
                     <Line
                       type="monotone"
                       dataKey="value"
@@ -251,6 +349,15 @@ export default function Dashboard() {
                       strokeWidth={2}
                       dot={false}
                       isAnimationActive={false}
+=======
+                    <Line 
+                      type="monotone" 
+                      dataKey="value" 
+                      stroke={kpi.strokeColor} 
+                      strokeWidth={2} 
+                      dot={false} 
+                      isAnimationActive={false} 
+>>>>>>> 0dd217c31f2f9001975ff823ab57880aa9df9366
                     />
                   </LineChart>
                 </ResponsiveContainer>
@@ -259,15 +366,26 @@ export default function Dashboard() {
           ))}
         </div>
 
+<<<<<<< HEAD
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
 
+=======
+        {/* 2. SECTION CENTRALE */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+          
+          {/* COLONNE GAUCHE : ALERTES */}
+>>>>>>> 0dd217c31f2f9001975ff823ab57880aa9df9366
           <Card className="lg:col-span-3 flex flex-col p-0 h-[520px]">
             <div className="px-5 py-4 border-b border-zinc-800/60 flex justify-between items-center bg-zinc-950/40 backdrop-blur-md">
               <h2 className="text-[11px] font-bold text-zinc-300 uppercase tracking-widest flex items-center gap-2">
                 Alertes Actives
+<<<<<<< HEAD
                 <span className="bg-rose-500/15 text-rose-400 border border-rose-500/30 px-1.5 py-0.5 rounded text-[10px] font-bold">
                   {Array.isArray(alerts) ? alerts.length : alertsData.length}
                 </span>
+=======
+                <span className="bg-rose-500/15 text-rose-400 border border-rose-500/30 px-1.5 py-0.5 rounded text-[10px] font-bold">12</span>
+>>>>>>> 0dd217c31f2f9001975ff823ab57880aa9df9366
               </h2>
               <button className="text-[11px] font-medium text-[#FF7900] hover:text-orange-400 transition-colors">Tout voir</button>
             </div>
@@ -288,6 +406,7 @@ export default function Dashboard() {
                         <Activity size={16} className="text-zinc-400 group-hover:text-zinc-200 transition-colors" />
                       )}
                     </div>
+<<<<<<< HEAD
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
@@ -295,6 +414,16 @@ export default function Dashboard() {
                             : isHigh ? 'bg-amber-500/15 text-amber-400 border-amber-500/30'
                               : 'bg-zinc-800/60 text-zinc-300 border-zinc-700/60'
                           }`}>
+=======
+                    
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md border ${
+                          isCritical ? 'bg-rose-500/15 text-rose-400 border-rose-500/30' 
+                          : isHigh ? 'bg-amber-500/15 text-amber-400 border-amber-500/30' 
+                          : 'bg-zinc-800/60 text-zinc-300 border-zinc-700/60'
+                        }`}>
+>>>>>>> 0dd217c31f2f9001975ff823ab57880aa9df9366
                           {alert.severity}
                         </span>
                         <h3 className="text-[11px] font-semibold text-zinc-200 truncate">{alert.label}</h3>
@@ -308,11 +437,16 @@ export default function Dashboard() {
             </div>
           </Card>
 
+<<<<<<< HEAD
+=======
+          {/* COLONNE CENTRALE : CARTE RDC HAUTE DÉFINITION & PROPRE */}
+>>>>>>> 0dd217c31f2f9001975ff823ab57880aa9df9366
           <Card className="lg:col-span-6 flex flex-col p-0 relative overflow-hidden group h-[520px]">
             <div className="px-5 py-4 flex justify-between items-center bg-zinc-950/80 border-b border-zinc-800/60 z-20 absolute top-0 left-0 right-0 backdrop-blur-xl">
               <div className="flex items-center gap-2">
                 <Globe size={15} className="text-[#FF7900]" />
                 <h2 className="text-[11px] font-bold text-zinc-200 uppercase tracking-widest">
+<<<<<<< HEAD
                   Parc RDC ({dynamicMarkers.length} Détectés)
                 </h2>
               </div>
@@ -327,16 +461,34 @@ export default function Dashboard() {
                     Live Sync
                   </span>
                 )}
+=======
+                  Cartographie Opérationnelle RDC ({mapMarkers.length} Hubs Majeurs)
+                </h2>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-[10px] font-medium text-emerald-400 font-mono">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
+                  Live Sync
+                </span>
+>>>>>>> 0dd217c31f2f9001975ff823ab57880aa9df9366
               </div>
             </div>
 
             <div className="flex-1 bg-zinc-950 relative flex items-center justify-center overflow-hidden pt-12">
               <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(255,121,0,0.06)_0%,transparent_70%)] pointer-events-none" />
+<<<<<<< HEAD
 
               <ComposableMap
                 projection="geoMercator"
                 projectionConfig={{ scale: 1900, center: [24, -3.5] }}
                 className="w-full h-full opacity-95 group-hover:opacity-100 transition-opacity duration-700 outline-none"
+=======
+              
+              <ComposableMap
+                projection="geoMercator"
+                projectionConfig={{ scale: 2300, center: [23.5, -2.8] }}
+                className="w-full h-full opacity-95 group-hover:opacity-100 transition-opacity duration-700"
+>>>>>>> 0dd217c31f2f9001975ff823ab57880aa9df9366
               >
                 <Geographies geography={geoUrl}>
                   {({ geographies }) =>
@@ -346,6 +498,7 @@ export default function Dashboard() {
                         <Geography
                           key={geo.rsmKey}
                           geography={geo}
+<<<<<<< HEAD
                           fill={isDRC ? "#22222a" : "#101014"}
                           stroke={isDRC ? "#FF7900" : "#1c1c21"}
                           strokeWidth={isDRC ? 1.0 : 0.4}
@@ -353,6 +506,15 @@ export default function Dashboard() {
                             default: { outline: "none" },
                             hover: { fill: isDRC ? "#2a2a36" : "#101014", stroke: isDRC ? "#FF7900" : "#1c1c21", outline: "none" },
                             pressed: { outline: "none" },
+=======
+                          fill={isDRC ? "#1e1e24" : "#121216"} 
+                          stroke={isDRC ? "#FF7900" : "#222228"} 
+                          strokeWidth={isDRC ? 1.2 : 0.4}
+                          style={{
+                            default: { outline: "none", transition: "all 300ms" },
+                            hover: { fill: isDRC ? "#272732" : "#16161a", stroke: isDRC, outline: "none" },
+                            pressed: { fill: "#FF7900", outline: "none" },
+>>>>>>> 0dd217c31f2f9001975ff823ab57880aa9df9366
                           }}
                         />
                       );
@@ -360,6 +522,7 @@ export default function Dashboard() {
                   }
                 </Geographies>
 
+<<<<<<< HEAD
                 {dynamicMarkers.map((marker) => (
                   <Marker
                     key={marker.id}
@@ -377,10 +540,49 @@ export default function Dashboard() {
                       strokeWidth={1.5}
                       className="drop-shadow-[0_0_8px_rgba(0,0,0,0.8)] transition-transform hover:scale-150"
                     />
+=======
+                {mapMarkers.map(({ name, coordinates, status, hubs, load }, i) => (
+                  <Marker 
+                    key={i} 
+                    coordinates={coordinates}
+                    onMouseEnter={() => setActiveCity({ name, status, hubs, load })}
+                    onMouseLeave={() => setActiveCity(null)}
+                    className="cursor-pointer"
+                  >
+                    {status === 'critical' && (
+                      <circle r={14} fill="#ef4444" opacity={0.25} className="animate-ping" />
+                    )}
+                    <circle
+                      r={5.5}
+                      fill={
+                        status === 'operational' ? '#10b981'
+                        : status === 'warning' ? '#f59e0b'
+                        : '#ef4444'
+                      }
+                      stroke="#000000"
+                      strokeWidth={2}
+                      className="drop-shadow-[0_0_8px_rgba(0,0,0,0.8)] transition-transform hover:scale-125"
+                    />
+                    <text
+                      textAnchor="middle"
+                      y={-12}
+                      style={{
+                        fontFamily: "Inter, sans-serif",
+                        fontSize: "9.5px",
+                        fontWeight: "600",
+                        fill: "#e4e4e7",
+                        pointerEvents: "none",
+                        textShadow: "0 2px 4px rgba(0,0,0,0.9)"
+                      }}
+                    >
+                      {name}
+                    </text>
+>>>>>>> 0dd217c31f2f9001975ff823ab57880aa9df9366
                   </Marker>
                 ))}
               </ComposableMap>
 
+<<<<<<< HEAD
               {activeHub && (
                 <div className="absolute top-16 right-5 bg-zinc-900/95 backdrop-blur-xl border border-zinc-700/80 rounded-xl shadow-2xl z-30 min-w-[260px] animate-in fade-in zoom-in-95 duration-200">
                   <div className="px-4 py-3 border-b border-zinc-800/80 flex items-center justify-between gap-4">
@@ -412,10 +614,28 @@ export default function Dashboard() {
                       <span className="flex items-center gap-1.5 text-zinc-500"><MapPin size={12} /> Localisation (Live):</span>
                       <strong className="text-[#FF7900] leading-snug">{physicalAddress}</strong>
                     </div>
+=======
+              {/* TOOLTIP HOVER CARTE */}
+              {activeCity && (
+                <div className="absolute top-16 right-5 bg-zinc-900/90 backdrop-blur-xl border border-zinc-700/80 rounded-xl p-3 shadow-2xl z-30 pointer-events-none animate-in fade-in zoom-in-95 duration-200">
+                  <div className="text-xs font-bold text-white mb-1 flex items-center justify-between gap-3">
+                    <span>{activeCity.name}</span>
+                    <span className={`text-[9px] uppercase px-1.5 py-0.5 rounded font-mono ${
+                      activeCity.status === 'operational' ? 'bg-emerald-500/20 text-emerald-400' :
+                      activeCity.status === 'warning' ? 'bg-amber-500/20 text-amber-400' : 'bg-rose-500/20 text-rose-400'
+                    }`}>
+                      {activeCity.status}
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-zinc-400 space-y-0.5 font-mono">
+                    <div>Hubs actifs : <strong className="text-zinc-200">{activeCity.hubs}</strong></div>
+                    <div>Charge réseau : <strong className="text-zinc-200">{activeCity.load}</strong></div>
+>>>>>>> 0dd217c31f2f9001975ff823ab57880aa9df9366
                   </div>
                 </div>
               )}
 
+<<<<<<< HEAD
               <div className="absolute bottom-4 left-4 bg-zinc-950/80 backdrop-blur-xl border border-zinc-800/80 rounded-xl p-3 space-y-2 text-[11px] font-medium z-10 shadow-xl">
                 <div className="flex items-center gap-2.5">
                   <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
@@ -424,16 +644,41 @@ export default function Dashboard() {
                 <div className="flex items-center gap-2.5">
                   <span className="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]" />
                   <span className="text-zinc-300">Kit Inactif / Suspendu (Rouge)</span>
+=======
+              {/* LÉGENDE DE LA CARTE */}
+              <div className="absolute bottom-4 left-4 bg-zinc-950/80 backdrop-blur-xl border border-zinc-800/80 rounded-xl p-3 space-y-2 text-[11px] font-medium z-10 shadow-xl">
+                <div className="flex items-center gap-2.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
+                  <span className="text-zinc-300">En service (142k)</span>
+                </div>
+                <div className="flex items-center gap-2.5">
+                  <span className="w-2 h-2 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.8)]" />
+                  <span className="text-zinc-300">Avertissement (7.8k)</span>
+                </div>
+                <div className="flex items-center gap-2.5">
+                  <span className="w-2 h-2 rounded-full bg-rose-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]" />
+                  <span className="text-zinc-300">Hors service (8.5k)</span>
+>>>>>>> 0dd217c31f2f9001975ff823ab57880aa9df9366
                 </div>
               </div>
             </div>
           </Card>
 
+<<<<<<< HEAD
           <div className="lg:col-span-3 flex flex-col gap-5 h-[520px]">
 
             <Card className="p-4 flex-1 flex flex-col justify-between">
               <h2 className="text-[11px] font-bold text-zinc-300 uppercase tracking-widest mb-1">Incidents Hubs</h2>
 
+=======
+          {/* COLONNE DROITE : STATUTS & RÉPARTITION */}
+          <div className="lg:col-span-3 flex flex-col gap-5 h-[520px]">
+            
+            {/* Pie Chart */}
+            <Card className="p-4 flex-1 flex flex-col justify-between">
+              <h2 className="text-[11px] font-bold text-zinc-300 uppercase tracking-widest mb-1">Incidents Hubs</h2>
+              
+>>>>>>> 0dd217c31f2f9001975ff823ab57880aa9df9366
               <div className="flex-1 relative flex items-center justify-center min-h-[130px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
@@ -451,7 +696,11 @@ export default function Dashboard() {
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
+<<<<<<< HEAD
                     <RechartsTooltip
+=======
+                    <Tooltip 
+>>>>>>> 0dd217c31f2f9001975ff823ab57880aa9df9366
                       contentStyle={{ backgroundColor: 'rgba(9,9,11,0.95)', borderColor: '#27272a', borderRadius: '12px', fontSize: '11px', fontWeight: '500', backdropFilter: 'blur(8px)' }}
                       itemStyle={{ color: '#f4f4f5' }}
                     />
@@ -474,6 +723,10 @@ export default function Dashboard() {
               </div>
             </Card>
 
+<<<<<<< HEAD
+=======
+            {/* Statut Cloud */}
+>>>>>>> 0dd217c31f2f9001975ff823ab57880aa9df9366
             <Card className="p-4 flex-1 flex flex-col justify-center">
               <h2 className="text-[11px] font-bold text-zinc-300 uppercase tracking-widest mb-4">Statut Cloud & IoT</h2>
               <div className="space-y-3.5">
@@ -495,6 +748,10 @@ export default function Dashboard() {
           </div>
         </div>
 
+<<<<<<< HEAD
+=======
+        {/* 3. ACTIVITÉ RÉCENTE */}
+>>>>>>> 0dd217c31f2f9001975ff823ab57880aa9df9366
         <Card className="p-5">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-[11px] font-bold text-zinc-300 uppercase tracking-widest flex items-center gap-2">
@@ -508,10 +765,18 @@ export default function Dashboard() {
             {recentActivityData.map((activity, i) => (
               <div key={i} className="bg-zinc-900/30 p-3.5 rounded-xl border border-zinc-800/60 flex items-center justify-between hover:border-zinc-700 hover:bg-zinc-900/60 transition-all group">
                 <div className="flex items-center gap-3 min-w-0">
+<<<<<<< HEAD
                   <div className={`w-2 h-2 rounded-full flex-shrink-0 ${activity.status === 'success' ? 'bg-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.8)]'
                       : activity.status === 'info' ? 'bg-[#FF7900] shadow-[0_0_10px_rgba(255,121,0,0.8)]'
                         : 'bg-zinc-400 shadow-[0_0_10px_rgba(161,161,170,0.8)]'
                     }`} />
+=======
+                  <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                    activity.status === 'success' ? 'bg-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.8)]' 
+                    : activity.status === 'info' ? 'bg-[#FF7900] shadow-[0_0_10px_rgba(255,121,0,0.8)]' 
+                    : 'bg-zinc-400 shadow-[0_0_10px_rgba(161,161,170,0.8)]'
+                  }`} />
+>>>>>>> 0dd217c31f2f9001975ff823ab57880aa9df9366
                   <div className="min-w-0">
                     <p className="text-[11px] font-semibold text-zinc-200 truncate group-hover:text-white transition-colors">{activity.action}</p>
                     <p className="text-[10px] font-medium text-zinc-400 truncate mt-0.5 font-mono">{activity.desc}</p>
@@ -525,8 +790,12 @@ export default function Dashboard() {
 
       </div>
 
+<<<<<<< HEAD
       <style dangerouslySetInnerHTML={{
         __html: `
+=======
+      <style dangerouslySetInnerHTML={{__html: `
+>>>>>>> 0dd217c31f2f9001975ff823ab57880aa9df9366
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(39, 39, 42, 0.6); border-radius: 4px; }

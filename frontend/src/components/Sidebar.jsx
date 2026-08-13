@@ -16,8 +16,12 @@ import {
   ChevronRight,
   LogOut,
   FilePlus,
+<<<<<<< HEAD
   Activity,
   ShieldAlert
+=======
+  Activity
+>>>>>>> 0dd217c31f2f9001975ff823ab57880aa9df9366
 } from 'lucide-react';
 import QuickSubscriptionButton from './QuickSubscriptionButton';
 
@@ -27,7 +31,10 @@ const mainNavItems = [
   { label: 'Decisions', icon: MessageSquare, path: '/decision' },
   { label: 'Kits intelligent', icon: Box, path: '/SmartKitdetails' },
   { label: 'Suivi de Flotte', icon: Radio, path: '/FleetMonitoring' },
+<<<<<<< HEAD
   { label: 'Alerte Geofence', icon: ShieldAlert, path: '/geofencing', badge: 'GPS' },
+=======
+>>>>>>> 0dd217c31f2f9001975ff823ab57880aa9df9366
   { label: 'Interventions', icon: ClipboardList, path: '/InterventionWizard' },
   { label: 'Clients', icon: Users, path: '/CustomerProfile' },
   { label: 'Opérations', icon: Wrench, path: '/OperationsOverview', badge: '12' },
@@ -103,7 +110,11 @@ export default function Sidebar() {
                   key={item.path}
                   onClick={() => navigate(item.path)}
                   title={isCollapsed ? item.label : undefined}
+<<<<<<< HEAD
                   className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-xs font-medium transition-all duration-300 relative group ${
+=======
+                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all duration-300 relative group ${
+>>>>>>> 0dd217c31f2f9001975ff823ab57880aa9df9366
                     isActive
                       ? 'bg-[#FF7900] text-white shadow-[0_0_15px_rgba(255,121,0,0.3)]'
                       : 'text-zinc-400 hover:bg-zinc-900/30 hover:text-zinc-200 border border-transparent'
@@ -183,10 +194,15 @@ export default function Sidebar() {
         </div>
 
         <style dangerouslySetInnerHTML={{__html: `
+<<<<<<< HEAD
           .no-scrollbar::-webkit-scrollbar { width: 5px; }
           .no-scrollbar::-webkit-scrollbar-track { background: transparent; }
           .no-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }
           .no-scrollbar::-webkit-scrollbar-thumb:hover { background: #FF7900; }
+=======
+          .no-scrollbar::-webkit-scrollbar { display: none; }
+          .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+>>>>>>> 0dd217c31f2f9001975ff823ab57880aa9df9366
         `}} />
       </aside>
 
