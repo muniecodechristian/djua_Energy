@@ -29,7 +29,7 @@ export const validate = (schema) => (req, res, next) => {
       });
     }
 
-    // Assign parsed and cleaned values back to request
+    // Assign parsed and cleaned values back to request...
     req.body = result.data.body;
     req.query = result.data.query;
     req.params = result.data.params;

@@ -17,10 +17,7 @@ import FleetMonitoring from './pages/FleetMonitoring';
 import SubscriptionForm from './pages/SubscriptionForm';
 import OrangeKitsRegistry from './pages/OrangeKitsRegistry';
 import TelemetryDashboard from './pages/TelemetryDashboard';
-<<<<<<< HEAD
 import GeofencingAlerts from './pages/GeofencingAlerts';
-=======
->>>>>>> 0dd217c31f2f9001975ff823ab57880aa9df9366
 
 // ─── Loader affiché pendant la vérification de session ────────────────────────
 const AuthLoader = () => (
@@ -88,10 +85,7 @@ function App() {
         <Route path="/subscription"         element={<SubscriptionForm />} />
         <Route path="/orange-kits"          element={<OrangeKitsRegistry />} />
         <Route path="/telemetry"            element={<TelemetryDashboard />} />
-<<<<<<< HEAD
         <Route path="/geofencing"           element={<GeofencingAlerts />} />
-=======
->>>>>>> 0dd217c31f2f9001975ff823ab57880aa9df9366
       </Route>
     </Routes>
   );

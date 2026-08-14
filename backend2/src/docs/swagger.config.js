@@ -83,7 +83,7 @@ All endpoints return a consistent JSON envelope:
   // ─── Servers ─────────────────────────────────────────────────────────────────
   servers: [
     {
-      url: 'http://localhost:5500',
+      url: 'http://localhost:5000',
       description: 'Local development server',
     },
     {

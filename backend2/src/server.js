@@ -1,13 +1,10 @@
-import config            from './config/env.config.js';
-import connectDB         from './config/db.config.js'; 
-import { startBroker }   from './broker/mqtt.broker.js';
+import config from './config/env.config.js';
+import connectDB from './config/db.config.js';
+import { startBroker } from './broker/mqtt.broker.js';
 import { connectClient } from './services/mqtt.service.js';
-import app               from './app.js';
-<<<<<<< HEAD
-import http              from 'http';
-import { initSocket }    from './services/socket.service.js';
-=======
->>>>>>> 0dd217c31f2f9001975ff823ab57880aa9df9366
+import app from './app.js';
+import http from 'http';
+import { initSocket } from './services/socket.service.js';
 
 const startServer = async () => {
   try {
@@ -18,16 +15,11 @@ const startServer = async () => {
     startBroker();
     setTimeout(connectClient, 200);
 
-<<<<<<< HEAD
     // 4. Démarrage du serveur HTTP avec Socket.io
     const server = http.createServer(app);
     initSocket(server);
 
     server.listen(config.port, () => {
-=======
-    // 4. Démarrage du serveur HTTP
-    app.listen(config.port, () => {
->>>>>>> 0dd217c31f2f9001975ff823ab57880aa9df9366
       console.log(` Serveur HTTP démarré sur le port ${config.port}`);
       console.log(` API : http://localhost:${config.port}/api/devices`);
     });

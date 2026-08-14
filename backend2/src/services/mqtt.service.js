@@ -2,16 +2,10 @@
 // Client MQTT local (connecté au broker embarqué) + traitement des messages.
 // Ce service est la seule couche qui interagit avec le store via les mutations MQTT.
 
-<<<<<<< HEAD
 import mqtt from 'mqtt';
 import config from '../config/env.config.js';
-import * as store from '../store/db.store.js';
-import { checkAndTriggerGeofence } from './geofence.service.js';
-=======
-import mqtt   from 'mqtt';
-import config from '../config/env.config.js';
 import * as store from '../store/memory.store.js';
->>>>>>> 0dd217c31f2f9001975ff823ab57880aa9df9366
+import { checkAndTriggerGeofence } from './geofence.service.js';
 
 // ─── État interne ─────────────────────────────────────────────────────────────
 
@@ -55,36 +49,25 @@ function handleMessage(topic, message) {
       break;
 
     case 'telemetry': {
-      // ─── Logging enrichi télémétrie ESP32 ────────────────────────────────
       const t = payload;
       console.log(`\n══════════════════ TÉLÉMÉTRIE [${deviceId}] ══════════════════`);
-<<<<<<< HEAD
       console.log(`   Timestamp      : ${t.timestamp ?? new Date().toISOString()}`);
       console.log(`   Batterie       : ${t.batteryVoltage ?? '?'}V  |  ${t.batteryCurrent ?? '?'}A  |  SOC: ${t.batterySOC ?? '?'}%  |  Temp: ${t.batteryTemperature ?? '?'}°C`);
-      console.log(`    Panneau       : ${t.panelVoltage ?? '?'}V  |  ${t.panelCurrent ?? '?'}A  |  Puissance: ${t.panelPower ?? '?'}W`);
+      console.log(`   Panneau        : ${t.panelVoltage ?? '?'}V  |  ${t.panelCurrent ?? '?'}A  |  Puissance: ${t.panelPower ?? '?'}W`);
       console.log(`   GPS            : lat=${t.latitude ?? '?'}  lon=${t.longitude ?? '?'}  vitesse=${t.speed ?? '?'} km/h`);
-      console.log(`    Tamper        : ${t.tamper ? '  BOITIER OUVERT' : 'OK (fermé)'}`);
+      console.log(`   Tamper         : ${t.tamper ? 'BOITIER OUVERT' : 'OK (fermé)'}`);
       console.log(`   Firmware       : ${t.firmwareVersion ?? '?'}`);
-=======
-      console.log(`  📅 Timestamp      : ${t.timestamp ?? new Date().toISOString()}`);
-      console.log(`  🔋 Batterie       : ${t.batteryVoltage ?? '?'}V  |  ${t.batteryCurrent ?? '?'}A  |  SOC: ${t.batterySOC ?? '?'}%  |  Temp: ${t.batteryTemperature ?? '?'}°C`);
-      console.log(`  ☀️  Panneau       : ${t.panelVoltage ?? '?'}V  |  ${t.panelCurrent ?? '?'}A  |  Puissance: ${t.panelPower ?? '?'}W`);
-      console.log(`  📍 GPS            : lat=${t.latitude ?? '?'}  lon=${t.longitude ?? '?'}  vitesse=${t.speed ?? '?'} km/h`);
-      console.log(`  🛡️  Tamper        : ${t.tamper ? '⚠️  BOITIER OUVERT' : 'OK (fermé)'}`);
-      console.log(`  🔧 Firmware       : ${t.firmwareVersion ?? '?'}`);
->>>>>>> 0dd217c31f2f9001975ff823ab57880aa9df9366
       console.log(`══════════════════════════════════════════════════════════════\n`);
       store.setDeviceTelemetry(deviceId, payload);
       break;
     }
 
     case 'alerts':
-      console.log(`  Alerte    ${deviceId} :`, payload);
+      console.log(` Alerte    ${deviceId} :`, payload);
       store.addDeviceAlert(deviceId, payload);
-<<<<<<< HEAD
-      checkAndTriggerGeofence(deviceId, payload.latitude, payload.longitude);
-=======
->>>>>>> 0dd217c31f2f9001975ff823ab57880aa9df9366
+      if (payload && payload.latitude && payload.longitude) {
+        checkAndTriggerGeofence(deviceId, payload.latitude, payload.longitude);
+      }
       break;
 
     default:
@@ -99,7 +82,7 @@ function handleMessage(topic, message) {
  * À appeler après le démarrage du broker (voir server.js).
  */
 export function connectClient() {
-  console.log("Connexion de l'écouteur API au broker MQTT local...");
+  console.log('Connexion de l\'écouteur API au broker MQTT local...');
 
   client = mqtt.connect(config.mqtt.brokerUrl, {
     username: config.mqtt.username,
@@ -111,18 +94,14 @@ export function connectClient() {
     console.log(' Client MQTT connecté au broker.');
     client.subscribe(config.topics.subscribe, (err) => {
       if (err) {
-        console.error(" Échec abonnement :", err);
+        console.error(' Échec abonnement :', err);
       } else {
         console.log(` Abonné : ${config.topics.subscribe}`);
       }
     });
   });
 
-<<<<<<< HEAD
   client.on('error', (err) => console.error(' Erreur MQTT :', err));
-=======
-  client.on('error',   (err) => console.error(' Erreur MQTT :', err));
->>>>>>> 0dd217c31f2f9001975ff823ab57880aa9df9366
   client.on('message', handleMessage);
 }
 
@@ -138,11 +117,7 @@ export function publishCommand(deviceId, command) {
       return reject(new Error('Client MQTT non connecté'));
     }
 
-<<<<<<< HEAD
     const topic = `${config.topics.commandBase}/${deviceId}/commands`;
-=======
-    const topic   = `${config.topics.commandBase}/${deviceId}/commands`;
->>>>>>> 0dd217c31f2f9001975ff823ab57880aa9df9366
     const payload = JSON.stringify({ command, timestamp: new Date().toISOString() });
 
     console.log(` Commande [${command}] → [${topic}]`);
@@ -152,11 +127,3 @@ export function publishCommand(deviceId, command) {
     });
   });
 }
-
-<<<<<<< HEAD
-
-
-
-
-=======
->>>>>>> 0dd217c31f2f9001975ff823ab57880aa9df9366
