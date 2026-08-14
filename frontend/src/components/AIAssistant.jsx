@@ -10,6 +10,7 @@ import {
   ChevronRight,
   Zap
 } from 'lucide-react';
+import api from '../api/axios';
 
 export default function AIAssistant() {
   const [isOpen, setIsOpen] = useState(false);
@@ -32,7 +33,26 @@ export default function AIAssistant() {
     }
   }, [messages, isOpen, isTyping]);
 
-  const handleSend = (e) => {
+  const extractAIText = (payload) => {
+    const data = payload?.data ?? payload;
+    if (!data) return '';
+    if (typeof data === 'string') return data;
+    if (typeof data === 'object') {
+      if (typeof data.message === 'string') return data.message;
+      if (typeof data.text === 'string') return data.text;
+      if (typeof data.reply === 'string') return data.reply;
+      if (Array.isArray(data)) return data.map(d => extractAIText(d)).join('\n');
+      if (data.choices && Array.isArray(data.choices) && data.choices[0]) {
+        const c = data.choices[0];
+        if (typeof c.text === 'string') return c.text;
+        if (c.message && typeof c.message.content === 'string') return c.message.content;
+      }
+      return JSON.stringify(data);
+    }
+    return String(data);
+  };
+
+  const handleSend = async (e) => {
     e.preventDefault();
     if (!input.trim()) return;
 
@@ -47,17 +67,30 @@ export default function AIAssistant() {
     setInput('');
     setIsTyping(true);
 
-    // Simulation de réponse de l'IA (À remplacer par ton API backend / OpenAI / Gemini)
-    setTimeout(() => {
+    try {
+      const resp = await api.post('/ai/conversation', { context: {}, message: userMessage.text });
+      const payload = resp.data?.data ?? resp.data;
+      const text = extractAIText(payload) || 'Aucune réponse reçue de l\'IA.';
+
       const aiResponse = {
         id: Date.now() + 1,
         sender: 'ai',
-        text: `Analyse en cours... J'ai vérifié les données télémétriques. Tout fonctionne de manière optimale.`,
+        text,
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
       setMessages((prev) => [...prev, aiResponse]);
+    } catch (err) {
+      const errMsg = err?.response?.data?.error?.message || err?.message || 'Erreur lors de la requête IA';
+      const aiError = {
+        id: Date.now() + 1,
+        sender: 'ai',
+        text: `Erreur: ${errMsg}`,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+      setMessages((prev) => [...prev, aiError]);
+    } finally {
       setIsTyping(false);
-    }, 1500);
+    }
   };
 
   const handleQuickAction = (text) => {

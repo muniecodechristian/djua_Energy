@@ -12,6 +12,7 @@ import { rateLimit } from 'express-rate-limit';
 import deviceRoutes from './routes/device.routes.js';
 import authRoutes from './routes/auth.routes.js';
 import orangeEnergyRoutes from './routes/orangeEnergy.routes.js';
+import iaRoutes from './routes/ia.routes.js';
 import { swaggerSpec, swaggerUiOptions } from './docs/swagger.config.js';
 
 const app = express();
@@ -86,5 +87,8 @@ app.use('/auth', authRoutes);
 app.use('/api', deviceRoutes);
 
 app.use('/users/', orangeEnergyRoutes);
+
+// Routes pour relayer les requêtes vers l'API d'IA externe
+app.use('/ai', iaRoutes);
 
 export default app;
