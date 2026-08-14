@@ -35,6 +35,7 @@ const globalLimiter = rateLimit({
 app.use(globalLimiter);
 
 const allowedOrigins = [
+  'https://djua-energy-three.vercel.app',
   'http://localhost:5173', // Adresse habituelle du frontend de dev (Vite)
   'https://orangeenergyapi.vercel.app'
 ];
