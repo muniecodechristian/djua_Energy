@@ -57,6 +57,16 @@ app.use(cors({
 app.use(express.json());
 app.use(cookieParser());
 
+// ─── Health check public ──────────────────────────────────────────────────────
+app.get('/', (_req, res) => {
+  res.status(200).json({
+    success: true,
+    status: 'ok',
+    message: 'Backend is running',
+    timestamp: new Date().toISOString()
+  });
+});
+
 // ─── Swagger UI (dev + staging uniquement) ────────────────────────────────────
 // La documentation interactive n'est jamais exposée en production pour éviter
 // de révéler la surface d'attaque de l'API à des tiers non authentifiés.
@@ -77,8 +87,8 @@ if (process.env.NODE_ENV !== 'production') {
     res.send(swaggerSpec);
   });
 
-  console.log('📖 Swagger UI disponible sur /api-docs');
-  console.log('📄 OpenAPI spec JSON disponible sur /api-docs.json');
+  console.log(' Swagger UI disponible sur /api-docs');
+  console.log(' OpenAPI spec JSON disponible sur /api-docs.json');
 }
 
 // ─── Routes applicatives ──────────────────────────────────────────────────────
