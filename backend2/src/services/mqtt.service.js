@@ -6,6 +6,7 @@ import mqtt from 'mqtt';
 import config from '../config/env.config.js';
 import * as store from '../store/memory.store.js';
 import { checkAndTriggerGeofence } from './geofence.service.js';
+import { enrichTelemetry } from './telemetryEnricher.service.js';
 
 // ─── État interne ─────────────────────────────────────────────────────────────
 
@@ -58,7 +59,15 @@ function handleMessage(topic, message) {
       console.log(`   Tamper         : ${t.tamper ? 'BOITIER OUVERT' : 'OK (fermé)'}`);
       console.log(`   Firmware       : ${t.firmwareVersion ?? '?'}`);
       console.log(`══════════════════════════════════════════════════════════════\n`);
-      store.setDeviceTelemetry(deviceId, payload);
+
+      enrichTelemetry(payload)
+        .then((enriched) => {
+          store.setDeviceTelemetry(deviceId, enriched);
+        })
+        .catch((err) => {
+          console.error('[Telemetry Enricher] Error enriching payload, falling back to raw:', err);
+          store.setDeviceTelemetry(deviceId, payload);
+        });
       break;
     }
 

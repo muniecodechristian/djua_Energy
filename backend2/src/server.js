@@ -2,9 +2,26 @@ import config from './config/env.config.js';
 import connectDB from './config/db.config.js';
 import { startBroker } from './broker/mqtt.broker.js';
 import { connectClient } from './services/mqtt.service.js';
+import orangeEnergyService from './services/orangeEnergy.service.js';
 import app from './app.js';
 import http from 'http';
 import { initSocket } from './services/socket.service.js';
+
+const startBackgroundSync = () => {
+  const TWO_HOURS = 2 * 60 * 60 * 1000;
+  
+  console.log('[Background Sync] Lancement de la synchronisation initiale avec Orange Energy...');
+  orangeEnergyService.syncAndGetKits()
+    .then(() => console.log('[Background Sync] Synchronisation initiale réussie.'))
+    .catch((err) => console.error('[Background Sync] Échec de la synchronisation initiale :', err.message));
+
+  setInterval(() => {
+    console.log('[Background Sync] Démarrage de la synchronisation périodique (toutes les 2h)...');
+    orangeEnergyService.syncAndGetKits()
+      .then(() => console.log('[Background Sync] Synchronisation périodique réussie.'))
+      .catch((err) => console.error('[Background Sync] Échec de la synchronisation périodique :', err.message));
+  }, TWO_HOURS);
+};
 
 const startServer = async () => {
   try {
@@ -15,7 +32,10 @@ const startServer = async () => {
     startBroker();
     setTimeout(connectClient, 200);
 
-    // 4. Démarrage du serveur HTTP avec Socket.io
+    // 4. Lancement de la tâche de fond de synchronisation Orange Energy (toutes les 2 heures)
+    startBackgroundSync();
+
+    // 5. Démarrage du serveur HTTP avec Socket.io
     const server = http.createServer(app);
     initSocket(server);
 
