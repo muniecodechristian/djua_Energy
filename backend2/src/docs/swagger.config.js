@@ -88,6 +88,10 @@ All endpoints return a consistent JSON envelope:
       description: 'Local development server',
     },
     {
+      url: 'https://djua-energy-backend.onrender.com',
+      description: 'Production (Render)',
+    },
+    {
       url: 'https://orangeenergyapi.vercel.app',
       description: 'Production (Vercel)',
     },

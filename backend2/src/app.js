@@ -74,10 +74,12 @@ app.get("/", (_req, res) => {
   });
 });
 
-// ─── Swagger UI (dev + staging uniquement) ────────────────────────────────────
-// La documentation interactive n'est jamais exposée en production pour éviter
-// de révéler la surface d'attaque de l'API à des tiers non authentifiés.
-if (process.env.NODE_ENV !== "production") {
+// ─── Swagger UI ─────────────────────────────────────────────────────────────
+// Activé si SWAGGER_ENABLED=true (ou si on n'est pas en production).
+// Sur Render : ajoutez SWAGGER_ENABLED=true dans les variables d'environnement.
+const swaggerEnabled = process.env.SWAGGER_ENABLED === 'true' || process.env.NODE_ENV !== 'production';
+
+if (swaggerEnabled) {
   // Import dynamique nécessaire car swagger-ui-express est un module CommonJS
   // et ce projet utilise ESM (type: "module" dans package.json).
   const swaggerUi = await import("swagger-ui-express");
