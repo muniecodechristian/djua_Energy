@@ -20,6 +20,7 @@
 import swaggerJsdoc from 'swagger-jsdoc';
 import { fileURLToPath } from 'url';
 import { dirname, resolve }  from 'path';
+import config from '../config/env.config.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -83,7 +84,7 @@ All endpoints return a consistent JSON envelope:
   // ─── Servers ─────────────────────────────────────────────────────────────────
   servers: [
     {
-      url: 'http://localhost:5000',
+      url: `http://localhost:${config.port}`,
       description: 'Local development server',
     },
     {
@@ -165,6 +166,7 @@ const options = {
     resolve(__dirname, '../routes/auth.routes.js'),
     resolve(__dirname, '../routes/device.routes.js'),
     resolve(__dirname, '../routes/orangeEnergy.routes.js'),
+    resolve(__dirname, '../routes/ml.routes.js'),
   ],
 };
 

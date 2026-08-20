@@ -13,6 +13,7 @@ import deviceRoutes from "./routes/device.routes.js";
 import authRoutes from "./routes/auth.routes.js";
 import orangeEnergyRoutes from "./routes/orangeEnergy.routes.js";
 import iaRoutes from "./routes/ia.routes.js";
+import mlRoutes from "./routes/ml.routes.js";
 import { swaggerSpec, swaggerUiOptions } from "./docs/swagger.config.js";
 
 const app = express();
@@ -97,10 +98,12 @@ if (process.env.NODE_ENV !== "production") {
   console.log(" OpenAPI spec JSON disponible sur /api-docs.json");
 }
 
-// ─── Routes applicatives ──────────────────────────────────────────────────────
+// Routes applicatives ──────────────────────────────────────────────────────
 app.use("/auth", authRoutes);
 
 app.use("/api", deviceRoutes);
+
+app.use("/api/ml", mlRoutes);
 
 app.use("/users/", orangeEnergyRoutes);
 

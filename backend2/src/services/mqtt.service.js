@@ -7,6 +7,7 @@ import config from '../config/env.config.js';
 import * as store from '../store/memory.store.js';
 import { checkAndTriggerGeofence } from './geofence.service.js';
 import { enrichTelemetry } from './telemetryEnricher.service.js';
+import EnrichedTelemetry from '../models/EnrichedTelemetry.js';
 
 // ─── État interne ─────────────────────────────────────────────────────────────
 
@@ -61,8 +62,14 @@ function handleMessage(topic, message) {
       console.log(`══════════════════════════════════════════════════════════════\n`);
 
       enrichTelemetry(payload)
-        .then((enriched) => {
+        .then(async (enriched) => {
           store.setDeviceTelemetry(deviceId, enriched);
+          try {
+            await EnrichedTelemetry.create(enriched);
+            console.log(`[MQTT Service] Enriched telemetry saved to DB for device ${deviceId}`);
+          } catch (dbErr) {
+            console.error('[MQTT Service] Failed to save enriched telemetry to DB:', dbErr.message);
+          }
         })
         .catch((err) => {
           console.error('[Telemetry Enricher] Error enriching payload, falling back to raw:', err);
