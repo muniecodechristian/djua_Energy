@@ -37,27 +37,9 @@ const globalLimiter = rateLimit({
 });
 app.use(globalLimiter);
 
-const allowedOrigins = [
-  "https://djua-energy-three.vercel.app",
-  "http://localhost:5173", // Adresse habituelle du frontend de dev (Vite)
-  "https://orangeenergyapi.vercel.app",
-];
-
 app.use(
   cors({
-    origin: function (origin, callback) {
-      // Permet les requêtes sans origine (comme les applications mobiles, curl, postman)
-      if (!origin) return callback(null, true);
-
-      if (
-        allowedOrigins.indexOf(origin) !== -1 ||
-        origin.startsWith("http://localhost:")
-      ) {
-        callback(null, true);
-      } else {
-        callback(new Error("Non autorisé par CORS"));
-      }
-    },
+    origin: true,
     credentials: true,
   }),
 );
