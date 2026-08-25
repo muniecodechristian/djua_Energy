@@ -2,8 +2,9 @@ import EnrichedTelemetry from '../models/EnrichedTelemetry.js';
 
 /**
  * GET /api/ml/telemetry
- * Récupère l'historique des télémétries enrichies à 63 champs.
- * Supporte le filtrage optionnel par kitId / kit_id et la pagination.
+ * Récupère l'historique des télémétries enrichies au nouveau format imbriqué
+ * attendu par le modèle IA (identity, customer, contract, payments, records…).
+ * Supporte le filtrage optionnel par kitId et la pagination.
  */
 export async function getEnrichedTelemetry(req, res) {
   try {
@@ -12,10 +13,12 @@ export async function getEnrichedTelemetry(req, res) {
     const query = {};
     const targetKitId = kitId || kit_id;
     if (targetKitId) {
-      // Permet de filtrer soit par le champ kit_id soit par kitId (selon ce qui est stocké)
+      // Filtre sur le nouveau schéma imbriqué (identity.kit_id)
+      // et sur l'ancien schéma plat (kit_id / kitId) pour la rétrocompatibilité
       query.$or = [
+        { 'identity.kit_id': targetKitId },
         { kit_id: targetKitId },
-        { kitId: targetKitId }
+        { kitId: targetKitId },
       ];
     }
 
@@ -30,14 +33,13 @@ export async function getEnrichedTelemetry(req, res) {
         .skip(skipNum)
         .limit(limitNum)
         .lean(),
-      EnrichedTelemetry.countDocuments(query)
+      EnrichedTelemetry.countDocuments(query),
     ]);
 
-    // Nettoyer les objets retournés en enlevant les champs Mongoose internes (__v, _id) si nécessaire,
-    // ou les laisser pour référence. L'objet conserve la structure plate à 63 champs.
+    // Supprimer les champs internes Mongoose avant de renvoyer
     const formattedData = telemetries.map(t => {
-      const { _id, __v, createdAt, updatedAt, ...flatData } = t;
-      return flatData;
+      const { _id, __v, createdAt, updatedAt, ...doc } = t;
+      return doc;
     });
 
     res.json({
@@ -47,12 +49,15 @@ export async function getEnrichedTelemetry(req, res) {
         total,
         page: pageNum,
         limit: limitNum,
-        totalPages: Math.ceil(total / limitNum)
+        totalPages: Math.ceil(total / limitNum),
       },
-      data: formattedData
+      data: formattedData,
     });
   } catch (err) {
-    console.error('Erreur lors de la récupération des télémétries enrichies :', err);
-    res.status(500).json({ success: false, message: 'Erreur serveur interne lors de la récupération des données' });
+    console.error('[ML Controller] Erreur récupération télémétries enrichies :', err);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur serveur interne lors de la récupération des données',
+    });
   }
 }

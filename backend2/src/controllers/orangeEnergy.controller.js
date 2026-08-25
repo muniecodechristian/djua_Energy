@@ -89,3 +89,41 @@ export const getKitById = async (req, res) => {
     });
   }
 };
+
+export const getPayments = async (req, res) => {
+  try {
+    const payments = await orangeEnergyService.syncAndGetPayments();
+    return res.status(200).json({
+      success: true,
+      data: payments
+    });
+  } catch (error) {
+    return res.status(502).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+export const getPaymentsByPhone = async (req, res) => {
+  try {
+    const { phone } = req.params;
+    if (!phone) {
+      return res.status(400).json({
+        success: false,
+        message: 'Phone parameter is required'
+      });
+    }
+
+    const payments = await orangeEnergyService.syncAndGetPaymentsByPhone(phone);
+    return res.status(200).json({
+      success: true,
+      data: payments
+    });
+  } catch (error) {
+    return res.status(502).json({
+      success: false,
+      message: error.message
+    });
+  }
+};

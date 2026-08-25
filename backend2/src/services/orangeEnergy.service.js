@@ -3,6 +3,7 @@ import config from '../config/env.config.js';
 import Client from '../models/client.model.js';
 import Kit from '../models/kit.model.js';
 import ScoringData from '../models/scoringData.model.js';
+import Payment from '../models/payment.model.js';
 
 class OrangeEnergyService {
   constructor() {
@@ -129,6 +130,58 @@ class OrangeEnergyService {
       console.error(`[OrangeEnergy Service] Échec sync scoring pour le téléphone ${phone} (cache local) :`, error.message);
     }
     return await ScoringData.findOne({ clientPhone: phone });
+  }
+
+  /**
+   * Récupère l'historique complet des paiements depuis l'API externe,
+   * les synchronise en base MongoDB locale et les retourne.
+   */
+  async syncAndGetPayments() {
+    try {
+      const response = await this.client.get('/api/external/payments');
+      const paymentsData = response.data?.data || [];
+
+      console.log(`[OrangeEnergy Service] Synchronisation de ${paymentsData.length} paiements...`);
+
+      if (paymentsData.length > 0) {
+        await Promise.all(paymentsData.map(async (payment) => {
+          await Payment.findOneAndUpdate(
+            { paymentId: payment.paymentId },
+            { $set: payment },
+            { upsert: true }
+          );
+        }));
+      }
+    } catch (error) {
+      console.error('[OrangeEnergy Service] Échec sync paiements (utilisation cache local) :', error.message);
+    }
+    return await Payment.find({}).sort({ date: -1 });
+  }
+
+  /**
+   * Récupère les paiements associés à un numéro de téléphone depuis l'API externe,
+   * les synchronise en base et les retourne.
+   */
+  async syncAndGetPaymentsByPhone(phone) {
+    try {
+      const response = await this.client.get(`/api/external/payments/${encodeURIComponent(phone)}`);
+      const paymentsData = response.data?.data || [];
+
+      console.log(`[OrangeEnergy Service] Synchronisation des paiements pour le téléphone ${phone}...`);
+
+      if (paymentsData.length > 0) {
+        await Promise.all(paymentsData.map(async (payment) => {
+          await Payment.findOneAndUpdate(
+            { paymentId: payment.paymentId },
+            { $set: payment },
+            { upsert: true }
+          );
+        }));
+      }
+    } catch (error) {
+      console.error(`[OrangeEnergy Service] Échec sync paiements pour le téléphone ${phone} (cache local) :`, error.message);
+    }
+    return await Payment.find({ clientPhone: phone }).sort({ date: -1 });
   }
 }
 

@@ -1,5 +1,5 @@
 import express from 'express';
-import { getClients, getKits, getScoringData, getKitById } from '../controllers/orangeEnergy.controller.js';
+import { getClients, getKits, getScoringData, getKitById, getPayments, getPaymentsByPhone } from '../controllers/orangeEnergy.controller.js';
 
 const router = express.Router();
 
@@ -224,5 +224,48 @@ router.get('/orange/kits/:kitId', getKitById);
  *               message: 'Failed to sync scoring data from Orange Energy API'
  */
 router.get('/orange/scoring-data/:phone', getScoringData);
+
+/**
+ * @swagger
+ * /users/orange/payments:
+ *   get:
+ *     summary: List all Orange Energy payments
+ *     description: >
+ *       Triggers a sync with the Orange Energy external API and returns the
+ *       full list of payment records stored in the local MongoDB cache.
+ *     tags:
+ *       - Orange Energy — Payments
+ *     responses:
+ *       '200':
+ *         description: Payments list retrieved and returned successfully.
+ *       '502':
+ *         description: Bad Gateway.
+ */
+router.get('/orange/payments', getPayments);
+
+/**
+ * @swagger
+ * /users/orange/payments/{phone}:
+ *   get:
+ *     summary: List Orange Energy payments by phone
+ *     description: >
+ *       Triggers a sync with the Orange Energy external API and returns the
+ *       payment records for the client identified by their phone number.
+ *     tags:
+ *       - Orange Energy — Payments
+ *     parameters:
+ *       - in: path
+ *         name: phone
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Orange Money phone number.
+ *     responses:
+ *       '200':
+ *         description: Payments found and returned.
+ *       '502':
+ *         description: Bad Gateway.
+ */
+router.get('/orange/payments/:phone', getPaymentsByPhone);
 
 export default router;
