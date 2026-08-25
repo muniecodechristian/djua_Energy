@@ -81,21 +81,19 @@ All endpoints return a consistent JSON envelope:
     },
   },
 
-  // ─── Servers ─────────────────────────────────────────────────────────────────
-  servers: [
-    {
-      url: `http://localhost:${config.port}`,
-      description: 'Local development server',
-    },
-    {
-      url: 'https://djua-energy-backend.onrender.com',
-      description: 'Production (Render)',
-    },
-    {
-      url: 'https://orangeenergyapi.vercel.app',
-      description: 'Production (Vercel)',
-    },
-  ],
+  servers: process.env.NODE_ENV === 'production'
+    ? [
+        {
+          url: 'https://djua-energy-backend.onrender.com',
+          description: 'Production (Render)',
+        },
+      ]
+    : [
+        {
+          url: `http://localhost:${config.port || 5000}`,
+          description: 'Local development server',
+        },
+      ],
 
   // ─── Tag Definitions ─────────────────────────────────────────────────────────
   // Tags create logical sections in Swagger UI — order matters for display.
