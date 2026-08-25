@@ -142,8 +142,12 @@ class OrangeEnergyService {
       const paymentsData = response.data?.data || [];
 
       console.log(`[OrangeEnergy Service] Synchronisation de ${paymentsData.length} paiements...`);
-
       if (paymentsData.length > 0) {
+        console.log('--- DÉTAILS DES PAIEMENTS SYNCHRONISÉS ---');
+        paymentsData.forEach(p => {
+          console.log(`  • ID: ${p.paymentId} | Phone: ${p.clientPhone} | Montant: ${p.amountUSD} USD | Date: ${p.date} | Status: ${p.status}`);
+        });
+        console.log('------------------------------------------');
         await Promise.all(paymentsData.map(async (payment) => {
           await Payment.findOneAndUpdate(
             { paymentId: payment.paymentId },
@@ -168,8 +172,12 @@ class OrangeEnergyService {
       const paymentsData = response.data?.data || [];
 
       console.log(`[OrangeEnergy Service] Synchronisation des paiements pour le téléphone ${phone}...`);
-
       if (paymentsData.length > 0) {
+        console.log(`--- DÉTAILS DES PAIEMENTS POUR ${phone} ---`);
+        paymentsData.forEach(p => {
+          console.log(`  • ID: ${p.paymentId} | Montant: ${p.amountUSD} USD | Date: ${p.date} | Status: ${p.status}`);
+        });
+        console.log('--------------------------------------------------');
         await Promise.all(paymentsData.map(async (payment) => {
           await Payment.findOneAndUpdate(
             { paymentId: payment.paymentId },

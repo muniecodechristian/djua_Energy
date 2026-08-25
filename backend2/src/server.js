@@ -11,13 +11,19 @@ const startBackgroundSync = () => {
   const TWO_HOURS = 2 * 60 * 60 * 1000;
   
   console.log('[Background Sync] Lancement de la synchronisation initiale avec Orange Energy...');
-  orangeEnergyService.syncAndGetKits()
+  Promise.all([
+    orangeEnergyService.syncAndGetKits(),
+    orangeEnergyService.syncAndGetPayments()
+  ])
     .then(() => console.log('[Background Sync] Synchronisation initiale réussie.'))
     .catch((err) => console.error('[Background Sync] Échec de la synchronisation initiale :', err.message));
 
   setInterval(() => {
     console.log('[Background Sync] Démarrage de la synchronisation périodique (toutes les 2h)...');
-    orangeEnergyService.syncAndGetKits()
+    Promise.all([
+      orangeEnergyService.syncAndGetKits(),
+      orangeEnergyService.syncAndGetPayments()
+    ])
       .then(() => console.log('[Background Sync] Synchronisation périodique réussie.'))
       .catch((err) => console.error('[Background Sync] Échec de la synchronisation périodique :', err.message));
   }, TWO_HOURS);
