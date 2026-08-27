@@ -89,6 +89,14 @@ export default function SmartKitDetails() {
   );
   const latestTelemetry = telemetryRecords[telemetryRecords.length - 1];
   const hasTelemetry = Boolean(latestTelemetry);
+  const formatMetric = (value, unit = '') => (
+    value === undefined || value === null || Number.isNaN(Number(value))
+      ? '—'
+      : `${value}${unit}`
+  );
+  const lastUpdate = latestTelemetry?.event_time
+    ? new Date(latestTelemetry.event_time).toLocaleString('fr-FR')
+    : '—';
   const chartTelemetry = telemetryRecords.slice(-24).map((record, index) => ({
     time: record.event_time || `${index + 1}`,
     voltage: record.battery_voltage_v ?? 0,
@@ -171,8 +179,47 @@ export default function SmartKitDetails() {
         ))}
       </div>
 
+      {activeTab === 'Télémétrie' && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-6"
+        >
+          <Card
+            title="LOGS TÉLÉMÉTRIE REÇUS"
+            titleRight={telemetryLoading ? 'Actualisation...' : `${telemetryRecords.length} mesures`}
+          >
+            {!kitId ? (
+              <p className="text-xs text-neutral-500">Sélectionnez un kit depuis le Parc pour afficher ses logs.</p>
+            ) : telemetryLoading ? (
+              <p className="text-xs text-neutral-500">Chargement des données reçues par le backend...</p>
+            ) : telemetryRecords.length === 0 ? (
+              <p className="text-xs text-neutral-500">Aucun log de télémétrie reçu pour ce boîtier.</p>
+            ) : (
+              <div className="space-y-3 max-h-[620px] overflow-y-auto pr-1">
+                {[...telemetryRecords].reverse().map((record, index) => (
+                  <details key={`${record.event_time || 'log'}-${index}`} className="rounded-xl border border-neutral-800 bg-neutral-950/60">
+                    <summary className="cursor-pointer list-none px-4 py-3 flex flex-wrap items-center justify-between gap-3 text-xs">
+                      <span className="font-mono text-orange-400">
+                        {record.event_time || 'Horodatage indisponible'}
+                      </span>
+                      <span className="text-neutral-400">
+                        Batterie {record.battery_voltage_v ?? '—'} V · Solaire {record.solar_power_w ?? '—'} W · Charge {record.load_power_w ?? '—'} W
+                      </span>
+                    </summary>
+                    <pre className="border-t border-neutral-800 px-4 py-3 overflow-x-auto text-[10px] leading-relaxed text-neutral-300">
+                      {JSON.stringify(record, null, 2)}
+                    </pre>
+                  </details>
+                ))}
+              </div>
+            )}
+          </Card>
+        </motion.div>
+      )}
+
       {/* MAIN GRID */}
-      <motion.div variants={staggerContainer} initial="hidden" animate="visible" className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+      <motion.div variants={staggerContainer} initial="hidden" animate="visible" className={`${activeTab === 'Télémétrie' ? 'hidden' : 'grid grid-cols-1 lg:grid-cols-12 gap-5'}`}>
         
         {/* LEFT COLUMN: 5/12 */}
         <div className="lg:col-span-5 flex flex-col gap-5">
@@ -251,49 +298,49 @@ export default function SmartKitDetails() {
         <div className="lg:col-span-4 flex flex-col gap-5">
           {/* System Overview */}
           <motion.div variants={fadeUp}>
-            <Card title="APERÇU DU SYSTÈME" titleRight="Dernière maj : 21 Mai, 09:32" className="pb-2">
+            <Card title="APERÇU DU SYSTÈME" titleRight={`Dernière maj : ${lastUpdate}`} className="pb-2">
               {!telemetryLoading && !hasTelemetry && <p className="mb-5 text-xs text-neutral-500">Aucune donnée de télémétrie reçue pour ce kit.</p>}
               <div className="grid grid-cols-3 gap-4 gap-y-6">
                 <div>
                   <span className="text-[10px] text-neutral-500 font-medium block mb-1">État de charge</span>
-                  <span className="text-sm font-bold text-white">{latestTelemetry?.state_of_charge_pct ?? '—'}{hasTelemetry && '%'}</span>
+                  <span className="text-sm font-bold text-white">{formatMetric(latestTelemetry?.state_of_charge_pct, '%')}</span>
                   <SimpleProgressBar value={latestTelemetry?.state_of_charge_pct ?? 0} color="bg-orange-500 shadow-sm shadow-orange-500" />
                 </div>
                 <div>
                   <span className="text-[10px] text-neutral-500 font-medium block mb-1">État de santé</span>
-                  <span className="text-sm font-bold text-white">{latestTelemetry?.state_of_health_pct ?? '—'}{hasTelemetry && '%'}</span>
+                  <span className="text-sm font-bold text-white">{formatMetric(latestTelemetry?.state_of_health_pct, '%')}</span>
                   <SimpleProgressBar value={latestTelemetry?.state_of_health_pct ?? 0} color="bg-orange-500 shadow-sm shadow-orange-500" />
                 </div>
                 <div>
                   <span className="text-[10px] text-neutral-500 font-medium block mb-1">Temp. Batterie</span>
-                  <span className="text-sm font-bold text-white">43°C</span>
-                  <SimpleProgressBar value={70} color="bg-orange-500 shadow-sm shadow-orange-500" />
+                  <span className="text-sm font-bold text-white">{formatMetric(latestTelemetry?.battery_temperature_c, '°C')}</span>
+                  <SimpleProgressBar value={0} color="bg-orange-500 shadow-sm shadow-orange-500" />
                 </div>
 
                 <div>
                   <span className="text-[10px] text-neutral-500 font-medium block mb-1">Énergie Solaire</span>
-                  <span className="text-sm font-bold text-white">{latestTelemetry?.solar_power_w ?? '—'}{hasTelemetry && ' W'}</span>
+                  <span className="text-sm font-bold text-white">{formatMetric(latestTelemetry?.solar_power_w, ' W')}</span>
                   <Sparkline data={generateSparkline(500, 50)} color="#f97316" />
                 </div>
                 <div>
                   <span className="text-[10px] text-neutral-500 font-medium block mb-1">Énergie Consommée</span>
-                  <span className="text-sm font-bold text-white">{latestTelemetry?.load_power_w ?? '—'}{hasTelemetry && ' W'}</span>
+                  <span className="text-sm font-bold text-white">{formatMetric(latestTelemetry?.load_power_w, ' W')}</span>
                   <Sparkline data={generateSparkline(180, 20)} color="#f97316" />
                 </div>
                 <div>
                   <span className="text-[10px] text-neutral-500 font-medium block mb-1">Énergie du Jour</span>
-                  <span className="text-sm font-bold text-white">2.34 kWh</span>
+                  <span className="text-sm font-bold text-white">{formatMetric(latestTelemetry?.energy_day_kwh, ' kWh')}</span>
                   <Sparkline data={generateSparkline(2, 0.5)} color="#f97316" />
                 </div>
 
                 <div>
                   <span className="text-[10px] text-neutral-500 font-medium block mb-1">Tension</span>
-                  <span className="text-sm font-bold text-white">{latestTelemetry?.battery_voltage_v ?? '—'}{hasTelemetry && ' V'}</span>
+                  <span className="text-sm font-bold text-white">{formatMetric(latestTelemetry?.battery_voltage_v, ' V')}</span>
                   <Sparkline data={generateSparkline(12.5, 0.2)} color="#f97316" />
                 </div>
                 <div>
                   <span className="text-[10px] text-neutral-500 font-medium block mb-1">Courant</span>
-                  <span className="text-sm font-bold text-white">{latestTelemetry?.battery_current_a ?? '—'}{hasTelemetry && ' A'}</span>
+                  <span className="text-sm font-bold text-white">{formatMetric(latestTelemetry?.battery_current_a, ' A')}</span>
                   <Sparkline data={generateSparkline(18, 1)} color="#f97316" />
                 </div>
                 <div>
