@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid
@@ -9,6 +10,7 @@ import {
   Thermometer, Battery, Sun, Cpu, Signal, MoreHorizontal, 
   ChevronDown, Wrench, RefreshCw, Send, Power as PowerIcon
 } from 'lucide-react';
+import { useKitTelemetryQuery } from '../hooks/tanstack/useKitQueries.js';
 
 // --- MOCK DATA ---
 
@@ -78,13 +80,30 @@ const SimpleProgressBar = ({ value, color }) => (
 // --- MAIN DASHBOARD COMPONENT ---
 
 export default function SmartKitDetails() {
+  const [searchParams] = useSearchParams();
+  const kitId = searchParams.get('kitId');
+  const { data: telemetryDocuments = [], isLoading: telemetryLoading } = useKitTelemetryQuery(kitId);
+  const telemetryRecords = useMemo(
+    () => telemetryDocuments.flatMap((document) => document.records || []).filter(Boolean),
+    [telemetryDocuments],
+  );
+  const latestTelemetry = telemetryRecords[telemetryRecords.length - 1];
+  const hasTelemetry = Boolean(latestTelemetry);
+  const chartTelemetry = telemetryRecords.slice(-24).map((record, index) => ({
+    time: record.event_time || `${index + 1}`,
+    voltage: record.battery_voltage_v ?? 0,
+    current: record.battery_current_a ?? 0,
+    temp: record.device_temperature_c ?? 0,
+    soc: record.state_of_charge_pct ?? 0,
+  }));
+  const displayKitId = kitId || 'Kit non sélectionné';
   const [activeTab, setActiveTab] = useState('Jumeau Numérique');
   const [notification, setNotification] = useState(null);
   
   const tabs = ['Jumeau Numérique', 'Télémétrie', 'Santé', 'Événements', 'Énergie', 'Configuration', 'Historique', 'Documents'];
 
   const handleQuickAction = (actionName) => {
-    setNotification(`Exécution de : ${actionName} sur le KIT-K-87391...`);
+    setNotification(`Exécution de : ${actionName} sur le ${displayKitId}...`);
     setTimeout(() => setNotification(null), 3500);
   };
 
@@ -113,8 +132,8 @@ export default function SmartKitDetails() {
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }} className="mb-6 flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-neutral-800/60 pb-4">
         <div>
           <div className="flex items-center gap-3 mb-1.5">
-            <h1 className="text-2xl font-bold text-white tracking-tight">KIT-K-87391</h1>
-            <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-orange-500/10 border border-orange-500/20 text-orange-400 text-xs font-semibold shadow-sm">
+            <h1 className="text-2xl font-bold text-white tracking-tight">{displayKitId}</h1>
+            <div className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border text-xs font-semibold shadow-sm ${hasTelemetry ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-zinc-500/10 border-zinc-500/20 text-zinc-400'}`}>
               <span className="w-1.5 h-1.5 rounded-full bg-orange-500 shadow-sm shadow-orange-500 animate-pulse"></span> En ligne
             </div>
           </div>
@@ -202,8 +221,13 @@ export default function SmartKitDetails() {
                  <div className="flex items-center gap-1.5"><span className="w-2 h-0.5 bg-purple-500"></span><span className="text-neutral-400">SoC (%)</span></div>
                </div>
                <div className="flex-1 w-full relative min-h-[180px]">
+                 {!telemetryLoading && !hasTelemetry && (
+                   <div className="absolute inset-0 z-10 flex items-center justify-center text-xs text-neutral-500">
+                     Boîtier non configuré : aucune télémétrie disponible
+                   </div>
+                 )}
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={telemetryData} margin={{ top: 5, right: 0, left: -25, bottom: 0 }}>
+                    <LineChart data={chartTelemetry} margin={{ top: 5, right: 0, left: -25, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#262626" opacity={0.4} vertical={false} />
                       <XAxis dataKey="time" axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: '#737373' }} dy={10} interval={4} />
                       <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: '#737373' }} domain={[0, 100]} />
@@ -228,16 +252,17 @@ export default function SmartKitDetails() {
           {/* System Overview */}
           <motion.div variants={fadeUp}>
             <Card title="APERÇU DU SYSTÈME" titleRight="Dernière maj : 21 Mai, 09:32" className="pb-2">
+              {!telemetryLoading && !hasTelemetry && <p className="mb-5 text-xs text-neutral-500">Aucune donnée de télémétrie reçue pour ce kit.</p>}
               <div className="grid grid-cols-3 gap-4 gap-y-6">
                 <div>
                   <span className="text-[10px] text-neutral-500 font-medium block mb-1">État de charge</span>
-                  <span className="text-sm font-bold text-white">42%</span>
-                  <SimpleProgressBar value={42} color="bg-orange-500 shadow-sm shadow-orange-500" />
+                  <span className="text-sm font-bold text-white">{latestTelemetry?.state_of_charge_pct ?? '—'}{hasTelemetry && '%'}</span>
+                  <SimpleProgressBar value={latestTelemetry?.state_of_charge_pct ?? 0} color="bg-orange-500 shadow-sm shadow-orange-500" />
                 </div>
                 <div>
                   <span className="text-[10px] text-neutral-500 font-medium block mb-1">État de santé</span>
-                  <span className="text-sm font-bold text-white">88%</span>
-                  <SimpleProgressBar value={88} color="bg-orange-500 shadow-sm shadow-orange-500" />
+                  <span className="text-sm font-bold text-white">{latestTelemetry?.state_of_health_pct ?? '—'}{hasTelemetry && '%'}</span>
+                  <SimpleProgressBar value={latestTelemetry?.state_of_health_pct ?? 0} color="bg-orange-500 shadow-sm shadow-orange-500" />
                 </div>
                 <div>
                   <span className="text-[10px] text-neutral-500 font-medium block mb-1">Temp. Batterie</span>
@@ -247,12 +272,12 @@ export default function SmartKitDetails() {
 
                 <div>
                   <span className="text-[10px] text-neutral-500 font-medium block mb-1">Énergie Solaire</span>
-                  <span className="text-sm font-bold text-white">512 W</span>
+                  <span className="text-sm font-bold text-white">{latestTelemetry?.solar_power_w ?? '—'}{hasTelemetry && ' W'}</span>
                   <Sparkline data={generateSparkline(500, 50)} color="#f97316" />
                 </div>
                 <div>
                   <span className="text-[10px] text-neutral-500 font-medium block mb-1">Énergie Consommée</span>
-                  <span className="text-sm font-bold text-white">185 W</span>
+                  <span className="text-sm font-bold text-white">{latestTelemetry?.load_power_w ?? '—'}{hasTelemetry && ' W'}</span>
                   <Sparkline data={generateSparkline(180, 20)} color="#f97316" />
                 </div>
                 <div>
@@ -263,18 +288,18 @@ export default function SmartKitDetails() {
 
                 <div>
                   <span className="text-[10px] text-neutral-500 font-medium block mb-1">Tension</span>
-                  <span className="text-sm font-bold text-white">12.6 V</span>
+                  <span className="text-sm font-bold text-white">{latestTelemetry?.battery_voltage_v ?? '—'}{hasTelemetry && ' V'}</span>
                   <Sparkline data={generateSparkline(12.5, 0.2)} color="#f97316" />
                 </div>
                 <div>
                   <span className="text-[10px] text-neutral-500 font-medium block mb-1">Courant</span>
-                  <span className="text-sm font-bold text-white">18.4 A</span>
+                  <span className="text-sm font-bold text-white">{latestTelemetry?.battery_current_a ?? '—'}{hasTelemetry && ' A'}</span>
                   <Sparkline data={generateSparkline(18, 1)} color="#f97316" />
                 </div>
                 <div>
                   <span className="text-[10px] text-neutral-500 font-medium block mb-1">Connectivité</span>
                   <div className="flex items-end gap-2 mt-2">
-                    <span className="text-sm font-bold text-white">4G</span>
+                    <span className="text-sm font-bold text-white">{hasTelemetry ? 'Connecté' : '—'}</span>
                     <Signal size={16} className="text-orange-400 mb-0.5" />
                   </div>
                 </div>

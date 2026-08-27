@@ -3,6 +3,7 @@
 
 import * as store from '../store/db.store.js';
 import { publishCommand } from '../services/mqtt.service.js';
+import { enqueueCommand } from '../store/command.store.js';
 
 // ─── Lectures ─────────────────────────────────────────────────────────────────
 
@@ -67,7 +68,8 @@ export async function sendCommand(req, res) {
     await publishCommand(deviceId, command);
     res.json({ success: true, message: `Commande '${command}' envoyée à ${deviceId}` });
   } catch (err) {
-    console.error('Échec envoi commande :', err.message);
-    res.status(500).json({ success: false, message: "Erreur broker MQTT lors de l'envoi" });
+    console.warn('MQTT indisponible, commande mise en file HTTP :', err.message);
+    await enqueueCommand(deviceId, command);
+    res.status(202).json({ success: true, message: `Commande '${command}' mise en attente pour ${deviceId}` });
   }
 }

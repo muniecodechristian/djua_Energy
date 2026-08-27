@@ -30,8 +30,6 @@ describe('Machine Learning API - Integration Tests', () => {
         device_id: 'device-test-ml',
         battery_voltage_v: 12.5,
         battery_current_a: 1.2,
-        connection_status: 'connected',
-        day_period: 'day',
       };
 
       await EnrichedTelemetry.create(sampleTelemetry);

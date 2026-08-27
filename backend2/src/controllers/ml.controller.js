@@ -1,4 +1,5 @@
 import EnrichedTelemetry from '../models/EnrichedTelemetry.js';
+import { stripRetiredTelemetryFields } from '../services/telemetryEnricher.service.js';
 
 /**
  * GET /api/ml/telemetry
@@ -39,6 +40,9 @@ export async function getEnrichedTelemetry(req, res) {
     // Supprimer les champs internes Mongoose avant de renvoyer
     const formattedData = telemetries.map(t => {
       const { _id, __v, createdAt, updatedAt, ...doc } = t;
+      if (Array.isArray(doc.records)) {
+        doc.records = doc.records.map(stripRetiredTelemetryFields);
+      }
       return doc;
     });
 

@@ -39,14 +39,12 @@ L'ESP32 publie ses constantes de consommation toutes les **60 secondes** (en pro
   "batteryVoltage": 11.64,                  // Tension de la batterie (V)
   "batteryCurrent": 0.148,                  // Courant de la batterie (A)
   "batterySOC": 82,                         // État de charge (%)
-  "batteryTemperature": 27.5,               // Température de la batterie (°C)
   "panelVoltage": 13.12,                    // Tension du panneau (V)
   "panelCurrent": 0.235,                    // Courant du panneau (A)
   "panelPower": 3.08,                       // Puissance générée (W)
   "latitude": -4.32761,                     // Données GPS
   "longitude": 15.31352,
   "speed": 0.0,                             // Vitesse de déplacement du kit (km/h)
-  "tamper": false,                          // Vrai si le boîtier est ouvert (sabotage)
   "firmwareVersion": "1.0.0-SIM"
 }
 ```
@@ -201,3 +199,22 @@ function sendCommand(deviceId, commandName) {
 // Utilisation :
 sendCommand('DJUA-KIN-000001', 'lockDevice');
 ```
+
+## 5. Alternative HTTP/HTTPS pour un déploiement serverless
+
+Un backend déployé sur Vercel ne peut pas héberger un broker MQTT TCP permanent.
+Le backend2 expose donc une passerelle HTTP pour les ESP32 :
+
+```text
+POST https://<domaine-vercel>/api/iot/{deviceId}/telemetry
+POST https://<domaine-vercel>/api/iot/{deviceId}/alerts
+POST https://<domaine-vercel>/api/iot/{deviceId}/status
+GET  https://<domaine-vercel>/api/iot/{deviceId}/commands
+```
+
+Chaque requête doit contenir `Content-Type: application/json` et
+`x-device-token: <valeur de IOT_API_KEY>`.
+
+Les commandes sont récupérées par polling HTTP. Le serveur les met en file lorsque
+MQTT est indisponible. Il faut définir `IOT_API_KEY` dans les variables
+d'environnement Vercel ; cette valeur ne doit pas être codée dans le dépôt.

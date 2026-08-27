@@ -9,6 +9,10 @@ const config = {
   // URL de l'API externe d'IA (fournie par votre collègue)
   // Ex: https://colleague-host.example.com
   iaApiUrl: process.env.IA_API_URL || '',
+  iot: {
+    apiKey: process.env.IOT_API_KEY || '',
+    authRequired: process.env.IOT_AUTH_REQUIRED !== 'false',
+  },
 
   mqtt: {
     port: parseInt(process.env.MQTT_PORT, 10) || 1883,

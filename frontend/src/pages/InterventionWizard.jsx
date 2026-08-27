@@ -1,558 +1,654 @@
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import React, { useMemo, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
-  Search, Bell, Check, ChevronRight, ChevronLeft, MapPin, ShieldAlert,
-  AlertTriangle, Activity, Filter, SlidersHorizontal, Bot, Clock,
-  DollarSign, Box, ArrowRight, User, Calendar, CheckCircle2, FileText, Wrench
-} from 'lucide-react';
+  ArrowRight,
+  Calendar,
+  Check,
+  ChevronLeft,
+  Clock,
+  MapPin,
+  Search,
+  Wrench,
+  Activity,
+  UserCheck,
+  HardHat,
+  Battery,
+  BatteryLow,
+  AlertCircle,
+  Radio,
+  FileText,
+  SlidersHorizontal,
+} from "lucide-react";
 
-// --- MOCK DATA ---
-
-const smartKitsList = [
-  { id: 'KIT-K-87391', sn: 'SN: RN87391V22K41', status: 'En ligne', health: 89, healthLabel: 'Bon', location: 'Abidjan, Côte d\'Ivoire\nYopougon, Niangon Sud', update: 'Il y a 2 min' },
-  { id: 'KIT-K-27133', sn: 'SN: RN27133V75K67', status: 'En ligne', health: 76, healthLabel: 'Moyen', location: 'Bamako, Mali\nKoulikoro', update: 'Il y a 5 min' },
-  { id: 'KIT-K-55481', sn: 'SN: RN55481V83K42', status: 'En ligne', health: 90, healthLabel: 'Excellent', location: 'Ouagadougou, Burkina Faso\nKossodo', update: 'Il y a 7 min' },
-  { id: 'KIT-K-55291', sn: 'SN: RN55291V20K67', status: 'Hors ligne', health: 28, healthLabel: 'Mauvais', location: 'Niamey, Niger\nLamorde', update: 'Il y a 15 min' },
-  { id: 'KIT-K-81011', sn: 'SN: RN81011V64K28', status: 'En ligne', health: 58, healthLabel: 'Moyen', location: 'Dakar, Sénégal\nPikine', update: 'Il y a 18 min' },
+// --- DONNÉES MÉTIER ---
+const kits = [
+  {
+    id: "DJUA-KIN-000001",
+    place: "Kinshasa · Ngaliema",
+    status: "online",
+    battery: 82,
+    lastPing: "Il y a 4 min",
+    issue: "Tension stable — Contrôle périodique",
+  },
+  {
+    id: "DJUA-LUB-000009",
+    place: "Lubumbashi · Golf",
+    status: "warning",
+    battery: 64,
+    lastPing: "Il y a 12 min",
+    issue: "Chute de rendement mesurée (MPPT)",
+  },
+  {
+    id: "DJUA-GOM-000014",
+    place: "Goma · Karisimbi",
+    status: "critical",
+    battery: 31,
+    lastPing: "Il y a 1h",
+    issue: "Batterie sous le seuil critique (30%)",
+  },
 ];
 
-const recentAlarms = [
-  { title: 'Risque de fraude élevé détecté', time: '21 Mai 2026, 09:31', severity: 'Critique', color: 'text-red-500 bg-red-500/10 border-red-500/25' },
-  { title: 'Profil énergétique anormal', time: '21 Mai 2026, 08:40', severity: 'Élevé', color: 'text-[#FF7900] bg-[#FF7900]/10 border-[#FF7900]/25' },
-  { title: 'Température de la batterie élevée', time: '21 Mai 2026, 07:12', severity: 'Moyen', color: 'text-yellow-500 bg-yellow-500/10 border-yellow-500/25' },
+const technicians = [
+  {
+    id: "tech-1",
+    name: "Kouassi Yao",
+    role: "Ingénieur Systèmes Solaires",
+    zone: "Kinshasa",
+    initials: "KY",
+    available: true,
+  },
+  {
+    id: "tech-2",
+    name: "Amina Mukendi",
+    role: "Technicienne Terrain Senior",
+    zone: "Kinshasa",
+    initials: "AM",
+    available: true,
+  },
+  {
+    id: "tech-3",
+    name: "Patrick Ilunga",
+    role: "Spécialiste Haute Tension",
+    zone: "Lubumbashi",
+    initials: "PI",
+    available: false,
+  },
 ];
 
-const techniciansList = [
-  { id: 'TECH-101', name: 'Kouassi Yao', zone: 'Abidjan Nord', load: '2 tâches actives', rating: '4.9', avatar: 'KY' },
-  { id: 'TECH-102', name: 'Traoré Ibrahim', zone: 'Abidjan Sud', load: '1 tâche active', rating: '4.8', avatar: 'TI' },
-  { id: 'TECH-103', name: 'Diallo Mamadou', zone: 'District Central', load: '3 tâches actives', rating: '4.7', avatar: 'DM' },
+const reasons = [
+  {
+    id: "preventive",
+    label: "Maintenance préventive",
+    detail: "Inspection planifiée, nettoyage et calibration des capteurs",
+    icon: Activity,
+  },
+  {
+    id: "corrective",
+    label: "Maintenance corrective",
+    detail: "Dépannage ciblé suite à une alerte télémétrique",
+    icon: Wrench,
+  },
+  {
+    id: "audit",
+    label: "Audit & Visite client",
+    detail: "Relevé technique sur site et accompagnement de l'usager",
+    icon: UserCheck,
+  },
+  {
+    id: "deployment",
+    label: "Déploiement / Remplacement",
+    detail: "Installation d'un nouveau kit ou changement de composant",
+    icon: HardHat,
+  },
 ];
 
-// --- REUSABLE COMPONENTS ---
-
-const Card = ({ children, className = "" }) => (
-  <div className={`bg-transparent border border-slate-800/80 rounded-xl overflow-hidden flex flex-col shadow-[0_8px_30px_rgb(0,0,0,0.24)] ${className}`}>
-    {children}
-  </div>
-);
-
-// --- MAIN WIZARD COMPONENT ---
+const steps = [
+  { title: "Équipement", subtitle: "Sélection du kit" },
+  { title: "Diagnostique", subtitle: "Motif d'intervention" },
+  { title: "Affectation", subtitle: "Technicien & Date" },
+  { title: "Validation", subtitle: "Confirmation" },
+];
 
 export default function InterventionWizard() {
-  const [currentStep, setCurrentStep] = useState(1);
-  const [selectedKit, setSelectedKit] = useState(smartKitsList[0]);
-  const [interventionReason, setInterventionReason] = useState('Maintenance Corrective');
-  const [priorityLevel, setPriorityLevel] = useState('Critique');
-  const [selectedTech, setSelectedTech] = useState(techniciansList[0]);
-  const [scheduledDate, setScheduledDate] = useState('2026-05-22');
-  const [scheduledTime, setScheduledTime] = useState('09:00');
-  const [notes, setNotes] = useState('Inspecter les bornes de la batterie et vérifier la configuration de l\'unité de télémétrie.');
+  const [step, setStep] = useState(1);
+  const [query, setQuery] = useState("");
+  const [kit, setKit] = useState(kits[0]);
+  const [reason, setReason] = useState(reasons[0]);
+  const [technician, setTechnician] = useState(technicians[0]);
+  const [date, setDate] = useState("2026-08-28");
+  const [time, setTime] = useState("09:00");
+  const [note, setNote] = useState("");
+  const [confirmed, setConfirmed] = useState(false);
 
-  const steps = [
-    { number: 1, label: 'Sélectionner le Kit' },
-    { number: 2, label: 'Détails de l\'Intervention' },
-    { number: 3, label: 'Assigner & Planifier' },
-    { number: 4, label: 'Vérifier & Confirmer' }
-  ];
+  const filteredKits = useMemo(
+    () =>
+      kits.filter((item) =>
+        `${item.id} ${item.place}`.toLowerCase().includes(query.toLowerCase()),
+      ),
+    [query],
+  );
 
-  const staggerContainer = { hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.05 } } };
-  const fadeUp = { hidden: { opacity: 0, y: 15 }, visible: { opacity: 1, y: 0, transition: { duration: 0.4 } } };
+  const next = () =>
+    step < 4 ? setStep((prev) => prev + 1) : setConfirmed(true);
+  const previous = () => setStep((prev) => Math.max(1, prev - 1));
 
-  const handleNext = () => {
-    if (currentStep < 4) setCurrentStep(currentStep + 1);
-  };
+  if (confirmed) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-zinc-950 p-6 text-zinc-100 font-sans">
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full max-w-md rounded-xl border border-zinc-800 bg-zinc-900 p-8 shadow-2xl"
+        >
+          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-400 mb-6">
+            <Check size={24} strokeWidth={2.5} />
+          </div>
+          <span className="text-xs font-mono font-medium uppercase text-emerald-400 tracking-wider">
+            Ordre de mission émis
+          </span>
+          <h1 className="mt-1 text-2xl font-bold text-white tracking-tight">
+            Intervention enregistrée
+          </h1>
+          <p className="mt-3 text-sm text-zinc-400 leading-relaxed">
+            Ordre transmis à{" "}
+            <strong className="text-zinc-200">{technician.name}</strong> pour
+            l'équipement{" "}
+            <span className="font-mono text-zinc-200">{kit.id}</span> prévu le{" "}
+            <strong className="text-zinc-200">
+              {date} à {time}
+            </strong>
+            .
+          </p>
 
-  const handlePrev = () => {
-    if (currentStep > 1) setCurrentStep(currentStep - 1);
-  };
+          <div className="mt-6 rounded-lg border border-zinc-800 bg-zinc-950/60 p-4 text-xs font-mono text-zinc-400 space-y-1">
+            <div className="flex justify-between">
+              <span>RÉFÉRENCE:</span>
+              <span className="text-zinc-200">INT-2026-0882</span>
+            </div>
+            <div className="flex justify-between">
+              <span>STATUT:</span>
+              <span className="text-amber-400">
+                EN ATTENTE DE CONFIRMATION TERRAIN
+              </span>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              setConfirmed(false);
+              setStep(1);
+            }}
+            className="mt-8 w-full rounded-lg bg-zinc-100 px-4 py-3 text-sm font-semibold text-zinc-900 transition-colors hover:bg-white"
+          >
+            Créer un autre ordre de mission
+          </button>
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen text-slate-200 p-4 md:p-6 font-sans flex flex-col justify-between">
-      
-      <div>
-        {/* STEPS PROGRESS HEADER */}
-        <motion.div 
-          initial={{ opacity: 0, y: -10 }} 
-          animate={{ opacity: 1, y: 0 }} 
-          className="flex items-center justify-between mb-6 pb-4 border-b border-slate-800 overflow-x-auto hide-scrollbar"
-        >
-          <div className="flex items-center gap-6 min-w-max">
-            {steps.map((step) => {
-              const isCompleted = currentStep > step.number;
-              const isCurrent = currentStep === step.number;
+    <div className="min-h-screen bg-zinc-950 font-sans text-zinc-200 antialiased selection:bg-orange-500/30 selection:text-white">
+      {/* Top Header Section */}
+      <header className="border-b border-zinc-800/80 bg-zinc-900/50 px-6 py-4">
+        <div className="mx-auto flex max-w-6xl items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-orange-500/10 text-orange-500 border border-orange-500/20">
+              <Radio size={18} />
+            </div>
+            <div>
+              <h1 className="text-base font-semibold text-white tracking-tight">
+                Gestion des Interventions
+              </h1>
+              <p className="text-xs text-zinc-400">
+                Djua Energy Telemetry & Operations
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 rounded-full border border-zinc-800 bg-zinc-900 px-3 py-1 text-xs text-zinc-400 font-mono">
+            <span className="h-2 w-2 rounded-full bg-emerald-500" /> SYSTEM
+            ONLINE
+          </div>
+        </div>
+      </header>
+
+      <div className="mx-auto max-w-6xl px-6 py-8">
+        {/* Stepper Progress */}
+        <nav aria-label="Progress" className="mb-8">
+          <ol className="grid grid-cols-2 gap-4 md:grid-cols-4">
+            {steps.map((s, idx) => {
+              const num = idx + 1;
+              const isDone = num < step;
+              const isCurrent = num === step;
+
               return (
-                <div key={step.number} className="flex items-center gap-2.5 cursor-pointer" onClick={() => setCurrentStep(step.number)}>
-                  <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
-                    isCompleted ? 'bg-[#FF7900] text-white' :
-                    isCurrent ? 'bg-[#FF7900] text-white ring-4 ring-[#FF7900]/20' :
-                    'bg-slate-800 text-slate-400 border border-slate-700'
-                  }`}>
-                    {isCompleted ? <Check size={12} /> : step.number}
-                  </div>
-                  <span className={`text-xs font-medium ${isCurrent ? 'text-white font-semibold' : 'text-slate-400'}`}>
-                    {step.label}
-                  </span>
-                  {step.number < steps.length && <div className="w-8 h-px bg-slate-800 ml-4 hidden xl:block"></div>}
-                </div>
+                <li key={s.title} className="relative">
+                  <button
+                    type="button"
+                    onClick={() => num <= step && setStep(num)}
+                    disabled={num > step}
+                    className={`flex w-full flex-col border-l-2 py-2 pl-4 text-left transition-colors ${
+                      isCurrent
+                        ? "border-orange-500 bg-orange-500/5"
+                        : isDone
+                          ? "border-zinc-500 hover:border-zinc-400"
+                          : "border-zinc-800 opacity-50"
+                    }`}
+                  >
+                    <span className="text-[11px] font-mono font-medium uppercase text-zinc-500">
+                      Étape 0{num}
+                    </span>
+                    <span
+                      className={`text-sm font-semibold ${
+                        isCurrent ? "text-white" : "text-zinc-300"
+                      }`}
+                    >
+                      {s.title}
+                    </span>
+                  </button>
+                </li>
               );
             })}
-          </div>
+          </ol>
+        </nav>
 
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-400 mr-2">Étape {currentStep} sur 4</span>
-            <button 
-              onClick={handlePrev} 
-              disabled={currentStep === 1}
-              className="px-3 py-1.5 bg-transparent border border-slate-800 rounded-lg text-xs text-slate-300 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1 shadow-sm"
-            >
-              <ChevronLeft size={14} /> Retour
-            </button>
-            <button 
-              onClick={handleNext} 
-              disabled={currentStep === 4}
-              className="px-3 py-1.5 bg-[#FF7900] hover:bg-[#e06b00] rounded-lg text-xs text-white font-semibold disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1 shadow-sm transition-colors"
-            >
-              {currentStep === 4 ? 'Confirmer & Déployer' : 'Suivant'} <ChevronRight size={14} />
-            </button>
-          </div>
-        </motion.div>
+        {/* Main Workspace Layout */}
+        <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+          {/* Form Container */}
+          <main className="flex min-h-[520px] flex-col justify-between rounded-xl border border-zinc-800 bg-zinc-900/60 shadow-xl overflow-hidden">
+            <div className="p-6 md:p-8">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={step}
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -4 }}
+                  transition={{ duration: 0.15 }}
+                >
+                  {/* STEP 1: KIT SELECTION */}
+                  {step === 1 && (
+                    <div className="space-y-6">
+                      <div>
+                        <h2 className="text-lg font-bold text-white tracking-tight">
+                          Sélectionner l'équipement cible
+                        </h2>
+                        <p className="mt-1 text-xs text-zinc-400">
+                          Filtrez les kits solaires par identifiant ou zone
+                          géographique.
+                        </p>
+                      </div>
 
-        {/* MAIN LAYOUT (3 COLUMNS GRID) */}
-        <motion.div 
-          variants={staggerContainer} 
-          initial="hidden" 
-          animate="visible" 
-          className="grid grid-cols-1 xl:grid-cols-12 gap-5"
-        >
-          
-          {/* ================= STEP 1 VIEW ================= */}
-          {currentStep === 1 && (
-            <>
-              {/* LEFT COLUMN: SELECT SMART KIT (Span 4) */}
-              <motion.div variants={fadeUp} className="xl:col-span-4 flex flex-col gap-4">
-                <Card className="p-4 flex-1">
-                  <h3 className="text-xs font-semibold text-slate-300 tracking-widest uppercase mb-3">Sélectionner le Smart Kit</h3>
-                  
-                  <div className="flex gap-2 mb-3">
-                    <div className="relative flex-1">
-                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500" size={14} />
-                      <input 
-                        type="text" 
-                        placeholder="Rechercher un kit par SN, modèle ou client..." 
-                        className="w-full bg-transparent border border-slate-800 rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-[#FF7900]/50 shadow-inner"
-                      />
-                    </div>
-                    <button className="px-3 py-1.5 bg-transparent border border-slate-800 rounded-lg text-slate-400 hover:text-white flex items-center gap-1 text-xs shadow-sm">
-                      <Filter size={12} /> Filtres
-                    </button>
-                  </div>
+                      <div className="relative">
+                        <Search
+                          className="absolute left-3.5 top-3 text-zinc-500"
+                          size={16}
+                        />
+                        <input
+                          type="text"
+                          value={query}
+                          onChange={(e) => setQuery(e.target.value)}
+                          placeholder="Rechercher ID kit (ex: DJUA-KIN...) ou zone..."
+                          className="w-full rounded-lg border border-zinc-800 bg-zinc-950 py-2.5 pl-10 pr-4 text-sm text-zinc-100 placeholder-zinc-600 outline-none transition-colors focus:border-zinc-600 focus:ring-1 focus:ring-zinc-600"
+                        />
+                      </div>
 
-                  <div className="space-y-2.5 overflow-y-auto max-h-[500px] pr-1">
-                    {smartKitsList.map((kit) => {
-                      const isSelected = selectedKit.id === kit.id;
-                      return (
-                        <div 
-                          key={kit.id}
-                          onClick={() => setSelectedKit(kit)}
-                          className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between shadow-sm ${
-                            isSelected ? 'bg-[#FF7900]/10 border-[#FF7900]/50' : 'bg-transparent border-slate-800/80 hover:bg-slate-800/20'
-                          }`}
-                        >
-                          <div className="flex items-center gap-3 min-w-0">
-                            <div className="w-8 h-10 bg-slate-800/50 rounded flex-shrink-0 flex items-center justify-center border border-slate-800">
-                              <Box size={16} className="text-slate-400" />
-                            </div>
-                            <div className="min-w-0">
-                              <div className="flex items-center gap-2">
-                                <h4 className="text-xs font-bold text-white truncate">{kit.id}</h4>
-                                <span className={`text-[9px] px-1.5 py-0.2 rounded-full flex items-center gap-1 border ${
-                                  kit.status === 'En ligne' ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'
-                                }`}>
-                                  <span className={`w-1 h-1 rounded-full ${kit.status === 'En ligne' ? 'bg-green-500' : 'bg-red-500'}`}></span>
-                                  {kit.status}
+                      <div className="space-y-2">
+                        {filteredKits.map((item) => {
+                          const isSelected = kit.id === item.id;
+                          return (
+                            <div
+                              key={item.id}
+                              onClick={() => setKit(item)}
+                              className={`cursor-pointer rounded-lg border p-4 transition-all ${
+                                isSelected
+                                  ? "border-orange-500/80 bg-orange-500/5"
+                                  : "border-zinc-800/80 bg-zinc-950/40 hover:border-zinc-700"
+                              }`}
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                  <span className="font-mono text-sm font-bold text-white">
+                                    {item.id}
+                                  </span>
+                                  <span className="flex items-center gap-1 text-xs text-zinc-400">
+                                    <MapPin
+                                      size={13}
+                                      className="text-zinc-500"
+                                    />
+                                    {item.place}
+                                  </span>
+                                </div>
+                                <span
+                                  className={`rounded px-2 py-0.5 font-mono text-[10px] font-semibold uppercase ${
+                                    item.status === "online"
+                                      ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                                      : item.status === "warning"
+                                        ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                                        : "bg-rose-500/10 text-rose-400 border border-rose-500/20"
+                                  }`}
+                                >
+                                  {item.status}
                                 </span>
                               </div>
-                              <p className="text-[10px] text-slate-400 truncate mt-0.5">{kit.sn}</p>
-                              <p className="text-[10px] text-slate-500 truncate">{kit.location.split('\n')[0]}</p>
-                            </div>
-                          </div>
-                          
-                          <div className="text-right flex-shrink-0 ml-2">
-                            <div className="flex items-center gap-1 justify-end">
-                              <span className="w-4 h-4 rounded-full bg-green-500/20 text-green-400 text-[9px] font-bold flex items-center justify-center border border-green-500/30">
-                                {kit.health}
-                              </span>
-                            </div>
-                            <span className="text-[9px] text-slate-500 block mt-1">{kit.update}</span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
 
-                  <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-800/80 text-xs text-slate-500">
-                    <span>Affichage de 1 à 5 sur 158 742 kits</span>
-                    <div className="flex items-center gap-1">
-                      <button className="p-1 hover:text-white disabled:opacity-30"><ChevronLeft size={14}/></button>
-                      <button className="w-5 h-5 rounded bg-[#FF7900] text-white flex items-center justify-center text-[10px]">1</button>
-                      <button className="w-5 h-5 rounded hover:bg-slate-800/50 flex items-center justify-center text-[10px]">2</button>
-                      <button className="w-5 h-5 rounded hover:bg-slate-800/50 flex items-center justify-center text-[10px]">3</button>
-                      <span>...</span>
-                      <button className="w-5 h-5 rounded hover:bg-slate-800/50 flex items-center justify-center text-[10px]">31740</button>
-                      <button className="p-1 hover:text-white"><ChevronRight size={14}/></button>
-                    </div>
-                  </div>
-                </Card>
-              </motion.div>
-
-              {/* CENTER COLUMN: SELECTED KIT OVERVIEW & RECENT ALARMS (Span 5) */}
-              <motion.div variants={fadeUp} className="xl:col-span-5 flex flex-col gap-4">
-                <Card className="p-4">
-                  <h3 className="text-xs font-semibold text-slate-300 tracking-widest uppercase mb-3">Aperçu du Kit Sélectionné</h3>
-                  
-                  <div className="flex items-center justify-between bg-transparent rounded-xl p-3 border border-slate-800/80 mb-3 shadow-inner">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-14 bg-gradient-to-br from-slate-200 to-slate-400 rounded flex items-center justify-center shadow relative">
-                        <div className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-[#FF7900] animate-pulse"></div>
+                              <div className="mt-3 flex items-center justify-between border-t border-zinc-800/60 pt-3 text-xs">
+                                <div className="flex items-center gap-2 text-zinc-400">
+                                  {item.battery < 40 ? (
+                                    <BatteryLow
+                                      size={15}
+                                      className="text-rose-400"
+                                    />
+                                  ) : (
+                                    <Battery
+                                      size={15}
+                                      className="text-emerald-400"
+                                    />
+                                  )}
+                                  <span>
+                                    Charge :{" "}
+                                    <strong className="text-zinc-200">
+                                      {item.battery}%
+                                    </strong>
+                                  </span>
+                                  <span className="text-zinc-600">•</span>
+                                  <span className="text-zinc-500">
+                                    {item.issue}
+                                  </span>
+                                </div>
+                                <span className="font-mono text-[11px] text-zinc-500">
+                                  {item.lastPing}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
+                    </div>
+                  )}
+
+                  {/* STEP 2: REASON SELECTION */}
+                  {step === 2 && (
+                    <div className="space-y-6">
                       <div>
-                        <div className="flex items-center gap-2">
-                          <h4 className="text-xs font-bold text-white">{selectedKit.id}</h4>
-                          <span className="text-[10px] text-green-400 flex items-center gap-1">
-                            <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span> {selectedKit.status}
+                        <h2 className="text-lg font-bold text-white tracking-tight">
+                          Motif de l'intervention
+                        </h2>
+                        <p className="mt-1 text-xs text-zinc-400">
+                          Définissez la nature de la mission pour préparer
+                          l'outillage adapté.
+                        </p>
+                      </div>
+
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        {reasons.map((item) => {
+                          const IconComponent = item.icon;
+                          const isSelected = reason.id === item.id;
+                          return (
+                            <button
+                              type="button"
+                              key={item.id}
+                              onClick={() => setReason(item)}
+                              className={`flex flex-col justify-between rounded-lg border p-4 text-left transition-all ${
+                                isSelected
+                                  ? "border-orange-500/80 bg-orange-500/5"
+                                  : "border-zinc-800 bg-zinc-950/40 hover:border-zinc-700"
+                              }`}
+                            >
+                              <div className="flex items-center justify-between w-full">
+                                <IconComponent
+                                  size={18}
+                                  className={
+                                    isSelected
+                                      ? "text-orange-500"
+                                      : "text-zinc-400"
+                                  }
+                                />
+                                {isSelected && (
+                                  <span className="h-2 w-2 rounded-full bg-orange-500" />
+                                )}
+                              </div>
+                              <div className="mt-4">
+                                <span className="block text-sm font-semibold text-white">
+                                  {item.label}
+                                </span>
+                                <span className="mt-1 block text-xs text-zinc-400 leading-relaxed">
+                                  {item.detail}
+                                </span>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      <div className="pt-2">
+                        <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-2">
+                          Notes et instructions particulières
+                        </label>
+                        <textarea
+                          rows={3}
+                          value={note}
+                          onChange={(e) => setNote(e.target.value)}
+                          placeholder="Relevés télémétriques, instructions d'accès au bâtiment, équipement spécifique à prévoir..."
+                          className="w-full resize-none rounded-lg border border-zinc-800 bg-zinc-950 p-3 text-sm text-zinc-100 placeholder-zinc-600 outline-none transition-colors focus:border-zinc-600"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* STEP 3: TECHNICIAN & TIME */}
+                  {step === 3 && (
+                    <div className="space-y-6">
+                      <div>
+                        <h2 className="text-lg font-bold text-white tracking-tight">
+                          Affectation du technicien & horaire
+                        </h2>
+                        <p className="mt-1 text-xs text-zinc-400">
+                          Sélectionnez un intervenant disponible et fixez le
+                          créneau.
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        {technicians.map((item) => {
+                          const isSelected = technician.id === item.id;
+                          return (
+                            <button
+                              type="button"
+                              key={item.id}
+                              disabled={!item.available}
+                              onClick={() => setTechnician(item)}
+                              className={`flex w-full items-center justify-between rounded-lg border p-3.5 text-left transition-all ${
+                                !item.available
+                                  ? "cursor-not-allowed opacity-40 border-zinc-900 bg-zinc-950/20"
+                                  : isSelected
+                                    ? "border-orange-500/80 bg-orange-500/5"
+                                    : "border-zinc-800 bg-zinc-950/40 hover:border-zinc-700"
+                              }`}
+                            >
+                              <div className="flex items-center gap-3">
+                                <div className="flex h-9 w-9 items-center justify-center rounded-md bg-zinc-800 font-mono text-xs font-bold text-zinc-200">
+                                  {item.initials}
+                                </div>
+                                <div>
+                                  <strong className="block text-sm font-medium text-white">
+                                    {item.name}
+                                  </strong>
+                                  <span className="text-xs text-zinc-400">
+                                    {item.role} •{" "}
+                                    <span className="text-zinc-300">
+                                      {item.zone}
+                                    </span>
+                                  </span>
+                                </div>
+                              </div>
+                              <span
+                                className={`font-mono text-[11px] ${
+                                  item.available
+                                    ? "text-emerald-400"
+                                    : "text-zinc-500"
+                                }`}
+                              >
+                                {item.available ? "DISPONIBLE" : "OCCUPÉ"}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      <div className="grid gap-4 pt-2 sm:grid-cols-2">
+                        <div>
+                          <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-2">
+                            Date d'intervention
+                          </label>
+                          <input
+                            type="date"
+                            value={date}
+                            onChange={(e) => setDate(e.target.value)}
+                            className="w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3.5 py-2.5 text-sm text-zinc-100 outline-none transition-colors focus:border-zinc-600"
+                            style={{ colorScheme: "dark" }}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-2">
+                            Heure de début
+                          </label>
+                          <input
+                            type="time"
+                            value={time}
+                            onChange={(e) => setTime(e.target.value)}
+                            className="w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3.5 py-2.5 text-sm text-zinc-100 outline-none transition-colors focus:border-zinc-600"
+                            style={{ colorScheme: "dark" }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* STEP 4: SUMMARY */}
+                  {step === 4 && (
+                    <div className="space-y-6">
+                      <div>
+                        <h2 className="text-lg font-bold text-white tracking-tight">
+                          Récapitulatif de l'ordre de mission
+                        </h2>
+                        <p className="mt-1 text-xs text-zinc-400">
+                          Vérifiez les paramètres avant l'émission finale.
+                        </p>
+                      </div>
+
+                      <div className="rounded-lg border border-zinc-800 bg-zinc-950/60 font-mono text-xs divide-y divide-zinc-800/80">
+                        <div className="flex justify-between p-3.5">
+                          <span className="text-zinc-500">EQUIPEMENT_ID</span>
+                          <span className="font-bold text-white">{kit.id}</span>
+                        </div>
+                        <div className="flex justify-between p-3.5">
+                          <span className="text-zinc-500">LOCALISATION</span>
+                          <span className="text-zinc-200">{kit.place}</span>
+                        </div>
+                        <div className="flex justify-between p-3.5">
+                          <span className="text-zinc-500">MOTIF</span>
+                          <span className="text-zinc-200">{reason.label}</span>
+                        </div>
+                        <div className="flex justify-between p-3.5">
+                          <span className="text-zinc-500">INTERVENANT</span>
+                          <span className="text-zinc-200">
+                            {technician.name} ({technician.role})
                           </span>
                         </div>
-                        <p className="text-[10px] text-slate-400 mt-0.5">{selectedKit.sn} • Modèle: D3LIA-RK-2.1</p>
-                        <p className="text-[10px] text-slate-400">Client: ID-12397 • Installé le: 12 Fév 2026</p>
-                      </div>
-                    </div>
-
-                    <div className="flex gap-2">
-                      <div className="bg-transparent border border-slate-800 rounded-lg p-2 text-center min-w-[50px] shadow-sm">
-                        <span className="text-xs font-bold text-green-400 block">{selectedKit.health}<span className="text-[9px] text-slate-500">/100</span></span>
-                        <span className="text-[8px] text-slate-500 uppercase">{selectedKit.healthLabel}</span>
-                      </div>
-                      <div className="bg-transparent border border-slate-800 rounded-lg p-2 text-center min-w-[50px] shadow-sm">
-                        <span className="text-xs font-bold text-white block">42%</span>
-                        <span className="text-[8px] text-slate-500 uppercase">Soc</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="relative h-32 bg-transparent rounded-xl overflow-hidden border border-slate-800 flex items-center justify-center shadow-inner">
-                    <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle, #64748b 1px, transparent 1px)', backgroundSize: '15px 15px' }}></div>
-                    <div className="relative z-10 flex flex-col items-center">
-                      <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_10px_#22c55e] animate-ping absolute"></div>
-                      <MapPin size={16} className="text-green-500 fill-green-500" />
-                      <span className="text-[10px] text-slate-200 bg-transparent px-1.5 py-0.5 rounded border border-slate-800 mt-1 shadow-sm">Yopougon</span>
-                    </div>
-                    <div className="absolute bottom-2 left-2 text-[10px] text-slate-400 bg-transparent px-2 py-0.5 rounded border border-slate-800 shadow-sm">
-                      {selectedKit.location.replace('\n', ' • ')}
-                    </div>
-                    <div className="absolute top-2 right-2 text-[10px] text-[#FF7900] hover:text-[#ff9433] cursor-pointer bg-transparent px-2 py-0.5 rounded border border-slate-800 shadow-sm">
-                      Voir sur la carte
-                    </div>
-                  </div>
-                </Card>
-
-                <Card className="p-4 flex-1">
-                  <div className="flex justify-between items-center mb-3">
-                    <h3 className="text-xs font-semibold text-slate-300 tracking-widest uppercase">Alarmes Récentes</h3>
-                    <span className="text-[10px] text-[#FF7900] hover:text-[#ff9433] cursor-pointer">Voir toutes les alarmes -&gt;</span>
-                  </div>
-                  <div className="space-y-2.5">
-                    {recentAlarms.map((alarm, idx) => (
-                      <div key={idx} className="flex items-center justify-between bg-transparent p-2.5 rounded-xl border border-slate-800/80 shadow-sm">
-                        <div className="flex items-center gap-2.5">
-                          <ShieldAlert size={14} className={alarm.color.split(' ')[0]} />
-                          <div>
-                            <h4 className="text-xs font-medium text-slate-200">{alarm.title}</h4>
-                            <p className="text-[10px] text-slate-500">{alarm.time}</p>
-                          </div>
+                        <div className="flex justify-between p-3.5">
+                          <span className="text-zinc-500">DATE_PLANIFIEE</span>
+                          <span className="text-amber-400">
+                            {date} À {time}
+                          </span>
                         </div>
-                        <span className={`text-[9px] font-bold px-2 py-0.5 rounded border ${alarm.color}`}>
-                          {alarm.severity}
-                        </span>
                       </div>
-                    ))}
-                  </div>
-                </Card>
-              </motion.div>
 
-              {/* RIGHT COLUMN: REASON, AI RECOMMENDATION, PRIORITY, ESTIMATES (Span 3) */}
-              <motion.div variants={fadeUp} className="xl:col-span-3 flex flex-col gap-4">
-                <Card className="p-4">
-                  <h3 className="text-xs font-semibold text-slate-300 tracking-widest uppercase mb-3">Motif de l'Intervention</h3>
-                  <div className="grid grid-cols-2 gap-2">
-                    {[
-                      { title: 'Maintenance Corrective', desc: 'Problème de fraude' },
-                      { title: 'Maintenance Préventive', desc: 'Vérification planifiée' },
-                      { title: 'Installation', desc: 'Installation de nouveau kit' },
-                      { title: 'Mise à niveau', desc: 'Mise à niveau Matériel/Logiciel' },
-                      { title: 'Inspection', desc: 'Inspection sur site' },
-                      { title: 'Autre', desc: 'Motif personnalisé' },
-                    ].map((reason, i) => {
-                      const isSelected = interventionReason === reason.title;
-                      return (
-                        <div 
-                          key={i} 
-                          onClick={() => setInterventionReason(reason.title)}
-                          className={`p-2.5 rounded-lg border cursor-pointer transition-all shadow-sm ${
-                            isSelected ? 'bg-[#FF7900]/10 border-[#FF7900]/50 text-white' : 'bg-transparent border-slate-800/80 text-slate-400 hover:bg-slate-800/20'
-                          }`}
-                        >
-                          <div className="flex items-center gap-1.5 mb-1">
-                            <div className={`w-3 h-3 rounded-full border flex items-center justify-center ${isSelected ? 'border-[#FF7900] bg-[#FF7900]' : 'border-slate-600'}`}>
-                              {isSelected && <div className="w-1 h-1 rounded-full bg-white"></div>}
-                            </div>
-                            <span className="text-[11px] font-semibold text-slate-200">{reason.title}</span>
-                          </div>
-                          <p className="text-[9px] text-slate-500 pl-4">{reason.desc}</p>
+                      {note && (
+                        <div className="rounded-lg border border-zinc-800 bg-zinc-950 p-4">
+                          <span className="block text-[10px] font-mono font-semibold text-zinc-500 uppercase">
+                            Notes attachées
+                          </span>
+                          <p className="mt-1 text-xs text-zinc-300 leading-relaxed">
+                            {note}
+                          </p>
                         </div>
-                      );
-                    })}
-                  </div>
-                </Card>
-
-                <div className="bg-transparent border border-[#FF7900]/30 rounded-xl p-4 relative overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.24)]">
-                  <div className="absolute top-2 right-2 text-[9px] font-bold text-[#FF7900] bg-[#FF7900]/20 px-2 py-0.5 rounded border border-[#FF7900]/30 shadow-sm">
-                    Recommandé
-                  </div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <Bot size={16} className="text-[#FF7900]" />
-                    <h3 className="text-xs font-semibold text-[#FF7900] uppercase tracking-widest">Recommandation IA</h3>
-                  </div>
-                  <p className="text-[11px] text-slate-300 mb-2">
-                    Notre IA recommande une intervention de <strong className="text-white">maintenance préventive</strong>.
-                  </p>
-                  <div className="text-[10px] text-slate-400 space-y-1 mb-3">
-                    <p>• Score de risque de fraude élevé (98)</p>
-                    <p>• Profil de consommation d'énergie anormal détecté</p>
-                    <p>• Efficacité de la batterie signalée</p>
-                    <p>• Problèmes similaires résolus sur 23 kits dans cette zone</p>
-                  </div>
-                </div>
-
-                <Card className="p-4">
-                  <h3 className="text-xs font-semibold text-slate-300 tracking-widest uppercase mb-3">Niveau de Priorité</h3>
-                  <div className="grid grid-cols-2 gap-2">
-                    {[
-                      { label: 'Critique', time: 'Correspond directement', color: 'border-red-500/50 bg-red-500/10 text-red-400' },
-                      { label: 'Élevé', time: 'Sous 24h', color: 'border-slate-800 bg-transparent text-slate-400' },
-                      { label: 'Moyen', time: 'Sous 72h', color: 'border-slate-800 bg-transparent text-slate-400' },
-                      { label: 'Faible', time: 'Standard', color: 'border-slate-800 bg-transparent text-slate-400' },
-                    ].map((p, i) => {
-                      const isSelected = priorityLevel === p.label;
-                      return (
-                        <div 
-                          key={i} 
-                          onClick={() => setPriorityLevel(p.label)}
-                          className={`p-2.5 rounded-lg border cursor-pointer transition-all shadow-sm ${
-                            isSelected ? 'border-[#FF7900]/50 bg-[#FF7900]/10' : 'border-slate-800 bg-transparent'
-                          }`}
-                        >
-                          <div className="flex items-center gap-1.5 mb-0.5">
-                            <div className={`w-3 h-3 rounded-full border flex items-center justify-center ${isSelected ? 'border-[#FF7900] bg-[#FF7900]' : 'border-slate-600'}`}>
-                              {isSelected && <div className="w-1 h-1 rounded-full bg-white"></div>}
-                            </div>
-                            <span className="text-[11px] font-bold text-slate-200">{p.label}</span>
-                          </div>
-                          <span className="text-[9px] text-slate-500 pl-4 block">{p.time}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </Card>
-
-                <Card className="p-4">
-                  <div className="mb-3">
-                    <label className="text-[10px] text-slate-400 block uppercase mb-1">Urgence</label>
-                    <select className="w-full bg-transparent border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none shadow-inner focus:border-[#FF7900]/50">
-                      <option className="bg-slate-900">Dès que possible</option>
-                      <option className="bg-slate-900">Créneau planifié</option>
-                    </select>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-800/80">
-                    <div className="flex items-center gap-2">
-                      <div className="p-2 rounded bg-transparent border border-slate-800 text-[#FF7900] shadow-sm">
-                        <Clock size={16} />
-                      </div>
-                      <div>
-                        <span className="text-[9px] text-slate-500 block">Durée Estimée</span>
-                        <span className="text-xs font-bold text-white">2h 30m</span>
-                      </div>
+                      )}
                     </div>
-                    <div className="flex items-center gap-2">
-                      <div className="p-2 rounded bg-transparent border border-slate-800 text-green-400 shadow-sm">
-                        <DollarSign size={16} />
-                      </div>
-                      <div>
-                        <span className="text-[9px] text-slate-500 block">Coût Estimé</span>
-                        <span className="text-xs font-bold text-white">25 000 FCFA</span>
-                      </div>
-                    </div>
-                  </div>
-                </Card>
-              </motion.div>
-            </>
-          )}
+                  )}
+                </motion.div>
+              </AnimatePresence>
+            </div>
 
-          {/* ================= STEP 2 VIEW ================= */}
-          {currentStep === 2 && (
-            <motion.div variants={fadeUp} className="xl:col-span-12 grid grid-cols-1 md:grid-cols-3 gap-5">
-              <Card className="p-5 md:col-span-2">
-                <h3 className="text-xs font-semibold text-slate-300 tracking-widest uppercase mb-4">Configuration Détaillée des Tâches d'Intervention</h3>
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-xs text-slate-400 block mb-1">Portée de l'Intervention & Liste de Contrôle</label>
-                    <div className="space-y-2 bg-transparent p-3 rounded-xl border border-slate-800 shadow-inner">
-                      <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
-                        <input type="checkbox" defaultChecked className="rounded border-slate-700 bg-slate-900 text-[#FF7900] focus:ring-0" />
-                        Vérifier la sécurité du boîtier physique et les scellés de sécurité
-                      </label>
-                      <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
-                        <input type="checkbox" defaultChecked className="rounded border-slate-700 bg-slate-900 text-[#FF7900] focus:ring-0" />
-                        Vérifier le câblage des panneaux solaires et la stabilité des connexions
-                      </label>
-                      <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
-                        <input type="checkbox" defaultChecked className="rounded border-slate-700 bg-slate-900 text-[#FF7900] focus:ring-0" />
-                        Exécuter un test de charge diagnostic de la batterie
-                      </label>
-                      <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
-                        <input type="checkbox" className="rounded border-slate-700 bg-slate-900 text-[#FF7900] focus:ring-0" />
-                        Mettre à jour le firmware vers la version v2.4.1 si nécessaire
-                      </label>
-                    </div>
-                  </div>
+            {/* Bottom Actions Bar */}
+            <div className="flex items-center justify-between border-t border-zinc-800 bg-zinc-950/80 px-6 py-4">
+              <button
+                type="button"
+                onClick={previous}
+                disabled={step === 1}
+                className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold text-zinc-400 hover:text-white disabled:opacity-30 disabled:hover:text-zinc-400"
+              >
+                <ChevronLeft size={14} /> Retour
+              </button>
 
-                  <div>
-                    <label className="text-xs text-slate-400 block mb-1">Notes / Instructions de Diagnostic Supplémentaires</label>
-                    <textarea 
-                      value={notes}
-                      onChange={(e) => setNotes(e.target.value)}
-                      rows={4} 
-                      className="w-full bg-transparent border border-slate-800 rounded-lg p-3 text-xs text-slate-200 focus:outline-none focus:border-[#FF7900]/50 shadow-inner"
-                      placeholder="Ajouter des instructions spécifiques pour le technicien terrain..."
-                    ></textarea>
-                  </div>
+              <button
+                type="button"
+                onClick={next}
+                className={`flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-semibold transition-all ${
+                  step === 4
+                    ? "bg-emerald-500 text-zinc-950 hover:bg-emerald-400"
+                    : "bg-orange-500 text-white hover:bg-orange-600"
+                }`}
+              >
+                {step === 4 ? "Émettre l'ordre de mission" : "Continuer"}
+                {step !== 4 && <ArrowRight size={14} />}
+              </button>
+            </div>
+          </main>
+
+          {/* Side Telemetry Panel */}
+          <aside className="space-y-4">
+            <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5">
+              <div className="flex items-center gap-2 text-xs font-mono font-semibold uppercase text-zinc-400">
+                <SlidersHorizontal size={14} className="text-orange-500" />
+                Détails du Kit
+              </div>
+              <div className="mt-4 space-y-3 font-mono text-xs">
+                <div>
+                  <span className="text-zinc-500 block">Identifiant:</span>
+                  <span className="font-bold text-white">{kit.id}</span>
                 </div>
-              </Card>
-
-              <Card className="p-5">
-                <h3 className="text-xs font-semibold text-slate-300 tracking-widest uppercase mb-4">Résumé de la Sélection</h3>
-                <div className="space-y-3 text-xs text-slate-300 bg-transparent p-4 rounded-xl border border-slate-800 shadow-inner">
-                  <div className="flex justify-between pb-2 border-b border-slate-800">
-                    <span className="text-slate-500">ID du Kit :</span>
-                    <span className="font-bold text-white">{selectedKit.id}</span>
-                  </div>
-                  <div className="flex justify-between pb-2 border-b border-slate-800">
-                    <span className="text-slate-500">Motif :</span>
-                    <span className="font-semibold text-[#FF7900]">{interventionReason}</span>
-                  </div>
-                  <div className="flex justify-between pb-2 border-b border-slate-800">
-                    <span className="text-slate-500">Priorité :</span>
-                    <span className="font-semibold text-[#FF7900]">{priorityLevel}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Emplacement :</span>
-                    <span className="text-right text-slate-200">{selectedKit.location.split('\n')[0]}</span>
-                  </div>
+                <div>
+                  <span className="text-zinc-500 block">Dernière mesure:</span>
+                  <span className="text-zinc-300">{kit.issue}</span>
                 </div>
-              </Card>
-            </motion.div>
-          )}
-
-          {/* ================= STEP 3 VIEW ================= */}
-          {currentStep === 3 && (
-            <motion.div variants={fadeUp} className="xl:col-span-12 grid grid-cols-1 md:grid-cols-2 gap-5">
-              <Card className="p-5">
-                <h3 className="text-xs font-semibold text-slate-300 tracking-widest uppercase mb-4">Assigner un Technicien Terrain</h3>
-                <div className="space-y-3">
-                  {techniciansList.map((tech) => {
-                    const isSelected = selectedTech.id === tech.id;
-                    return (
-                      <div 
-                        key={tech.id}
-                        onClick={() => setSelectedTech(tech)}
-                        className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between shadow-sm ${
-                          isSelected ? 'bg-[#FF7900]/10 border-[#FF7900]/50' : 'bg-transparent border-slate-800 hover:bg-slate-800/20'
+                <div>
+                  <span className="text-zinc-500 block">Niveau Batterie:</span>
+                  <div className="mt-1 flex items-center gap-2">
+                    <div className="h-2 w-full rounded-full bg-zinc-800 overflow-hidden">
+                      <div
+                        className={`h-full ${
+                          kit.battery < 40 ? "bg-rose-500" : "bg-emerald-500"
                         }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-slate-800/50 border border-slate-700 flex items-center justify-center font-bold text-xs text-[#FF7900]">
-                            {tech.avatar}
-                          </div>
-                          <div>
-                            <h4 className="text-xs font-bold text-white">{tech.name}</h4>
-                            <p className="text-[10px] text-slate-400">{tech.zone} • {tech.load}</p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <span className="text-xs font-bold text-amber-400">★ {tech.rating}</span>
-                          <span className="text-[9px] text-slate-500 block mt-0.5">Évaluation</span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </Card>
-
-              <Card className="p-5">
-                <h3 className="text-xs font-semibold text-slate-300 tracking-widest uppercase mb-4">Planifier la Date & l'Heure</h3>
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-xs text-slate-400 block mb-1">Date de l'Intervention</label>
-                    <div className="relative">
-                      <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={14} />
-                      <input 
-                        type="date" 
-                        value={scheduledDate}
-                        onChange={(e) => setScheduledDate(e.target.value)}
-                        className="w-full bg-transparent border border-slate-800 rounded-lg pl-9 pr-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-[#FF7900]/50 shadow-inner"
+                        style={{ width: `${kit.battery}%` }}
                       />
                     </div>
-                  </div>
-                  
-                  <div>
-                    <label className="text-xs text-slate-400 block mb-1">Heure de l'Intervention</label>
-                    <div className="relative">
-                      <Clock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={14} />
-                      <input 
-                        type="time" 
-                        value={scheduledTime}
-                        onChange={(e) => setScheduledTime(e.target.value)}
-                        className="w-full bg-transparent border border-slate-800 rounded-lg pl-9 pr-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-[#FF7900]/50 shadow-inner"
-                      />
-                    </div>
+                    <span className="text-zinc-300">{kit.battery}%</span>
                   </div>
                 </div>
-              </Card>
-            </motion.div>
-          )}
+              </div>
+            </div>
 
-          {/* ================= STEP 4 VIEW ================= */}
-          {currentStep === 4 && (
-            <motion.div variants={fadeUp} className="xl:col-span-12 flex justify-center">
-              <Card className="p-8 w-full max-w-2xl text-center border-[#FF7900]/30">
-                <CheckCircle2 size={48} className="text-green-500 mx-auto mb-4" />
-                <h2 className="text-lg font-bold text-white mb-2">Résumé de la Demande</h2>
-                <p className="text-sm text-slate-400 mb-6">L'intervention a bien été configurée et est prête à être déployée.</p>
-                <div className="grid grid-cols-2 gap-4 text-left bg-transparent p-4 rounded-xl border border-slate-800">
-                  <div>
-                    <p className="text-xs text-slate-500 mb-1">Technicien Assigné</p>
-                    <p className="text-sm font-semibold text-slate-200">{selectedTech.name}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500 mb-1">Date d'Intervention</p>
-                    <p className="text-sm font-semibold text-slate-200">{scheduledDate} à {scheduledTime}</p>
-                  </div>
-                </div>
-              </Card>
-            </motion.div>
-          )}
-
-        </motion.div>
+            <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4 text-xs text-zinc-400 leading-relaxed">
+              <span className="flex items-center gap-1.5 font-semibold text-zinc-300 mb-1">
+                <AlertCircle size={14} className="text-amber-500" /> Note
+                d'exploitation
+              </span>
+              Toute intervention sur le terrain met à jour automatiquement le
+              statut du kit dans le hub IoT de suivi.
+            </div>
+          </aside>
+        </div>
       </div>
     </div>
   );

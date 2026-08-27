@@ -94,7 +94,6 @@ export const useTelemetryDashboard = () => {
   const withVoltage   = activePayloads.filter((d) => d.batteryVoltage != null);
   const withSOC       = activePayloads.filter((d) => d.batterySOC != null);
   const withPower     = activePayloads.filter((d) => d.panelPower != null);
-  const tamperCount   = activePayloads.filter((d) => d.tamper === true).length;
 
   const avgBatteryVoltage = withVoltage.length
     ? (withVoltage.reduce((s, d) => s + d.batteryVoltage, 0) / withVoltage.length).toFixed(2)
@@ -118,7 +117,6 @@ export const useTelemetryDashboard = () => {
     avgBatteryVoltage,
     avgBatterySOC,
     avgPanelPower,
-    tamperCount,
     totalEntries: telemetryHistory.length,
     lastTimestamp,
   };

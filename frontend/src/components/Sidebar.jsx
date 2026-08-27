@@ -1,40 +1,22 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  Zap,
-  Wrench,
-  Radio,
-  Box,
+  LayoutDashboard,
+  Map,
   ClipboardList,
-  Users,
-  MessageSquare,
-  Bell,
   Settings,
   Headphones,
   FileCode,
   ChevronLeft,
   ChevronRight,
   LogOut,
-  FilePlus,
-  Activity,
-  ShieldAlert,
 } from 'lucide-react';
-import QuickSubscriptionButton from './QuickSubscriptionButton';
 import { useLogoutMutation } from '../hooks/tanstack/useAuthMutations.js';
 
 const mainNavItems = [
-  { label: 'Statut Centrale', icon: Zap, path: '/dashboard' },
-  { label: 'Souscription OE', icon: FilePlus, path: '/subscription', badge: 'Nouveau' },
-  { label: 'Decisions', icon: MessageSquare, path: '/decision' },
-  { label: 'Kits intelligent', icon: Box, path: '/SmartKitdetails' },
-  { label: 'Suivi de Flotte', icon: Radio, path: '/FleetMonitoring' },
-  { label: 'Alerte Geofence', icon: ShieldAlert, path: '/geofencing', badge: 'GPS' },
+  { label: 'Tableau de bord', icon: LayoutDashboard, path: '/dashboard' },
+  { label: 'Parc', icon: Map, path: '/parc' },
   { label: 'Interventions', icon: ClipboardList, path: '/InterventionWizard' },
-  { label: 'Clients', icon: Users, path: '/CustomerProfile' },
-  { label: 'Opérations', icon: Wrench, path: '/OperationsOverview', badge: '12' },
-  { label: 'Notifications', icon: Bell, path: '/notification' },
-  { label: 'Télémétrie IoT', icon: Activity, path: '/telemetry', badge: 'Live' },
-  { label: 'Registre Orange', icon: ClipboardList, path: '/orange-kits' },
   { label: 'Administration', icon: Settings, path: '/AdministrationSettings' },
 ];
 
@@ -187,7 +169,6 @@ export default function Sidebar() {
         }} />
       </aside>
 
-      <QuickSubscriptionButton />
     </>
   );
 }

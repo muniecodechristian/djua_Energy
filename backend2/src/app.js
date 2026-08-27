@@ -14,6 +14,7 @@ import authRoutes from "./routes/auth.routes.js";
 import orangeEnergyRoutes from "./routes/orangeEnergy.routes.js";
 import iaRoutes from "./routes/ia.routes.js";
 import mlRoutes from "./routes/ml.routes.js";
+import iotRoutes from "./routes/iot.routes.js";
 import { swaggerSpec, swaggerUiOptions } from "./docs/swagger.config.js";
 
 const app = express();
@@ -88,6 +89,7 @@ app.use("/auth", authRoutes);
 app.use("/api", deviceRoutes);
 
 app.use("/api/ml", mlRoutes);
+app.use("/api/iot", iotRoutes);
 
 app.use("/users/", orangeEnergyRoutes);
 

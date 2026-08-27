@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   ComposableMap,
   Geographies,
@@ -139,6 +140,7 @@ const parseCoordinate = (val) => {
 };
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const [activeHub, setActiveHub] = useState(null);
   const [physicalAddress, setPhysicalAddress] = useState("");
   const addressCache = useRef({});
@@ -269,7 +271,7 @@ export default function Dashboard() {
                   {Array.isArray(alerts) ? alerts.length : alertsData.length}
                 </span>
               </h2>
-              <button className="text-[11px] font-medium text-[#FF7900] hover:text-orange-400 transition-colors">Tout voir</button>
+              <button onClick={() => navigate('/notification')} className="text-[11px] font-medium text-[#FF7900] hover:text-orange-400 transition-colors">Tout voir</button>
             </div>
 
             <div className="divide-y divide-zinc-800/40 flex-1 overflow-y-auto custom-scrollbar">

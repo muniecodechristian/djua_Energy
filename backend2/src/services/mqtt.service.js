@@ -4,10 +4,7 @@
 
 import mqtt from 'mqtt';
 import config from '../config/env.config.js';
-import * as store from '../store/memory.store.js';
-import { checkAndTriggerGeofence } from './geofence.service.js';
-import { enrichTelemetry } from './telemetryEnricher.service.js';
-import EnrichedTelemetry from '../models/EnrichedTelemetry.js';
+import { processStatus, processTelemetry, processAlert } from './iot.service.js';
 
 // ─── État interne ─────────────────────────────────────────────────────────────
 
@@ -47,43 +44,33 @@ function handleMessage(topic, message) {
   switch (dataType) {
     case 'status':
       console.log(` Statut    ${deviceId} :`, payload);
-      store.setDeviceStatus(deviceId, payload);
+      processStatus(deviceId, payload).catch((err) =>
+        console.error('[MQTT Service] Échec sauvegarde statut :', err.message)
+      );
       break;
 
     case 'telemetry': {
       const t = payload;
       console.log(`\n══════════════════ TÉLÉMÉTRIE [${deviceId}] ══════════════════`);
       console.log(`   Timestamp      : ${t.timestamp ?? new Date().toISOString()}`);
-      console.log(`   Batterie       : ${t.batteryVoltage ?? '?'}V  |  ${t.batteryCurrent ?? '?'}A  |  SOC: ${t.batterySOC ?? '?'}%  |  Temp: ${t.batteryTemperature ?? '?'}°C`);
+      console.log(`   Batterie       : ${t.batteryVoltage ?? '?'}V  |  ${t.batteryCurrent ?? '?'}A  |  SOC: ${t.batterySOC ?? '?'}%`);
       console.log(`   Panneau        : ${t.panelVoltage ?? '?'}V  |  ${t.panelCurrent ?? '?'}A  |  Puissance: ${t.panelPower ?? '?'}W`);
-      console.log(`   GPS            : lat=${t.latitude ?? '?'}  lon=${t.longitude ?? '?'}  vitesse=${t.speed ?? '?'} km/h`);
-      console.log(`   Tamper         : ${t.tamper ? 'BOITIER OUVERT' : 'OK (fermé)'}`);
       console.log(`   Firmware       : ${t.firmwareVersion ?? '?'}`);
       console.log(`══════════════════════════════════════════════════════════════\n`);
 
-      enrichTelemetry(payload)
-        .then(async (enriched) => {
-          store.setDeviceTelemetry(deviceId, enriched);
-          try {
-            await EnrichedTelemetry.create(enriched);
-            console.log(`[MQTT Service] Enriched telemetry saved to DB for device ${deviceId}`);
-          } catch (dbErr) {
-            console.error('[MQTT Service] Failed to save enriched telemetry to DB:', dbErr.message);
-          }
-        })
+      processTelemetry(deviceId, payload)
+        .then(() => console.log(`[MQTT Service] Télémétrie sauvegardée pour ${deviceId}`))
         .catch((err) => {
-          console.error('[Telemetry Enricher] Error enriching payload, falling back to raw:', err);
-          store.setDeviceTelemetry(deviceId, payload);
+          console.error('[Telemetry Processor] Échec traitement télémétrie :', err.message);
         });
       break;
     }
 
     case 'alerts':
       console.log(` Alerte    ${deviceId} :`, payload);
-      store.addDeviceAlert(deviceId, payload);
-      if (payload && payload.latitude && payload.longitude) {
-        checkAndTriggerGeofence(deviceId, payload.latitude, payload.longitude);
-      }
+      processAlert(deviceId, payload).catch((err) =>
+        console.error('[MQTT Service] Échec sauvegarde alerte :', err.message)
+      );
       break;
 
     default:

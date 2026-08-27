@@ -110,6 +110,22 @@ export const useTelemetryQuery = () => {
   });
 };
 
+export const useKitTelemetryQuery = (kitId) => {
+  return useQuery({
+    queryKey: ['telemetry', kitId],
+    queryFn: async () => {
+      const response = await api.get('/api/ml/telemetry', {
+        params: { kit_id: kitId, limit: 20, sort: 'desc' },
+      });
+      return response.data?.success ? response.data.data : [];
+    },
+    enabled: Boolean(kitId),
+    staleTime: 1000 * 15,
+    refetchInterval: 1000 * 30,
+    retry: 1,
+  });
+};
+
 // ─── 6. Scoring d'un client par téléphone ─────────────────────────────────────
 /**
  * Récupère les données de scoring d'un client (GET /users/orange/scoring-data/:phone).

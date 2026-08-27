@@ -57,8 +57,5 @@
     "postcss": "^8.5.19",
     "tailwindcss": "^4.3.2",
     "vite": "^8.1.1"
-  },
-  "overrides": {
-    "d3-color": "3.1.0"
   }
 }

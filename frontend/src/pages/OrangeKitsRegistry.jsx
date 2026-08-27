@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { MoreVertical, Check, RefreshCw, Wifi, WifiOff, AlertTriangle, Info, ShieldAlert } from 'lucide-react';
 import { Button } from "../components/ui/button";
@@ -88,6 +89,7 @@ const RowSkeleton = () => (
 const tabs = ["Toutes les offres", "Actives", "Suspendues", "Résiliées"];
 
 export default function OrangeKitsRegistry() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("Toutes les offres");
   const [checkedIds, setCheckedIds] = useState(new Set());
 
@@ -146,6 +148,15 @@ export default function OrangeKitsRegistry() {
           >
             <RefreshCw size={12} className={isLoading ? 'animate-spin' : ''} />
             Synchroniser API
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate('/notification')}
+            className="bg-zinc-950 border-zinc-800 text-zinc-300 hover:bg-zinc-900 hover:text-zinc-100 rounded text-xs gap-1.5"
+          >
+            <Info size={12} />
+            Voir les notifications
           </Button>
         </div>
       </div>
@@ -215,13 +226,25 @@ export default function OrangeKitsRegistry() {
               <motion.div
                 key={notif.id}
                 variants={rowVariants}
+                onClick={() => navigate(`/SmartKitdetails?kitId=${encodeURIComponent(notif.user)}`)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    navigate('/SmartKitdetails');
+                  }
+                }}
+                role="button"
+                tabIndex={0}
                 className={`
                   grid grid-cols-1 lg:grid-cols-[40px_120px_1.5fr_2fr_2fr_100px_1.5fr_100px_40px]
                   gap-4 px-4 py-3 items-center transition-all border-b border-zinc-900/40
-                  ${isChecked ? 'bg-zinc-950/60' : 'bg-transparent'}
+                  ${isChecked ? 'bg-zinc-950/60' : 'bg-transparent'} cursor-pointer hover:bg-zinc-900/30
                 `}
               >
-                <div className="hidden lg:flex justify-center" onClick={() => toggleCheck(notif.id)}>
+                <div className="hidden lg:flex justify-center" onClick={(event) => {
+                  event.stopPropagation();
+                  toggleCheck(notif.id);
+                }}>
                   <div className={`w-3.5 h-3.5 rounded flex items-center justify-center cursor-pointer transition-colors ${
                     isChecked ? 'bg-zinc-300 border-zinc-300' : 'border border-zinc-800 hover:border-zinc-600'
                   }`}>
@@ -257,9 +280,14 @@ export default function OrangeKitsRegistry() {
                   <Button
                     variant="ghost"
                     size="icon"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      navigate(`/SmartKitdetails?kitId=${encodeURIComponent(notif.user)}`);
+                    }}
+                    title={`Voir les informations de ${notif.user}`}
                     className="h-7 w-7 text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900 rounded"
                   >
-                    <MoreVertical size={14} />
+                    <Info size={14} />
                   </Button>
                 </div>
               </motion.div>

@@ -66,13 +66,12 @@ export default function ClientHistoryTab({ client }) {
           <div className="relative border-l border-zinc-800 pl-4 ml-2 space-y-6">
             {clientHistory.map((entry, idx) => {
               const d = entry.data || {};
-              const isTampered = d.tamper === true;
 
               return (
                 <div key={idx} className="relative">
                   {/* Point sur la ligne de temps */}
                   <div className={`absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full border-2 bg-black ${
-                    isTampered ? 'border-red-500 ring-4 ring-red-500/10' : 'border-emerald-500 ring-4 ring-emerald-500/10'
+                    'border-emerald-500 ring-4 ring-emerald-500/10'
                   }`} />
 
                   <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-3.5 hover:border-zinc-700/50 transition-all">
@@ -119,7 +118,6 @@ export default function ClientHistoryTab({ client }) {
                       <div>
                         <span className="text-[9px] text-zinc-500 block uppercase font-semibold">Spécifications</span>
                         <span className="text-zinc-200 block">Firmware : v{d.firmwareVersion || '1.0.0'}</span>
-                        <span className="text-[9px] text-zinc-500 block">Température : {d.batteryTemperature}°C</span>
                       </div>
                     </div>
                   </div>

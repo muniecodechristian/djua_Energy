@@ -27,12 +27,10 @@ const deviceToNotification = (deviceId, device) => {
   if (tel) {
     const batVolt = tel.batteryVoltage != null ? `${tel.batteryVoltage.toFixed(1)}V` : '?';
     const batSoc = tel.batterySOC != null ? `${tel.batterySOC}%` : '?';
-    const batTemp = tel.batteryTemperature != null ? `${tel.batteryTemperature.toFixed(1)}°C` : '?';
     const pnlVolt = tel.panelVoltage != null ? `${tel.panelVoltage.toFixed(1)}V` : '?';
     const pnlPwr = tel.panelPower != null ? `${tel.panelPower.toFixed(1)}W` : '?';
-    const tamperAlert = tel.tamper ? 'Sabotage' : 'Normal';
 
-    desc = `Batterie: ${batVolt} (${batSoc}, ${batTemp}) | Panneau: ${pnlVolt} (${pnlPwr}) | Boîtier: ${tamperAlert}`;
+    desc = `Batterie: ${batVolt} (${batSoc}) | Panneau: ${pnlVolt} (${pnlPwr})`;
     
     if (tel.latitude != null && tel.longitude != null) {
       assigneeStr = `GPS: ${tel.latitude.toFixed(4)}, ${tel.longitude.toFixed(4)}`;

@@ -7,17 +7,13 @@ import Dashboard from './pages/Dashboard';
 import LoginTeak from './pages/LoginTeak';
 import MainLayout from './pages/MainLayout';
 import FleetStatusFeed from './pages/FleetStatusFeed';
-import Discussion from './pages/Discussion';
 import SmartKitDetails from './pages/SmartKitDetails';
 import InterventionWizard from './pages/InterventionWizard';
 import CustomerProfile from './pages/CustomerProfile';
 import OperationsOverview from './pages/OperationsOverview';
 import AdministrationSettings from './pages/AdministrationSettings';
-import FleetMonitoring from './pages/FleetMonitoring';
-import SubscriptionForm from './pages/SubscriptionForm';
 import OrangeKitsRegistry from './pages/OrangeKitsRegistry';
 import TelemetryDashboard from './pages/TelemetryDashboard';
-import GeofencingAlerts from './pages/GeofencingAlerts';
 
 // ─── Loader affiché pendant la vérification de session ────────────────────────
 const AuthLoader = () => (
@@ -75,17 +71,16 @@ function App() {
       <Route element={<ProtectedLayout />}>
         <Route path="/dashboard"            element={<Dashboard />} />
         <Route path="/notification"         element={<FleetStatusFeed />} />
-        <Route path="/decision"             element={<Discussion />} />
+        <Route path="/decision"             element={<Navigate to="/notification" replace />} />
         <Route path="/SmartKitdetails"      element={<SmartKitDetails />} />
         <Route path="/InterventionWizard"   element={<InterventionWizard />} />
         <Route path="/CustomerProfile"      element={<CustomerProfile />} />
         <Route path="/OperationsOverview"   element={<OperationsOverview />} />
         <Route path="/AdministrationSettings" element={<AdministrationSettings />} />
-        <Route path="/FleetMonitoring"      element={<FleetMonitoring />} />
-        <Route path="/subscription"         element={<SubscriptionForm />} />
-        <Route path="/orange-kits"          element={<OrangeKitsRegistry />} />
+        <Route path="/parc"                 element={<OrangeKitsRegistry />} />
+        <Route path="/orange-kits"          element={<Navigate to="/parc" replace />} />
         <Route path="/telemetry"            element={<TelemetryDashboard />} />
-        <Route path="/geofencing"           element={<GeofencingAlerts />} />
+        <Route path="/geofencing"           element={<Navigate to="/notification" replace />} />
       </Route>
     </Routes>
   );

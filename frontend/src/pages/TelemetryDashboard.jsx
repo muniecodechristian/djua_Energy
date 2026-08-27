@@ -197,7 +197,6 @@ export default function TelemetryDashboard() {
   } = useTelemetryDashboard();
 
   const [filterDevice, setFilterDevice]   = useState('');
-  const [showTamperOnly, setShowTamper]   = useState(false);
   const [expandedRow, setExpandedRow]     = useState(null);
   const [selectedTelemetry, setSelectedTelemetry] = useState(null);
 
@@ -218,11 +217,8 @@ export default function TelemetryDashboard() {
       const q = filterDevice.toLowerCase();
       list = list.filter((e) => e.deviceId?.toLowerCase().includes(q));
     }
-    if (showTamperOnly) {
-      list = list.filter((e) => e.data?.tamper === true);
-    }
     return list;
-  }, [telemetryHistory, filterDevice, showTamperOnly]);
+  }, [telemetryHistory, filterDevice]);
 
   const deviceIds = Object.keys(devicesMap);
 
@@ -312,13 +308,6 @@ export default function TelemetryDashboard() {
             value={stats.totalEntries}
             sub="Dans le buffer (max 100)"
           />
-          <KpiCard
-            icon={ShieldAlert}
-            title="Alertes tamper"
-            value={stats.tamperCount}
-            sub="Boîtier ouvert détecté"
-            warn={stats.tamperCount > 0}
-          />
         </motion.div>
 
         {/* ── Contenu principal : Log + Panel Commandes ──────────────────────── */}
@@ -336,17 +325,6 @@ export default function TelemetryDashboard() {
 
               {/* Filtres */}
               <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setShowTamper((p) => !p)}
-                  className={`flex items-center gap-1.5 text-[10px] font-semibold px-2.5 py-1.5 rounded-lg border transition-all ${
-                    showTamperOnly
-                      ? 'bg-red-500/10 border-red-500/30 text-red-400'
-                      : 'bg-zinc-900/40 border-zinc-800/50 text-zinc-400 hover:text-zinc-200'
-                  }`}
-                >
-                  <ShieldAlert size={11} />
-                  Tamper seul
-                </button>
                 <input
                   type="text"
                   placeholder="Filtrer par device..."
@@ -406,7 +384,6 @@ export default function TelemetryDashboard() {
                       const d   = entry.data || {};
                       const soc = d.batterySOC;
                       const isExpanded = expandedRow === idx;
-                      const hasTamper  = d.tamper === true;
 
                       return (
                         <motion.div
@@ -445,7 +422,7 @@ export default function TelemetryDashboard() {
                                 </div>
                               </div>
                               <span className="text-[9px] text-zinc-500 tabular-nums">
-                                {fmt(d.batteryVoltage)}V · {fmt(d.batteryCurrent)}A · {fmt(d.batteryTemperature)}°C
+                                {fmt(d.batteryVoltage)}V · {fmt(d.batteryCurrent)}A
                               </span>
                             </div>
 
@@ -539,10 +516,6 @@ export default function TelemetryDashboard() {
                                   <div className="flex flex-col gap-0.5">
                                     <span className="text-[9px] text-zinc-600 uppercase tracking-wider">SOC</span>
                                     <span className={`text-[11px] font-bold ${socColor(soc)}`}>{fmt(soc, 0)} %</span>
-                                  </div>
-                                  <div className="flex flex-col gap-0.5">
-                                    <span className="text-[9px] text-zinc-600 uppercase tracking-wider">Température batt.</span>
-                                    <span className="text-[11px] font-semibold text-zinc-200">{fmt(d.batteryTemperature, 1)} °C</span>
                                   </div>
                                   <div className="flex flex-col gap-0.5">
                                     <span className="text-[9px] text-zinc-600 uppercase tracking-wider">Tension panneau</span>
@@ -694,14 +667,6 @@ export default function TelemetryDashboard() {
                     <span className="text-[9px] text-zinc-500 block uppercase font-semibold">Énergie Panneau</span>
                     <span className="text-sm font-bold text-amber-400">{selectedTelemetry.data?.panelPower} W</span>
                     <span className="text-[9px] text-zinc-500 block mt-0.5">{selectedTelemetry.data?.panelVoltage}V · {selectedTelemetry.data?.panelCurrent}A</span>
-                  </div>
-                  <div className="bg-zinc-900/30 border border-zinc-900 rounded-xl p-3">
-                    <span className="text-[9px] text-zinc-500 block uppercase font-semibold">Statut Boîtier</span>
-                    <span className={`inline-flex items-center gap-1 text-[10px] font-bold mt-1 px-2 py-0.5 rounded-full border ${
-                      selectedTelemetry.data?.tamper ? 'bg-red-500/10 border-red-500/20 text-red-400' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-                    }`}>
-                      {selectedTelemetry.data?.tamper ? '⚠️ TAMPER (OUVERT)' : '✅ SÉCURISÉ (FERMÉ)'}
-                    </span>
                   </div>
                   <div className="bg-zinc-900/30 border border-zinc-900 rounded-xl p-3 col-span-2">
                     <span className="text-[9px] text-zinc-500 block uppercase font-semibold">Coordonnées GPS</span>

@@ -364,16 +364,11 @@ void publishTelemetry() {
   doc["batteryCurrent"] = batCurrent / 1000.0;
   doc["batterySOC"] = 82; // SOC simulé fixe pour le test
   
-  sensors.requestTemperatures();
-  doc["batteryTemperature"] = sensors.getTempCByIndex(0);
-  
   doc["panelVoltage"] = solarVolt;
   doc["panelCurrent"] = solarCurrent / 1000.0;
   doc["panelPower"] = solarVolt * (solarCurrent / 1000.0);
   doc["latitude"] = gpsLat;
   doc["longitude"] = gpsLon;
-  doc["speed"] = 0.0;
-  doc["tamper"] = boxOpen;
   doc["firmwareVersion"] = firmwareVersion;
 
   String payload;

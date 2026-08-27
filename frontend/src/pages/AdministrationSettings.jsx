@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   Users, Sliders, Cpu, Link as LinkIcon, Bell, Shield, Settings, FileText,
@@ -69,6 +70,7 @@ const Card = ({ children, className = "", title, action, titleRight }) => (
 
 // --- COMPOSANT PRINCIPAL ---
 export default function ParametresAdministration() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('Vue d\'ensemble');
   const [mounted, setMounted] = useState(false);
   
@@ -92,6 +94,9 @@ export default function ParametresAdministration() {
           </div>
 
           <div className="flex items-center gap-3">
+            <button onClick={() => navigate('/OperationsOverview')} className="px-4 py-2 bg-transparent border border-[#FF7900]/40 hover:border-[#FF7900] hover:bg-[#FF7900]/10 rounded-xl text-sm font-medium text-[#FF7900] transition-all flex items-center gap-2">
+              <Terminal size={16} /> Opérations
+            </button>
             <button className="px-4 py-2 bg-transparent border border-white/20 hover:border-white/40 hover:bg-white/5 rounded-xl text-sm font-medium text-white transition-all flex items-center gap-2">
               <Download size={16} /> Exporter
             </button>

@@ -41,7 +41,6 @@ const runSimulation = async () => {
           message_type: 'telemetry',
           device_id: `device-${kit.kitId}`,
           kit_id: kit.kitId,
-          serial_number: kit.serialNumber || `SN-${kit.kitId}`,
           event_time: String(Math.floor(Date.now() / 1000)),
           sequence_number: Math.floor(Math.random() * 100000),
           
@@ -55,8 +54,6 @@ const runSimulation = async () => {
           solar_current_a: solarCurrent,
           solar_power_w: solarPower,
           energy_generated_wh: Math.floor(100 + Math.random() * 200),
-          panel_temperature_c: Math.floor(35 + Math.random() * 25),
-          solar_irradiance_w_m2: Math.floor(100 + Math.random() * 800),
           
           load_voltage_v: loadVoltage,
           load_current_a: loadCurrent,
@@ -64,34 +61,13 @@ const runSimulation = async () => {
           energy_consumed_wh: Math.floor(500 + Math.random() * 1000),
           
           overload_detected: Math.random() > 0.95,
-          short_circuit_detected: Math.random() > 0.99,
           
           // GPS du kit ou petite déviation
           latitude: kit.gpsCoordinates?.latitude ? kit.gpsCoordinates.latitude + (Math.random() - 0.5) * 0.001 : -4.325,
           longitude: kit.gpsCoordinates?.longitude ? kit.gpsCoordinates.longitude + (Math.random() - 0.5) * 0.001 : 15.322,
-          gps_accuracy_m: Number((5 + Math.random() * 10).toFixed(1)),
-          speed_mps: 0,
-          movement_detected: Math.random() > 0.9,
-          movement_duration_seconds: 0,
-          movement_event_count: 0,
-          
-          tamper_detected: Math.random() > 0.98,
-          enclosure_opened: Math.random() > 0.99,
-          impact_detected: Math.random() > 0.98,
-          
-          connectivity_type: 'lte',
-          connection_status: Math.random() > 0.9 ? 'degraded' : 'connected',
-          connectivity_gap_seconds: Math.floor(Math.random() * 60),
-          network_operator: 'orange',
-          network_quality: Math.random() > 0.8 ? 'weak' : 'medium',
-          
           device_temperature_c: Number((35 + Math.random() * 15).toFixed(1)),
-          reset_count: Math.random() > 0.95 ? 2 : 1,
-          missing_measurement_count: Math.floor(Math.random() * 2),
-          sensor_failure_detected: Math.random() > 0.99,
           battery_error_code: Math.random() > 0.95 ? 'BATT_TEMP_HIGH' : 'NONE',
           solar_error_code: Math.random() > 0.95 ? 'LOW_INPUT' : 'NONE',
-          device_error_code: 'NONE',
           schema_version: '1.0'
         };
 

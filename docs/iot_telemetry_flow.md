@@ -43,7 +43,7 @@ sequenceDiagram
 
 ## 📡 1. Couche Connectivité & IoT (MQTT)
 
-Les boîtiers ESP32 sur le terrain publient des payloads au format JSON toutes les 10 secondes (ou en cas d'événement tamper/alerte).
+Les boîtiers ESP32 sur le terrain publient des payloads au format JSON toutes les 10 secondes.
 
 ### Format des Topics MQTT
 *   **Télémétrie :** `djua/<kitId>/telemetry`
@@ -58,14 +58,12 @@ Les boîtiers ESP32 sur le terrain publient des payloads au format JSON toutes l
   "batteryVoltage": 12.8,
   "batteryCurrent": 1.2,
   "batterySOC": 92,
-  "batteryTemperature": 28.5,
   "panelVoltage": 18.2,
   "panelCurrent": 2.5,
   "panelPower": 45.5,
   "latitude": -11.6701,
   "longitude": 27.4795,
   "speed": 0.0,
-  "tamper": false,
   "firmwareVersion": "1.0.4"
 }
 ```
