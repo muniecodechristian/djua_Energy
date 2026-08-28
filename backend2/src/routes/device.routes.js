@@ -181,6 +181,49 @@ router.get('/telemetry', controller.getTelemetry);
 
 /**
  * @swagger
+ * /api/telemetry/{kitId}:
+ *   get:
+ *     summary: Get raw IoT telemetry history for a specific kit
+ *     description: >
+ *       Returns the list of raw telemetry records stored in MongoDB for a given kit.
+ *       These are the unprocessed payloads received from the ESP32 device.
+ *       Supports pagination and sort order.
+ *       For ML-ready enriched data, use GET /api/ml/telemetry instead.
+ *     tags:
+ *       - Telemetry
+ *     parameters:
+ *       - in: path
+ *         name: kitId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Kit identifier
+ *         example: djua-kit-001
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 50
+ *         description: Number of records (max 500)
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: sort
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *           default: desc
+ *     responses:
+ *       '200':
+ *         description: Raw telemetry records retrieved successfully.
+ */
+router.get('/telemetry/:kitId', controller.getKitTelemetry);
+
+/**
+ * @swagger
  * /api/alerts:
  *   get:
  *     summary: Get global alerts history

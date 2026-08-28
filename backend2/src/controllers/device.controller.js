@@ -4,6 +4,7 @@
 import * as store from '../store/db.store.js';
 import { publishCommand } from '../services/mqtt.service.js';
 import { enqueueCommand } from '../store/command.store.js';
+import Telemetry from '../models/Telemetry.js';
 
 // ─── Lectures ─────────────────────────────────────────────────────────────────
 
@@ -50,6 +51,40 @@ export async function getAlerts(req, res) {
     res.json({ success: true, count: history.length, data: history });
   } catch (err) {
     console.error('Erreur récupération alertes :', err);
+    res.status(500).json({ success: false, message: 'Erreur serveur interne' });
+  }
+}
+
+/** GET /api/telemetry/:kitId — Données brutes IoT depuis la collection Telemetry */
+export async function getKitTelemetry(req, res) {
+  const { kitId } = req.params;
+  const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 50, 1), 500);
+  const page  = Math.max(parseInt(req.query.page, 10) || 1, 1);
+  const skip  = (page - 1) * limit;
+  const sort  = req.query.sort === 'asc' ? 1 : -1;
+
+  if (!kitId) {
+    return res.status(400).json({ success: false, message: 'kitId est requis' });
+  }
+
+  try {
+    const [telemetries, total] = await Promise.all([
+      Telemetry.find({ kitId })
+        .sort({ createdAt: sort })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      Telemetry.countDocuments({ kitId }),
+    ]);
+
+    res.json({
+      success: true,
+      count: telemetries.length,
+      pagination: { total, page, limit, totalPages: Math.ceil(total / limit) },
+      data: telemetries,
+    });
+  } catch (err) {
+    console.error('[Device Controller] Erreur récupération télémétrie brute :', err);
     res.status(500).json({ success: false, message: 'Erreur serveur interne' });
   }
 }

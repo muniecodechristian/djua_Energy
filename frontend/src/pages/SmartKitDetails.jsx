@@ -1,21 +1,22 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid
 } from 'recharts';
 import {
-  MapPin, Activity, ShieldAlert, Wifi, Zap, 
-  CheckCircle2, Box, Layers, Expand, RotateCcw, Monitor, 
-  Thermometer, Battery, Sun, Cpu, Signal, MoreHorizontal, 
-  ChevronDown, Wrench, RefreshCw, Send, Power as PowerIcon
+  MapPin, Activity, ShieldAlert, Wifi, Zap,
+  CheckCircle2, Box, Layers, Expand, RotateCcw, Monitor,
+  Thermometer, Battery, Sun, Cpu, Signal, MoreHorizontal,
+  ChevronDown, Wrench, RefreshCw, Send, Power as PowerIcon,
+  Radio, Database, WifiOff
 } from 'lucide-react';
-import { useKitTelemetryQuery } from '../hooks/tanstack/useKitQueries.js';
+import { useKitLiveTelemetry } from '../hooks/tanstack/useKitLiveTelemetry.js';
 
 // --- MOCK DATA ---
 
-const generateSparkline = (base, variance) => 
-  Array.from({ length: 10 }, (_, i) => ({ val: base + (Math.random() * variance - variance/2) }));
+const generateSparkline = (base, variance) =>
+  Array.from({ length: 10 }, (_, i) => ({ val: base + (Math.random() * variance - variance / 2) }));
 
 const telemetryData = Array.from({ length: 24 }, (_, i) => ({
   time: `${String(i).padStart(2, '0')}:00`,
@@ -25,7 +26,7 @@ const telemetryData = Array.from({ length: 24 }, (_, i) => ({
   soc: 40 + Math.random() * 20 + (i > 12 ? 10 : 0)
 }));
 
-const healthHistoryData = Array.from({ length: 7 }, (_, i) => ({ day: `1${i+2} Mai`, val: 80 + Math.random()*15 }));
+const healthHistoryData = Array.from({ length: 7 }, (_, i) => ({ day: `1${i + 2} Mai`, val: 80 + Math.random() * 15 }));
 
 const componentsData = [
   { name: 'Panneau Solaire', status: 'OK', health: 95 },
@@ -82,23 +83,27 @@ const SimpleProgressBar = ({ value, color }) => (
 export default function SmartKitDetails() {
   const [searchParams] = useSearchParams();
   const kitId = searchParams.get('kitId');
-  const { data: telemetryDocuments = [], isLoading: telemetryLoading } = useKitTelemetryQuery(kitId);
-  const telemetryRecords = useMemo(
-    () => telemetryDocuments.flatMap((document) => document.records || []).filter(Boolean),
-    [telemetryDocuments],
-  );
-  const latestTelemetry = telemetryRecords[telemetryRecords.length - 1];
+
+  // Hook live : Socket.io temps réel + fallback BD automatique
+  const {
+    telemetryDocuments,
+    telemetryRecords,
+    latestTelemetry,
+    isLive,
+    isLoading: telemetryLoading,
+    dataSource,
+  } = useKitLiveTelemetry(kitId);
+
   const hasTelemetry = Boolean(latestTelemetry);
-  const formatMetric = (value, unit = '') => (
+  const formatMetric = (value, unit = '') =>
     value === undefined || value === null || Number.isNaN(Number(value))
       ? '—'
-      : `${value}${unit}`
-  );
+      : `${value}${unit}`;
   const lastUpdate = latestTelemetry?.event_time
-    ? new Date(latestTelemetry.event_time).toLocaleString('fr-FR')
+    ? new Date(Number(latestTelemetry.event_time) * 1000 || latestTelemetry.event_time).toLocaleString('fr-FR')
     : '—';
   const chartTelemetry = telemetryRecords.slice(-24).map((record, index) => ({
-    time: record.event_time || `${index + 1}`,
+    time: record.event_time ? new Date(Number(record.event_time) * 1000 || record.event_time).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : `${index + 1}`,
     voltage: record.battery_voltage_v ?? 0,
     current: record.battery_current_a ?? 0,
     temp: record.device_temperature_c ?? 0,
@@ -107,7 +112,7 @@ export default function SmartKitDetails() {
   const displayKitId = kitId || 'Kit non sélectionné';
   const [activeTab, setActiveTab] = useState('Jumeau Numérique');
   const [notification, setNotification] = useState(null);
-  
+
   const tabs = ['Jumeau Numérique', 'Télémétrie', 'Santé', 'Événements', 'Énergie', 'Configuration', 'Historique', 'Documents'];
 
   const handleQuickAction = (actionName) => {
@@ -120,13 +125,13 @@ export default function SmartKitDetails() {
 
   return (
     <div className="min-h-screen text-neutral-200 p-4 md:p-6 font-['Montserrat',sans-serif]">
-      
+
       {/* NOTIFICATION TOAST */}
       <AnimatePresence>
         {notification && (
-          <motion.div 
-            initial={{ opacity: 0, y: -20 }} 
-            animate={{ opacity: 1, y: 0 }} 
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             className="fixed top-5 right-5 z-50 px-4 py-3 rounded-lg bg-orange-500/10 border border-orange-500/30 text-orange-300 text-xs shadow-xl backdrop-blur-md flex items-center gap-2"
           >
@@ -144,10 +149,34 @@ export default function SmartKitDetails() {
             <div className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border text-xs font-semibold shadow-sm ${hasTelemetry ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-zinc-500/10 border-zinc-500/20 text-zinc-400'}`}>
               <span className="w-1.5 h-1.5 rounded-full bg-orange-500 shadow-sm shadow-orange-500 animate-pulse"></span> En ligne
             </div>
+            {/* Indicateur source des données : LIVE (Socket.io) ou BD (base de données) */}
+            {hasTelemetry && (
+              <motion.div
+                key={dataSource}
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border text-[10px] font-bold shadow-sm ${dataSource === 'live'
+                    ? 'bg-red-500/10 border-red-500/30 text-red-400'
+                    : 'bg-blue-500/10 border-blue-500/30 text-blue-400'
+                  }`}
+              >
+                {dataSource === 'live' ? (
+                  <>
+                    <Radio size={10} className="animate-pulse" />
+                    LIVE
+                  </>
+                ) : (
+                  <>
+                    <Database size={10} />
+                    BD
+                  </>
+                )}
+              </motion.div>
+            )}
           </div>
           <p className="text-[11px] text-neutral-400 flex flex-wrap items-center gap-2 font-medium">
-            SN: <span className="text-neutral-300 font-mono">RN87391V22K41</span> • 
-            Modèle: <span className="text-neutral-300">D3LIA-RK-2.1</span> • 
+            SN: <span className="text-neutral-300 font-mono">RN87391V22K41</span> •
+            Modèle: <span className="text-neutral-300">D3LIA-RK-2.1</span> •
             Installé le: <span className="text-neutral-300">12 Fév 2026</span>
             <span className="px-2 py-0.5 rounded bg-orange-500/10 border border-orange-500/20 text-orange-400 text-[10px] ml-2 font-semibold shadow-sm">Kit Résidentiel</span>
           </p>
@@ -168,9 +197,9 @@ export default function SmartKitDetails() {
       {/* TABS */}
       <div className="flex gap-6 mb-6 overflow-x-auto hide-scrollbar border-b border-neutral-800/60 pb-1">
         {tabs.map((tab) => (
-          <button 
-            key={tab} 
-            onClick={() => setActiveTab(tab)} 
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
             className={`pb-2 text-xs font-semibold whitespace-nowrap transition-colors relative cursor-pointer bg-transparent border-none ${activeTab === tab ? 'text-orange-400' : 'text-neutral-400 hover:text-neutral-200'}`}
           >
             {tab}
@@ -179,48 +208,99 @@ export default function SmartKitDetails() {
         ))}
       </div>
 
-      {activeTab === 'Télémétrie' && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-6"
-        >
-          <Card
-            title="LOGS TÉLÉMÉTRIE REÇUS"
-            titleRight={telemetryLoading ? 'Actualisation...' : `${telemetryRecords.length} mesures`}
-          >
-            {!kitId ? (
-              <p className="text-xs text-neutral-500">Sélectionnez un kit depuis le Parc pour afficher ses logs.</p>
-            ) : telemetryLoading ? (
-              <p className="text-xs text-neutral-500">Chargement des données reçues par le backend...</p>
-            ) : telemetryRecords.length === 0 ? (
-              <p className="text-xs text-neutral-500">Aucun log de télémétrie reçu pour ce boîtier.</p>
-            ) : (
-              <div className="space-y-3 max-h-[620px] overflow-y-auto pr-1">
-                {[...telemetryRecords].reverse().map((record, index) => (
-                  <details key={`${record.event_time || 'log'}-${index}`} className="rounded-xl border border-neutral-800 bg-neutral-950/60">
-                    <summary className="cursor-pointer list-none px-4 py-3 flex flex-wrap items-center justify-between gap-3 text-xs">
-                      <span className="font-mono text-orange-400">
-                        {record.event_time || 'Horodatage indisponible'}
-                      </span>
-                      <span className="text-neutral-400">
-                        Batterie {record.battery_voltage_v ?? '—'} V · Solaire {record.solar_power_w ?? '—'} W · Charge {record.load_power_w ?? '—'} W
-                      </span>
-                    </summary>
-                    <pre className="border-t border-neutral-800 px-4 py-3 overflow-x-auto text-[10px] leading-relaxed text-neutral-300">
-                      {JSON.stringify(record, null, 2)}
-                    </pre>
-                  </details>
-                ))}
-              </div>
-            )}
-          </Card>
-        </motion.div>
-      )}
+      {!kitId ? (
+        <div className="flex flex-col items-center justify-center py-20 bg-neutral-900/10 border border-neutral-800 rounded-2xl p-8 text-center max-w-xl mx-auto my-10 shadow-lg">
+          <Cpu size={40} className="text-neutral-600 mb-4 animate-pulse" />
+          <h3 className="text-sm font-bold text-white mb-1">Aucun kit sélectionné</h3>
+          <p className="text-xs text-neutral-500 max-w-xs">Sélectionnez un kit depuis le registre du Parc pour visualiser sa télémétrie en temps réel.</p>
+        </div>
+      ) : telemetryLoading ? (
+        <div className="flex flex-col items-center justify-center py-24">
+          <RefreshCw size={24} className="text-orange-500 animate-spin mb-4" />
+          <p className="text-xs text-neutral-400 font-medium">Chargement des données en direct et historique de télémétrie...</p>
+        </div>
+      ) : !hasTelemetry ? (
+        <div className="flex flex-col items-center justify-center py-20 bg-neutral-900/20 border border-neutral-800/80 rounded-2xl p-10 text-center max-w-2xl mx-auto my-12 shadow-2xl relative overflow-hidden group">
+          <div className="absolute inset-0 bg-gradient-to-b from-orange-500/5 to-transparent pointer-events-none" />
+          <div className="absolute -top-12 -left-12 w-24 h-24 bg-orange-500/10 rounded-full blur-2xl group-hover:scale-120 transition-transform duration-700" />
+          
+          <div className="relative z-10 space-y-5">
+            <div className="w-16 h-16 rounded-2xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center mx-auto text-orange-400 shadow-[0_0_20px_rgba(249,115,22,0.15)] group-hover:scale-105 transition-transform duration-500">
+              <WifiOff size={28} className="animate-pulse" />
+            </div>
+            
+            <div className="space-y-2">
+              <h3 className="text-base font-bold text-white tracking-tight">Boîtier IoT Non Configuré</h3>
+              <p className="text-xs text-neutral-400 font-medium max-w-md mx-auto leading-relaxed">
+                Aucun signal ou log de télémétrie n'a été reçu pour le kit <span className="font-mono text-orange-450 font-bold bg-orange-500/10 px-1.5 py-0.5 rounded border border-orange-500/20">{displayKitId}</span>.
+              </p>
+            </div>
 
-      {/* MAIN GRID */}
-      <motion.div variants={staggerContainer} initial="hidden" animate="visible" className={`${activeTab === 'Télémétrie' ? 'hidden' : 'grid grid-cols-1 lg:grid-cols-12 gap-5'}`}>
-        
+            <div className="p-4 bg-neutral-950/60 border border-neutral-900 rounded-xl max-w-md mx-auto text-left text-[11px] text-neutral-500 space-y-2 leading-relaxed">
+              <span className="font-bold text-neutral-400 block uppercase tracking-wider text-[9px] mb-1">Étapes recommandées :</span>
+              <div className="flex items-start gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-orange-500 mt-1.5 shrink-0" />
+                <span>Mettez le boîtier sous tension et connectez-le à l'alimentation du kit.</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-orange-500 mt-1.5 shrink-0" />
+                <span>Vérifiez la carte SIM/le réseau cellulaire de l'antenne Orange la plus proche.</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-orange-500 mt-1.5 shrink-0" />
+                <span>Une fois configuré, les données s'afficheront instantanément à l'écran en mode <span className="text-red-400 font-semibold animate-pulse">🔴 LIVE</span>.</span>
+              </div>
+            </div>
+            
+            <div className="pt-2">
+              <span className="text-[10px] text-neutral-500 flex items-center justify-center gap-1.5 font-mono">
+                <span className="w-1.5 h-1.5 rounded-full bg-neutral-700 animate-ping" />
+                En attente du premier ping de l'ESP32...
+              </span>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <>
+          {activeTab === 'Télémétrie' && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-6"
+            >
+              <Card
+                title="LOGS TÉLÉMÉTRIE REÇUS"
+                titleRight={telemetryLoading ? 'Actualisation...' : `${telemetryRecords.length} mesures`}
+              >
+                <div className="space-y-3 max-h-[620px] overflow-y-auto pr-1">
+                  {[...telemetryRecords].reverse().map((record, index) => (
+                    <details key={`${record.event_time || 'log'}-${index}`} className="rounded-xl border border-neutral-800 bg-neutral-950/60">
+                      <summary className="cursor-pointer list-none px-4 py-3 flex flex-wrap items-center justify-between gap-3 text-xs">
+                        <span className="font-mono text-orange-400">
+                          {record.event_time ? new Date(Number(record.event_time) * 1000 || record.event_time).toLocaleString('fr-FR') : 'Horodatage indisponible'}
+                        </span>
+                        <span className="text-neutral-400">
+                          Batterie {record.battery_voltage_v ?? '—'} V · Solaire {record.solar_power_w ?? '—'} W · Charge {record.load_power_w ?? '—'} W
+                        </span>
+                      </summary>
+                      <pre className="border-t border-neutral-800 px-4 py-3 overflow-x-auto text-[10px] leading-relaxed text-neutral-300">
+                        {JSON.stringify(record, null, 2)}
+                      </pre>
+                    </details>
+                  ))}
+                </div>
+              </Card>
+            </motion.div>
+          )}
+
+          {/* MAIN GRID */}
+          <motion.div
+            variants={staggerContainer}
+            initial="hidden"
+            animate="visible"
+            className={`${activeTab === 'Télémétrie' ? 'hidden' : 'grid grid-cols-1 lg:grid-cols-12 gap-5'}`}
+          >
+
         {/* LEFT COLUMN: 5/12 */}
         <div className="lg:col-span-5 flex flex-col gap-5">
           {/* Digital Twin View */}
@@ -228,24 +308,24 @@ export default function SmartKitDetails() {
             <Card title="VUE JUMEAU NUMÉRIQUE" titleRight="Mode de vue : 3D ▾" className="h-full p-0">
               <div className="flex-1 relative bg-neutral-950/40 flex items-center justify-center overflow-hidden">
                 <div className="absolute left-2 top-2 bg-neutral-900/80 backdrop-blur rounded-lg border border-neutral-800 flex flex-col gap-1 p-1 z-10 shadow-sm">
-                  <button className="p-1.5 text-orange-400 bg-orange-500/10 rounded border border-orange-500/20 shadow-sm"><Layers size={14}/></button>
-                  <button className="p-1.5 text-neutral-400 hover:text-neutral-200"><Expand size={14}/></button>
-                  <button className="p-1.5 text-neutral-400 hover:text-neutral-200"><RotateCcw size={14}/></button>
-                  <button className="p-1.5 text-neutral-400 hover:text-neutral-200"><Monitor size={14}/></button>
+                  <button className="p-1.5 text-orange-400 bg-orange-500/10 rounded border border-orange-500/20 shadow-sm"><Layers size={14} /></button>
+                  <button className="p-1.5 text-neutral-400 hover:text-neutral-200"><Expand size={14} /></button>
+                  <button className="p-1.5 text-neutral-400 hover:text-neutral-200"><RotateCcw size={14} /></button>
+                  <button className="p-1.5 text-neutral-400 hover:text-neutral-200"><Monitor size={14} /></button>
                   <div className="text-[9px] font-bold text-neutral-500 text-center mt-1">3D</div>
                 </div>
-                
+
                 <div className="relative w-full h-full flex items-center justify-center group cursor-grab">
-                   <div className="absolute bottom-10 w-48 h-12 bg-black/50 blur-xl rounded-[100%]"></div>
-                   <div className="relative w-40 h-40 transform transition-transform duration-1000 group-hover:scale-105">
-                     <div className="absolute inset-0 bg-neutral-800/85 border border-neutral-700 rounded-lg transform skew-x-12 skew-y-12 shadow-2xl flex items-center justify-center">
-                        <Box size={48} className="text-neutral-500 opacity-30" />
-                     </div>
-                     <div className="absolute -top-10 -left-6 w-48 h-20 bg-neutral-900/90 border border-orange-500/30 rounded-lg transform skew-x-[-45deg] rotate-[-10deg] flex items-center justify-center overflow-hidden shadow-xl">
-                        <div className="w-full h-full opacity-40" style={{ backgroundImage: 'linear-gradient(to right, #f97316 1px, transparent 1px), linear-gradient(to bottom, #f97316 1px, transparent 1px)', backgroundSize: '10px 10px' }}></div>
-                     </div>
-                     <div className="absolute bottom-4 right-4 w-4 h-4 rounded-full bg-orange-500 shadow-[0_0_15px_rgba(249,115,22,0.9)] animate-pulse"></div>
-                   </div>
+                  <div className="absolute bottom-10 w-48 h-12 bg-black/50 blur-xl rounded-[100%]"></div>
+                  <div className="relative w-40 h-40 transform transition-transform duration-1000 group-hover:scale-105">
+                    <div className="absolute inset-0 bg-neutral-800/85 border border-neutral-700 rounded-lg transform skew-x-12 skew-y-12 shadow-2xl flex items-center justify-center">
+                      <Box size={48} className="text-neutral-500 opacity-30" />
+                    </div>
+                    <div className="absolute -top-10 -left-6 w-48 h-20 bg-neutral-900/90 border border-orange-500/30 rounded-lg transform skew-x-[-45deg] rotate-[-10deg] flex items-center justify-center overflow-hidden shadow-xl">
+                      <div className="w-full h-full opacity-40" style={{ backgroundImage: 'linear-gradient(to right, #f97316 1px, transparent 1px), linear-gradient(to bottom, #f97316 1px, transparent 1px)', backgroundSize: '10px 10px' }}></div>
+                    </div>
+                    <div className="absolute bottom-4 right-4 w-4 h-4 rounded-full bg-orange-500 shadow-[0_0_15px_rgba(249,115,22,0.9)] animate-pulse"></div>
+                  </div>
                 </div>
 
                 <div className="absolute bottom-0 left-0 right-0 bg-neutral-900/80 backdrop-blur-md border-t border-neutral-800/80 p-3 grid grid-cols-4 gap-2 text-[10px] font-medium shadow-md">
@@ -261,35 +341,35 @@ export default function SmartKitDetails() {
           {/* Latest Telemetry Chart */}
           <motion.div variants={fadeUp} className="flex-1 min-h-[260px]">
             <Card title="DERNIÈRE TÉLÉMÉTRIE" titleRight="Dernières 24 heures ▾" className="h-full">
-               <div className="flex flex-wrap justify-center gap-4 mb-4 text-[10px] font-medium">
-                 <div className="flex items-center gap-1.5"><span className="w-2 h-0.5 bg-blue-500"></span><span className="text-neutral-400">Tension (V)</span></div>
-                 <div className="flex items-center gap-1.5"><span className="w-2 h-0.5 bg-green-500"></span><span className="text-neutral-400">Courant (A)</span></div>
-                 <div className="flex items-center gap-1.5"><span className="w-2 h-0.5 bg-orange-500"></span><span className="text-neutral-400">Temp (°C)</span></div>
-                 <div className="flex items-center gap-1.5"><span className="w-2 h-0.5 bg-purple-500"></span><span className="text-neutral-400">SoC (%)</span></div>
-               </div>
-               <div className="flex-1 w-full relative min-h-[180px]">
-                 {!telemetryLoading && !hasTelemetry && (
-                   <div className="absolute inset-0 z-10 flex items-center justify-center text-xs text-neutral-500">
-                     Boîtier non configuré : aucune télémétrie disponible
-                   </div>
-                 )}
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={chartTelemetry} margin={{ top: 5, right: 0, left: -25, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#262626" opacity={0.4} vertical={false} />
-                      <XAxis dataKey="time" axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: '#737373' }} dy={10} interval={4} />
-                      <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: '#737373' }} domain={[0, 100]} />
-                      <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: '#737373' }} domain={[0, 60]} />
-                      <Tooltip contentStyle={{ backgroundColor: '#0a0a0a', borderColor: '#404040', borderRadius: '8px', fontSize: '11px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.5)' }} />
-                      <Line yAxisId="left" type="monotone" dataKey="soc" stroke="#a855f7" strokeWidth={1.5} dot={false} />
-                      <Line yAxisId="left" type="monotone" dataKey="voltage" stroke="#3b82f6" strokeWidth={1.5} dot={false} />
-                      <Line yAxisId="left" type="monotone" dataKey="current" stroke="#22c55e" strokeWidth={1.5} dot={false} />
-                      <Line yAxisId="right" type="monotone" dataKey="temp" stroke="#f97316" strokeWidth={1.5} dot={false} />
-                    </LineChart>
-                  </ResponsiveContainer>
-               </div>
-               <div className="mt-2 text-right">
-                  <button onClick={() => setActiveTab('Historique')} className="text-[10px] text-orange-400 hover:text-orange-300 font-semibold bg-transparent border-none cursor-pointer">Voir l'historique complet -&gt;</button>
-               </div>
+              <div className="flex flex-wrap justify-center gap-4 mb-4 text-[10px] font-medium">
+                <div className="flex items-center gap-1.5"><span className="w-2 h-0.5 bg-blue-500"></span><span className="text-neutral-400">Tension (V)</span></div>
+                <div className="flex items-center gap-1.5"><span className="w-2 h-0.5 bg-green-500"></span><span className="text-neutral-400">Courant (A)</span></div>
+                <div className="flex items-center gap-1.5"><span className="w-2 h-0.5 bg-orange-500"></span><span className="text-neutral-400">Temp (°C)</span></div>
+                <div className="flex items-center gap-1.5"><span className="w-2 h-0.5 bg-purple-500"></span><span className="text-neutral-400">SoC (%)</span></div>
+              </div>
+              <div className="flex-1 w-full relative min-h-[180px]">
+                {!telemetryLoading && !hasTelemetry && (
+                  <div className="absolute inset-0 z-10 flex items-center justify-center text-xs text-neutral-500">
+                    Boîtier non configuré : aucune télémétrie disponible
+                  </div>
+                )}
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={chartTelemetry} margin={{ top: 5, right: 0, left: -25, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#262626" opacity={0.4} vertical={false} />
+                    <XAxis dataKey="time" axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: '#737373' }} dy={10} interval={4} />
+                    <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: '#737373' }} domain={[0, 100]} />
+                    <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: '#737373' }} domain={[0, 60]} />
+                    <Tooltip contentStyle={{ backgroundColor: '#0a0a0a', borderColor: '#404040', borderRadius: '8px', fontSize: '11px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.5)' }} />
+                    <Line yAxisId="left" type="monotone" dataKey="soc" stroke="#a855f7" strokeWidth={1.5} dot={false} />
+                    <Line yAxisId="left" type="monotone" dataKey="voltage" stroke="#3b82f6" strokeWidth={1.5} dot={false} />
+                    <Line yAxisId="left" type="monotone" dataKey="current" stroke="#22c55e" strokeWidth={1.5} dot={false} />
+                    <Line yAxisId="right" type="monotone" dataKey="temp" stroke="#f97316" strokeWidth={1.5} dot={false} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="mt-2 text-right">
+                <button onClick={() => setActiveTab('Historique')} className="text-[10px] text-orange-400 hover:text-orange-300 font-semibold bg-transparent border-none cursor-pointer">Voir l'historique complet -&gt;</button>
+              </div>
             </Card>
           </motion.div>
         </div>
@@ -313,8 +393,8 @@ export default function SmartKitDetails() {
                 </div>
                 <div>
                   <span className="text-[10px] text-neutral-500 font-medium block mb-1">Temp. Batterie</span>
-                  <span className="text-sm font-bold text-white">{formatMetric(latestTelemetry?.battery_temperature_c, '°C')}</span>
-                  <SimpleProgressBar value={0} color="bg-orange-500 shadow-sm shadow-orange-500" />
+                  <span className="text-sm font-bold text-white">{formatMetric(latestTelemetry?.device_temperature_c, '°C')}</span>
+                  <SimpleProgressBar value={latestTelemetry?.device_temperature_c ?? 0} color="bg-orange-500 shadow-sm shadow-orange-500" />
                 </div>
 
                 <div>
@@ -329,7 +409,11 @@ export default function SmartKitDetails() {
                 </div>
                 <div>
                   <span className="text-[10px] text-neutral-500 font-medium block mb-1">Énergie du Jour</span>
-                  <span className="text-sm font-bold text-white">{formatMetric(latestTelemetry?.energy_day_kwh, ' kWh')}</span>
+                  <span className="text-sm font-bold text-white">
+                    {latestTelemetry?.energy_generated_wh != null 
+                      ? (latestTelemetry.energy_generated_wh / 1000).toFixed(2) + ' kWh' 
+                      : '—'}
+                  </span>
                   <Sparkline data={generateSparkline(2, 0.5)} color="#f97316" />
                 </div>
 
@@ -420,24 +504,24 @@ export default function SmartKitDetails() {
           {/* Location */}
           <motion.div variants={fadeUp}>
             <Card title="EMPLACEMENT" className="p-0">
-               <div className="h-32 bg-neutral-950 relative overflow-hidden flex items-center justify-center border-b border-neutral-800/80">
-                  <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at center, #f97316 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
-                  <div className="relative z-10 flex flex-col items-center animate-bounce">
-                    <div className="p-1.5 bg-orange-600 rounded-full text-white shadow-lg shadow-orange-600/50"><MapPin size={14} /></div>
-                    <div className="w-1 h-3 bg-orange-500/50 -mt-1"></div>
-                    <div className="w-4 h-1 bg-black/50 blur-sm rounded-full"></div>
+              <div className="h-32 bg-neutral-950 relative overflow-hidden flex items-center justify-center border-b border-neutral-800/80">
+                <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at center, #f97316 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
+                <div className="relative z-10 flex flex-col items-center animate-bounce">
+                  <div className="p-1.5 bg-orange-600 rounded-full text-white shadow-lg shadow-orange-600/50"><MapPin size={14} /></div>
+                  <div className="w-1 h-3 bg-orange-500/50 -mt-1"></div>
+                  <div className="w-4 h-1 bg-black/50 blur-sm rounded-full"></div>
+                </div>
+              </div>
+              <div className="p-4">
+                <h4 className="text-xs font-bold text-white">Kinshasa, RDC</h4>
+                <div className="flex justify-between items-end mt-1">
+                  <p className="text-[10px] text-neutral-400 font-medium">Gombe Station</p>
+                  <div className="text-right">
+                    <span className="text-[9px] text-neutral-500 block uppercase font-medium">Précision</span>
+                    <span className="text-[10px] text-neutral-300 font-semibold">5 m</span>
                   </div>
-               </div>
-               <div className="p-4">
-                  <h4 className="text-xs font-bold text-white">Kinshasa, RDC</h4>
-                  <div className="flex justify-between items-end mt-1">
-                    <p className="text-[10px] text-neutral-400 font-medium">Gombe Station</p>
-                    <div className="text-right">
-                      <span className="text-[9px] text-neutral-500 block uppercase font-medium">Précision</span>
-                      <span className="text-[10px] text-neutral-300 font-semibold">5 m</span>
-                    </div>
-                  </div>
-               </div>
+                </div>
+              </div>
             </Card>
           </motion.div>
 
@@ -446,7 +530,7 @@ export default function SmartKitDetails() {
             <Card title="ÉVÉNEMENTS RÉCENTS" action={{ label: 'Voir tout', onClick: () => setActiveTab('Événements') }} className="h-full">
               <div className="relative pl-3 mt-1 flex-1">
                 <div className="absolute left-[17px] top-2 bottom-2 w-px bg-neutral-800/80"></div>
-                
+
                 <div className="space-y-4">
                   {eventsData.map((ev) => (
                     <div key={ev.id} className="flex gap-3 relative z-10 group">
@@ -469,28 +553,16 @@ export default function SmartKitDetails() {
 
           {/* Quick Actions */}
           <motion.div variants={fadeUp}>
-            <Card title="ACTIONS RAPIDES">
-              <div className="grid grid-cols-3 gap-2">
-                <button onClick={() => handleQuickAction('Diagnostic')} className="flex flex-col items-center justify-center p-3 rounded-lg bg-neutral-900 border border-neutral-800 hover:border-orange-500/50 hover:bg-orange-500/5 transition-colors group shadow-sm cursor-pointer">
-                  <Wrench size={16} className="text-neutral-400 group-hover:text-orange-400 mb-2 transition-colors" />
-                  <span className="text-[9px] font-semibold text-neutral-300 text-center">Lancer un Diagnostic</span>
-                </button>
-                <button onClick={() => handleQuickAction('Redémarrage')} className="flex flex-col items-center justify-center p-3 rounded-lg bg-neutral-900 border border-neutral-800 hover:border-orange-500/50 hover:bg-orange-500/5 transition-colors group shadow-sm cursor-pointer">
-                  <RefreshCw size={16} className="text-neutral-400 group-hover:text-orange-400 mb-2 transition-colors" />
-                  <span className="text-[9px] font-semibold text-neutral-300 text-center">Redémarrer le Kit</span>
-                </button>
-                <button onClick={() => handleQuickAction('Commande envoyée')} className="flex flex-col items-center justify-center p-3 rounded-lg bg-neutral-900 border border-neutral-800 hover:border-orange-500/50 hover:bg-orange-500/5 transition-colors group shadow-sm cursor-pointer">
-                  <Send size={16} className="text-neutral-400 group-hover:text-orange-400 mb-2 transition-colors" />
-                  <span className="text-[9px] font-semibold text-neutral-300 text-center">Envoyer une Commande</span>
-                </button>
-              </div>
-            </Card>
+
           </motion.div>
         </div>
 
       </motion.div>
+        </>
+      )}
 
-      <style dangerouslySetInnerHTML={{__html: `
+      <style dangerouslySetInnerHTML={{
+        __html: `
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
       `}} />

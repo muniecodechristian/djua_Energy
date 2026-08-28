@@ -24,11 +24,11 @@ export async function getDevice(deviceId) {
 
   // Récupère la dernière télémétrie et les alertes actives pour enrichir l'objet
   const latestTelemetry = await Telemetry.findOne({ kitId: deviceId }).sort({ createdAt: -1 }).lean();
-  const activeAlerts = await Alert.find({ kitId: deviceId, status: 'active' }).lean();
+  const activeAlerts = await AlertModel.find({ kitId: deviceId, status: 'active' }).lean();
 
   return {
     ...kit,
-    telemetry: latestTelemetry ? latestTelemetry.metrics : null,
+    telemetry: latestTelemetry ? latestTelemetry.battery : null,
     alerts: activeAlerts,
   };
 }

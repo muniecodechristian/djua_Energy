@@ -50,7 +50,7 @@ const generateSparklineData = (base) =>
 
 const kpiData = [
   {
-    title: "Total Smart Hubs",
+    title: "Total kits",
     value: "158 742",
     change: "+2.4% vs hier",
     isPositive: true,
@@ -84,15 +84,6 @@ const kpiData = [
     strokeColor: "#FF7900",
     icon: <XCircle size={18} className="text-rose-400" />,
     data: generateSparklineData(15)
-  },
-  {
-    title: "Énergie Produite",
-    value: "518.4 MWh",
-    change: "+4.1% vs hier",
-    isPositive: true,
-    strokeColor: "#FF7900",
-    icon: <Zap size={18} className="text-[#FF7900]" />,
-    data: generateSparklineData(500)
   },
 ];
 
@@ -225,7 +216,7 @@ export default function Dashboard() {
     <div className="min-h-screen text-zinc-100 p-4 md:p-8 font-sans bg-transparent selection:bg-[#FF7900]/30 selection:text-white relative">
       <div className="space-y-6 relative z-10 max-w-[1600px] mx-auto">
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           {kpiData.map((kpi, index) => (
             <Card key={index} className="p-5 flex flex-col justify-between group cursor-default relative">
               <div className="absolute inset-0 bg-gradient-to-b from-white/[0.03] to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
@@ -280,7 +271,11 @@ export default function Dashboard() {
                 const isHigh = alert.type === 'high';
 
                 return (
-                  <div key={i} className="p-4 hover:bg-zinc-900/40 transition-colors cursor-pointer flex items-start gap-3.5 group">
+                  <div
+                    key={i}
+                    onClick={() => navigate(`/notification?alertLabel=${encodeURIComponent(alert.label)}&alertDesc=${encodeURIComponent(alert.desc)}`)}
+                    className="p-4 hover:bg-zinc-900/40 transition-colors cursor-pointer flex items-start gap-3.5 group"
+                  >
                     <div className="mt-0.5">
                       {isCritical ? (
                         <ShieldAlert size={16} className="text-rose-500 group-hover:scale-110 transition-transform drop-shadow-[0_0_10px_rgba(239,68,68,0.5)]" />
@@ -304,6 +299,33 @@ export default function Dashboard() {
                       <p className="text-[11px] text-zinc-400 truncate mb-1">{alert.desc}</p>
                       <span className="text-[10px] font-medium text-zinc-500 font-mono">{alert.time}</span>
                     </div>
+
+                    {/* Voir plus button */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/notification?alertLabel=${encodeURIComponent(alert.label)}&alertDesc=${encodeURIComponent(alert.desc)}`);
+                      }}
+                      className={`
+                        flex-shrink-0 self-center
+                        flex items-center gap-1 px-2.5 py-1.5 rounded-lg
+                        text-[10px] font-semibold tracking-wide
+                        border transition-all duration-200
+                        opacity-0 group-hover:opacity-100
+                        translate-x-1 group-hover:translate-x-0
+                        ${isCritical
+                          ? 'bg-rose-500/10 border-rose-500/30 text-rose-400 hover:bg-rose-500/20 hover:border-rose-500/50'
+                          : isHigh
+                            ? 'bg-amber-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/20 hover:border-amber-500/50'
+                            : 'bg-zinc-800/60 border-zinc-700/60 text-zinc-400 hover:bg-zinc-700/60 hover:text-zinc-200'
+                        }
+                      `}
+                    >
+                      Voir plus
+                      <svg width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg" className="opacity-80">
+                        <path d="M2 5h6M5.5 2.5L8 5l-2.5 2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </button>
                   </div>
                 );
               })}
@@ -497,33 +519,6 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <Card className="p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-[11px] font-bold text-zinc-300 uppercase tracking-widest flex items-center gap-2">
-              <Activity size={14} className="text-[#FF7900]" />
-              Dernières Activités Système
-            </h2>
-            <span className="text-[9px] font-mono font-semibold text-zinc-400 border border-zinc-800 px-2 py-0.5 rounded uppercase tracking-widest bg-zinc-900/60">Temps Réel</span>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-            {recentActivityData.map((activity, i) => (
-              <div key={i} className="bg-zinc-900/30 p-3.5 rounded-xl border border-zinc-800/60 flex items-center justify-between hover:border-zinc-700 hover:bg-zinc-900/60 transition-all group">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className={`w-2 h-2 rounded-full flex-shrink-0 ${activity.status === 'success' ? 'bg-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.8)]'
-                    : activity.status === 'info' ? 'bg-[#FF7900] shadow-[0_0_10px_rgba(255,121,0,0.8)]'
-                      : 'bg-zinc-400 shadow-[0_0_10px_rgba(161,161,170,0.8)]'
-                    }`} />
-                  <div className="min-w-0">
-                    <p className="text-[11px] font-semibold text-zinc-200 truncate group-hover:text-white transition-colors">{activity.action}</p>
-                    <p className="text-[10px] font-medium text-zinc-400 truncate mt-0.5 font-mono">{activity.desc}</p>
-                  </div>
-                </div>
-                <span className="text-[10px] font-mono font-medium text-zinc-500 whitespace-nowrap ml-3">{activity.time}</span>
-              </div>
-            ))}
-          </div>
-        </Card>
 
       </div>
 
