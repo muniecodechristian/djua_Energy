@@ -53,14 +53,30 @@ const fadeInUp = {
 };
 
 export default function LoginDjuaEnergy() {
-  const [theme, setTheme] = useState('dark');
+  const [isDark, setIsDark] = useState(() => {
+    if (typeof document === 'undefined') return true;
+    return document.documentElement.classList.contains('dark');
+  });
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   
   const navigate = useNavigate();
   const loginMutation = useLoginMutation();
 
-  const isDark = theme === 'dark';
+  React.useEffect(() => {
+    if (typeof document === 'undefined') return undefined;
+
+    const syncTheme = () => setIsDark(document.documentElement.classList.contains('dark'));
+    syncTheme();
+
+    const observer = new MutationObserver(syncTheme);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class'],
+    });
+
+    return () => observer.disconnect();
+  }, []);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -199,32 +215,6 @@ export default function LoginDjuaEnergy() {
             }}
           />
         ))}
-      </div>
-
-      {/* ================= BOUTON TOGGLE THÈME ================= */}
-      <div className="absolute top-6 right-6 z-50">
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => setTheme(isDark ? 'light' : 'dark')}
-          className={`p-2.5 rounded-xl border transition-all duration-300 ${
-            isDark 
-              ? 'bg-[#141414] border-neutral-900 hover:border-neutral-800 text-neutral-400 hover:text-white' 
-              : 'bg-white border-neutral-200 hover:border-neutral-300 text-neutral-500 hover:text-neutral-900'
-          }`}
-        >
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.div
-              key={theme}
-              initial={{ opacity: 0, rotate: -45, scale: 0.8 }}
-              animate={{ opacity: 1, rotate: 0, scale: 1 }}
-              exit={{ opacity: 0, rotate: 45, scale: 0.8 }}
-              transition={{ duration: 0.2 }}
-            >
-              {isDark ? <SunIcon className="w-4 h-4" /> : <MoonIcon className="w-4 h-4" />}
-            </motion.div>
-          </AnimatePresence>
-        </motion.button>
       </div>
 
       {/* ================= FORMULAIRE DE CONNEXION (Style Teak Conservé + Entrée Spring) ================= */}

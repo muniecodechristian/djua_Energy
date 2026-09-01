@@ -2,6 +2,7 @@ import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { Bot, Sparkles } from 'lucide-react';
 import { useCheckAuth } from './hooks/tanstack/useAuthMutations.js';
 import useAuthStore from './hooks/Zustand/useAuthStore.js';
+import ThemeToggle from './components/ThemeToggle';
 
 import Dashboard from './pages/Dashboard';
 import LoginTeak from './pages/LoginTeak';
@@ -14,6 +15,7 @@ import OperationsOverview from './pages/OperationsOverview';
 import AdministrationSettings from './pages/AdministrationSettings';
 import OrangeKitsRegistry from './pages/OrangeKitsRegistry';
 import TelemetryDashboard from './pages/TelemetryDashboard';
+import Devis from './pages/Devis';
 
 // ─── Loader affiché pendant la vérification de session ────────────────────────
 const AuthLoader = () => (
@@ -63,26 +65,30 @@ function App() {
   useCheckAuth();
 
   return (
-    <Routes>
-      {/* Route publique */}
-      <Route path="/" element={<LoginTeak />} />
+    <>
+      <ThemeToggle />
+      <Routes>
+        {/* Route publique */}
+        <Route path="/" element={<LoginTeak />} />
 
-      {/* Routes protégées */}
-      <Route element={<ProtectedLayout />}>
-        <Route path="/dashboard"            element={<Dashboard />} />
-        <Route path="/notification"         element={<FleetStatusFeed />} />
-        <Route path="/decision"             element={<Navigate to="/notification" replace />} />
-        <Route path="/SmartKitdetails"      element={<SmartKitDetails />} />
-        <Route path="/InterventionWizard"   element={<InterventionWizard />} />
-        <Route path="/CustomerProfile"      element={<CustomerProfile />} />
-        <Route path="/OperationsOverview"   element={<OperationsOverview />} />
-        <Route path="/AdministrationSettings" element={<AdministrationSettings />} />
-        <Route path="/parc"                 element={<OrangeKitsRegistry />} />
-        <Route path="/orange-kits"          element={<Navigate to="/parc" replace />} />
-        <Route path="/telemetry"            element={<TelemetryDashboard />} />
-        <Route path="/geofencing"           element={<Navigate to="/notification" replace />} />
-      </Route>
-    </Routes>
+        {/* Routes protégées */}
+        <Route element={<ProtectedLayout />}>
+          <Route path="/dashboard"            element={<Dashboard />} />
+          <Route path="/devis"                element={<Devis />} />
+          <Route path="/notification"         element={<FleetStatusFeed />} />
+          <Route path="/decision"             element={<Navigate to="/notification" replace />} />
+          <Route path="/SmartKitdetails"      element={<SmartKitDetails />} />
+          <Route path="/InterventionWizard"   element={<InterventionWizard />} />
+          <Route path="/CustomerProfile"      element={<CustomerProfile />} />
+          <Route path="/OperationsOverview"   element={<OperationsOverview />} />
+          <Route path="/AdministrationSettings" element={<AdministrationSettings />} />
+          <Route path="/parc"                 element={<OrangeKitsRegistry />} />
+          <Route path="/orange-kits"          element={<Navigate to="/parc" replace />} />
+          <Route path="/telemetry"            element={<TelemetryDashboard />} />
+          <Route path="/geofencing"           element={<Navigate to="/notification" replace />} />
+        </Route>
+      </Routes>
+    </>
   );
 }
 

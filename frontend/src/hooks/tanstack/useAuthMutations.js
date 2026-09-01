@@ -21,12 +21,16 @@ export const useCheckAuth = () => {
   return useQuery({
     queryKey: ['auth', 'check-auth'],
     queryFn: async () => {
+      setCheckingAuth(true);
+
       try {
         const response = await api.get('/auth/check-auth');
+
         if (response.data?.success) {
           setUser(response.data.data);
           return response.data.data;
         }
+
         setUser(null);
         return null;
       } catch {
@@ -37,8 +41,10 @@ export const useCheckAuth = () => {
       }
     },
     retry: false,
-    staleTime: 1000 * 60 * 5, // 5 minutes — revalidé si la fenêtre est refocusée après 5 min
-    refetchOnWindowFocus: false,
+    refetchOnMount: true,
+    refetchOnReconnect: true,
+    staleTime: 1000 * 60 * 5,
+    refetchOnWindowFocus: true,
   });
 };
 
@@ -118,20 +124,30 @@ export const useLogoutMutation = () => {
 
   return useMutation({
     mutationFn: async () => {
-      const response = await api.post('/auth/logout');
-      return response.data;
+      try {
+        const response = await api.post('/auth/logout');
+        return response.data;
+      } catch (error) {
+        // On efface localement même si le backend ne répond pas
+        logoutStore();
+        queryClient.setQueryData(['auth', 'check-auth'], null);
+        queryClient.setQueryData(['auth', 'me'], null);
+        queryClient.removeQueries({ queryKey: ['kits'] });
+        queryClient.removeQueries({ queryKey: ['alerts'] });
+
+        throw error;
+      }
     },
     onSuccess: (data) => {
       logoutStore();
       queryClient.setQueryData(['auth', 'check-auth'], null);
       queryClient.setQueryData(['auth', 'me'], null);
-      // Invalider toutes les queries protégées
       queryClient.removeQueries({ queryKey: ['kits'] });
       queryClient.removeQueries({ queryKey: ['alerts'] });
-      toast.success(data.message || 'Déconnexion réussie !');
+      toast.success(data?.message || 'Déconnexion réussie !');
     },
     onError: (error) => {
-      const errorMessage = error.response?.data?.message || 'Déconnexion échouée.';
+      const errorMessage = error.response?.data?.message || 'Déconnexion échouée, mais votre session locale a bien été fermée.';
       toast.error(errorMessage);
     },
   });

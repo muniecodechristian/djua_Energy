@@ -119,7 +119,7 @@ const recentActivityData = [
 ];
 
 const Card = ({ children, className = "" }) => (
-  <div className={`bg-zinc-950/60 backdrop-blur-xl border border-zinc-800/80 rounded-2xl overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.7)] hover:shadow-[0_8px_30px_rgba(255,121,0,0.06)] hover:border-zinc-700/80 transition-all duration-500 ${className}`}>
+  <div className={`bg-[var(--card)]/90 backdrop-blur-xl border border-[var(--border)] rounded-2xl overflow-hidden shadow-[0_12px_30px_rgba(15,23,42,0.08)] hover:shadow-[0_12px_30px_rgba(249,115,22,0.08)] hover:border-orange-500/30 transition-all duration-500 ${className}`}>
     {children}
   </div>
 );
@@ -213,7 +213,7 @@ export default function Dashboard() {
   }, [activeHub]);
 
   return (
-    <div className="min-h-screen text-zinc-100 p-4 md:p-8 font-sans bg-transparent selection:bg-[#FF7900]/30 selection:text-white relative">
+    <div className="min-h-screen text-[var(--foreground)] p-4 md:p-8 font-sans bg-transparent selection:bg-[#FF7900]/30 selection:text-white relative">
       <div className="space-y-6 relative z-10 max-w-[1600px] mx-auto">
 
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
@@ -223,12 +223,12 @@ export default function Dashboard() {
 
               <div className="relative z-10">
                 <div className="flex items-center justify-between mb-3">
-                  <span className="text-[11px] font-semibold text-zinc-400 uppercase tracking-widest">{kpi.title}</span>
-                  <div className="p-2 rounded-xl bg-zinc-900/60 border border-zinc-800/60 text-zinc-300 group-hover:scale-110 group-hover:border-zinc-700 transition-all duration-300 shadow-sm">
+                  <span className="text-[11px] font-semibold text-[var(--muted-foreground)] uppercase tracking-widest">{kpi.title}</span>
+                  <div className="p-2 rounded-xl bg-[var(--secondary)] border border-[var(--border)] text-[var(--foreground)] group-hover:scale-110 group-hover:border-orange-500/40 transition-all duration-300 shadow-sm">
                     {kpi.icon}
                   </div>
                 </div>
-                <div className="text-2xl font-bold text-white tracking-tight font-mono">{kpi.value}</div>
+                <div className="text-2xl font-bold text-[var(--foreground)] tracking-tight font-mono">{kpi.value}</div>
                 <div className={`text-[11px] mt-1.5 font-medium flex items-center gap-1 ${kpi.isPositive ? 'text-emerald-400' : 'text-amber-400'}`}>
                   {kpi.change}
                 </div>
@@ -255,8 +255,8 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
 
           <Card className="lg:col-span-3 flex flex-col p-0 h-[520px]">
-            <div className="px-5 py-4 border-b border-zinc-800/60 flex justify-between items-center bg-zinc-950/40 backdrop-blur-md">
-              <h2 className="text-[11px] font-bold text-zinc-300 uppercase tracking-widest flex items-center gap-2">
+            <div className="px-5 py-4 border-b border-[var(--border)] flex justify-between items-center bg-[var(--card)]/95 backdrop-blur-md">
+              <h2 className="text-[11px] font-bold text-[var(--foreground)] uppercase tracking-widest flex items-center gap-2">
                 Alertes Actives
                 <span className="bg-rose-500/15 text-rose-400 border border-rose-500/30 px-1.5 py-0.5 rounded text-[10px] font-bold">
                   {Array.isArray(alerts) ? alerts.length : alertsData.length}
@@ -265,7 +265,7 @@ export default function Dashboard() {
               <button onClick={() => navigate('/notification')} className="text-[11px] font-medium text-[#FF7900] hover:text-orange-400 transition-colors">Tout voir</button>
             </div>
 
-            <div className="divide-y divide-zinc-800/40 flex-1 overflow-y-auto custom-scrollbar">
+            <div className="divide-y divide-[var(--border)] flex-1 overflow-y-auto custom-scrollbar">
               {alertsData.map((alert, i) => {
                 const isCritical = alert.type === 'critical';
                 const isHigh = alert.type === 'high';
@@ -274,7 +274,7 @@ export default function Dashboard() {
                   <div
                     key={i}
                     onClick={() => navigate(`/notification?alertLabel=${encodeURIComponent(alert.label)}&alertDesc=${encodeURIComponent(alert.desc)}`)}
-                    className="p-4 hover:bg-zinc-900/40 transition-colors cursor-pointer flex items-start gap-3.5 group"
+                    className="p-4 hover:bg-[var(--secondary)] transition-colors cursor-pointer flex items-start gap-3.5 group"
                   >
                     <div className="mt-0.5">
                       {isCritical ? (
@@ -282,7 +282,7 @@ export default function Dashboard() {
                       ) : isHigh ? (
                         <AlertTriangle size={16} className="text-amber-400 group-hover:scale-110 transition-transform drop-shadow-[0_0_10px_rgba(245,158,11,0.5)]" />
                       ) : (
-                        <Activity size={16} className="text-zinc-400 group-hover:text-zinc-200 transition-colors" />
+                        <Activity size={16} className="text-[var(--muted-foreground)] group-hover:text-[var(--foreground)] transition-colors" />
                       )}
                     </div>
 
@@ -290,14 +290,14 @@ export default function Dashboard() {
                       <div className="flex items-center gap-2 mb-1">
                         <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md border ${isCritical ? 'bg-rose-500/15 text-rose-400 border-rose-500/30'
                           : isHigh ? 'bg-amber-500/15 text-amber-400 border-amber-500/30'
-                            : 'bg-zinc-800/60 text-zinc-300 border-zinc-700/60'
+                            : 'bg-[var(--secondary)] text-[var(--foreground)] border-[var(--border)]'
                           }`}>
                           {alert.severity}
                         </span>
-                        <h3 className="text-[11px] font-semibold text-zinc-200 truncate">{alert.label}</h3>
+                        <h3 className="text-[11px] font-semibold text-[var(--foreground)] truncate">{alert.label}</h3>
                       </div>
-                      <p className="text-[11px] text-zinc-400 truncate mb-1">{alert.desc}</p>
-                      <span className="text-[10px] font-medium text-zinc-500 font-mono">{alert.time}</span>
+                      <p className="text-[11px] text-[var(--muted-foreground)] truncate mb-1">{alert.desc}</p>
+                      <span className="text-[10px] font-medium text-[var(--muted-foreground)] font-mono">{alert.time}</span>
                     </div>
 
                     {/* Voir plus button */}
@@ -333,16 +333,16 @@ export default function Dashboard() {
           </Card>
 
           <Card className="lg:col-span-6 flex flex-col p-0 relative overflow-hidden group h-[520px]">
-            <div className="px-5 py-4 flex justify-between items-center bg-zinc-950/80 border-b border-zinc-800/60 z-20 absolute top-0 left-0 right-0 backdrop-blur-xl">
+            <div className="px-5 py-4 flex justify-between items-center bg-[var(--card)]/95 border-b border-[var(--border)] z-20 absolute top-0 left-0 right-0 backdrop-blur-xl">
               <div className="flex items-center gap-2">
                 <Globe size={15} className="text-[#FF7900]" />
-                <h2 className="text-[11px] font-bold text-zinc-200 uppercase tracking-widest">
+                <h2 className="text-[11px] font-bold text-[var(--foreground)] uppercase tracking-widest">
                   Parc RDC ({dynamicMarkers.length} Détectés)
                 </h2>
               </div>
               <div className="flex items-center gap-2">
                 {kitsLoading ? (
-                  <span className="text-[10px] text-zinc-400 flex items-center gap-2 animate-pulse font-mono">
+                  <span className="text-[10px] text-[var(--muted-foreground)] flex items-center gap-2 animate-pulse font-mono">
                     <RefreshCw size={12} className="animate-spin text-[#FF7900]" /> Sync...
                   </span>
                 ) : (
@@ -354,7 +354,7 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <div className="flex-1 bg-zinc-950 relative flex items-center justify-center overflow-hidden pt-12">
+            <div className="flex-1 bg-[var(--app-surface)] relative flex items-center justify-center overflow-hidden pt-12">
               <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(255,121,0,0.06)_0%,transparent_70%)] pointer-events-none" />
 
               <ComposableMap
@@ -406,9 +406,9 @@ export default function Dashboard() {
               </ComposableMap>
 
               {activeHub && (
-                <div className="absolute top-16 right-5 bg-zinc-900/95 backdrop-blur-xl border border-zinc-700/80 rounded-xl shadow-2xl z-30 min-w-[260px] animate-in fade-in zoom-in-95 duration-200">
-                  <div className="px-4 py-3 border-b border-zinc-800/80 flex items-center justify-between gap-4">
-                    <span className="text-sm font-bold text-white truncate">{activeHub.name}</span>
+                <div className="absolute top-16 right-5 bg-[var(--panel)] backdrop-blur-xl border border-[var(--panel-border)] rounded-xl shadow-2xl z-30 min-w-[260px] animate-in fade-in zoom-in-95 duration-200">
+                  <div className="px-4 py-3 border-b border-[var(--border)] flex items-center justify-between gap-4">
+                    <span className="text-sm font-bold text-[var(--foreground)] truncate">{activeHub.name}</span>
                     <div className="flex items-center gap-2">
                       <span className={`text-[9px] uppercase px-1.5 py-0.5 rounded font-mono ${activeHub.rawStatus === 'active'
                         ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
@@ -418,36 +418,36 @@ export default function Dashboard() {
                         }`}>
                         {activeHub.rawStatus}
                       </span>
-                      <button onClick={() => setActiveHub(null)} className="text-zinc-500 hover:text-white transition-colors">
+                      <button onClick={() => setActiveHub(null)} className="text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors">
                         <X size={14} />
                       </button>
                     </div>
                   </div>
-                  <div className="p-4 text-[12px] text-zinc-400 space-y-3 font-mono">
-                    <div className="flex justify-between items-center gap-2 border-b border-zinc-800/40 pb-2">
+                  <div className="p-4 text-[12px] text-[var(--muted-foreground)] space-y-3 font-mono">
+                    <div className="flex justify-between items-center gap-2 border-b border-[var(--border)] pb-2">
                       <span>Offre:</span>
-                      <strong className="text-zinc-200">{activeHub.model}</strong>
+                      <strong className="text-[var(--foreground)]">{activeHub.model}</strong>
                     </div>
-                    <div className="flex justify-between items-center gap-2 border-b border-zinc-800/40 pb-2">
+                    <div className="flex justify-between items-center gap-2 border-b border-[var(--border)] pb-2">
                       <span>ID Client:</span>
-                      <strong className="text-zinc-200">{activeHub.owner}</strong>
+                      <strong className="text-[var(--foreground)]">{activeHub.owner}</strong>
                     </div>
                     <div className="flex flex-col gap-1.5 pt-1">
-                      <span className="flex items-center gap-1.5 text-zinc-500"><MapPin size={12} /> Localisation (Live):</span>
+                      <span className="flex items-center gap-1.5 text-[var(--muted-foreground)]"><MapPin size={12} /> Localisation (Live):</span>
                       <strong className="text-[#FF7900] leading-snug">{physicalAddress}</strong>
                     </div>
                   </div>
                 </div>
               )}
 
-              <div className="absolute bottom-4 left-4 bg-zinc-950/80 backdrop-blur-xl border border-zinc-800/80 rounded-xl p-3 space-y-2 text-[11px] font-medium z-10 shadow-xl">
+              <div className="absolute bottom-4 left-4 bg-[var(--card)]/95 backdrop-blur-xl border border-[var(--border)] rounded-xl p-3 space-y-2 text-[11px] font-medium z-10 shadow-xl">
                 <div className="flex items-center gap-2.5">
                   <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
-                  <span className="text-zinc-300">Kit Actif (Vert)</span>
+                  <span className="text-[var(--foreground)]">Kit Actif (Vert)</span>
                 </div>
                 <div className="flex items-center gap-2.5">
                   <span className="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]" />
-                  <span className="text-zinc-300">Kit Inactif / Suspendu (Rouge)</span>
+                  <span className="text-[var(--foreground)]">Kit Inactif / Suspendu (Rouge)</span>
                 </div>
               </div>
             </div>
@@ -456,7 +456,7 @@ export default function Dashboard() {
           <div className="lg:col-span-3 flex flex-col gap-5 h-[520px]">
 
             <Card className="p-4 flex-1 flex flex-col justify-between">
-              <h2 className="text-[11px] font-bold text-zinc-300 uppercase tracking-widest mb-1">Incidents Hubs</h2>
+              <h2 className="text-[11px] font-bold text-[var(--foreground)] uppercase tracking-widest mb-1">Incidents Hubs</h2>
 
               <div className="flex-1 relative flex items-center justify-center min-h-[130px]">
                 <ResponsiveContainer width="100%" height="100%">
@@ -483,33 +483,33 @@ export default function Dashboard() {
                 </ResponsiveContainer>
 
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                  <span className="text-xl font-bold text-white font-mono leading-none">1 247</span>
-                  <span className="text-[9px] font-medium text-zinc-400 mt-1 uppercase tracking-widest">Total</span>
+                  <span className="text-xl font-bold text-[var(--foreground)] font-mono leading-none">1 247</span>
+                  <span className="text-[9px] font-medium text-[var(--muted-foreground)] mt-1 uppercase tracking-widest">Total</span>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-2 pt-3 border-t border-zinc-800/60">
+              <div className="grid grid-cols-2 gap-2 pt-3 border-t border-[var(--border)]">
                 {donutData.map((item, i) => (
                   <div key={i} className="flex items-center gap-2 text-[11px] font-medium">
                     <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: item.color, boxShadow: `0 0 8px ${item.color}` }} />
-                    <span className="text-zinc-300 truncate">{item.name}</span>
+                    <span className="text-[var(--foreground)] truncate">{item.name}</span>
                   </div>
                 ))}
               </div>
             </Card>
 
             <Card className="p-4 flex-1 flex flex-col justify-center">
-              <h2 className="text-[11px] font-bold text-zinc-300 uppercase tracking-widest mb-4">Statut Cloud & IoT</h2>
+              <h2 className="text-[11px] font-bold text-[var(--foreground)] uppercase tracking-widest mb-4">Statut Cloud & IoT</h2>
               <div className="space-y-3.5">
                 {systemStatusData.map((item, i) => {
                   const Icon = item.icon;
                   return (
                     <div key={i} className="flex items-center justify-between group cursor-default">
-                      <div className="flex items-center gap-2.5 text-zinc-400 group-hover:text-zinc-200 transition-colors">
-                        <Icon size={14} className="text-zinc-500 group-hover:text-[#FF7900] transition-colors" />
+                      <div className="flex items-center gap-2.5 text-[var(--muted-foreground)] group-hover:text-[var(--foreground)] transition-colors">
+                        <Icon size={14} className="text-[var(--muted-foreground)] group-hover:text-[#FF7900] transition-colors" />
                         <span className="font-medium text-[11px]">{item.label}</span>
                       </div>
-                      <span className="font-mono text-[11px] font-semibold text-zinc-200 group-hover:text-emerald-400 transition-colors">{item.value}</span>
+                      <span className="font-mono text-[11px] font-semibold text-[var(--foreground)] group-hover:text-emerald-400 transition-colors">{item.value}</span>
                     </div>
                   );
                 })}
