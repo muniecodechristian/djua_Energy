@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 import { Bot, Sparkles } from 'lucide-react';
 import { useCheckAuth } from './hooks/tanstack/useAuthMutations.js';
 import useAuthStore from './hooks/Zustand/useAuthStore.js';
@@ -66,6 +67,20 @@ function App() {
 
   return (
     <>
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 3500,
+          style: {
+            background: '#111827',
+            color: '#f9fafb',
+            border: '1px solid rgba(249, 115, 22, 0.4)',
+            boxShadow: '0 18px 40px rgba(15, 23, 42, 0.35)',
+          },
+          success: { style: { borderColor: 'rgba(34, 197, 94, 0.5)' } },
+          error: { style: { borderColor: 'rgba(239, 68, 68, 0.5)' } },
+        }}
+      />
       <ThemeToggle />
       <Routes>
         {/* Route publique */}
