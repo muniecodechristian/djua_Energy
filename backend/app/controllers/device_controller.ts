@@ -1,0 +1,12 @@
+import type { HttpContext } from '@adonisjs/core/http'
+import { Kit,Telemetry,Alert } from '../models/index.js'
+import { publishCommand } from '../services/mqtt_service.js'
+const memory:Record<string,any>={}; const history:any[]=[]; const alertHistory:any[]=[]
+export async function health({response}:HttpContext){ return response.ok({success:true,status:'ok',message:'Backend is running',timestamp:new Date().toISOString()}) }
+export async function devices({response}:HttpContext){ const rows=await Kit.find().lean(); return response.ok({success:true,count:rows.length,data:rows}) }
+export async function device({params,response}:HttpContext){ const kit:any=await Kit.findOne({kitId:params.deviceId}).lean(); if(!kit)return response.notFound({success:false,message:'�quipement non trouv�'}); const t:any=await Telemetry.findOne({kitId:params.deviceId}).sort({createdAt:-1}).lean(); const a=await Alert.find({kitId:params.deviceId,status:'active'}).lean(); return response.ok({success:true,data:{...kit,telemetry:t?.battery||null,alerts:a}}) }
+export async function telemetry({response}:HttpContext){ const data=await Telemetry.find().sort({createdAt:-1}).limit(100).lean(); return response.ok({success:true,count:data.length,data}) }
+export async function alerts({response}:HttpContext){ const data=await Alert.find().sort({createdAt:-1}).limit(100).lean(); return response.ok({success:true,count:data.length,data}) }
+export async function rawTelemetry({params,request,response}:HttpContext){ const limit=Math.min(Math.max(Number(request.input('limit',50)),1),500),page=Math.max(Number(request.input('page',1)),1),sort=request.input('sort')==='asc'?1:-1; const [data,total]=await Promise.all([Telemetry.find({kitId:params.kitId}).sort({createdAt:sort}).skip((page-1)*limit).limit(limit).lean(),Telemetry.countDocuments({kitId:params.kitId})]); return response.ok({success:true,count:data.length,pagination:{total,page,limit,totalPages:Math.ceil(total/limit)},data}) }
+export async function command({request,response}:HttpContext){ const {deviceId,command}=request.only(['deviceId','command']); if(!deviceId||!command)return response.badRequest({success:false,message:'deviceId et command sont requis'}); try { await publishCommand(deviceId,command); return response.ok({success:true,message:`Commande '${command}' envoyée à ${deviceId}`}) } catch { return response.accepted({success:true,message:`Commande '${command}' mise en attente pour ${deviceId}`}) } }
+export { memory,history,alertHistory }

@@ -60,7 +60,7 @@
     --secondary: oklch(0.97 0.005 250);
     --secondary-foreground: oklch(0.2 0.01 250);
     --muted: oklch(0.97 0.005 250);
-    --muted-foreground: oklch(0.52 0.02 250);
+    --muted-foreground: oklch(0 0 0);
     --accent: oklch(0.96 0.02 33);
     --accent-foreground: oklch(0.2 0.02 33);
     --destructive: oklch(0.63 0.2 25);
@@ -87,13 +87,13 @@
     --panel: rgba(255, 255, 255, 0.8);
     --panel-alt: #f3f4f6;
     --panel-border: rgba(15, 23, 42, 0.08);
-    --muted-foreground: #596480;
+    --muted-foreground: #000000;
     --devis-bg: #f5f7fb;
     --devis-surface: rgba(255, 255, 255, 0.9);
     --devis-surface-strong: #ffffff;
     --devis-border: rgba(15, 23, 42, 0.08);
     --devis-foreground: #0f172a;
-    --devis-muted: #5b6474;
+    --devis-muted: #000000;
     --devis-card-alt: #f8fafc;
     --devis-panel: rgba(255, 255, 255, 0.78);
     --devis-panel-alt: #ffffff;
@@ -116,7 +116,7 @@
     --secondary: oklch(0.17 0.01 240);
     --secondary-foreground: oklch(0.98 0.003 0);
     --muted: oklch(0.18 0.01 240);
-    --muted-foreground: oklch(0.72 0.01 240);
+    --muted-foreground: oklch(1 0 0);
     --accent: oklch(0.18 0.02 35);
     --accent-foreground: oklch(0.98 0.003 0);
     --destructive: oklch(0.66 0.18 25);
@@ -142,13 +142,13 @@
     --panel: rgba(17, 19, 24, 0.82);
     --panel-alt: #111318;
     --panel-border: rgba(255,255,255,0.08);
-    --muted-foreground: #9ca8b9;
+    --muted-foreground: #ffffff;
     --devis-bg: #070708;
     --devis-surface: rgba(17, 17, 17, 0.86);
     --devis-surface-strong: #111111;
     --devis-border: rgba(255, 255, 255, 0.08);
     --devis-foreground: #f5f5f5;
-    --devis-muted: #a1a1aa;
+    --devis-muted: #ffffff;
     --devis-card-alt: #111214;
     --devis-panel: rgba(17, 17, 17, 0.86);
     --devis-panel-alt: #111214;
@@ -239,14 +239,14 @@
   .devis-shell .text-zinc-700,
   .devis-shell .text-zinc-800,
   .devis-shell .text-zinc-900 {
-    color: var(--devis-muted) !important;
+    color: var(--devis-foreground) !important;
   }
 
   .devis-shell .placeholder\:text-zinc-500::placeholder,
   .devis-shell input::placeholder,
   .devis-shell textarea::placeholder,
   .devis-shell select::placeholder {
-    color: var(--devis-muted) !important;
+    color: var(--devis-foreground) !important;
   }
 
   .devis-shell input,
@@ -275,5 +275,45 @@
   .devis-shell .text-orange-300,
   .devis-shell .text-orange-400 {
     color: #f59e0b !important;
+  }
+
+  /*
+   * Keep secondary text readable without gray shades across all frontend pages.
+   * The theme decides whether that text should be black or white.
+   */
+  [class*="text-gray-"],
+  [class*="text-grey-"],
+  [class*="text-zinc-"],
+  [class*="text-slate-"],
+  [class*="text-neutral-"],
+  [class*="text-stone-"] {
+    color: #000000 !important;
+  }
+
+  [class*="placeholder-gray-"]::placeholder,
+  [class*="placeholder-grey-"]::placeholder,
+  [class*="placeholder-zinc-"]::placeholder,
+  [class*="placeholder-slate-"]::placeholder,
+  [class*="placeholder-neutral-"]::placeholder,
+  [class*="placeholder-stone-"]::placeholder {
+    color: #000000 !important;
+  }
+
+  .dark [class*="text-gray-"],
+  .dark [class*="text-grey-"],
+  .dark [class*="text-zinc-"],
+  .dark [class*="text-slate-"],
+  .dark [class*="text-neutral-"],
+  .dark [class*="text-stone-"] {
+    color: #ffffff !important;
+  }
+
+  .dark [class*="placeholder-gray-"]::placeholder,
+  .dark [class*="placeholder-grey-"]::placeholder,
+  .dark [class*="placeholder-zinc-"]::placeholder,
+  .dark [class*="placeholder-slate-"]::placeholder,
+  .dark [class*="placeholder-neutral-"]::placeholder,
+  .dark [class*="placeholder-stone-"]::placeholder {
+    color: #ffffff !important;
   }
 }

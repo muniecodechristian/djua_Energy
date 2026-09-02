@@ -1,0 +1,5 @@
+{
+  "extends":"@adonisjs/tsconfig/tsconfig.app.json",
+  "compilerOptions":{"module":"NodeNext","moduleResolution":"NodeNext","outDir":"build","rootDir":".","allowJs":false,"strict":true,"esModuleInterop":true,"types":["node"]},
+  "include":["app/**/*.ts","config/**/*.ts","database/**/*.ts","start/**/*.ts","bin/**/*.ts","adonisrc.ts"]
+}

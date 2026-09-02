@@ -146,10 +146,10 @@ export default function SmartKitDetails() {
         <div>
           <div className="flex items-center gap-3 mb-1.5">
             <h1 className="text-2xl font-bold text-white tracking-tight">{displayKitId}</h1>
-            <div className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border text-xs font-semibold shadow-sm ${hasTelemetry ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-zinc-500/10 border-zinc-500/20 text-zinc-400'}`}>
-              <span className="w-1.5 h-1.5 rounded-full bg-orange-500 shadow-sm shadow-orange-500 animate-pulse"></span> En ligne
+            <div className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border text-xs font-semibold shadow-sm ${isLive ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-zinc-500/10 border-zinc-500/20 text-zinc-400'}`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${isLive ? 'bg-emerald-500 shadow-sm shadow-emerald-500 animate-pulse' : 'bg-zinc-500'}`}></span> {isLive ? 'En ligne' : 'Hors ligne'}
             </div>
-            {/* Indicateur source des données : LIVE (Socket.io) ou BD (base de données) */}
+            {/* Indicateur source des données : LIVE (Socket.io) ou historique (base de données) */}
             {hasTelemetry && (
               <motion.div
                 key={dataSource}
@@ -168,7 +168,7 @@ export default function SmartKitDetails() {
                 ) : (
                   <>
                     <Database size={10} />
-                    BD
+                    Historique
                   </>
                 )}
               </motion.div>
