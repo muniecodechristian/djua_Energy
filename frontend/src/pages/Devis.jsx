@@ -27,6 +27,9 @@ import {
   UtensilsCrossed,
   Warehouse,
   Wrench,
+  Printer,
+  X,
+  Sparkles,
 } from 'lucide-react';
 
 const CATEGORIES = {
@@ -729,6 +732,74 @@ function SummaryCard({ selectedProfile, selectedType, customType, companyForm, p
   );
 }
 
+function QuotePreview({ selectedProfile, selectedType, customType, companyForm, clientForm, projectForm, appliances, calc, onClose }) {
+  const customerName = selectedProfile === 'entreprise'
+    ? (companyForm.companyName || companyForm.contactName || 'Client professionnel')
+    : (clientForm.fullName || 'Client particulier');
+  const typeLabel = selectedType === 'Autre' ? (customType || 'Autre') : selectedType;
+  const quoteNumber = `DJ-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`;
+  const lineItems = [
+    { label: `Dimensionnement solaire (${calc.panelCount} panneaux)`, detail: `${calc.solarKw.toFixed(1)} kWc · étude IA`, amount: calc.panelCount * 485000 },
+    { label: `Stockage lithium`, detail: `${calc.batteryKwh.toFixed(1)} kWh · autonomie optimisée`, amount: calc.batteryKwh * 720000 },
+    { label: `Onduleur hybride`, detail: `${calc.inverterKva.toFixed(1)} kVA · protection intégrée`, amount: calc.inverterKva * 390000 },
+    { label: 'Installation & mise en service', detail: 'Pose, configuration et formation', amount: 350000 },
+  ];
+  const subtotal = lineItems.reduce((sum, item) => sum + item.amount, 0);
+  const tax = subtotal * 0.16;
+  const total = subtotal + tax;
+  const formatAmount = (amount) => `${Math.round(amount).toLocaleString('fr-FR')} FC`;
+
+  return (
+    <div className="quote-modal fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-950/80 p-3 backdrop-blur-md sm:p-6">
+      <div className="quote-print-sheet relative my-auto w-full max-w-5xl overflow-hidden rounded-[28px] bg-white text-slate-950 shadow-2xl">
+        <div className="flex items-center justify-between bg-slate-950 px-5 py-4 text-white sm:px-8">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-500"><FileText size={20} /></div>
+            <div><p className="text-sm font-bold tracking-wide">PROPOSITION COMMERCIALE</p><p className="text-[10px] uppercase tracking-[0.2em] text-slate-300">Générée par Djua Energy IA</p></div>
+          </div>
+          <div className="flex items-center gap-2 print:hidden">
+            <button type="button" onClick={() => window.print()} className="inline-flex items-center gap-2 rounded-full bg-orange-500 px-4 py-2 text-xs font-bold text-white transition hover:bg-orange-400"><Printer size={14} /> Imprimer / PDF</button>
+            <button type="button" onClick={onClose} aria-label="Fermer le devis" className="rounded-full p-2 text-slate-300 transition hover:bg-white/10 hover:text-white"><X size={18} /></button>
+          </div>
+        </div>
+
+        <div className="p-5 sm:p-10">
+          <div className="flex flex-col justify-between gap-8 border-b border-slate-200 pb-8 sm:flex-row">
+            <div>
+              <div className="mb-4 flex items-center gap-2 text-orange-600"><span className="h-2 w-2 rounded-full bg-orange-500" /><span className="text-xs font-bold uppercase tracking-[0.18em]">Djua Energy</span></div>
+              <h2 className="text-3xl font-black tracking-tight sm:text-4xl">Votre solution énergétique</h2>
+              <p className="mt-2 max-w-lg text-sm leading-relaxed text-slate-600">Une proposition dimensionnée selon vos usages, votre profil et la charge estimée de votre site.</p>
+            </div>
+            <div className="min-w-[220px] rounded-2xl bg-slate-50 p-4 text-sm">
+              <div className="mb-3 flex items-center justify-between"><span className="font-semibold text-slate-500">N° devis</span><strong>{quoteNumber}</strong></div>
+              <div className="mb-3 flex items-center justify-between"><span className="font-semibold text-slate-500">Date</span><strong>{new Date().toLocaleDateString('fr-FR')}</strong></div>
+              <div className="flex items-center justify-between"><span className="font-semibold text-slate-500">Validité</span><strong>30 jours</strong></div>
+            </div>
+          </div>
+
+          <div className="grid gap-4 border-b border-slate-200 py-7 sm:grid-cols-2">
+            <div><p className="mb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">Émis par</p><p className="font-bold">Djua Energy</p><p className="text-sm text-slate-600">Solutions solaires intelligentes</p><p className="text-sm text-slate-600">Kinshasa, République démocratique du Congo</p></div>
+            <div className="sm:text-right"><p className="mb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">Destinataire</p><p className="font-bold">{customerName}</p><p className="text-sm text-slate-600">{typeLabel || 'Projet énergétique'}</p><p className="text-sm text-slate-600">{projectForm.location || 'Localisation à confirmer'}</p></div>
+          </div>
+
+          <div className="mt-8 overflow-hidden rounded-2xl border border-slate-200">
+            <div className="hidden grid-cols-[1fr_220px] gap-4 bg-slate-950 px-5 py-3 text-[10px] font-bold uppercase tracking-[0.16em] text-white sm:grid"><span>Désignation</span><span className="text-right">Montant estimatif</span></div>
+            {lineItems.map((item) => <div key={item.label} className="grid gap-2 border-b border-slate-200 px-5 py-4 last:border-0 sm:grid-cols-[1fr_220px] sm:gap-4"><div><p className="font-bold">{item.label}</p><p className="mt-1 text-xs text-slate-500">{item.detail}</p></div><strong className="text-left text-orange-700 sm:text-right">{formatAmount(item.amount)}</strong></div>)}
+          </div>
+
+          <div className="mt-8 flex flex-col gap-8 sm:flex-row sm:justify-between">
+            <div className="max-w-md rounded-2xl border border-orange-200 bg-orange-50 p-4"><div className="mb-2 flex items-center gap-2 text-orange-700"><Sparkles size={15} /><span className="text-xs font-bold uppercase tracking-wider">Recommandation IA</span></div><p className="text-sm leading-relaxed text-slate-700">Dimensionnement basé sur {fmtEnergy(calc.dailyWh)}/jour, {appliances.length} équipement(s) et une puissance simultanée de {fmtPower(calc.simultaneousWatts)}.</p></div>
+            <div className="w-full max-w-sm space-y-3 text-sm"><div className="flex justify-between"><span className="text-slate-500">Sous-total HT</span><strong>{formatAmount(subtotal)}</strong></div><div className="flex justify-between"><span className="text-slate-500">TVA (16%)</span><strong>{formatAmount(tax)}</strong></div><div className="mt-3 flex items-end justify-between border-t-2 border-slate-950 pt-4"><span className="font-black uppercase tracking-wider">Total TTC</span><strong className="text-2xl font-black text-orange-600">{formatAmount(total)}</strong></div></div>
+          </div>
+
+          <div className="mt-10 grid gap-5 border-t border-slate-200 pt-6 text-xs text-slate-600 sm:grid-cols-3"><div><p className="mb-1 font-bold text-slate-950">Conditions</p><p>50% à la commande, solde à la mise en service.</p></div><div><p className="mb-1 font-bold text-slate-950">Délai indicatif</p><p>Livraison et installation sous 15 à 20 jours ouvrés.</p></div><div><p className="mb-1 font-bold text-slate-950">Note</p><p>Montants estimatifs soumis à validation technique finale.</p></div></div>
+          <div className="mt-8 flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400"><span>Merci pour votre confiance</span><span>Djua Energy · Énergie intelligente</span></div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Devis() {
   const savedDraft = useMemo(() => readSavedDraft(), []);
   const [theme, setTheme] = useState(() => {
@@ -749,6 +820,7 @@ export default function Devis() {
   const [isAdding, setIsAdding] = useState(false);
   const [isValidated, setIsValidated] = useState(Boolean(savedDraft?.isValidated));
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isQuoteOpen, setIsQuoteOpen] = useState(false);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -895,6 +967,7 @@ export default function Devis() {
     window.setTimeout(() => {
       setIsSubmitting(false);
       setIsValidated(true);
+      setIsQuoteOpen(true);
       if (typeof window !== 'undefined') {
         window.localStorage.removeItem(STORAGE_KEY);
       }
@@ -905,6 +978,7 @@ export default function Devis() {
 
   return (
     <div className="devis-shell min-h-screen bg-[var(--devis-bg)] px-3 py-5 text-[var(--devis-foreground)] sm:px-4 md:px-8 lg:px-10">
+      {isQuoteOpen && <QuotePreview selectedProfile={selectedProfile} selectedType={selectedType} customType={customType} companyForm={companyForm} clientForm={clientForm} projectForm={projectForm} appliances={appliances} calc={calc} onClose={() => setIsQuoteOpen(false)} />}
       <div className="mx-auto max-w-7xl">
         <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
@@ -988,7 +1062,7 @@ export default function Devis() {
                 {isValidated && (
                   <motion.div initial={{ opacity: 0, y: 14, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.45, ease: 'easeOut' }} className="mt-5 space-y-4 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm text-emerald-200">
                     <div className="flex items-start gap-3"><CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" /><span>Le devis a bien été préparé et est prêt pour la validation commerciale.</span></div>
-                    <div className="flex justify-end"><button type="button" onClick={resetDraft} className="inline-flex items-center justify-center gap-2 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-100 transition hover:bg-emerald-500/15">Créer un autre devis</button></div>
+                    <div className="flex flex-wrap justify-end gap-3"><button type="button" onClick={() => setIsQuoteOpen(true)} className="inline-flex items-center justify-center gap-2 rounded-full bg-orange-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-orange-400"><FileText size={15} /> Voir le devis</button><button type="button" onClick={resetDraft} className="inline-flex items-center justify-center gap-2 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-100 transition hover:bg-emerald-500/15">Créer un autre devis</button></div>
                   </motion.div>
                 )}
               </>

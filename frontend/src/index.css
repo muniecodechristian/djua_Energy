@@ -317,3 +317,37 @@
     color: #ffffff !important;
   }
 }
+
+@media print {
+  body {
+    background: #ffffff !important;
+  }
+
+  body > #root > *:not(.devis-shell),
+  .devis-shell > *:not(.quote-modal),
+  .quote-modal > *:not(.quote-print-sheet),
+  .print\:hidden {
+    display: none !important;
+  }
+
+  .quote-modal {
+    position: static !important;
+    display: block !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+  }
+
+  .quote-print-sheet {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+}
