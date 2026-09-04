@@ -1,6 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
+import { MapContainer, TileLayer, Marker } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import 'leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css';
+import 'leaflet-defaulticon-compatibility';
 import {
   ArrowLeft,
   ArrowRight,
@@ -32,7 +36,60 @@ import {
   Sparkles,
 } from 'lucide-react';
 
+// --- COMPOSANT CARTE ADRESSE CLIENT ---
+function ClientAddressMap({ address }) {
+  const [coords, setCoords] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    if (!address?.trim()) { setLoading(false); return; }
+    setLoading(true);
+    setError(false);
+    const query = encodeURIComponent(address.trim());
+    fetch(`https://nominatim.openstreetmap.org/search?q=${query}&format=json&limit=1`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data && data[0]) {
+          setCoords([parseFloat(data[0].lat), parseFloat(data[0].lon)]);
+        } else {
+          setError(true);
+        }
+      })
+      .catch(() => setError(true))
+      .finally(() => setLoading(false));
+  }, [address]);
+
+  if (loading) {
+    return (
+      <div className="mt-4 h-40 rounded-xl border border-zinc-800 bg-zinc-950/60 flex items-center justify-center">
+        <span className="text-xs text-zinc-500 animate-pulse">Localisation de l&apos;adresse...</span>
+      </div>
+    );
+  }
+  if (error || !coords) {
+    return (
+      <div className="mt-4 h-40 rounded-xl border border-dashed border-zinc-700 bg-zinc-950/40 flex items-center justify-center">
+        <span className="text-xs text-zinc-500">Adresse introuvable sur la carte</span>
+      </div>
+    );
+  }
+  return (
+    <div className="mt-4 rounded-xl overflow-hidden border border-orange-500/20 shadow-[0_0_20px_rgba(249,115,22,0.08)]">
+      <div className="px-3 py-2 bg-zinc-950/80 border-b border-zinc-800 flex items-center gap-2">
+        <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse shadow-[0_0_8px_rgba(249,115,22,0.8)]" />
+        <span className="text-[10px] uppercase tracking-widest text-zinc-400 font-semibold">Emplacement du client</span>
+      </div>
+      <MapContainer center={coords} zoom={15} scrollWheelZoom={false} style={{ height: '180px', width: '100%', zIndex: 1 }}>
+        <TileLayer attribution='&copy; OSM' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+        <Marker position={coords} />
+      </MapContainer>
+    </div>
+  );
+}
+
 const CATEGORIES = {
+
   Éclairage: { icon: Lightbulb, tone: 'sun' },
   Cuisine: { icon: CookingPot, tone: 'rose' },
   'Multimédia': { icon: MonitorSmartphone, tone: 'blue' },
@@ -867,20 +924,25 @@ export default function Devis() {
   const calc = useMemo(() => calculate(appliances), [appliances]);
   const typeIsValid = selectedType && (selectedType !== 'Autre' || customType.trim().length > 1);
   const canContinue = typeIsValid && selectedProfile;
-  const stepOrder = ['profile', 'type', 'details', 'equipment', 'summary'];
+  // Pour 'personne': infos client AVANT le choix de la maison
+  const stepOrder = selectedProfile === 'personne'
+    ? ['profile', 'details', 'type', 'equipment', 'summary']
+    : ['profile', 'type', 'details', 'equipment', 'summary'];
   const stepIndex = stepOrder.indexOf(currentStep);
   const progress = ((stepIndex + 1) / stepOrder.length) * 100;
 
   const goToNext = () => {
     if (currentStep === 'profile' && selectedProfile) {
-      setCurrentStep('type');
-      return;
-    }
-    if (currentStep === 'type' && canContinue) {
-      setCurrentStep('details');
+      // Pour personne: d'abord infos client, puis type de maison
+      setCurrentStep(selectedProfile === 'personne' ? 'details' : 'type');
       return;
     }
     if (currentStep === 'details') {
+      // Pour personne: après infos client → type maison; pour entreprise → équipements
+      setCurrentStep(selectedProfile === 'personne' ? 'type' : 'equipment');
+      return;
+    }
+    if (currentStep === 'type' && canContinue) {
       setCurrentStep('equipment');
       return;
     }
@@ -901,15 +963,18 @@ export default function Devis() {
       return;
     }
     if (currentStep === 'equipment') {
-      setCurrentStep(selectedProfile === 'entreprise' ? 'details' : 'type');
-      return;
-    }
-    if (currentStep === 'details') {
-      setCurrentStep('type');
+      // Pour personne: retour vers type maison; pour entreprise: vers détails
+      setCurrentStep(selectedProfile === 'personne' ? 'type' : 'details');
       return;
     }
     if (currentStep === 'type') {
-      setCurrentStep('profile');
+      // Pour personne: retour vers infos client; pour entreprise: vers profil
+      setCurrentStep(selectedProfile === 'personne' ? 'details' : 'profile');
+      return;
+    }
+    if (currentStep === 'details') {
+      // Pour personne: retour vers profil; pour entreprise: vers type
+      setCurrentStep(selectedProfile === 'personne' ? 'profile' : 'type');
       return;
     }
     if (currentStep === 'profile') {
@@ -921,7 +986,8 @@ export default function Devis() {
     setSelectedProfile(profile);
     setSelectedType('');
     setCustomType('');
-    setCurrentStep('type');
+    // Pour personne: aller directement aux infos client
+    setCurrentStep(profile === 'personne' ? 'details' : 'type');
     setIsValidated(false);
   };
 
@@ -1011,15 +1077,40 @@ export default function Devis() {
                 <div className="grid gap-4 md:grid-cols-2">{profileCards.map((profile) => { const Icon = profile.icon; return <motion.button type="button" key={profile.id} onClick={() => handleProfileSelect(profile.id)} whileHover={{ y: -6, scale: 1.01 }} whileTap={{ scale: 0.98 }} className="group flex min-h-[230px] flex-col justify-between rounded-2xl border border-zinc-800 bg-zinc-950/80 p-5 text-left shadow-[0_18px_35px_rgba(0,0,0,0.35)] transition-all duration-200 hover:border-orange-500/70 hover:shadow-[0_0_0_1px_rgba(249,115,22,0.18),0_18px_40px_rgba(249,115,22,0.12)]"><div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-orange-500 text-white shadow-[0_0_22px_rgba(249,115,22,0.55)] ring-1 ring-orange-300/30"><Icon className="h-7 w-7" /></div><div><h3 className="text-2xl font-semibold text-white">{profile.title}</h3><p className="mt-2 text-sm text-zinc-400">{profile.description}</p></div><div className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-orange-300">Sélectionner<ArrowRight size={16} className="transition-transform group-hover:translate-x-1" /></div></motion.button>; })}</div>
               </>
             )}
-
             {currentStep === 'type' && selectedProfile && (
               <>
-                <div className="mb-6"><p className="text-sm text-zinc-400">Sélectionnez le type</p><h2 className="mt-2 text-2xl font-semibold text-white">{selectedProfile === 'personne' ? 'Type de maison' : 'Type d’entreprise'}</h2></div>
-                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{currentOptions.map((option) => { const Icon = option.icon; const isSelected = selectedType === option.id; return <motion.button type="button" key={option.id} onClick={() => handleTypeSelect(option.id)} whileHover={{ y: -4, scale: 1.01 }} whileTap={{ scale: 0.98 }} className={`flex items-center gap-3 rounded-2xl border p-4 text-left transition-all ${isSelected ? 'border-orange-500 bg-orange-500/10 shadow-[0_0_0_1px_rgba(249,115,22,0.18),0_0_20px_rgba(249,115,22,0.15)]' : 'border-zinc-800 bg-zinc-900/50 hover:border-orange-500/50 hover:bg-zinc-900'}`}><span className={`flex h-11 w-11 items-center justify-center rounded-xl ${isSelected ? 'bg-orange-500 text-white shadow-[0_0_18px_rgba(249,115,22,0.5)]' : 'bg-zinc-800 text-orange-300'}`}><Icon size={20} /></span><span className="font-medium text-white">{option.label}</span></motion.button>; })}</div>
-                {selectedType === 'Autre' && <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="mt-6 rounded-2xl border border-orange-500/40 bg-orange-500/5 p-4"><label htmlFor="customType" className="mb-2 block text-sm font-medium text-orange-200">Précisez le type manuellement <span className="text-orange-400">*</span></label><input id="customType" type="text" value={customType} onChange={(event) => setCustomType(event.target.value)} placeholder={selectedProfile === 'personne' ? 'Ex : Maison de campagne, duplex, lotissement...' : 'Ex : Centre de formation, clinique, agence...'} className="w-full rounded-xl border border-zinc-700 bg-zinc-950/80 px-3 py-3 text-sm text-white placeholder:text-zinc-500 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/30" required /></motion.div>}
-                <div className="mt-8 flex items-center justify-between gap-3"><button type="button" onClick={() => setCurrentStep('profile')} className="inline-flex items-center gap-2 rounded-full border border-zinc-700 bg-zinc-900/80 px-4 py-2.5 text-sm font-medium text-zinc-300 transition hover:border-orange-500/50 hover:text-white"><ArrowLeft size={14} />Retour</button><button type="button" onClick={goToNext} disabled={!canContinue} className="inline-flex items-center gap-2 rounded-full bg-orange-500 px-5 py-3 text-sm font-semibold text-white shadow-[0_16px_30px_rgba(249,115,22,0.3)] transition hover:bg-orange-400 disabled:cursor-not-allowed disabled:bg-orange-700/40 disabled:shadow-none">Suivant<ArrowRight size={16} /></button></div>
+                <div className="mb-6">
+                  <p className="text-sm text-zinc-400">Sélectionnez le type</p>
+                  <h2 className="mt-2 text-2xl font-semibold text-white">{selectedProfile === 'personne' ? 'Type de maison' : 'Type d’entreprise'}</h2>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                  {currentOptions.map((option) => {
+                    const Icon = option.icon;
+                    const isSelected = selectedType === option.id;
+                    return (
+                      <motion.button type="button" key={option.id} onClick={() => handleTypeSelect(option.id)} whileHover={{ y: -4, scale: 1.01 }} whileTap={{ scale: 0.98 }}
+                        className={`flex items-center gap-3 rounded-2xl border p-4 text-left transition-all ${isSelected ? 'border-orange-500 bg-orange-500/10 shadow-[0_0_0_1px_rgba(249,115,22,0.18),0_0_20px_rgba(249,115,22,0.15)]' : 'border-zinc-800 bg-zinc-900/50 hover:border-orange-500/50 hover:bg-zinc-900'}`}>
+                        <span className={`flex h-11 w-11 items-center justify-center rounded-xl ${isSelected ? 'bg-orange-500 text-white shadow-[0_0_18px_rgba(249,115,22,0.5)]' : 'bg-zinc-800 text-orange-300'}`}><Icon size={20} /></span>
+                        <span className="font-medium text-white">{option.label}</span>
+                      </motion.button>
+                    );
+                  })}
+                </div>
+                {selectedType === 'Autre' && (
+                  <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="mt-6 rounded-2xl border border-orange-500/40 bg-orange-500/5 p-4">
+                    <label htmlFor="customType" className="mb-2 block text-sm font-medium text-orange-200">Précisez le type manuellement <span className="text-orange-400">*</span></label>
+                    <input id="customType" type="text" value={customType} onChange={(event) => setCustomType(event.target.value)}
+                      placeholder={selectedProfile === 'personne' ? 'Ex : Maison de campagne, duplex, lotissement...' : 'Ex : Centre de formation, clinique, agence...'}
+                      className="w-full rounded-xl border border-zinc-700 bg-zinc-950/80 px-3 py-3 text-sm text-white placeholder:text-zinc-500 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/30" required />
+                  </motion.div>
+                )}
+                <div className="mt-8 flex items-center justify-between gap-3">
+                  <button type="button" onClick={goBack} className="inline-flex items-center gap-2 rounded-full border border-zinc-700 bg-zinc-900/80 px-4 py-2.5 text-sm font-medium text-zinc-300 transition hover:border-orange-500/50 hover:text-white"><ArrowLeft size={14} />Retour</button>
+                  <button type="button" onClick={goToNext} disabled={!canContinue} className="inline-flex items-center gap-2 rounded-full bg-orange-500 px-5 py-3 text-sm font-semibold text-white shadow-[0_16px_30px_rgba(249,115,22,0.3)] transition hover:bg-orange-400 disabled:cursor-not-allowed disabled:bg-orange-700/40 disabled:shadow-none">Suivant<ArrowRight size={16} /></button>
+                </div>
               </>
             )}
+
 
             {currentStep === 'details' && (
               <>
@@ -1054,9 +1145,42 @@ export default function Devis() {
               <>
                 <div className="mb-6"><p className="text-sm text-zinc-400">Validation finale</p><h2 className="mt-2 text-2xl font-semibold text-white">Vérifiez votre devis avant validation</h2></div>
                 <div className="space-y-5">
-                  <div className="grid gap-4 md:grid-cols-2"><div className="rounded-2xl border border-zinc-800 bg-zinc-900/80 p-4"><p className="text-[10px] uppercase tracking-[0.22em] text-zinc-500">Profil</p><div className="mt-3 flex items-center gap-3"><div className="flex h-11 w-11 items-center justify-center rounded-xl bg-orange-500 text-white shadow-[0_0_16px_rgba(249,115,22,0.45)]">{selectedProfile === 'personne' ? <UserRound size={20} /> : <Building2 size={20} />}</div><div><h3 className="text-lg font-semibold text-white">{selectedProfile === 'personne' ? 'Personne' : 'Entreprise'}</h3><p className="text-sm text-zinc-400">{selectedType === 'Autre' ? customType : selectedType}</p></div></div></div>{selectedProfile === 'entreprise' ? <div className="rounded-2xl border border-zinc-800 bg-zinc-900/80 p-4"><p className="text-[10px] uppercase tracking-[0.22em] text-zinc-500">Projet</p><div className="mt-3"><h3 className="text-lg font-semibold text-white">{projectForm.name || 'Projet non nommé'}</h3><p className="mt-1 text-sm text-zinc-400">{projectForm.location || 'Localisation non renseignée'}</p></div></div> : <div className="rounded-2xl border border-zinc-800 bg-zinc-900/80 p-4"><p className="text-[10px] uppercase tracking-[0.22em] text-zinc-500">Client</p><div className="mt-3"><h3 className="text-lg font-semibold text-white">{clientForm.fullName || 'Client non nommé'}</h3><p className="mt-1 text-sm text-zinc-400">{clientForm.phone || clientForm.email || 'Coordonnées non renseignées'}</p></div></div>}</div>
-                  {selectedProfile === 'entreprise' ? <div className="rounded-2xl border border-zinc-800 bg-zinc-900/80 p-4"><p className="text-[10px] uppercase tracking-[0.22em] text-zinc-500">Entreprise</p><div className="mt-3 grid gap-2 text-sm text-zinc-300 md:grid-cols-2"><p><span className="text-zinc-500">Raison sociale :</span> {companyForm.companyName || '—'}</p><p><span className="text-zinc-500">RCCM :</span> {companyForm.rccm || '—'}</p><p><span className="text-zinc-500">TVA :</span> {companyForm.tva || '—'}</p><p><span className="text-zinc-500">Contact :</span> {companyForm.contactName || '—'}</p></div></div> : <div className="rounded-2xl border border-zinc-800 bg-zinc-900/80 p-4"><p className="text-[10px] uppercase tracking-[0.22em] text-zinc-500">Client</p><div className="mt-3 grid gap-2 text-sm text-zinc-300 md:grid-cols-2"><p><span className="text-zinc-500">Nom :</span> {clientForm.fullName || '—'}</p><p><span className="text-zinc-500">Téléphone :</span> {clientForm.phone || '—'}</p><p><span className="text-zinc-500">Email :</span> {clientForm.email || '—'}</p><p><span className="text-zinc-500">Ville :</span> {clientForm.ville || '—'}</p></div></div>}
-                  <div className="rounded-2xl border border-zinc-800 bg-zinc-900/80 p-4"><div className="mb-3 flex items-center justify-between gap-3"><p className="text-[10px] uppercase tracking-[0.22em] text-zinc-500">Appareils cochés</p><span className="rounded-full border border-orange-500/30 bg-orange-500/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-orange-300">{appliances.reduce((sum, item) => sum + item.quantity, 0)} total</span></div>                  <div className="space-y-2">{appliances.map((item) => { const ItemIcon = resolveCategoryIcon(item.category); return <div key={item.id} className="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-950/60 px-3 py-2 text-sm text-zinc-200"><div className="flex items-center gap-3"><span className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-800"><ItemIcon size={14} className="text-orange-300" /></span><div><p className="font-medium text-white">{item.name}</p><p className="text-[11px] text-zinc-400">{item.category}</p></div></div><div className="text-right text-xs text-zinc-400"><p>{item.quantity} × {item.watts} W</p><p>{(item.watts * item.hours * item.quantity / 1000).toFixed(2)} kWh/j</p></div></div>; })}</div>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="rounded-2xl border border-zinc-800 bg-zinc-900/80 p-4">
+                      <p className="text-[10px] uppercase tracking-[0.22em] text-zinc-500">Profil</p>
+                      <div className="mt-3 flex items-center gap-3">
+                        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-orange-500 text-white shadow-[0_0_16px_rgba(249,115,22,0.45)]">{selectedProfile === 'personne' ? <UserRound size={20} /> : <Building2 size={20} />}</div>
+                        <div><h3 className="text-lg font-semibold text-white">{selectedProfile === 'personne' ? 'Personne' : 'Entreprise'}</h3><p className="text-sm text-zinc-400">{selectedType === 'Autre' ? customType : selectedType}</p></div>
+                      </div>
+                    </div>
+                    {selectedProfile === 'entreprise' ? (
+                      <div className="rounded-2xl border border-zinc-800 bg-zinc-900/80 p-4"><p className="text-[10px] uppercase tracking-[0.22em] text-zinc-500">Projet</p><div className="mt-3"><h3 className="text-lg font-semibold text-white">{projectForm.name || 'Projet non nommé'}</h3><p className="mt-1 text-sm text-zinc-400">{projectForm.location || 'Localisation non renseignée'}</p></div></div>
+                    ) : (
+                      <div className="rounded-2xl border border-zinc-800 bg-zinc-900/80 p-4"><p className="text-[10px] uppercase tracking-[0.22em] text-zinc-500">Client</p><div className="mt-3"><h3 className="text-lg font-semibold text-white">{clientForm.fullName || 'Client non nommé'}</h3><p className="mt-1 text-sm text-zinc-400">{clientForm.phone || clientForm.email || 'Coordonnées non renseignées'}</p></div></div>
+                    )}
+                  </div>
+
+                  {selectedProfile === 'entreprise' ? (
+                    <div className="rounded-2xl border border-zinc-800 bg-zinc-900/80 p-4"><p className="text-[10px] uppercase tracking-[0.22em] text-zinc-500">Entreprise</p><div className="mt-3 grid gap-2 text-sm text-zinc-300 md:grid-cols-2"><p><span className="text-zinc-500">Raison sociale :</span> {companyForm.companyName || '—'}</p><p><span className="text-zinc-500">RCCM :</span> {companyForm.rccm || '—'}</p><p><span className="text-zinc-500">TVA :</span> {companyForm.tva || '—'}</p><p><span className="text-zinc-500">Contact :</span> {companyForm.contactName || '—'}</p></div></div>
+                  ) : (
+                    <div className="rounded-2xl border border-zinc-800 bg-zinc-900/80 p-4">
+                      <p className="text-[10px] uppercase tracking-[0.22em] text-zinc-500">Informations du client</p>
+                      <div className="mt-3 grid gap-2 text-sm text-zinc-300 md:grid-cols-2">
+                        <p><span className="text-zinc-500">Nom :</span> {clientForm.fullName || '—'}</p>
+                        <p><span className="text-zinc-500">Téléphone :</span> {clientForm.phone || '—'}</p>
+                        <p><span className="text-zinc-500">Email :</span> {clientForm.email || '—'}</p>
+                        <p><span className="text-zinc-500">Ville :</span> {clientForm.ville || '—'}</p>
+                        {clientForm.adresse && <p className="md:col-span-2"><span className="text-zinc-500">Adresse :</span> {clientForm.adresse}</p>}
+                        {clientForm.province && <p><span className="text-zinc-500">Province :</span> {clientForm.province}</p>}
+                      </div>
+                      {/* Carte adresse client */}
+                      {(clientForm.adresse || clientForm.ville) && (
+                        <ClientAddressMap address={`${clientForm.adresse || ''} ${clientForm.ville || ''} ${clientForm.province || ''}`} />
+                      )}
+                    </div>
+                  )}
+
+                  <div className="rounded-2xl border border-zinc-800 bg-zinc-900/80 p-4"><div className="mb-3 flex items-center justify-between gap-3"><p className="text-[10px] uppercase tracking-[0.22em] text-zinc-500">Appareils cochés</p><span className="rounded-full border border-orange-500/30 bg-orange-500/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-orange-300">{appliances.reduce((sum, item) => sum + item.quantity, 0)} total</span></div><div className="space-y-2">{appliances.map((item) => { const ItemIcon = resolveCategoryIcon(item.category); return <div key={item.id} className="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-950/60 px-3 py-2 text-sm text-zinc-200"><div className="flex items-center gap-3"><span className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-800"><ItemIcon size={14} className="text-orange-300" /></span><div><p className="font-medium text-white">{item.name}</p><p className="text-[11px] text-zinc-400">{item.category}</p></div></div><div className="text-right text-xs text-zinc-400"><p>{item.quantity} × {item.watts} W</p><p>{(item.watts * item.hours * item.quantity / 1000).toFixed(2)} kWh/j</p></div></div>; })}</div>
 </div>                </div>
                 <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end"><button type="button" onClick={() => setCurrentStep('equipment')} className="rounded-full border border-zinc-700 bg-zinc-900/80 px-4 py-2.5 text-sm text-zinc-200 transition hover:border-orange-500/50 hover:text-white">Modifier</button><button type="button" onClick={handleSubmit} disabled={isSubmitting} className="inline-flex items-center justify-center gap-2 rounded-full bg-orange-500 px-5 py-3 text-sm font-semibold text-white shadow-[0_16px_30px_rgba(249,115,22,0.3)] transition hover:bg-orange-400 disabled:cursor-not-allowed disabled:bg-zinc-700 disabled:shadow-none">{isSubmitting ? 'Soumission...' : 'Valider le devis'}</button></div>
                 {isValidated && (

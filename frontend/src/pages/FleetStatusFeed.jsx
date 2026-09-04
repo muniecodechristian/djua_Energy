@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   MoreVertical, Check, RefreshCw, Wifi, WifiOff,
   AlertTriangle, Zap, X, ShieldAlert, Activity,
-  Bell, Database, MapPin
+  Bell, Database, MapPin,Sparkles
 } from 'lucide-react';
 import { Button } from "../components/ui/button";
 import { useDevicesQuery, useAlertsQuery } from '../hooks/tanstack/useKitQueries.js';

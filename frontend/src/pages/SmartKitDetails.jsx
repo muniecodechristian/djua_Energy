@@ -5,56 +5,78 @@ import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid
 } from 'recharts';
 import {
-  MapPin, Activity, ShieldAlert, Wifi, Zap,
-  CheckCircle2, Box, Layers, Expand, RotateCcw, Monitor,
-  Thermometer, Battery, Sun, Cpu, Signal, MoreHorizontal,
-  ChevronDown, Wrench, RefreshCw, Send, Power as PowerIcon,
-  Radio, Database, WifiOff
+  Activity, ShieldAlert, Wifi, Zap,
+  ChevronDown, RefreshCw, MoreHorizontal,
+  Radio, Database, Gauge, Server, HardDrive, ShieldCheck,
+  Cpu, Thermometer, BatteryCharging, Clock, ArrowUpRight
 } from 'lucide-react';
 import { useKitLiveTelemetry } from '../hooks/tanstack/useKitLiveTelemetry.js';
+import { MapContainer, TileLayer, Marker } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+
+// --- CUSTOM MAP MARKER (Évite l'épingle bleue générique) ---
+const customIcon = L.divIcon({
+  className: 'custom-leaflet-marker',
+  html: `
+    <div class="relative flex items-center justify-center w-6 h-6">
+      <span class="absolute inline-flex h-full w-full rounded-full bg-orange-500 opacity-40 animate-ping"></span>
+      <span class="relative inline-flex rounded-full h-3 w-3 bg-orange-500 border-2 border-zinc-950"></span>
+    </div>
+  `,
+  iconSize: [24, 24],
+  iconAnchor: [12, 12]
+});
 
 // --- MOCK DATA ---
 
 const generateSparkline = (base, variance) =>
-  Array.from({ length: 10 }, (_, i) => ({ val: base + (Math.random() * variance - variance / 2) }));
+  Array.from({ length: 12 }, (_, i) => ({ val: base + (Math.random() * variance - variance / 2) }));
 
-const telemetryData = Array.from({ length: 24 }, (_, i) => ({
+const telemetryFallback = Array.from({ length: 24 }, (_, i) => ({
   time: `${String(i).padStart(2, '0')}:00`,
-  voltage: 12 + Math.random() * 2,
-  current: 15 + Math.random() * 5,
-  temp: 35 + Math.random() * 10,
-  soc: 40 + Math.random() * 20 + (i > 12 ? 10 : 0)
+  voltage: Number((12.2 + Math.random() * 0.8).toFixed(2)),
+  current: Number((14 + Math.random() * 4).toFixed(1)),
+  temp: Number((34 + Math.random() * 6).toFixed(1)),
+  soc: Math.min(100, Math.floor(45 + i * 2.2))
 }));
 
-const healthHistoryData = Array.from({ length: 7 }, (_, i) => ({ day: `1${i + 2} Mai`, val: 80 + Math.random() * 15 }));
-
 const componentsData = [
-  { name: 'Panneau Solaire', status: 'OK', health: 95 },
-  { name: 'Batterie', status: 'OK', health: 88 },
-  { name: 'Contrôleur de Charge', status: 'OK', health: 100 },
-  { name: 'Onduleur', status: 'OK', health: 90 },
-  { name: 'Sortie Charge', status: 'OK', health: 100 },
-  { name: 'Module IoT', status: 'OK', health: 99 },
+  { name: 'Panneau Photovoltaïque', status: 'Optimal', health: 98, metric: '320W peak' },
+  { name: 'Banc de Batteries LiFePO4', status: 'Nominal', health: 91, metric: '48V / 200Ah' },
+  { name: 'Régulateur MPPT', status: 'Optimal', health: 100, metric: '98.5% eff.' },
+  { name: 'Onduleur Pure Sinus', status: 'Nominal', health: 94, metric: '1.2 kW load' },
+  { name: 'Relais & Protections CC', status: 'Actif', health: 100, metric: '0 défaut' },
+  { name: 'Microcontrôleur & Modème IoT', status: 'En ligne', health: 99, metric: '-68 dBm 4G' },
 ];
 
 const eventsData = [
-  { id: 1, time: '09:31', type: 'critical', title: 'Décision IA déclenchée', desc: 'Risque élevé de fraude détecté', icon: <ShieldAlert size={14} /> },
-  { id: 2, time: '06:27', type: 'success', title: 'Télémétrie reçue', desc: 'Tous les systèmes sont nominaux', icon: <CheckCircle2 size={14} /> },
-  { id: 3, time: '04:05', type: 'info', title: 'Connectivité restaurée', desc: 'Coupure de connexion : 18m', icon: <Wifi size={14} /> },
-  { id: 4, time: '03:12', type: 'warning', title: 'Mouvement détecté', desc: 'Durée : 2m 34s', icon: <Activity size={14} /> },
-  { id: 5, time: 'Hier\n23:41', type: 'success', title: 'Kit en ligne', desc: 'Disponibilité : 92.8%', icon: <PowerIcon size={14} /> },
+  { id: 1, time: '09:31', type: 'critical', title: 'Alerte Anomalie Profil', desc: 'Surtension temporaire détectée sur la ligne d\'entrée', icon: <ShieldAlert size={13} /> },
+  { id: 2, time: '06:27', type: 'success', title: 'Synchro Télémétrique', desc: 'Trame de données valides (CRC32 OK)', icon: <ShieldCheck size={13} /> },
+  { id: 3, time: '04:05', type: 'info', title: 'Basculement Réseau', desc: 'Reconnexion auto via relais GSM secondaire', icon: <Wifi size={13} /> },
+  { id: 4, time: '03:12', type: 'warning', title: 'Capteur Accéléromètre', desc: 'Micro-vibration détectée sur le châssis', icon: <Activity size={13} /> },
 ];
 
-// --- REUSABLE COMPONENTS ---
+// --- COMPOSANTS DE STRUCTURE UI ---
 
-const Card = ({ children, className = "", title, action, titleRight }) => (
-  <div className={`bg-neutral-900/40 backdrop-blur-md border border-neutral-800/80 rounded-xl flex flex-col overflow-hidden shadow-lg shadow-black/40 ${className}`}>
+const Card = ({ children, className = "", title, subtitle, action, titleRight }) => (
+  <div className={`bg-zinc-900/60 border border-zinc-800/80 rounded-xl flex flex-col overflow-hidden transition-all duration-200 hover:border-zinc-700/60 ${className}`}>
     {(title || action || titleRight) && (
-      <div className="px-4 py-3 border-b border-neutral-800/60 flex justify-between items-center bg-neutral-900/60">
-        {title && <h3 className="text-[10px] font-bold text-neutral-400 tracking-wider uppercase">{title}</h3>}
+      <div className="px-4 py-3 border-b border-zinc-800/50 flex justify-between items-center bg-zinc-950/40">
+        <div>
+          {title && <h3 className="text-[11px] font-semibold text-zinc-300 tracking-wide uppercase font-mono">{title}</h3>}
+          {subtitle && <p className="text-[10px] text-zinc-500 font-sans">{subtitle}</p>}
+        </div>
         <div className="flex items-center gap-2">
-          {titleRight && <span className="text-[10px] text-neutral-500 font-medium">{titleRight}</span>}
-          {action && <button onClick={action.onClick} className="text-xs text-orange-400 hover:text-orange-300 cursor-pointer font-medium bg-transparent border-none">{action.label}</button>}
+          {titleRight && <span className="text-[10px] font-mono text-zinc-400">{titleRight}</span>}
+          {action && (
+            <button
+              onClick={action.onClick}
+              className="text-[11px] text-orange-400 hover:text-orange-300 transition-colors cursor-pointer font-medium bg-transparent border-none flex items-center gap-1"
+            >
+              {action.label} <ArrowUpRight size={12} />
+            </button>
+          )}
         </div>
       </div>
     )}
@@ -63,509 +85,325 @@ const Card = ({ children, className = "", title, action, titleRight }) => (
 );
 
 const Sparkline = ({ data, color }) => (
-  <div className="h-8 w-full mt-1">
+  <div className="h-9 w-full mt-2">
     <ResponsiveContainer width="100%" height="100%">
       <LineChart data={data}>
-        <Line type="monotone" dataKey="val" stroke={color} strokeWidth={1.5} dot={false} isAnimationActive={false} />
+        <Line
+          type="monotone"
+          dataKey="val"
+          stroke={color}
+          strokeWidth={1.5}
+          dot={false}
+          isAnimationActive={false}
+        />
       </LineChart>
     </ResponsiveContainer>
   </div>
 );
 
-const SimpleProgressBar = ({ value, color }) => (
-  <div className="h-1.5 w-full bg-neutral-800/80 rounded-full overflow-hidden mt-2 shadow-inner">
-    <motion.div initial={{ width: 0 }} animate={{ width: `${value}%` }} transition={{ duration: 1 }} className={`h-full ${color}`} />
-  </div>
-);
-
-// --- MAIN DASHBOARD COMPONENT ---
-
 export default function SmartKitDetails() {
   const [searchParams] = useSearchParams();
   const kitId = searchParams.get('kitId');
 
-  // Hook live : Socket.io temps réel + fallback BD automatique
   const {
-    telemetryDocuments,
     telemetryRecords,
     latestTelemetry,
     isLive,
-    isLoading: telemetryLoading,
     dataSource,
   } = useKitLiveTelemetry(kitId);
 
   const hasTelemetry = Boolean(latestTelemetry);
+
   const formatMetric = (value, unit = '') =>
     value === undefined || value === null || Number.isNaN(Number(value))
       ? '—'
       : `${value}${unit}`;
+
   const lastUpdate = latestTelemetry?.event_time
-    ? new Date(Number(latestTelemetry.event_time) * 1000 || latestTelemetry.event_time).toLocaleString('fr-FR')
+    ? new Date(Number(latestTelemetry.event_time) * 1000 || latestTelemetry.event_time).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
     : '—';
+
   const chartTelemetry = telemetryRecords.slice(-24).map((record, index) => ({
-    time: record.event_time ? new Date(Number(record.event_time) * 1000 || record.event_time).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : `${index + 1}`,
+    time: record.event_time
+      ? new Date(Number(record.event_time) * 1000 || record.event_time).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+      : `${index + 1}h`,
     voltage: record.battery_voltage_v ?? 0,
     current: record.battery_current_a ?? 0,
     temp: record.device_temperature_c ?? 0,
     soc: record.state_of_charge_pct ?? 0,
   }));
-  const displayKitId = kitId || 'Kit non sélectionné';
-  const [activeTab, setActiveTab] = useState('Jumeau Numérique');
+
+  const displayKitId = kitId || 'DK-SOLAR-092';
+  const [activeTab, setActiveTab] = useState('Vue Synthèse');
   const [notification, setNotification] = useState(null);
 
-  const tabs = ['Jumeau Numérique', 'Télémétrie', 'Santé', 'Événements', 'Énergie', 'Configuration', 'Historique', 'Documents'];
+  const tabs = ['Vue Synthèse', 'Télémétrie Haute Fréquence', 'Diagnostics & Santé', 'Journal système', 'Matrice d\'Énergie'];
 
   const handleQuickAction = (actionName) => {
-    setNotification(`Exécution de : ${actionName} sur le ${displayKitId}...`);
-    setTimeout(() => setNotification(null), 3500);
+    setNotification(`Commande envoyée : ${actionName}`);
+    setTimeout(() => setNotification(null), 3000);
   };
 
-  const staggerContainer = { hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.05 } } };
-  const fadeUp = { hidden: { opacity: 0, y: 15 }, visible: { opacity: 1, y: 0, transition: { duration: 0.4 } } };
-
   return (
-    <div className="min-h-screen text-neutral-200 p-4 md:p-6 font-['Montserrat',sans-serif]">
+    <div className="min-h-screen bg-zinc-950 text-zinc-100 p-4 md:p-8 font-sans selection:bg-orange-500/30">
 
-      {/* NOTIFICATION TOAST */}
+      {/* TOAST NOTIFICATION */}
       <AnimatePresence>
         {notification && (
           <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="fixed top-5 right-5 z-50 px-4 py-3 rounded-lg bg-orange-500/10 border border-orange-500/30 text-orange-300 text-xs shadow-xl backdrop-blur-md flex items-center gap-2"
+            initial={{ opacity: 0, y: -15, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -15, scale: 0.98 }}
+            className="fixed top-6 right-6 z-50 px-4 py-2.5 rounded-lg bg-zinc-900 border border-zinc-700/80 text-zinc-200 text-xs shadow-2xl backdrop-blur-xl flex items-center gap-3"
           >
-            <RefreshCw size={14} className="animate-spin text-orange-400" />
-            {notification}
+            <RefreshCw size={13} className="animate-spin text-orange-400" />
+            <span className="font-mono text-[11px]">{notification}</span>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* KIT HEADER TITLE */}
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }} className="mb-6 flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-neutral-800/60 pb-4">
-        <div>
-          <div className="flex items-center gap-3 mb-1.5">
-            <h1 className="text-2xl font-bold text-white tracking-tight">{displayKitId}</h1>
-            <div className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border text-xs font-semibold shadow-sm ${isLive ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-zinc-500/10 border-zinc-500/20 text-zinc-400'}`}>
-              <span className={`w-1.5 h-1.5 rounded-full ${isLive ? 'bg-emerald-500 shadow-sm shadow-emerald-500 animate-pulse' : 'bg-zinc-500'}`}></span> {isLive ? 'En ligne' : 'Hors ligne'}
+      {/* HEADER COCKPIT */}
+      <header className="mb-8 border-b border-zinc-800/80 pb-5">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-3 mb-2">
+              <h1 className="text-xl md:text-2xl font-bold font-mono text-white tracking-tight">{displayKitId}</h1>
+
+              {/* Statut Live */}
+              <div className="flex items-center gap-2 px-2.5 py-1 rounded-md bg-zinc-900 border border-zinc-800 text-xs font-mono">
+                <span className={`relative flex h-2 w-2`}>
+                  {isLive && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>}
+                  <span className={`relative inline-flex rounded-full h-2 w-2 ${isLive ? 'bg-emerald-500' : 'bg-zinc-600'}`}></span>
+                </span>
+                <span className={isLive ? 'text-emerald-400 font-medium' : 'text-zinc-500'}>{isLive ? 'ONLINE' : 'OFFLINE'}</span>
+              </div>
+
+              {/* Source flux */}
+              {hasTelemetry && (
+                <div className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-[10px] font-mono tracking-wider ${dataSource === 'live'
+                    ? 'bg-orange-500/10 border-orange-500/30 text-orange-400'
+                    : 'bg-zinc-900 border-zinc-800 text-zinc-400'
+                  }`}>
+                  {dataSource === 'live' ? <Radio size={11} className="animate-pulse" /> : <Database size={11} />}
+                  {dataSource === 'live' ? 'SOCKET.IO STREAM' : 'DB SNAPSHOT'}
+                </div>
+              )}
             </div>
-            {/* Indicateur source des données : LIVE (Socket.io) ou historique (base de données) */}
-            {hasTelemetry && (
-              <motion.div
-                key={dataSource}
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border text-[10px] font-bold shadow-sm ${dataSource === 'live'
-                    ? 'bg-red-500/10 border-red-500/30 text-red-400'
-                    : 'bg-blue-500/10 border-blue-500/30 text-blue-400'
+
+            <div className="flex flex-wrap items-center gap-y-1 gap-x-4 text-xs text-zinc-400 font-mono">
+              <span>S/N: <strong className="text-zinc-200 font-normal">RN87391V22K41</strong></span>
+              <span className="text-zinc-700">•</span>
+              <span>Rév. Hardware: <strong className="text-zinc-200 font-normal">v2.1-PRO</strong></span>
+              <span className="text-zinc-700">•</span>
+              <span>Dernier paquet: <strong className="text-zinc-200 font-normal">{lastUpdate}</strong></span>
+            </div>
+          </div>
+
+          {/* Action Bar */}
+          <div className="flex items-center gap-2.5">
+            <button
+              onClick={() => handleQuickAction('Re-calibration des capteurs')}
+              className="px-3 py-1.5 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 rounded-lg text-xs font-medium transition-all text-zinc-300 flex items-center gap-2 active:scale-95"
+            >
+              Diagnostic <ChevronDown size={13} className="text-zinc-500" />
+            </button>
+            <button
+              onClick={() => handleQuickAction('Ouverture d\'un ticket d\'assistance')}
+              className="px-3.5 py-1.5 bg-orange-600 hover:bg-orange-500 text-white rounded-lg text-xs font-medium transition-all shadow-lg shadow-orange-950/40 active:scale-95 flex items-center gap-1.5"
+            >
+              Intervention terrain
+            </button>
+            <button className="p-1.5 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 rounded-lg text-zinc-400 transition-all">
+              <MoreHorizontal size={15} />
+            </button>
+          </div>
+        </div>
+
+        {/* NAVIGATION SYSTEME (TABS) */}
+        <nav className="flex gap-1 mt-6 overflow-x-auto hide-scrollbar border-b border-zinc-800/40">
+          {tabs.map((tab) => {
+            const isActive = activeTab === tab;
+            return (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`px-3.5 py-2 text-xs font-medium transition-all relative cursor-pointer bg-transparent border-none ${isActive ? 'text-orange-400 font-semibold' : 'text-zinc-400 hover:text-zinc-200'
                   }`}
               >
-                {dataSource === 'live' ? (
-                  <>
-                    <Radio size={10} className="animate-pulse" />
-                    LIVE
-                  </>
-                ) : (
-                  <>
-                    <Database size={10} />
-                    Historique
-                  </>
+                {tab}
+                {isActive && (
+                  <motion.div
+                    layoutId="activeTabUnderline"
+                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-orange-500"
+                    transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                  />
                 )}
-              </motion.div>
-            )}
-          </div>
-          <p className="text-[11px] text-neutral-400 flex flex-wrap items-center gap-2 font-medium">
-            SN: <span className="text-neutral-300 font-mono">RN87391V22K41</span> •
-            Modèle: <span className="text-neutral-300">D3LIA-RK-2.1</span> •
-            Installé le: <span className="text-neutral-300">12 Fév 2026</span>
-            <span className="px-2 py-0.5 rounded bg-orange-500/10 border border-orange-500/20 text-orange-400 text-[10px] ml-2 font-semibold shadow-sm">Kit Résidentiel</span>
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <button onClick={() => handleQuickAction('Exporter le rapport de diagnostic')} className="px-3 py-1.5 bg-neutral-900 border border-neutral-800 rounded-lg text-xs font-semibold hover:bg-neutral-800/50 transition-colors flex items-center gap-1.5 text-neutral-300 shadow-sm">
-            Actions <ChevronDown size={14} />
-          </button>
-          <button onClick={() => handleQuickAction('Créer une intervention sur le terrain')} className="px-4 py-1.5 bg-orange-600 hover:bg-orange-500 rounded-lg text-xs font-semibold text-white transition-colors shadow-md shadow-orange-600/30">
-            Créer une intervention
-          </button>
-          <button className="p-1.5 bg-neutral-900 border border-neutral-800 rounded-lg hover:bg-neutral-800/50 text-neutral-400 shadow-sm">
-            <MoreHorizontal size={14} />
-          </button>
-        </div>
-      </motion.div>
+              </button>
+            );
+          })}
+        </nav>
+      </header>
 
-      {/* TABS */}
-      <div className="flex gap-6 mb-6 overflow-x-auto hide-scrollbar border-b border-neutral-800/60 pb-1">
-        {tabs.map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`pb-2 text-xs font-semibold whitespace-nowrap transition-colors relative cursor-pointer bg-transparent border-none ${activeTab === tab ? 'text-orange-400' : 'text-neutral-400 hover:text-neutral-200'}`}
-          >
-            {tab}
-            {activeTab === tab && <motion.div layoutId="activeTabSmart" className="absolute bottom-0 left-0 right-0 h-0.5 bg-orange-500 shadow-sm shadow-orange-500" />}
-          </button>
-        ))}
-      </div>
+      {/* DASHBOARD GRID */}
+      <main className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
 
-      {!kitId ? (
-        <div className="flex flex-col items-center justify-center py-20 bg-neutral-900/10 border border-neutral-800 rounded-2xl p-8 text-center max-w-xl mx-auto my-10 shadow-lg">
-          <Cpu size={40} className="text-neutral-600 mb-4 animate-pulse" />
-          <h3 className="text-sm font-bold text-white mb-1">Aucun kit sélectionné</h3>
-          <p className="text-xs text-neutral-500 max-w-xs">Sélectionnez un kit depuis le registre du Parc pour visualiser sa télémétrie en temps réel.</p>
-        </div>
-      ) : telemetryLoading ? (
-        <div className="flex flex-col items-center justify-center py-24">
-          <RefreshCw size={24} className="text-orange-500 animate-spin mb-4" />
-          <p className="text-xs text-neutral-400 font-medium">Chargement des données en direct et historique de télémétrie...</p>
-        </div>
-      ) : !hasTelemetry ? (
-        <div className="flex flex-col items-center justify-center py-20 bg-neutral-900/20 border border-neutral-800/80 rounded-2xl p-10 text-center max-w-2xl mx-auto my-12 shadow-2xl relative overflow-hidden group">
-          <div className="absolute inset-0 bg-gradient-to-b from-orange-500/5 to-transparent pointer-events-none" />
-          <div className="absolute -top-12 -left-12 w-24 h-24 bg-orange-500/10 rounded-full blur-2xl group-hover:scale-120 transition-transform duration-700" />
-          
-          <div className="relative z-10 space-y-5">
-            <div className="w-16 h-16 rounded-2xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center mx-auto text-orange-400 shadow-[0_0_20px_rgba(249,115,22,0.15)] group-hover:scale-105 transition-transform duration-500">
-              <WifiOff size={28} className="animate-pulse" />
-            </div>
-            
-            <div className="space-y-2">
-              <h3 className="text-base font-bold text-white tracking-tight">Boîtier IoT Non Configuré</h3>
-              <p className="text-xs text-neutral-400 font-medium max-w-md mx-auto leading-relaxed">
-                Aucun signal ou log de télémétrie n'a été reçu pour le kit <span className="font-mono text-orange-450 font-bold bg-orange-500/10 px-1.5 py-0.5 rounded border border-orange-500/20">{displayKitId}</span>.
-              </p>
-            </div>
-
-            <div className="p-4 bg-neutral-950/60 border border-neutral-900 rounded-xl max-w-md mx-auto text-left text-[11px] text-neutral-500 space-y-2 leading-relaxed">
-              <span className="font-bold text-neutral-400 block uppercase tracking-wider text-[9px] mb-1">Étapes recommandées :</span>
-              <div className="flex items-start gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-orange-500 mt-1.5 shrink-0" />
-                <span>Mettez le boîtier sous tension et connectez-le à l'alimentation du kit.</span>
-              </div>
-              <div className="flex items-start gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-orange-500 mt-1.5 shrink-0" />
-                <span>Vérifiez la carte SIM/le réseau cellulaire de l'antenne Orange la plus proche.</span>
-              </div>
-              <div className="flex items-start gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-orange-500 mt-1.5 shrink-0" />
-                <span>Une fois configuré, les données s'afficheront instantanément à l'écran en mode <span className="text-red-400 font-semibold animate-pulse">🔴 LIVE</span>.</span>
-              </div>
-            </div>
-            
-            <div className="pt-2">
-              <span className="text-[10px] text-neutral-500 flex items-center justify-center gap-1.5 font-mono">
-                <span className="w-1.5 h-1.5 rounded-full bg-neutral-700 animate-ping" />
-                En attente du premier ping de l'ESP32...
-              </span>
+        {/* METRIC 1: SOC */}
+        <Card title="Charge Batterie (SoC)">
+          <div className="flex justify-between items-baseline my-1">
+            <span className="text-3xl font-extrabold font-mono text-white tracking-tight">
+              {formatMetric(latestTelemetry?.state_of_charge_pct, '%')}
+            </span>
+            <div className="flex items-center gap-1 text-[11px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded">
+              <span>+1.2%/h</span>
             </div>
           </div>
-        </div>
-      ) : (
-        <>
-          {activeTab === 'Télémétrie' && (
+          <div className="h-1.5 w-full bg-zinc-800 rounded-full overflow-hidden my-2">
             <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mb-6"
-            >
-              <Card
-                title="LOGS TÉLÉMÉTRIE REÇUS"
-                titleRight={telemetryLoading ? 'Actualisation...' : `${telemetryRecords.length} mesures`}
-              >
-                <div className="space-y-3 max-h-[620px] overflow-y-auto pr-1">
-                  {[...telemetryRecords].reverse().map((record, index) => (
-                    <details key={`${record.event_time || 'log'}-${index}`} className="rounded-xl border border-neutral-800 bg-neutral-950/60">
-                      <summary className="cursor-pointer list-none px-4 py-3 flex flex-wrap items-center justify-between gap-3 text-xs">
-                        <span className="font-mono text-orange-400">
-                          {record.event_time ? new Date(Number(record.event_time) * 1000 || record.event_time).toLocaleString('fr-FR') : 'Horodatage indisponible'}
-                        </span>
-                        <span className="text-neutral-400">
-                          Batterie {record.battery_voltage_v ?? '—'} V · Solaire {record.solar_power_w ?? '—'} W · Charge {record.load_power_w ?? '—'} W
-                        </span>
-                      </summary>
-                      <pre className="border-t border-neutral-800 px-4 py-3 overflow-x-auto text-[10px] leading-relaxed text-neutral-300">
-                        {JSON.stringify(record, null, 2)}
-                      </pre>
-                    </details>
-                  ))}
-                </div>
-              </Card>
-            </motion.div>
-          )}
-
-          {/* MAIN GRID */}
-          <motion.div
-            variants={staggerContainer}
-            initial="hidden"
-            animate="visible"
-            className={`${activeTab === 'Télémétrie' ? 'hidden' : 'grid grid-cols-1 lg:grid-cols-12 gap-5'}`}
-          >
-
-        {/* LEFT COLUMN: 5/12 */}
-        <div className="lg:col-span-5 flex flex-col gap-5">
-          {/* Digital Twin View */}
-          <motion.div variants={fadeUp} className="h-[320px]">
-            <Card title="VUE JUMEAU NUMÉRIQUE" titleRight="Mode de vue : 3D ▾" className="h-full p-0">
-              <div className="flex-1 relative bg-neutral-950/40 flex items-center justify-center overflow-hidden">
-                <div className="absolute left-2 top-2 bg-neutral-900/80 backdrop-blur rounded-lg border border-neutral-800 flex flex-col gap-1 p-1 z-10 shadow-sm">
-                  <button className="p-1.5 text-orange-400 bg-orange-500/10 rounded border border-orange-500/20 shadow-sm"><Layers size={14} /></button>
-                  <button className="p-1.5 text-neutral-400 hover:text-neutral-200"><Expand size={14} /></button>
-                  <button className="p-1.5 text-neutral-400 hover:text-neutral-200"><RotateCcw size={14} /></button>
-                  <button className="p-1.5 text-neutral-400 hover:text-neutral-200"><Monitor size={14} /></button>
-                  <div className="text-[9px] font-bold text-neutral-500 text-center mt-1">3D</div>
-                </div>
-
-                <div className="relative w-full h-full flex items-center justify-center group cursor-grab">
-                  <div className="absolute bottom-10 w-48 h-12 bg-black/50 blur-xl rounded-[100%]"></div>
-                  <div className="relative w-40 h-40 transform transition-transform duration-1000 group-hover:scale-105">
-                    <div className="absolute inset-0 bg-neutral-800/85 border border-neutral-700 rounded-lg transform skew-x-12 skew-y-12 shadow-2xl flex items-center justify-center">
-                      <Box size={48} className="text-neutral-500 opacity-30" />
-                    </div>
-                    <div className="absolute -top-10 -left-6 w-48 h-20 bg-neutral-900/90 border border-orange-500/30 rounded-lg transform skew-x-[-45deg] rotate-[-10deg] flex items-center justify-center overflow-hidden shadow-xl">
-                      <div className="w-full h-full opacity-40" style={{ backgroundImage: 'linear-gradient(to right, #f97316 1px, transparent 1px), linear-gradient(to bottom, #f97316 1px, transparent 1px)', backgroundSize: '10px 10px' }}></div>
-                    </div>
-                    <div className="absolute bottom-4 right-4 w-4 h-4 rounded-full bg-orange-500 shadow-[0_0_15px_rgba(249,115,22,0.9)] animate-pulse"></div>
-                  </div>
-                </div>
-
-                <div className="absolute bottom-0 left-0 right-0 bg-neutral-900/80 backdrop-blur-md border-t border-neutral-800/80 p-3 grid grid-cols-4 gap-2 text-[10px] font-medium shadow-md">
-                  <div><span className="text-neutral-500 block text-[9px] uppercase tracking-wider">Latitude</span><span className="text-neutral-200 font-mono">7.539912° N</span></div>
-                  <div><span className="text-neutral-500 block text-[9px] uppercase tracking-wider">Longitude</span><span className="text-neutral-200 font-mono">-5.533456° W</span></div>
-                  <div><span className="text-neutral-500 block text-[9px] uppercase tracking-wider">Altitude</span><span className="text-neutral-200">350 m</span></div>
-                  <div><span className="text-neutral-500 block text-[9px] uppercase tracking-wider">Mise à jour</span><span className="text-neutral-200">21 Mai, 09:32</span></div>
-                </div>
-              </div>
-            </Card>
-          </motion.div>
-
-          {/* Latest Telemetry Chart */}
-          <motion.div variants={fadeUp} className="flex-1 min-h-[260px]">
-            <Card title="DERNIÈRE TÉLÉMÉTRIE" titleRight="Dernières 24 heures ▾" className="h-full">
-              <div className="flex flex-wrap justify-center gap-4 mb-4 text-[10px] font-medium">
-                <div className="flex items-center gap-1.5"><span className="w-2 h-0.5 bg-blue-500"></span><span className="text-neutral-400">Tension (V)</span></div>
-                <div className="flex items-center gap-1.5"><span className="w-2 h-0.5 bg-green-500"></span><span className="text-neutral-400">Courant (A)</span></div>
-                <div className="flex items-center gap-1.5"><span className="w-2 h-0.5 bg-orange-500"></span><span className="text-neutral-400">Temp (°C)</span></div>
-                <div className="flex items-center gap-1.5"><span className="w-2 h-0.5 bg-purple-500"></span><span className="text-neutral-400">SoC (%)</span></div>
-              </div>
-              <div className="flex-1 w-full relative min-h-[180px]">
-                {!telemetryLoading && !hasTelemetry && (
-                  <div className="absolute inset-0 z-10 flex items-center justify-center text-xs text-neutral-500">
-                    Boîtier non configuré : aucune télémétrie disponible
-                  </div>
-                )}
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={chartTelemetry} margin={{ top: 5, right: 0, left: -25, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#262626" opacity={0.4} vertical={false} />
-                    <XAxis dataKey="time" axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: '#737373' }} dy={10} interval={4} />
-                    <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: '#737373' }} domain={[0, 100]} />
-                    <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: '#737373' }} domain={[0, 60]} />
-                    <Tooltip contentStyle={{ backgroundColor: '#0a0a0a', borderColor: '#404040', borderRadius: '8px', fontSize: '11px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.5)' }} />
-                    <Line yAxisId="left" type="monotone" dataKey="soc" stroke="#a855f7" strokeWidth={1.5} dot={false} />
-                    <Line yAxisId="left" type="monotone" dataKey="voltage" stroke="#3b82f6" strokeWidth={1.5} dot={false} />
-                    <Line yAxisId="left" type="monotone" dataKey="current" stroke="#22c55e" strokeWidth={1.5} dot={false} />
-                    <Line yAxisId="right" type="monotone" dataKey="temp" stroke="#f97316" strokeWidth={1.5} dot={false} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="mt-2 text-right">
-                <button onClick={() => setActiveTab('Historique')} className="text-[10px] text-orange-400 hover:text-orange-300 font-semibold bg-transparent border-none cursor-pointer">Voir l'historique complet -&gt;</button>
-              </div>
-            </Card>
-          </motion.div>
-        </div>
-
-        {/* CENTER COLUMN: 4/12 */}
-        <div className="lg:col-span-4 flex flex-col gap-5">
-          {/* System Overview */}
-          <motion.div variants={fadeUp}>
-            <Card title="APERÇU DU SYSTÈME" titleRight={`Dernière maj : ${lastUpdate}`} className="pb-2">
-              {!telemetryLoading && !hasTelemetry && <p className="mb-5 text-xs text-neutral-500">Aucune donnée de télémétrie reçue pour ce kit.</p>}
-              <div className="grid grid-cols-3 gap-4 gap-y-6">
-                <div>
-                  <span className="text-[10px] text-neutral-500 font-medium block mb-1">État de charge</span>
-                  <span className="text-sm font-bold text-white">{formatMetric(latestTelemetry?.state_of_charge_pct, '%')}</span>
-                  <SimpleProgressBar value={latestTelemetry?.state_of_charge_pct ?? 0} color="bg-orange-500 shadow-sm shadow-orange-500" />
-                </div>
-                <div>
-                  <span className="text-[10px] text-neutral-500 font-medium block mb-1">État de santé</span>
-                  <span className="text-sm font-bold text-white">{formatMetric(latestTelemetry?.state_of_health_pct, '%')}</span>
-                  <SimpleProgressBar value={latestTelemetry?.state_of_health_pct ?? 0} color="bg-orange-500 shadow-sm shadow-orange-500" />
-                </div>
-                <div>
-                  <span className="text-[10px] text-neutral-500 font-medium block mb-1">Temp. Batterie</span>
-                  <span className="text-sm font-bold text-white">{formatMetric(latestTelemetry?.device_temperature_c, '°C')}</span>
-                  <SimpleProgressBar value={latestTelemetry?.device_temperature_c ?? 0} color="bg-orange-500 shadow-sm shadow-orange-500" />
-                </div>
-
-                <div>
-                  <span className="text-[10px] text-neutral-500 font-medium block mb-1">Énergie Solaire</span>
-                  <span className="text-sm font-bold text-white">{formatMetric(latestTelemetry?.solar_power_w, ' W')}</span>
-                  <Sparkline data={generateSparkline(500, 50)} color="#f97316" />
-                </div>
-                <div>
-                  <span className="text-[10px] text-neutral-500 font-medium block mb-1">Énergie Consommée</span>
-                  <span className="text-sm font-bold text-white">{formatMetric(latestTelemetry?.load_power_w, ' W')}</span>
-                  <Sparkline data={generateSparkline(180, 20)} color="#f97316" />
-                </div>
-                <div>
-                  <span className="text-[10px] text-neutral-500 font-medium block mb-1">Énergie du Jour</span>
-                  <span className="text-sm font-bold text-white">
-                    {latestTelemetry?.energy_generated_wh != null 
-                      ? (latestTelemetry.energy_generated_wh / 1000).toFixed(2) + ' kWh' 
-                      : '—'}
-                  </span>
-                  <Sparkline data={generateSparkline(2, 0.5)} color="#f97316" />
-                </div>
-
-                <div>
-                  <span className="text-[10px] text-neutral-500 font-medium block mb-1">Tension</span>
-                  <span className="text-sm font-bold text-white">{formatMetric(latestTelemetry?.battery_voltage_v, ' V')}</span>
-                  <Sparkline data={generateSparkline(12.5, 0.2)} color="#f97316" />
-                </div>
-                <div>
-                  <span className="text-[10px] text-neutral-500 font-medium block mb-1">Courant</span>
-                  <span className="text-sm font-bold text-white">{formatMetric(latestTelemetry?.battery_current_a, ' A')}</span>
-                  <Sparkline data={generateSparkline(18, 1)} color="#f97316" />
-                </div>
-                <div>
-                  <span className="text-[10px] text-neutral-500 font-medium block mb-1">Connectivité</span>
-                  <div className="flex items-end gap-2 mt-2">
-                    <span className="text-sm font-bold text-white">{hasTelemetry ? 'Connecté' : '—'}</span>
-                    <Signal size={16} className="text-orange-400 mb-0.5" />
-                  </div>
-                </div>
-              </div>
-            </Card>
-          </motion.div>
-
-          {/* Components Status + Kit Health Score */}
-          <div className="grid grid-cols-2 gap-5 flex-1">
-            <motion.div variants={fadeUp} className="h-full">
-              <Card title="COMPOSANTS" className="h-full">
-                <div className="flex justify-between text-[9px] font-semibold uppercase tracking-wider text-neutral-500 mb-2 px-1">
-                  <span>Nom</span>
-                  <div className="flex gap-3">
-                    <span>Statut</span><span>Santé</span>
-                  </div>
-                </div>
-                <div className="space-y-3 mt-1">
-                  {componentsData.map((comp, idx) => (
-                    <div key={idx} className="flex items-center justify-between group">
-                      <div className="flex items-center gap-1.5">
-                        {idx === 0 && <Sun size={12} className="text-orange-400" />}
-                        {idx === 1 && <Battery size={12} className="text-orange-400" />}
-                        {idx === 2 && <Activity size={12} className="text-orange-400" />}
-                        {idx === 3 && <Zap size={12} className="text-orange-400" />}
-                        {idx === 4 && <Box size={12} className="text-orange-400" />}
-                        {idx === 5 && <Cpu size={12} className="text-orange-400" />}
-                        <span className="text-[10px] font-medium text-neutral-300 group-hover:text-white transition-colors truncate max-w-[65px]">{comp.name}</span>
-                      </div>
-                      <div className="flex items-center gap-2 justify-end">
-                        <span className="text-[9px] text-orange-400 font-semibold">{comp.status}</span>
-                        <span className="text-[9px] text-neutral-400 font-medium w-7 text-right">{comp.health}%</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </Card>
-            </motion.div>
-
-            <motion.div variants={fadeUp} className="h-full">
-              <Card title="SCORE DE SANTÉ" className="h-full items-center">
-                <div className="relative w-28 h-28 mt-2 flex items-center justify-center">
-                  <svg className="w-full h-full transform -rotate-90">
-                    <circle cx="56" cy="56" r="48" stroke="#262626" strokeWidth="8" fill="none" />
-                    <circle cx="56" cy="56" r="48" stroke="#f97316" strokeWidth="8" fill="none" strokeDasharray="301.59" strokeDashoffset={301.59 - (301.59 * 0.89)} strokeLinecap="round" className="transition-all duration-1000 ease-out" />
-                  </svg>
-                  <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-2xl font-bold text-white leading-none">89<span className="text-[10px] text-neutral-500 font-normal">/100</span></span>
-                    <span className="text-[10px] font-semibold text-orange-400 mt-1 uppercase tracking-wider">Bon</span>
-                  </div>
-                </div>
-
-                <div className="w-full h-16 mt-auto">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={healthHistoryData} margin={{ top: 5, right: 0, left: -25, bottom: -10 }}>
-                      <CartesianGrid strokeDasharray="2 2" stroke="#262626" opacity={0.4} vertical={false} />
-                      <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 8, fill: '#737373' }} />
-                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 8, fill: '#737373' }} domain={[0, 100]} ticks={[0, 50, 100]} />
-                      <Line type="monotone" dataKey="val" stroke="#f97316" strokeWidth={1.5} dot={false} />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-                <button onClick={() => setActiveTab('Santé')} className="text-[10px] text-orange-400 hover:text-orange-300 font-semibold mt-2 bg-transparent border-none cursor-pointer">Voir les détails de santé -&gt;</button>
-              </Card>
-            </motion.div>
+              initial={{ width: 0 }}
+              animate={{ width: `${latestTelemetry?.state_of_charge_pct ?? 68}%` }}
+              transition={{ duration: 0.8, ease: "easeOut" }}
+              className="h-full bg-emerald-500"
+            />
           </div>
+          <div className="flex justify-between text-[10px] font-mono text-zinc-500 mt-1">
+            <span>Capacité: 9.6 kWh</span>
+            <span>Reste: ~14h20</span>
+          </div>
+        </Card>
+
+        {/* METRIC 2: VOLTAGE */}
+        <Card title="Tension du Bus">
+          <div className="flex justify-between items-baseline my-1">
+            <span className="text-3xl font-extrabold font-mono text-white tracking-tight">
+              {formatMetric(latestTelemetry?.battery_voltage_v, ' V')}
+            </span>
+            <span className="text-[10px] font-mono text-zinc-500">Cible: 12.8V</span>
+          </div>
+          <Sparkline data={generateSparkline(12.6, 0.3)} color="#f97316" />
+        </Card>
+
+        {/* METRIC 3: CURRENT */}
+        <Card title="Intensité Solaires">
+          <div className="flex justify-between items-baseline my-1">
+            <span className="text-3xl font-extrabold font-mono text-white tracking-tight">
+              {formatMetric(latestTelemetry?.battery_current_a, ' A')}
+            </span>
+            <span className="text-[10px] font-mono text-orange-400">MPPT Max</span>
+          </div>
+          <Sparkline data={generateSparkline(15.2, 2.5)} color="#fbbf24" />
+        </Card>
+
+        {/* METRIC 4: TEMPERATURE */}
+        <Card title="Température Boîtier">
+          <div className="flex justify-between items-baseline my-1">
+            <span className="text-3xl font-extrabold font-mono text-white tracking-tight">
+              {formatMetric(latestTelemetry?.device_temperature_c, '°C')}
+            </span>
+            <span className="text-[10px] font-mono text-emerald-400">Seuil Sécurité OK</span>
+          </div>
+          <Sparkline data={generateSparkline(36.5, 1.8)} color="#10b981" />
+        </Card>
+
+        {/* GRAPH & CHART SECTION */}
+        <div className="md:col-span-2 lg:col-span-3">
+          <Card title="Analyse Télémétrique Continue" subtitle="Graphe combiné : tension d'entrée (V) vs courant de décharge (A)" titleRight={lastUpdate}>
+            <div className="h-72 w-full mt-4">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={chartTelemetry.length > 0 ? chartTelemetry : telemetryFallback} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="2 2" stroke="#27272a" vertical={false} />
+                  <XAxis dataKey="time" stroke="#71717a" fontSize={10} tickLine={false} axisLine={false} fontStyle="monospaced" />
+                  <YAxis stroke="#71717a" fontSize={10} tickLine={false} axisLine={false} fontStyle="monospaced" />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: '#09090b', borderColor: '#27272a', borderRadius: '6px', fontSize: '11px', fontFamily: 'monospace' }}
+                    itemStyle={{ padding: '0px' }}
+                  />
+                  <Line type="monotone" dataKey="voltage" name="Tension (V)" stroke="#f97316" strokeWidth={1.5} dot={false} />
+                  <Line type="monotone" dataKey="current" name="Courant (A)" stroke="#eab308" strokeWidth={1.5} dot={false} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </Card>
         </div>
 
-        {/* RIGHT COLUMN: 3/12 */}
-        <div className="lg:col-span-3 flex flex-col gap-5">
-          {/* Location */}
-          <motion.div variants={fadeUp}>
-            <Card title="EMPLACEMENT" className="p-0">
-              <div className="h-32 bg-neutral-950 relative overflow-hidden flex items-center justify-center border-b border-neutral-800/80">
-                <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at center, #f97316 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
-                <div className="relative z-10 flex flex-col items-center animate-bounce">
-                  <div className="p-1.5 bg-orange-600 rounded-full text-white shadow-lg shadow-orange-600/50"><MapPin size={14} /></div>
-                  <div className="w-1 h-3 bg-orange-500/50 -mt-1"></div>
-                  <div className="w-4 h-1 bg-black/50 blur-sm rounded-full"></div>
-                </div>
-              </div>
-              <div className="p-4">
-                <h4 className="text-xs font-bold text-white">Kinshasa, RDC</h4>
-                <div className="flex justify-between items-end mt-1">
-                  <p className="text-[10px] text-neutral-400 font-medium">Gombe Station</p>
-                  <div className="text-right">
-                    <span className="text-[9px] text-neutral-500 block uppercase font-medium">Précision</span>
-                    <span className="text-[10px] text-neutral-300 font-semibold">5 m</span>
+        {/* EVENT LOG / AUDIT TRAIL */}
+        <div className="md:col-span-2 lg:col-span-1">
+          <Card title="Flux d'événements" subtitle="4 derniers signaux système">
+            <div className="space-y-3 mt-2 overflow-y-auto max-h-72 pr-1 hide-scrollbar">
+              {eventsData.map((event) => (
+                <div key={event.id} className="p-2.5 rounded-lg bg-zinc-950/60 border border-zinc-800/60 flex gap-2.5 items-start">
+                  <div className={`p-1.5 rounded mt-0.5 shrink-0 ${event.type === 'critical' ? 'bg-red-500/10 text-red-400 border border-red-500/20' :
+                      event.type === 'warning' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
+                        event.type === 'success' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
+                          'bg-blue-500/10 text-blue-400 border border-blue-500/20'
+                    }`}>
+                    {event.icon}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between items-baseline mb-0.5">
+                      <h4 className="font-medium text-zinc-200 text-xs truncate">{event.title}</h4>
+                      <span className="text-[9px] text-zinc-500 font-mono">{event.time}</span>
+                    </div>
+                    <p className="text-[10px] text-zinc-400 leading-tight">{event.desc}</p>
                   </div>
                 </div>
-              </div>
-            </Card>
-          </motion.div>
-
-          {/* Recent Events */}
-          <motion.div variants={fadeUp} className="flex-1">
-            <Card title="ÉVÉNEMENTS RÉCENTS" action={{ label: 'Voir tout', onClick: () => setActiveTab('Événements') }} className="h-full">
-              <div className="relative pl-3 mt-1 flex-1">
-                <div className="absolute left-[17px] top-2 bottom-2 w-px bg-neutral-800/80"></div>
-
-                <div className="space-y-4">
-                  {eventsData.map((ev) => (
-                    <div key={ev.id} className="flex gap-3 relative z-10 group">
-                      <div className="w-10 pt-0.5 text-right flex-shrink-0">
-                        <span className="text-[9px] text-neutral-500 leading-tight whitespace-pre-line font-mono">{ev.time}</span>
-                      </div>
-                      <div className="mt-0.5 p-1 rounded-full border border-neutral-800 bg-orange-500/10 text-orange-400 z-10 flex-shrink-0 h-fit shadow-sm">
-                        {ev.icon}
-                      </div>
-                      <div className="pt-0.5 min-w-0">
-                        <h4 className="text-[11px] font-semibold text-neutral-200 truncate">{ev.title}</h4>
-                        <p className="text-[10px] text-neutral-500 truncate font-medium">{ev.desc}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </Card>
-          </motion.div>
-
-          {/* Quick Actions */}
-          <motion.div variants={fadeUp}>
-
-          </motion.div>
+              ))}
+            </div>
+          </Card>
         </div>
 
-      </motion.div>
-        </>
-      )}
+        {/* SUB-SYSTEMS HEALTH */}
+        <div className="md:col-span-2 lg:col-span-2">
+          <Card title="État des composants" subtitle="Matrice de contrôle d'intégrité des blocs">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mt-1">
+              {componentsData.map((comp) => (
+                <div key={comp.name} className="p-3 bg-zinc-950/40 rounded-lg border border-zinc-800/60 flex items-center justify-between">
+                  <div>
+                    <h5 className="text-xs font-medium text-zinc-200">{comp.name}</h5>
+                    <p className="text-[10px] font-mono text-zinc-500 mt-0.5">{comp.metric}</p>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded">
+                      {comp.health}%
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
 
-      <style dangerouslySetInnerHTML={{
-        __html: `
-        .hide-scrollbar::-webkit-scrollbar { display: none; }
-        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-      `}} />
+        {/* GEOLOCATION WITH LEAFLET (DARK CUSTOM) */}
+        <div className="md:col-span-2 lg:col-span-2">
+          <Card title="Coordonnées & Géofencing" subtitle="Positionnement GNSS direct" titleRight="Kinshasa, DRC">
+            <div className="h-44 w-full rounded-lg overflow-hidden border border-zinc-800/80 relative">
+              <MapContainer
+                center={[-4.325, 15.3222]}
+                zoom={12}
+                style={{ height: '100%', width: '100%' }}
+                zoomControl={false}
+              >
+                {/* Custom CSS Tile Filter pour rendu Dark Mode ultra clean */}
+                <TileLayer
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  className="map-tiles-dark"
+                />
+                <Marker position={[-4.325, 15.3222]} icon={customIcon} />
+              </MapContainer>
+            </div>
+          </Card>
+        </div>
+
+      </main>
+
+      {/* Style d'injection pour le filtre Dark Mode de la carte */}
+      <style>{`
+        .map-tiles-dark {
+          filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+        }
+        .leaflet-container {
+          background: #09090b !important;
+        }
+      `}</style>
     </div>
   );
 }
