@@ -29,6 +29,7 @@ class IAService {
       console.log('\n=== [IA API RESPONSE] ===\n', JSON.stringify(resp.data, null, 2), '\n=========================\n');
       return resp.data;
     } catch (err) {
+      console.log(err)
       // Normalize error
       const status = err.response?.status || 500;
       const data = err.response?.data || { message: err.message };

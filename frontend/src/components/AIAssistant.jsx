@@ -37,11 +37,10 @@ const AIMessageBubble = ({ msg, handleCopy, copiedId, onSuggestionClick }) => {
   return (
     <div className="flex flex-col gap-2 w-full">
       <div
-        className={`relative px-4 py-3 rounded-2xl text-[13px] leading-relaxed transition-all w-fit shadow-sm ${
-          msg.isError
-            ? "bg-red-950/40 border border-red-800/50 text-red-200 rounded-tl-xs"
-            : "bg-[#1c1c1f] border border-[#27272a] text-zinc-200 rounded-tl-xs"
-        }`}
+        className={`relative px-4 py-3 rounded-2xl text-[13px] leading-relaxed transition-all w-fit shadow-sm ${msg.isError
+          ? "bg-red-950/40 border border-red-800/50 text-red-200 rounded-tl-xs"
+          : "bg-[#1c1c1f] border border-[#27272a] text-zinc-200 rounded-tl-xs"
+          }`}
       >
         {msg.isError && (
           <div className="flex items-center gap-1.5 mb-1.5 text-red-400 font-medium text-xs">
@@ -160,12 +159,12 @@ export default function AIAssistant() {
   const extractAIPayload = (payload) => {
     const data = payload?.data ?? payload;
     if (!data) return { text: "Aucune réponse reçue.", nextQuestions: [] };
-    
+
     // Si c'est le format spécifique avec assistant_message
     if (data.assistant_message) {
-      return { 
-        text: data.assistant_message, 
-        nextQuestions: data.next_questions || [] 
+      return {
+        text: data.assistant_message,
+        nextQuestions: data.next_questions || []
       };
     }
 
@@ -206,7 +205,7 @@ export default function AIAssistant() {
     setIsTyping(true);
 
     try {
-      const resp = await api.post("/ai/conversation", {
+      const resp = await api.post("/ai/chat", {
         context: {},
         message: userMessage.text,
       });
@@ -341,11 +340,11 @@ export default function AIAssistant() {
                     className={`max-w-[84%] space-y-1 ${isAi ? "text-left" : "text-right"}`}
                   >
                     {isAi ? (
-                      <AIMessageBubble 
-                        msg={msg} 
-                        handleCopy={handleCopy} 
-                        copiedId={copiedId} 
-                        onSuggestionClick={(q) => sendMessage(q)} 
+                      <AIMessageBubble
+                        msg={msg}
+                        handleCopy={handleCopy}
+                        copiedId={copiedId}
+                        onSuggestionClick={(q) => sendMessage(q)}
                       />
                     ) : (
                       <div className="relative px-4 py-3 rounded-2xl text-[13px] leading-relaxed transition-all bg-zinc-100 text-zinc-900 font-medium rounded-tr-xs">
