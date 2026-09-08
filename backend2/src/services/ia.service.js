@@ -25,6 +25,8 @@ class IAService {
     const url = this.endpoint;
     try {
       const resp = await this.client.post(url, payload);
+      // Log au terminal du backend pour visionnage
+      console.log('\n=== [IA API RESPONSE] ===\n', JSON.stringify(resp.data, null, 2), '\n=========================\n');
       return resp.data;
     } catch (err) {
       // Normalize error

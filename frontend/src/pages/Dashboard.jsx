@@ -42,50 +42,14 @@ import {
   useSendCommandMutation,
   useTelemetryQuery
 } from '@/hooks/tanstack/useKitQueries';
+import { useFleetLiveStatus } from '@/hooks/tanstack/useFleetLiveStatus';
 
 const geoUrl = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
 
 const generateSparklineData = (base) =>
   Array.from({ length: 15 }, () => ({ value: base + Math.floor(Math.random() * 20 - 10) }));
 
-const kpiData = [
-  {
-    title: "Total kits",
-    value: "158 742",
-    change: "+2.4% vs hier",
-    isPositive: true,
-    strokeColor: "#FF7900",
-    icon: <Box size={18} className="text-[#FF7900]" />,
-    data: generateSparklineData(150)
-  },
-  {
-    title: "Opérationnels",
-    value: "142 389",
-    change: "89.7% du parc",
-    isPositive: true,
-    strokeColor: "#FF7900",
-    icon: <CheckCircle2 size={18} className="text-emerald-400" />,
-    data: generateSparklineData(140)
-  },
-  {
-    title: "À Risque",
-    value: "7 842",
-    change: "4.9% du parc",
-    isPositive: false,
-    strokeColor: "#FF7900",
-    icon: <AlertTriangle size={18} className="text-amber-400" />,
-    data: generateSparklineData(20)
-  },
-  {
-    title: "Hors Ligne",
-    value: "8 511",
-    change: "5.4% du parc",
-    isPositive: false,
-    strokeColor: "#FF7900",
-    icon: <XCircle size={18} className="text-rose-400" />,
-    data: generateSparklineData(15)
-  },
-];
+// kpiData removed to be generated dynamically inside the component
 
 const alertsData = [
   { severity: "CRITIQUE", label: "Détection de fraude", desc: "HUB-82331 • Goma", time: "À l'instant", type: "critical" },
@@ -141,6 +105,84 @@ export default function Dashboard() {
   const { data: alerts } = useAlertsQuery();
   const { data: devices } = useDevicesQuery();
   const { data: telemetry } = useTelemetryQuery();
+
+  // ── Compteur temps réel via Socket.io ────────────────────────────────────────
+  // activeKitIds = Set des kitIds qui ont envoyé une télémétrie ESP32 dans les 5 dernières minutes
+  const { activeKitIds, activeCount, isSocketConnected } = useFleetLiveStatus();
+
+  /**
+   * SENIOR LOGIC: Compute KPI stats from real DB data.
+   * - totalKits     : COUNT documents in the Kits collection
+   * - onlineKits    : kits currently emitting ESP32 telemetry (Socket.io real-time, TTL 5min)
+   * - offlineKits   : kits in DB with NO recent telemetry signal
+   * - atRiskKits    : kits with at least one active alert
+   */
+  const kpiStats = useMemo(() => {
+    const allKits = Array.isArray(kits) ? kits : [];
+    const totalKits = allKits.length;
+
+    // En ligne = kits dont le kitId est dans le Set temps réel (Socket.io)
+    const onlineKits = activeCount;
+
+    // Hors ligne = kits en DB qui ne sont PAS dans le Set des kits actifs live
+    const offlineKits = allKits.filter((k) => !activeKitIds.has(k.kitId)).length;
+
+    // At-risk = kits avec une alerte active dans le système
+    const alertKitIds = new Set(
+      Array.isArray(alerts)
+        ? alerts.map((a) => a.kitId).filter(Boolean)
+        : []
+    );
+    const atRiskKits = allKits.filter((k) => alertKitIds.has(k.kitId)).length;
+
+    const onlinePct = totalKits > 0 ? ((onlineKits / totalKits) * 100).toFixed(1) : '0.0';
+    const offlinePct = totalKits > 0 ? ((offlineKits / totalKits) * 100).toFixed(1) : '0.0';
+    const atRiskPct = totalKits > 0 ? ((atRiskKits / totalKits) * 100).toFixed(1) : '0.0';
+
+    return { totalKits, onlineKits, offlineKits, atRiskKits, onlinePct, offlinePct, atRiskPct };
+  }, [kits, activeKitIds, activeCount, alerts]);
+
+  // Construct dynamic KPI card data from live stats
+  const kpiData = useMemo(() => [
+    {
+      title: 'Total Kits',
+      value: kpiStats.totalKits.toLocaleString('fr-FR'),
+      change: 'Total DB enregistrés',
+      isPositive: true,
+      strokeColor: '#FF7900',
+      icon: <Box size={18} className="text-[#FF7900]" />,
+      data: generateSparklineData(kpiStats.totalKits),
+    },
+    {
+      title: 'En Ligne (Live)',
+      value: kpiStats.onlineKits.toLocaleString('fr-FR'),
+      change: `${kpiStats.onlinePct}% du parc · ESP32 actifs`,
+      isPositive: true,
+      strokeColor: '#10b981',
+      icon: <CheckCircle2 size={18} className="text-emerald-400" />,
+      data: generateSparklineData(kpiStats.onlineKits),
+      isLive: true,
+      socketConnected: isSocketConnected,
+    },
+    {
+      title: 'À Risque',
+      value: kpiStats.atRiskKits.toLocaleString('fr-FR'),
+      change: `${kpiStats.atRiskPct}% du parc · Alertes actives`,
+      isPositive: false,
+      strokeColor: '#f59e0b',
+      icon: <AlertTriangle size={18} className="text-amber-400" />,
+      data: generateSparklineData(kpiStats.atRiskKits),
+    },
+    {
+      title: 'Hors Ligne',
+      value: kpiStats.offlineKits.toLocaleString('fr-FR'),
+      change: `${kpiStats.offlinePct}% du parc · Sans télémétrie`,
+      isPositive: false,
+      strokeColor: '#ef4444',
+      icon: <XCircle size={18} className="text-rose-400" />,
+      data: generateSparklineData(kpiStats.offlineKits),
+    },
+  ], [kpiStats]);
 
   const dynamicMarkers = useMemo(() => {
     if (!kits || !Array.isArray(kits)) return [];
@@ -224,14 +266,41 @@ export default function Dashboard() {
               <div className="relative z-10">
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-[11px] font-semibold text-[var(--muted-foreground)] uppercase tracking-widest">{kpi.title}</span>
-                  <div className="p-2 rounded-xl bg-[var(--secondary)] border border-[var(--border)] text-[var(--foreground)] group-hover:scale-110 group-hover:border-orange-500/40 transition-all duration-300 shadow-sm">
-                    {kpi.icon}
+                  <div className="flex items-center gap-1.5">
+                    {/* Badge Socket.io temps réel uniquement sur la card 'En Ligne' */}
+                    {kpi.isLive && (
+                      <span
+                        title={kpi.socketConnected ? 'Socket.io connecté — données ESP32 en direct' : 'Socket.io déconnecté'}
+                        className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border transition-colors ${
+                          kpi.socketConnected
+                            ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                            : 'bg-zinc-500/10 border-zinc-600/30 text-zinc-500'
+                        }`}
+                      >
+                        <span className={`w-1.5 h-1.5 rounded-full ${kpi.socketConnected ? 'bg-emerald-400 animate-ping' : 'bg-zinc-500'}`} />
+                        {kpi.socketConnected ? 'Live' : 'Off'}
+                      </span>
+                    )}
+                    <div className="p-2 rounded-xl bg-[var(--secondary)] border border-[var(--border)] text-[var(--foreground)] group-hover:scale-110 group-hover:border-orange-500/40 transition-all duration-300 shadow-sm">
+                      {kpi.icon}
+                    </div>
                   </div>
                 </div>
-                <div className="text-2xl font-bold text-[var(--foreground)] tracking-tight font-mono">{kpi.value}</div>
-                <div className={`text-[11px] mt-1.5 font-medium flex items-center gap-1 ${kpi.isPositive ? 'text-emerald-400' : 'text-amber-400'}`}>
-                  {kpi.change}
-                </div>
+
+                {/* Skeleton loader tant que les kits ne sont pas chargés */}
+                {kitsLoading ? (
+                  <div className="animate-pulse">
+                    <div className="h-7 w-24 bg-[var(--secondary)] rounded-lg mb-2" />
+                    <div className="h-3 w-32 bg-[var(--secondary)] rounded-md opacity-60" />
+                  </div>
+                ) : (
+                  <>
+                    <div className="text-2xl font-bold text-[var(--foreground)] tracking-tight font-mono">{kpi.value}</div>
+                    <div className={`text-[11px] mt-1.5 font-medium flex items-center gap-1 ${kpi.isPositive ? 'text-emerald-400' : 'text-amber-400'}`}>
+                      {kpi.change}
+                    </div>
+                  </>
+                )}
               </div>
 
               <div className="h-12 mt-4 w-full relative z-10 opacity-70 group-hover:opacity-100 transition-opacity duration-300">

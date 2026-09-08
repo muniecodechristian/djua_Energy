@@ -1,2 +1,28 @@
-import type { HttpContext } from '@adonisjs/core/http'; import axios from 'axios'
-export async function conversation({request,response}:HttpContext){const {message,context={}}=request.body();if(!message||typeof message!=='string')return response.badRequest({success:false,message:'Field "message" is required and must be a string.'});if(!process.env.IA_API_URL)return response.internalServerError({success:false,error:{message:'IA API URL not configured (IA_API_URL)'}});try{const r=await axios.post(process.env.IA_API_URL.replace(/\/$/,'')+'/solar-advisor/conversation',{message,context},{timeout:15000});return response.ok({success:true,data:r.data})}catch(e:any){return response.status(e.response?.status||500).send({success:false,error:e.response?.data||{message:e.message}})}}
+import type { HttpContext } from '@adonisjs/core/http';
+import axios from 'axios';
+
+export async function conversation({ request, response }: HttpContext) {
+  const { message, context = {} } = request.body();
+  if (!message || typeof message !== 'string') {
+    return response.badRequest({ success: false, message: 'Field "message" is required and must be a string.' });
+  }
+  
+  if (!process.env.IA_API_URL) {
+    return response.internalServerError({ success: false, error: { message: 'IA API URL not configured (IA_API_URL)' } });
+  }
+  
+  try {
+    const r = await axios.post(
+      process.env.IA_API_URL.replace(/\/$/, '') + '/solar-advisor/conversation',
+      { message, context },
+      { timeout: 15000 }
+    );
+    
+    // Log au terminal du backend pour visionnage
+    console.log('\n=== [IA API RESPONSE] ===\n', JSON.stringify(r.data, null, 2), '\n=========================\n');
+    
+    return response.ok({ success: true, data: r.data });
+  } catch (e: any) {
+    return response.status(e.response?.status || 500).send({ success: false, error: e.response?.data || { message: e.message } });
+  }
+}

@@ -338,21 +338,19 @@ export default function SmartKitDetails() {
                 <div className="flex items-center gap-2.5 flex-wrap">
                   <h1 className="text-lg font-bold font-mono text-white tracking-tight">{kitId || 'DK-SOLAR-092'}</h1>
                   {/* Badge statut — termes non-techniques */}
-                  <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[10px] font-semibold tracking-wide ${
-                    isLive
+                  <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[10px] font-semibold tracking-wide ${isLive
                       ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-400'
                       : 'bg-zinc-900 border-zinc-800 text-zinc-400'
-                  }`}>
+                    }`}>
                     <span className={`w-1.5 h-1.5 rounded-full ${isLive ? 'bg-emerald-400 animate-pulse' : 'bg-zinc-600'}`} />
                     {isLive ? 'Actif — données en direct' : 'Inactif — dernier relevé connu'}
                   </div>
                   {/* Badge source — termes non-techniques */}
                   {T && (
-                    <div className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[10px] font-medium ${
-                      dataSource === 'live'
+                    <div className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[10px] font-medium ${dataSource === 'live'
                         ? 'bg-orange-500/10 border-orange-500/25 text-orange-400'
                         : 'bg-zinc-900 border-zinc-800 text-zinc-400'
-                    }`}>
+                      }`}>
                       {dataSource === 'live'
                         ? <><Radio size={9} className="animate-pulse" /> Mis à jour automatiquement</>
                         : <><Database size={9} /> Données enregistrées</>}
@@ -392,9 +390,8 @@ export default function SmartKitDetails() {
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`relative px-4 py-2 text-[11px] font-semibold transition-all cursor-pointer bg-transparent border-none whitespace-nowrap rounded-lg ${
-                  activeTab === tab ? 'text-orange-400' : 'text-zinc-500 hover:text-zinc-300'
-                }`}
+                className={`relative px-4 py-2 text-[11px] font-semibold transition-all cursor-pointer bg-transparent border-none whitespace-nowrap rounded-lg ${activeTab === tab ? 'text-orange-400' : 'text-zinc-500 hover:text-zinc-300'
+                  }`}
               >
                 {activeTab === tab && (
                   <motion.div layoutId="tab-bg"
@@ -484,11 +481,10 @@ export default function SmartKitDetails() {
                           <Icon size={12} className={alert ? 'text-red-400' : 'text-zinc-500'} />
                           <span className="text-[11px] font-mono text-zinc-400">{label}</span>
                         </div>
-                        <span className={`text-[11px] font-mono px-2 py-0.5 rounded border ${
-                          alert || (value && value !== 'NONE' && value !== 'NON')
+                        <span className={`text-[11px] font-mono px-2 py-0.5 rounded border ${alert || (value && value !== 'NONE' && value !== 'NON')
                             ? 'bg-red-500/10 border-red-500/25 text-red-400'
                             : 'bg-emerald-500/10 border-emerald-500/25 text-emerald-400'
-                        }`}>{value || 'AUCUN'}</span>
+                          }`}>{value || 'AUCUN'}</span>
                       </div>
                     ))}
                   </div>
@@ -649,11 +645,10 @@ export default function SmartKitDetails() {
                       <span className="text-sm text-zinc-400 block">\u00b0C</span>
                     </div>
                   </div>
-                  <span className={`text-xs font-mono px-3 py-1 rounded-full border ${
-                    (T?.device_temperature_c ?? 0) > 60
+                  <span className={`text-xs font-mono px-3 py-1 rounded-full border ${(T?.device_temperature_c ?? 0) > 60
                       ? 'bg-red-500/15 border-red-500/25 text-red-400'
                       : 'bg-emerald-500/15 border-emerald-500/25 text-emerald-400'
-                  }`}>
+                    }`}>
                     {(T?.device_temperature_c ?? 0) > 60 ? '\u26a0 Seuil critique approch\u00e9' : '\u2713 Temp\u00e9rature nominale'}
                   </span>
                 </div>

@@ -11,9 +11,86 @@ import {
   Copy,
   Check,
   AlertCircle,
-  CornerDownLeft,
 } from "lucide-react";
 import api from "../api/axios";
+
+// Composant pour l'affichage des messages IA avec effet streaming et questions suggérées
+const AIMessageBubble = ({ msg, handleCopy, copiedId, onSuggestionClick }) => {
+  const [isTyping, setIsTyping] = useState(msg.isNew);
+  const [displayedText, setDisplayedText] = useState(msg.isNew ? "" : msg.text);
+
+  useEffect(() => {
+    if (!msg.isNew) return;
+    let index = 0;
+    const interval = setInterval(() => {
+      if (index < msg.text.length) {
+        setDisplayedText((prev) => prev + msg.text.charAt(index));
+        index++;
+      } else {
+        clearInterval(interval);
+        setIsTyping(false);
+      }
+    }, 10); // Vitesse de streaming (10ms par caractère = rapide et fluide)
+    return () => clearInterval(interval);
+  }, [msg.isNew, msg.text]);
+
+  return (
+    <div className="flex flex-col gap-2 w-full">
+      <div
+        className={`relative px-4 py-3 rounded-2xl text-[13px] leading-relaxed transition-all w-fit shadow-sm ${
+          msg.isError
+            ? "bg-red-950/40 border border-red-800/50 text-red-200 rounded-tl-xs"
+            : "bg-[#1c1c1f] border border-[#27272a] text-zinc-200 rounded-tl-xs"
+        }`}
+      >
+        {msg.isError && (
+          <div className="flex items-center gap-1.5 mb-1.5 text-red-400 font-medium text-xs">
+            <AlertCircle size={13} />
+            <span>Erreur système</span>
+          </div>
+        )}
+
+        <div className="whitespace-pre-wrap break-words">
+          {displayedText}
+          {isTyping && <span className="inline-block w-1.5 h-3.5 ml-1 bg-zinc-400 animate-pulse align-middle rounded-sm" />}
+        </div>
+
+        {/* Bouton copier sobre au survol */}
+        {!msg.isError && !isTyping && (
+          <button
+            onClick={() => handleCopy(msg.id, msg.text)}
+            className="absolute -bottom-2.5 right-3 opacity-0 group-hover:opacity-100 bg-[#27272a] border border-[#3f3f46] text-zinc-400 hover:text-zinc-100 p-1 rounded-md transition-all duration-150 shadow-md"
+            title="Copier le message"
+          >
+            {copiedId === msg.id ? (
+              <Check size={11} className="text-emerald-400" />
+            ) : (
+              <Copy size={11} />
+            )}
+          </button>
+        )}
+      </div>
+
+      {/* Affichage Senior des Next Questions */}
+      {!isTyping && msg.nextQuestions && msg.nextQuestions.length > 0 && (
+        <div className="flex flex-col gap-1.5 mt-0.5 max-w-[95%]">
+          {msg.nextQuestions.map((q, idx) => (
+            <button
+              key={idx}
+              onClick={() => onSuggestionClick(q)}
+              className="text-left text-[12px] font-medium text-amber-500/90 hover:text-amber-400 bg-amber-500/5 hover:bg-amber-500/10 border border-amber-500/20 hover:border-amber-500/40 rounded-xl px-3.5 py-2 transition-all duration-200 active:scale-[0.98] w-fit"
+            >
+              <div className="flex items-start gap-2">
+                <Zap size={13} className="mt-0.5 flex-shrink-0" />
+                <span className="leading-snug">{q}</span>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
 export default function AIAssistant() {
   const [isOpen, setIsOpen] = useState(false);
@@ -80,25 +157,33 @@ export default function AIAssistant() {
     }
   }, [input]);
 
-  const extractAIText = (payload) => {
+  const extractAIPayload = (payload) => {
     const data = payload?.data ?? payload;
-    if (!data) return "";
-    if (typeof data === "string") return data;
+    if (!data) return { text: "Aucune réponse reçue.", nextQuestions: [] };
+    
+    // Si c'est le format spécifique avec assistant_message
+    if (data.assistant_message) {
+      return { 
+        text: data.assistant_message, 
+        nextQuestions: data.next_questions || [] 
+      };
+    }
+
+    // Fallback parsing (string, object text/message, etc.)
+    if (typeof data === "string") return { text: data, nextQuestions: [] };
     if (typeof data === "object") {
-      if (typeof data.message === "string") return data.message;
-      if (typeof data.text === "string") return data.text;
-      if (typeof data.reply === "string") return data.reply;
-      if (Array.isArray(data))
-        return data.map((d) => extractAIText(d)).join("\n");
+      if (typeof data.message === "string") return { text: data.message, nextQuestions: [] };
+      if (typeof data.text === "string") return { text: data.text, nextQuestions: [] };
+      if (typeof data.reply === "string") return { text: data.reply, nextQuestions: [] };
+      if (Array.isArray(data)) return { text: data.map(d => extractAIPayload(d).text).join("\n"), nextQuestions: [] };
       if (data.choices && Array.isArray(data.choices) && data.choices[0]) {
         const c = data.choices[0];
-        if (typeof c.text === "string") return c.text;
-        if (c.message && typeof c.message.content === "string")
-          return c.message.content;
+        if (typeof c.text === "string") return { text: c.text, nextQuestions: [] };
+        if (c.message && typeof c.message.content === "string") return { text: c.message.content, nextQuestions: [] };
       }
-      return JSON.stringify(data, null, 2);
+      return { text: JSON.stringify(data, null, 2), nextQuestions: [] };
     }
-    return String(data);
+    return { text: String(data), nextQuestions: [] };
   };
 
   const sendMessage = async (messageText) => {
@@ -126,12 +211,14 @@ export default function AIAssistant() {
         message: userMessage.text,
       });
       const payload = resp.data?.data ?? resp.data;
-      const text = extractAIText(payload) || "Aucune réponse reçue de l'IA.";
+      const parsed = extractAIPayload(payload);
 
       const aiResponse = {
         id: Date.now() + 1,
         sender: "ai",
-        text,
+        text: parsed.text,
+        nextQuestions: parsed.nextQuestions,
+        isNew: true, // Pour déclencher l'effet typewriter
         time: new Date().toLocaleTimeString([], {
           hour: "2-digit",
           minute: "2-digit",
@@ -187,52 +274,48 @@ export default function AIAssistant() {
   };
 
   return (
-    <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 font-sans antialiased">
+    <div className="fixed bottom-5 right-5 sm:bottom-6 sm:right-6 z-50 font-sans antialiased">
       {/* FENÊTRE PRINCIPALE DU CHAT */}
       {isOpen && (
-        <div className="mb-4 w-[calc(100vw-2rem)] sm:w-[420px] h-[580px] max-h-[82vh] bg-[#0B0F19]/90 backdrop-blur-2xl border border-white/10 rounded-3xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.7)] flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-6 duration-300 ease-out">
-          {/* HEADER PREMIUM */}
-          <div className="px-5 py-4 bg-gradient-to-r from-slate-900/90 via-[#131B2E]/80 to-slate-900/90 border-b border-white/[0.08] flex items-center justify-between backdrop-blur-md">
-            <div className="flex items-center gap-3.5">
+        <div className="mb-4 w-[calc(100vw-2.5rem)] sm:w-[400px] h-[570px] max-h-[82vh] bg-[#141416] border border-[#27272a] rounded-[28px] shadow-2xl shadow-black/80 flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-200 ease-out">
+          {/* HEADER EDITORIAL & TACTILE */}
+          <div className="px-5 py-4 bg-[#18181b] border-b border-[#27272a] flex items-center justify-between">
+            <div className="flex items-center gap-3">
               <div className="relative">
-                <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 via-orange-500 to-amber-300 p-[1.5px] shadow-[0_0_15px_rgba(245,158,11,0.3)]">
-                  <div className="w-full h-full bg-[#0B0F19] rounded-[14px] flex items-center justify-center">
-                    <Bot size={20} className="text-amber-400" />
-                  </div>
+                <div className="w-9 h-9 rounded-full bg-[#27272a] border border-[#3f3f46] flex items-center justify-center text-zinc-100">
+                  <Bot size={18} className="text-zinc-200" />
                 </div>
-                <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full ring-2 ring-[#0B0F19]">
-                  <span className="absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-75"></span>
-                </span>
+                <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 rounded-full ring-2 ring-[#18181b]" />
               </div>
 
               <div>
                 <div className="flex items-center gap-2">
-                  <h3 className="text-sm font-semibold text-white tracking-wide">
+                  <h3 className="text-[13px] font-semibold text-zinc-100 tracking-tight">
                     Djua Copilot
                   </h3>
-                  <span className="bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-400 border border-amber-500/30 text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider">
-                    PRO AI
+                  <span className="bg-[#27272a] text-zinc-300 border border-[#3f3f46] text-[9px] font-medium px-2 py-0.5 rounded-full uppercase tracking-wider">
+                    Copilot
                   </span>
                 </div>
-                <p className="text-[11px] text-slate-400 font-medium">
-                  Assistant de parc intelligent
+                <p className="text-[11px] text-zinc-400 font-normal">
+                  Assistant de parc
                 </p>
               </div>
             </div>
 
             {/* CONTROLES HEADER */}
-            <div className="flex items-center gap-1 bg-white/[0.03] p-1 rounded-xl border border-white/[0.05]">
+            <div className="flex items-center gap-0.5 bg-[#27272a]/60 p-1 rounded-xl border border-[#3f3f46]/50">
               <button
                 onClick={handleReset}
                 title="Réinitialiser la conversation"
-                className="p-1.5 hover:bg-white/10 text-slate-400 hover:text-white rounded-lg transition-all duration-200"
+                className="p-1.5 hover:bg-[#3f3f46] text-zinc-400 hover:text-zinc-100 rounded-lg transition-colors duration-150"
               >
                 <RotateCcw size={14} />
               </button>
               <button
                 onClick={() => setIsOpen(false)}
                 title="Réduire"
-                className="p-1.5 hover:bg-white/10 text-slate-400 hover:text-white rounded-lg transition-all duration-200"
+                className="p-1.5 hover:bg-[#3f3f46] text-zinc-400 hover:text-zinc-100 rounded-lg transition-colors duration-150"
               >
                 <Minimize2 size={14} />
               </button>
@@ -240,85 +323,61 @@ export default function AIAssistant() {
           </div>
 
           {/* ZONE DE MESSAGES */}
-          <div className="flex-1 p-4 overflow-y-auto space-y-4 scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent bg-gradient-to-b from-transparent via-[#060911]/30 to-[#060911]/60">
+          <div className="flex-1 p-4 overflow-y-auto space-y-4 bg-[#141416]">
             {messages.map((msg) => {
               const isAi = msg.sender === "ai";
               return (
                 <div
                   key={msg.id}
-                  className={`flex gap-3 group ${isAi ? "items-start" : "items-end justify-end"}`}
+                  className={`flex gap-2.5 group ${isAi ? "items-start" : "items-end justify-end"}`}
                 >
                   {isAi && (
-                    <div className="w-7 h-7 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center flex-shrink-0 mt-0.5 shadow-sm">
-                      <Sparkles size={13} className="text-amber-400" />
+                    <div className="w-6 h-6 rounded-full bg-[#27272a] border border-[#3f3f46] flex items-center justify-center flex-shrink-0 mt-1">
+                      <Sparkles size={12} className="text-zinc-300" />
                     </div>
                   )}
 
                   <div
-                    className={`max-w-[82%] space-y-1 ${isAi ? "text-left" : "text-right"}`}
+                    className={`max-w-[84%] space-y-1 ${isAi ? "text-left" : "text-right"}`}
                   >
-                    <div
-                      className={`relative p-3.5 rounded-2xl text-xs font-normal leading-relaxed shadow-lg transition-all ${
-                        msg.isError
-                          ? "bg-red-500/10 border border-red-500/30 text-red-200 rounded-tl-sm"
-                          : isAi
-                            ? "bg-[#131C2E]/90 border border-white/[0.08] text-slate-200 rounded-tl-sm backdrop-blur-md"
-                            : "bg-gradient-to-r from-amber-500 to-orange-500 text-white font-medium rounded-br-sm shadow-amber-500/10"
-                      }`}
-                    >
-                      {msg.isError && (
-                        <div className="flex items-center gap-1.5 mb-1 text-red-400 font-semibold text-[11px]">
-                          <AlertCircle size={13} />
-                          <span>Erreur système</span>
+                    {isAi ? (
+                      <AIMessageBubble 
+                        msg={msg} 
+                        handleCopy={handleCopy} 
+                        copiedId={copiedId} 
+                        onSuggestionClick={(q) => sendMessage(q)} 
+                      />
+                    ) : (
+                      <div className="relative px-4 py-3 rounded-2xl text-[13px] leading-relaxed transition-all bg-zinc-100 text-zinc-900 font-medium rounded-tr-xs">
+                        <div className="whitespace-pre-wrap break-words">
+                          {msg.text}
                         </div>
-                      )}
-
-                      <div className="whitespace-pre-wrap break-words">
-                        {msg.text}
                       </div>
-
-                      {/* Bouton copier au survol pour les messages IA */}
-                      {isAi && !msg.isError && (
-                        <button
-                          onClick={() => handleCopy(msg.id, msg.text)}
-                          className="absolute -bottom-2.5 right-2 opacity-0 group-hover:opacity-100 bg-[#1B263B] border border-white/10 text-slate-400 hover:text-white p-1 rounded-md transition-all duration-200 shadow-md"
-                          title="Copier le message"
-                        >
-                          {copiedId === msg.id ? (
-                            <Check size={11} className="text-emerald-400" />
-                          ) : (
-                            <Copy size={11} />
-                          )}
-                        </button>
-                      )}
-                    </div>
-                    <span className="text-[9px] font-medium text-slate-500 px-1.5 block">
+                    )}
+                    <span className="text-[10px] font-medium text-zinc-500 px-1 block">
                       {msg.time}
                     </span>
                   </div>
 
                   {!isAi && (
-                    <div className="w-7 h-7 rounded-xl bg-slate-800 border border-slate-700/60 flex items-center justify-center flex-shrink-0 mb-4 shadow-sm">
-                      <User size={13} className="text-slate-300" />
+                    <div className="w-6 h-6 rounded-full bg-[#27272a] border border-[#3f3f46] flex items-center justify-center flex-shrink-0 mb-4 text-zinc-400">
+                      <User size={12} />
                     </div>
                   )}
                 </div>
               );
             })}
 
-            {/* INDICATEUR DE TYPING DYNAMIQUE */}
+            {/* INDICATEUR DE CHARGEMENT ÉLÉGANT */}
             {isTyping && (
-              <div className="flex items-center gap-3 animate-in fade-in duration-200">
-                <div className="w-7 h-7 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center flex-shrink-0">
-                  <Sparkles
-                    size={13}
-                    className="text-amber-400 animate-pulse"
-                  />
+              <div className="flex items-center gap-2.5 animate-in fade-in duration-150">
+                <div className="w-6 h-6 rounded-full bg-[#27272a] border border-[#3f3f46] flex items-center justify-center flex-shrink-0">
+                  <Sparkles size={12} className="text-zinc-400" />
                 </div>
-                <div className="bg-[#131C2E]/90 border border-white/[0.08] px-4 py-3 rounded-2xl rounded-tl-sm flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 bg-amber-400 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-                  <span className="w-1.5 h-1.5 bg-amber-400 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-                  <span className="w-1.5 h-1.5 bg-amber-400 rounded-full animate-bounce"></span>
+                <div className="bg-[#1c1c1f] border border-[#27272a] px-3.5 py-2.5 rounded-2xl rounded-tl-xs flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce [animation-delay:-0.3s]" />
+                  <span className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce [animation-delay:-0.15s]" />
+                  <span className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce" />
                 </div>
               </div>
             )}
@@ -326,31 +385,31 @@ export default function AIAssistant() {
             <div ref={chatEndRef} />
           </div>
 
-          {/* ACTIONS RAPIDES / SUGGESTIONS */}
-          <div className="px-3 py-2 bg-[#080C14]/90 border-t border-white/[0.06] flex items-center gap-2 overflow-x-auto scrollbar-none">
+          {/* SUGGESTIONS PINTEREST (CHIPS CLEANS) */}
+          <div className="px-3.5 py-2 bg-[#18181b] border-t border-[#27272a] flex items-center gap-2 overflow-x-auto scrollbar-none">
             <button
               onClick={() => sendMessage("Rapport des hubs critiques à Goma")}
-              className="text-[11px] font-medium text-slate-300 bg-white/[0.04] hover:bg-amber-500/15 hover:border-amber-500/40 hover:text-amber-300 border border-white/[0.08] rounded-xl px-3 py-1.5 whitespace-nowrap flex items-center gap-1.5 transition-all duration-200 active:scale-95"
+              className="text-xs font-medium text-zinc-300 bg-[#27272a]/70 hover:bg-[#27272a] border border-[#3f3f46]/60 rounded-full px-3.5 py-1.5 whitespace-nowrap flex items-center gap-1.5 transition-all duration-150 active:scale-95"
             >
-              <Zap size={11} className="text-amber-400" /> Hubs Goma
+              <Zap size={12} className="text-amber-400" /> Hubs Goma
             </button>
             <button
               onClick={() => sendMessage("Statut global du parc RDC")}
-              className="text-[11px] font-medium text-slate-300 bg-white/[0.04] hover:bg-amber-500/15 hover:border-amber-500/40 hover:text-amber-300 border border-white/[0.08] rounded-xl px-3 py-1.5 whitespace-nowrap transition-all duration-200 active:scale-95"
+              className="text-xs font-medium text-zinc-300 bg-[#27272a]/70 hover:bg-[#27272a] border border-[#3f3f46]/60 rounded-full px-3.5 py-1.5 whitespace-nowrap transition-all duration-150 active:scale-95"
             >
               Statut parc RDC
             </button>
           </div>
 
-          {/* ZONE D'INPUT AVEC TEXTAREA AUTO-RESIZE */}
+          {/* ZONE D'INPUT CHAUDE ET TACTILE */}
           <form
             onSubmit={(e) => {
               e.preventDefault();
               sendMessage();
             }}
-            className="p-3 bg-[#080C14] border-t border-white/[0.08] flex items-end gap-2"
+            className="p-3 bg-[#18181b] border-t border-[#27272a] flex items-end gap-2"
           >
-            <div className="flex-1 relative bg-[#0F1626] border border-white/[0.1] focus-within:border-amber-500/60 focus-within:ring-1 focus-within:ring-amber-500/30 rounded-2xl transition-all duration-200">
+            <div className="flex-1 relative bg-[#27272a]/60 border border-[#3f3f46]/80 focus-within:border-zinc-400 rounded-2xl transition-colors duration-150">
               <textarea
                 ref={(e) => {
                   textareaRef.current = e;
@@ -360,10 +419,10 @@ export default function AIAssistant() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Posez votre question à Djua..."
-                className="w-full bg-transparent px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none resize-none max-h-28 scrollbar-thin scrollbar-thumb-slate-700"
+                placeholder="Message à Djua..."
+                className="w-full bg-transparent px-3.5 py-2.5 text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none resize-none max-h-28 scrollbar-thin scrollbar-thumb-zinc-700"
               />
-              <div className="hidden sm:flex items-center gap-1 absolute right-2.5 bottom-2.5 text-[10px] text-slate-600 font-mono pointer-events-none">
+              <div className="hidden sm:flex items-center gap-1 absolute right-3 bottom-2.5 text-[10px] text-zinc-500 font-mono pointer-events-none">
                 <span>↵</span>
               </div>
             </div>
@@ -371,52 +430,29 @@ export default function AIAssistant() {
             <button
               type="submit"
               disabled={!input.trim() || isTyping}
-              className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-500 flex items-center justify-center text-white disabled:opacity-30 disabled:cursor-not-allowed hover:shadow-[0_0_20px_rgba(245,158,11,0.4)] active:scale-95 transition-all duration-200 flex-shrink-0"
+              className="w-9 h-9 rounded-xl bg-zinc-100 hover:bg-white text-zinc-900 disabled:opacity-25 disabled:hover:bg-zinc-100 flex items-center justify-center transition-all duration-150 active:scale-95 flex-shrink-0 shadow-sm"
             >
-              <Send
-                size={15}
-                className={
-                  input.trim()
-                    ? "translate-x-0.5 -translate-y-0.5 transition-transform"
-                    : ""
-                }
-              />
+              <Send size={14} className="translate-x-0.5" />
             </button>
           </form>
         </div>
       )}
 
-      {/* BOUTON FLOTTANT TRIGGER (MODERN FLOATING ACTION BUTTON) */}
+      {/* BOUTON FLOTTANT TACTILE (PINTEREST FAB) */}
       <button
         onClick={() => setIsOpen(!isOpen)}
         aria-label="Toggle AI Assistant"
-        className="group relative flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-500 via-orange-500 to-amber-400 p-[1.5px] shadow-[0_10px_30px_rgba(245,158,11,0.35)] hover:shadow-[0_15px_35px_rgba(245,158,11,0.5)] hover:scale-105 active:scale-95 transition-all duration-300"
+        className="group relative flex items-center justify-center w-13 h-13 rounded-full bg-[#18181b] hover:bg-[#27272a] border border-[#3f3f46] text-zinc-100 shadow-xl shadow-black/50 active:scale-95 transition-all duration-200"
       >
-        <div className="w-full h-full bg-[#0B0F19] group-hover:bg-[#111726] rounded-[14px] flex items-center justify-center transition-colors">
-          {isOpen ? (
-            <X
-              size={22}
-              className="text-white transition-transform duration-300 rotate-90"
-            />
-          ) : (
-            <div className="relative">
-              <Bot
-                size={24}
-                className="text-amber-400 group-hover:scale-110 transition-transform duration-300"
-              />
-              <Sparkles
-                size={11}
-                className="text-amber-200 absolute -top-1 -right-1.5 animate-pulse"
-              />
-            </div>
-          )}
-        </div>
+        {isOpen ? (
+          <X size={20} className="text-zinc-200 transition-transform duration-200" />
+        ) : (
+          <Bot size={22} className="text-zinc-100 group-hover:scale-105 transition-transform duration-200" />
+        )}
 
-        {/* Badge d'état quand la fenêtre est fermée */}
+        {/* Badge d'état sobre */}
         {!isOpen && (
-          <span className="absolute top-0 right-0 w-3.5 h-3.5 bg-emerald-500 rounded-full ring-4 ring-[#0B0F19]">
-            <span className="absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-75"></span>
-          </span>
+          <span className="absolute top-0 right-0 w-3 h-3 bg-emerald-500 rounded-full ring-2 ring-[#141416]" />
         )}
       </button>
     </div>
