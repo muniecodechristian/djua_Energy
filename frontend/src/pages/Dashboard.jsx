@@ -1,14 +1,11 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+import 'leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css';
+import 'leaflet-defaulticon-compatibility';
 import {
-  ComposableMap,
-  Geographies,
-  Geography,
-  Marker
-} from 'react-simple-maps';
-import {
-  LineChart,
-  Line,
   PieChart,
   Pie,
   Cell,
@@ -44,10 +41,13 @@ import {
 } from '@/hooks/tanstack/useKitQueries';
 import { useFleetLiveStatus } from '@/hooks/tanstack/useFleetLiveStatus';
 
-const geoUrl = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
-
-const generateSparklineData = (base) =>
-  Array.from({ length: 15 }, () => ({ value: base + Math.floor(Math.random() * 20 - 10) }));
+const createKitIcon = (status) => L.divIcon({
+  className: 'dashboard-kit-marker',
+  html: `<span class="dashboard-kit-marker__pulse dashboard-kit-marker__pulse--${status}"></span><span class="dashboard-kit-marker__dot dashboard-kit-marker__dot--${status}"></span>`,
+  iconSize: [30, 30],
+  iconAnchor: [15, 15],
+  popupAnchor: [0, -15],
+});
 
 // kpiData removed to be generated dynamically inside the component
 
@@ -83,7 +83,7 @@ const recentActivityData = [
 ];
 
 const Card = ({ children, className = "" }) => (
-  <div className={`bg-[var(--card)]/90 backdrop-blur-xl border border-[var(--border)] rounded-2xl overflow-hidden shadow-[0_12px_30px_rgba(15,23,42,0.08)] hover:shadow-[0_12px_30px_rgba(249,115,22,0.08)] hover:border-orange-500/30 transition-all duration-500 ${className}`}>
+  <div className={`bg-[var(--card)]/90 backdrop-blur-xl border border-[var(--border)] rounded-2xl overflow-hidden shadow-[0_12px_30px_rgba(15,23,42,0.08)] ${className}`}>
     {children}
   </div>
 );
@@ -149,18 +149,14 @@ export default function Dashboard() {
       value: kpiStats.totalKits.toLocaleString('fr-FR'),
       change: 'Total DB enregistrés',
       isPositive: true,
-      strokeColor: '#FF7900',
       icon: <Box size={18} className="text-[#FF7900]" />,
-      data: generateSparklineData(kpiStats.totalKits),
     },
     {
       title: 'En Ligne (Live)',
       value: kpiStats.onlineKits.toLocaleString('fr-FR'),
       change: `${kpiStats.onlinePct}% du parc · ESP32 actifs`,
       isPositive: true,
-      strokeColor: '#10b981',
       icon: <CheckCircle2 size={18} className="text-emerald-400" />,
-      data: generateSparklineData(kpiStats.onlineKits),
       isLive: true,
       socketConnected: isSocketConnected,
     },
@@ -169,18 +165,14 @@ export default function Dashboard() {
       value: kpiStats.atRiskKits.toLocaleString('fr-FR'),
       change: `${kpiStats.atRiskPct}% du parc · Alertes actives`,
       isPositive: false,
-      strokeColor: '#f59e0b',
       icon: <AlertTriangle size={18} className="text-amber-400" />,
-      data: generateSparklineData(kpiStats.atRiskKits),
     },
     {
       title: 'Hors Ligne',
       value: kpiStats.offlineKits.toLocaleString('fr-FR'),
       change: `${kpiStats.offlinePct}% du parc · Sans télémétrie`,
       isPositive: false,
-      strokeColor: '#ef4444',
       icon: <XCircle size={18} className="text-rose-400" />,
-      data: generateSparklineData(kpiStats.offlineKits),
     },
   ], [kpiStats]);
 
@@ -198,7 +190,7 @@ export default function Dashboard() {
 
         if (lat === null || lng === null) return null;
 
-        const isKitActive = kit.status === 'active';
+        const isKitActive = activeKitIds.has(kit.kitId) || kit.status === 'active';
 
         const safePhone = kit.clientPhone
           ? `*** *** ${kit.clientPhone.slice(-3)}`
@@ -215,7 +207,7 @@ export default function Dashboard() {
         };
       })
       .filter(Boolean);
-  }, [kits]);
+  }, [kits, activeKitIds]);
 
   useEffect(() => {
     if (!activeHub) return;
@@ -258,14 +250,12 @@ export default function Dashboard() {
     <div className="min-h-screen text-[var(--foreground)] p-4 md:p-8 font-sans bg-transparent selection:bg-[#FF7900]/30 selection:text-white relative">
       <div className="space-y-6 relative z-10 max-w-[1600px] mx-auto">
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
           {kpiData.map((kpi, index) => (
-            <Card key={index} className="p-5 flex flex-col justify-between group cursor-default relative">
-              <div className="absolute inset-0 bg-gradient-to-b from-white/[0.03] to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-
-              <div className="relative z-10">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-[11px] font-semibold text-[var(--muted-foreground)] uppercase tracking-widest">{kpi.title}</span>
+            <Card key={index} className="min-h-[190px] p-6 md:p-7 flex flex-col justify-between cursor-default">
+              <div>
+                <div className="flex items-center justify-between mb-7">
+                  <span className="text-xs font-semibold text-[var(--muted-foreground)] uppercase tracking-widest">{kpi.title}</span>
                   <div className="flex items-center gap-1.5">
                     {/* Badge Socket.io temps réel uniquement sur la card 'En Ligne' */}
                     {kpi.isLive && (
@@ -281,8 +271,8 @@ export default function Dashboard() {
                         {kpi.socketConnected ? 'Live' : 'Off'}
                       </span>
                     )}
-                    <div className="p-2 rounded-xl bg-[var(--secondary)] border border-[var(--border)] text-[var(--foreground)] group-hover:scale-110 group-hover:border-orange-500/40 transition-all duration-300 shadow-sm">
-                      {kpi.icon}
+                    <div className="p-2.5 rounded-xl bg-[var(--secondary)] border border-[var(--border)] text-[var(--foreground)] shadow-sm">
+                      {React.cloneElement(kpi.icon, { size: 20 })}
                     </div>
                   </div>
                 </div>
@@ -295,28 +285,14 @@ export default function Dashboard() {
                   </div>
                 ) : (
                   <>
-                    <div className="text-2xl font-bold text-[var(--foreground)] tracking-tight font-mono">{kpi.value}</div>
-                    <div className={`text-[11px] mt-1.5 font-medium flex items-center gap-1 ${kpi.isPositive ? 'text-emerald-400' : 'text-amber-400'}`}>
+                    <div className="text-4xl md:text-[2.65rem] leading-none font-bold text-[var(--foreground)] tracking-tight font-mono">{kpi.value}</div>
+                    <div className="text-xs mt-3 font-medium flex items-center gap-1 text-[var(--muted-foreground)]">
                       {kpi.change}
                     </div>
                   </>
                 )}
               </div>
 
-              <div className="h-12 mt-4 w-full relative z-10 opacity-70 group-hover:opacity-100 transition-opacity duration-300">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={kpi.data}>
-                    <Line
-                      type="monotone"
-                      dataKey="value"
-                      stroke={kpi.strokeColor}
-                      strokeWidth={2}
-                      dot={false}
-                      isAnimationActive={false}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
             </Card>
           ))}
         </div>
@@ -347,20 +323,19 @@ export default function Dashboard() {
                   >
                     <div className="mt-0.5">
                       {isCritical ? (
-                        <ShieldAlert size={16} className="text-rose-500 group-hover:scale-110 transition-transform drop-shadow-[0_0_10px_rgba(239,68,68,0.5)]" />
+                        <ShieldAlert size={16} className="text-red-500 group-hover:scale-110 transition-transform" />
                       ) : isHigh ? (
-                        <AlertTriangle size={16} className="text-amber-400 group-hover:scale-110 transition-transform drop-shadow-[0_0_10px_rgba(245,158,11,0.5)]" />
+                        <AlertTriangle size={16} className="text-orange-500 group-hover:scale-110 transition-transform" />
+                      ) : alert.type === 'medium' ? (
+                        <AlertTriangle size={16} className="text-yellow-500 group-hover:scale-110 transition-transform" />
                       ) : (
-                        <Activity size={16} className="text-[var(--muted-foreground)] group-hover:text-[var(--foreground)] transition-colors" />
+                        <Activity size={16} className="text-slate-400 group-hover:text-[var(--foreground)] transition-colors" />
                       )}
                     </div>
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md border ${isCritical ? 'bg-rose-500/15 text-rose-400 border-rose-500/30'
-                          : isHigh ? 'bg-amber-500/15 text-amber-400 border-amber-500/30'
-                            : 'bg-[var(--secondary)] text-[var(--foreground)] border-[var(--border)]'
-                          }`}>
+                        <span className="text-[9px] font-bold px-0 py-1 text-[var(--foreground)]">
                           {alert.severity}
                         </span>
                         <h3 className="text-[11px] font-semibold text-[var(--foreground)] truncate">{alert.label}</h3>
@@ -383,10 +358,12 @@ export default function Dashboard() {
                         opacity-0 group-hover:opacity-100
                         translate-x-1 group-hover:translate-x-0
                         ${isCritical
-                          ? 'bg-rose-500/10 border-rose-500/30 text-rose-400 hover:bg-rose-500/20 hover:border-rose-500/50'
+                          ? 'bg-red-600 border-red-500 text-white hover:bg-red-700'
                           : isHigh
-                            ? 'bg-amber-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/20 hover:border-amber-500/50'
-                            : 'bg-zinc-800/60 border-zinc-700/60 text-zinc-400 hover:bg-zinc-700/60 hover:text-zinc-200'
+                            ? 'bg-orange-500 border-orange-400 text-white hover:bg-orange-600'
+                            : alert.type === 'medium'
+                              ? 'bg-yellow-400 border-yellow-300 text-slate-950 hover:bg-yellow-500'
+                              : 'bg-slate-500 border-slate-400 text-white hover:bg-slate-600'
                         }
                       `}
                     >
@@ -424,55 +401,36 @@ export default function Dashboard() {
             </div>
 
             <div className="flex-1 bg-[var(--app-surface)] relative flex items-center justify-center overflow-hidden pt-12">
-              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(255,121,0,0.06)_0%,transparent_70%)] pointer-events-none" />
-
-              <ComposableMap
-                projection="geoMercator"
-                projectionConfig={{ scale: 1900, center: [24, -3.5] }}
-                className="w-full h-full opacity-95 group-hover:opacity-100 transition-opacity duration-700 outline-none"
+              <MapContainer
+                center={[-2.9, 23.6]}
+                zoom={5}
+                minZoom={4}
+                maxZoom={16}
+                scrollWheelZoom
+                className="dashboard-map"
               >
-                <Geographies geography={geoUrl}>
-                  {({ geographies }) =>
-                    geographies.map((geo) => {
-                      const isDRC = geo.properties.NAME === "Democratic Republic of the Congo" || geo.id === "180";
-                      return (
-                        <Geography
-                          key={geo.rsmKey}
-                          geography={geo}
-                          fill={isDRC ? "#22222a" : "#101014"}
-                          stroke={isDRC ? "#FF7900" : "#1c1c21"}
-                          strokeWidth={isDRC ? 1.0 : 0.4}
-                          style={{
-                            default: { outline: "none" },
-                            hover: { fill: isDRC ? "#2a2a36" : "#101014", stroke: isDRC ? "#FF7900" : "#1c1c21", outline: "none" },
-                            pressed: { outline: "none" },
-                          }}
-                        />
-                      );
-                    })
-                  }
-                </Geographies>
+                <TileLayer
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                />
 
                 {dynamicMarkers.map((marker) => (
                   <Marker
                     key={marker.id}
-                    coordinates={marker.coordinates}
-                    onClick={() => setActiveHub(marker)}
-                    className="cursor-pointer"
+                    position={[marker.coordinates[1], marker.coordinates[0]]}
+                    icon={createKitIcon(marker.status)}
+                    eventHandlers={{ click: () => setActiveHub(marker) }}
                   >
-                    {marker.status === 'critical' && (
-                      <circle r={10} fill="#ef4444" opacity={0.35} className="animate-ping" />
-                    )}
-                    <circle
-                      r={5}
-                      fill={marker.status === 'operational' ? '#10b981' : '#ef4444'}
-                      stroke="#000000"
-                      strokeWidth={1.5}
-                      className="drop-shadow-[0_0_8px_rgba(0,0,0,0.8)] transition-transform hover:scale-150"
-                    />
+                    <Popup>
+                      <div className="dashboard-map-popup">
+                        <strong>{marker.name}</strong>
+                        <span>{marker.status === 'operational' ? 'Kit actif' : 'Kit à vérifier'}</span>
+                        <small>{marker.model}</small>
+                      </div>
+                    </Popup>
                   </Marker>
                 ))}
-              </ComposableMap>
+              </MapContainer>
 
               {activeHub && (
                 <div className="absolute top-16 right-5 bg-[var(--panel)] backdrop-blur-xl border border-[var(--panel-border)] rounded-xl shadow-2xl z-30 min-w-[260px] animate-in fade-in zoom-in-95 duration-200">
@@ -509,14 +467,14 @@ export default function Dashboard() {
                 </div>
               )}
 
-              <div className="absolute bottom-4 left-4 bg-[var(--card)]/95 backdrop-blur-xl border border-[var(--border)] rounded-xl p-3 space-y-2 text-[11px] font-medium z-10 shadow-xl">
+              <div className="absolute bottom-4 left-4 bg-white/95 backdrop-blur-xl border border-slate-200 rounded-xl p-3 space-y-2 text-[11px] font-medium z-[500] shadow-lg">
                 <div className="flex items-center gap-2.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
-                  <span className="text-[var(--foreground)]">Kit Actif (Vert)</span>
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                  <span style={{ color: '#334155' }} className="font-semibold">Kit actif</span>
                 </div>
                 <div className="flex items-center gap-2.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]" />
-                  <span className="text-[var(--foreground)]">Kit Inactif / Suspendu (Rouge)</span>
+                  <span className="w-2.5 h-2.5 rounded-full bg-rose-500" />
+                  <span style={{ color: '#334155' }} className="font-semibold">Kit à vérifier</span>
                 </div>
               </div>
             </div>
@@ -597,6 +555,23 @@ export default function Dashboard() {
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(39, 39, 42, 0.6); border-radius: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(113, 113, 122, 0.9); }
+        .dashboard-map { height: 100%; width: 100%; min-height: 100%; z-index: 1; }
+        .dashboard-map .leaflet-control-zoom { border: 0; box-shadow: 0 4px 14px rgba(15, 23, 42, 0.16); }
+        .dashboard-map .leaflet-control-zoom a { color: #334155; border-color: #e2e8f0; background: #ffffff; }
+        .dashboard-map .leaflet-control-zoom a:hover { color: #ea580c; background: #fff7ed; }
+        .dashboard-kit-marker { background: transparent; border: 0; }
+        .dashboard-kit-marker__pulse,
+        .dashboard-kit-marker__dot { position: absolute; display: block; border-radius: 999px; }
+        .dashboard-kit-marker__pulse { inset: 3px; opacity: 0.2; }
+        .dashboard-kit-marker__pulse--operational { background: #10b981; }
+        .dashboard-kit-marker__pulse--critical { background: #ef4444; }
+        .dashboard-kit-marker__dot { inset: 9px; border: 2px solid #ffffff; box-shadow: 0 2px 6px rgba(15, 23, 42, 0.35); }
+        .dashboard-kit-marker__dot--operational { background: #059669; }
+        .dashboard-kit-marker__dot--critical { background: #dc2626; }
+        .dashboard-map-popup { display: grid; gap: 4px; min-width: 120px; color: #334155; font: 12px/1.35 sans-serif; }
+        .dashboard-map-popup strong { color: #0f172a; font-size: 13px; }
+        .dashboard-map-popup span { color: #ea580c; font-weight: 600; }
+        .dashboard-map-popup small { color: #64748b; }
       `}} />
     </div>
   );

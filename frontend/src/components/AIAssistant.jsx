@@ -1,18 +1,37 @@
 import React, { useState, useRef, useEffect } from "react";
 import {
-  Bot,
   X,
   Send,
-  Sparkles,
-  Minimize2,
   RotateCcw,
   User,
   Zap,
   Copy,
   Check,
   AlertCircle,
+  MapPin,
 } from "lucide-react";
 import api from "../api/axios";
+
+const getFriendlyAIError = (error) => {
+  if (error?.code === "ECONNABORTED" || error?.code === "ETIMEDOUT") {
+    return "Le service met plus de temps que prévu à répondre. Réessayez dans quelques instants.";
+  }
+
+  switch (error?.response?.status) {
+    case 401:
+    case 403:
+      return "Votre session ne permet pas d'utiliser l'assistant. Reconnectez-vous puis réessayez.";
+    case 429:
+      return "Trop de demandes sont en cours. Patientez un instant avant de réessayer.";
+    case 500:
+    case 502:
+    case 503:
+    case 504:
+      return "L'assistant est momentanément indisponible. Réessayez dans quelques instants.";
+    default:
+      return "Nous n'avons pas pu obtenir de réponse. Vérifiez votre connexion puis réessayez.";
+  }
+};
 
 // Composant pour l'affichage des messages IA avec effet streaming et questions suggérées
 const AIMessageBubble = ({ msg, handleCopy, copiedId, onSuggestionClick }) => {
@@ -39,13 +58,13 @@ const AIMessageBubble = ({ msg, handleCopy, copiedId, onSuggestionClick }) => {
       <div
         className={`relative px-4 py-3 rounded-2xl text-[13px] leading-relaxed transition-all w-fit shadow-sm ${msg.isError
           ? "bg-red-950/40 border border-red-800/50 text-red-200 rounded-tl-xs"
-          : "bg-[#1c1c1f] border border-[#27272a] text-zinc-200 rounded-tl-xs"
+          : "bg-[var(--panel-alt)] border border-[var(--panel-border)] text-[var(--app-foreground)] rounded-tl-xs"
           }`}
       >
         {msg.isError && (
           <div className="flex items-center gap-1.5 mb-1.5 text-red-400 font-medium text-xs">
             <AlertCircle size={13} />
-            <span>Erreur système</span>
+            <span>Assistant momentanément indisponible</span>
           </div>
         )}
 
@@ -58,7 +77,7 @@ const AIMessageBubble = ({ msg, handleCopy, copiedId, onSuggestionClick }) => {
         {!msg.isError && !isTyping && (
           <button
             onClick={() => handleCopy(msg.id, msg.text)}
-            className="absolute -bottom-2.5 right-3 opacity-0 group-hover:opacity-100 bg-[#27272a] border border-[#3f3f46] text-zinc-400 hover:text-zinc-100 p-1 rounded-md transition-all duration-150 shadow-md"
+            className="absolute -bottom-2.5 right-3 opacity-0 group-hover:opacity-100 bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--muted-foreground)] hover:text-[var(--app-foreground)] p-1 rounded-md transition-all duration-150 shadow-md"
             title="Copier le message"
           >
             {copiedId === msg.id ? (
@@ -168,6 +187,14 @@ export default function AIAssistant() {
       };
     }
 
+    // Ne jamais afficher directement une erreur renvoyée dans une réponse 2xx.
+    if (data.error || data.errors) {
+      return {
+        text: "L'assistant est momentanément indisponible. Réessayez dans quelques instants.",
+        nextQuestions: []
+      };
+    }
+
     // Fallback parsing (string, object text/message, etc.)
     if (typeof data === "string") return { text: data, nextQuestions: [] };
     if (typeof data === "object") {
@@ -180,7 +207,7 @@ export default function AIAssistant() {
         if (typeof c.text === "string") return { text: c.text, nextQuestions: [] };
         if (c.message && typeof c.message.content === "string") return { text: c.message.content, nextQuestions: [] };
       }
-      return { text: JSON.stringify(data, null, 2), nextQuestions: [] };
+      return { text: "Je n'ai pas pu interpréter cette réponse. Vous pouvez reformuler votre demande.", nextQuestions: [] };
     }
     return { text: String(data), nextQuestions: [] };
   };
@@ -225,15 +252,18 @@ export default function AIAssistant() {
       };
       setMessages((prev) => [...prev, aiResponse]);
     } catch (err) {
-      const errMsg =
-        err?.response?.data?.error?.message ||
-        err?.message ||
-        "Erreur réseau lors de la communication.";
+      if (import.meta.env.DEV) {
+        console.error("[AIAssistant] Request failed", {
+          code: err?.code,
+          status: err?.response?.status,
+        });
+      }
+
       const aiError = {
         id: Date.now() + 1,
         sender: "ai",
         isError: true,
-        text: `Une erreur est survenue : ${errMsg}`,
+        text: getFriendlyAIError(err),
         time: new Date().toLocaleTimeString([], {
           hour: "2-digit",
           minute: "2-digit",
@@ -276,53 +306,54 @@ export default function AIAssistant() {
     <div className="fixed bottom-5 right-5 sm:bottom-6 sm:right-6 z-50 font-sans antialiased">
       {/* FENÊTRE PRINCIPALE DU CHAT */}
       {isOpen && (
-        <div className="mb-4 w-[calc(100vw-2.5rem)] sm:w-[400px] h-[570px] max-h-[82vh] bg-[#141416] border border-[#27272a] rounded-[28px] shadow-2xl shadow-black/80 flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-200 ease-out">
+        <div className="mb-4 w-[calc(100vw-2rem)] sm:w-[520px] h-[min(700px,calc(100vh-7rem))] max-h-[86vh] bg-[var(--panel)] text-[var(--app-foreground)] border border-[var(--panel-border)] rounded-[28px] shadow-2xl shadow-black/30 flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-200 ease-out">
           {/* HEADER EDITORIAL & TACTILE */}
-          <div className="px-5 py-4 bg-[#18181b] border-b border-[#27272a] flex items-center justify-between">
+          <div className="px-5 py-4 bg-[var(--panel)] border-b border-[var(--panel-border)] flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="relative">
-                <div className="w-9 h-9 rounded-full bg-[#27272a] border border-[#3f3f46] flex items-center justify-center text-zinc-100">
-                  <Bot size={18} className="text-zinc-200" />
+                <div className="w-10 h-10 rounded-full bg-[#e7edf0] border border-[#cbd5d8] overflow-hidden flex items-center justify-center shadow-inner">
+                  <img src="/bot.gif" alt="" aria-hidden="true" className="w-[135%] h-[135%] max-w-none object-cover mix-blend-multiply" />
                 </div>
                 <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 rounded-full ring-2 ring-[#18181b]" />
               </div>
 
               <div>
                 <div className="flex items-center gap-2">
-                  <h3 className="text-[13px] font-semibold text-zinc-100 tracking-tight">
+                  <h3 className="text-[13px] font-semibold text-[var(--app-foreground)] tracking-tight">
                     Djua Copilot
                   </h3>
-                  <span className="bg-[#27272a] text-zinc-300 border border-[#3f3f46] text-[9px] font-medium px-2 py-0.5 rounded-full uppercase tracking-wider">
+                  <span className="bg-[var(--panel-alt)] text-[var(--muted-foreground)] border border-[var(--panel-border)] text-[9px] font-medium px-2 py-0.5 rounded-full uppercase tracking-wider">
                     Copilot
                   </span>
                 </div>
-                <p className="text-[11px] text-zinc-400 font-normal">
+                <p className="text-[11px] text-[var(--muted-foreground)] font-normal">
                   Assistant de parc
                 </p>
               </div>
             </div>
 
             {/* CONTROLES HEADER */}
-            <div className="flex items-center gap-0.5 bg-[#27272a]/60 p-1 rounded-xl border border-[#3f3f46]/50">
+            <div className="flex items-center gap-0.5 bg-[var(--panel-alt)] p-1 rounded-xl border border-[var(--panel-border)]">
               <button
                 onClick={handleReset}
                 title="Réinitialiser la conversation"
-                className="p-1.5 hover:bg-[#3f3f46] text-zinc-400 hover:text-zinc-100 rounded-lg transition-colors duration-150"
+                className="p-1.5 hover:bg-[var(--panel)] text-[var(--muted-foreground)] hover:text-[var(--app-foreground)] rounded-lg transition-colors duration-150"
               >
                 <RotateCcw size={14} />
               </button>
               <button
                 onClick={() => setIsOpen(false)}
-                title="Réduire"
-                className="p-1.5 hover:bg-[#3f3f46] text-zinc-400 hover:text-zinc-100 rounded-lg transition-colors duration-150"
+                title="Fermer l’assistant"
+                aria-label="Fermer l’assistant"
+                className="p-1.5 hover:bg-[var(--panel)] text-[var(--muted-foreground)] hover:text-[var(--app-foreground)] rounded-lg transition-colors duration-150"
               >
-                <Minimize2 size={14} />
+                <X size={16} />
               </button>
             </div>
           </div>
 
           {/* ZONE DE MESSAGES */}
-          <div className="flex-1 p-4 overflow-y-auto space-y-4 bg-[#141416]">
+          <div className="flex-1 p-4 overflow-y-auto space-y-4 bg-[var(--app-surface)]">
             {messages.map((msg) => {
               const isAi = msg.sender === "ai";
               return (
@@ -331,8 +362,8 @@ export default function AIAssistant() {
                   className={`flex gap-2.5 group ${isAi ? "items-start" : "items-end justify-end"}`}
                 >
                   {isAi && (
-                    <div className="w-6 h-6 rounded-full bg-[#27272a] border border-[#3f3f46] flex items-center justify-center flex-shrink-0 mt-1">
-                      <Sparkles size={12} className="text-zinc-300" />
+                    <div className="w-7 h-7 rounded-full bg-[#e7edf0] border border-[#cbd5d8] overflow-hidden flex items-center justify-center flex-shrink-0 mt-1 shadow-inner">
+                      <img src="/bot.gif" alt="" aria-hidden="true" className="w-[140%] h-[140%] max-w-none object-cover mix-blend-multiply" />
                     </div>
                   )}
 
@@ -347,7 +378,7 @@ export default function AIAssistant() {
                         onSuggestionClick={(q) => sendMessage(q)}
                       />
                     ) : (
-                      <div className="relative px-4 py-3 rounded-2xl text-[13px] leading-relaxed transition-all bg-zinc-100 text-zinc-900 font-medium rounded-tr-xs">
+                      <div className="relative px-4 py-3 rounded-2xl text-[13px] leading-relaxed transition-all bg-orange-500 border border-orange-400 text-white font-medium rounded-tr-xs shadow-sm">
                         <div className="whitespace-pre-wrap break-words">
                           {msg.text}
                         </div>
@@ -359,7 +390,7 @@ export default function AIAssistant() {
                   </div>
 
                   {!isAi && (
-                    <div className="w-6 h-6 rounded-full bg-[#27272a] border border-[#3f3f46] flex items-center justify-center flex-shrink-0 mb-4 text-zinc-400">
+                    <div className="w-6 h-6 rounded-full bg-[var(--panel-alt)] border border-[var(--panel-border)] flex items-center justify-center flex-shrink-0 mb-4 text-[var(--muted-foreground)]">
                       <User size={12} />
                     </div>
                   )}
@@ -370,8 +401,8 @@ export default function AIAssistant() {
             {/* INDICATEUR DE CHARGEMENT ÉLÉGANT */}
             {isTyping && (
               <div className="flex items-center gap-2.5 animate-in fade-in duration-150">
-                <div className="w-6 h-6 rounded-full bg-[#27272a] border border-[#3f3f46] flex items-center justify-center flex-shrink-0">
-                  <Sparkles size={12} className="text-zinc-400" />
+                <div className="w-7 h-7 rounded-full bg-[#e7edf0] border border-[#cbd5d8] overflow-hidden flex items-center justify-center flex-shrink-0 shadow-inner">
+                  <img src="/bot.gif" alt="" aria-hidden="true" className="w-[140%] h-[140%] max-w-none object-cover mix-blend-multiply" />
                 </div>
                 <div className="bg-[#1c1c1f] border border-[#27272a] px-3.5 py-2.5 rounded-2xl rounded-tl-xs flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce [animation-delay:-0.3s]" />
@@ -385,16 +416,16 @@ export default function AIAssistant() {
           </div>
 
           {/* SUGGESTIONS PINTEREST (CHIPS CLEANS) */}
-          <div className="px-3.5 py-2 bg-[#18181b] border-t border-[#27272a] flex items-center gap-2 overflow-x-auto scrollbar-none">
+          <div className="px-3.5 py-2 bg-[var(--panel)] border-t border-[var(--panel-border)] flex items-center gap-2 overflow-x-auto scrollbar-none">
             <button
               onClick={() => sendMessage("Rapport des hubs critiques à Goma")}
-              className="text-xs font-medium text-zinc-300 bg-[#27272a]/70 hover:bg-[#27272a] border border-[#3f3f46]/60 rounded-full px-3.5 py-1.5 whitespace-nowrap flex items-center gap-1.5 transition-all duration-150 active:scale-95"
+              className="text-xs font-medium text-[var(--app-foreground)] bg-[var(--panel-alt)] hover:bg-[var(--panel)] border border-[var(--panel-border)] rounded-full px-3.5 py-1.5 whitespace-nowrap flex items-center gap-1.5 transition-all duration-150 active:scale-95"
             >
-              <Zap size={12} className="text-amber-400" /> Hubs Goma
+              <MapPin size={12} className="text-orange-400" /> Hubs Goma
             </button>
             <button
               onClick={() => sendMessage("Statut global du parc RDC")}
-              className="text-xs font-medium text-zinc-300 bg-[#27272a]/70 hover:bg-[#27272a] border border-[#3f3f46]/60 rounded-full px-3.5 py-1.5 whitespace-nowrap transition-all duration-150 active:scale-95"
+              className="text-xs font-medium text-[var(--app-foreground)] bg-[var(--panel-alt)] hover:bg-[var(--panel)] border border-[var(--panel-border)] rounded-full px-3.5 py-1.5 whitespace-nowrap transition-all duration-150 active:scale-95"
             >
               Statut parc RDC
             </button>
@@ -406,9 +437,9 @@ export default function AIAssistant() {
               e.preventDefault();
               sendMessage();
             }}
-            className="p-3 bg-[#18181b] border-t border-[#27272a] flex items-end gap-2"
+            className="p-3 bg-[var(--panel)] border-t border-[var(--panel-border)] flex items-end gap-2"
           >
-            <div className="flex-1 relative bg-[#27272a]/60 border border-[#3f3f46]/80 focus-within:border-zinc-400 rounded-2xl transition-colors duration-150">
+            <div className="flex-1 relative bg-[var(--panel-alt)] border border-[var(--panel-border)] focus-within:border-[#FF7900] rounded-2xl transition-colors duration-150">
               <textarea
                 ref={(e) => {
                   textareaRef.current = e;
@@ -419,7 +450,7 @@ export default function AIAssistant() {
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="Message à Djua..."
-                className="w-full bg-transparent px-3.5 py-2.5 text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none resize-none max-h-28 scrollbar-thin scrollbar-thumb-zinc-700"
+                className="w-full bg-transparent px-3.5 py-2.5 text-xs text-[var(--app-foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none resize-none max-h-28 scrollbar-thin scrollbar-thumb-zinc-700"
               />
               <div className="hidden sm:flex items-center gap-1 absolute right-3 bottom-2.5 text-[10px] text-zinc-500 font-mono pointer-events-none">
                 <span>↵</span>
@@ -429,7 +460,7 @@ export default function AIAssistant() {
             <button
               type="submit"
               disabled={!input.trim() || isTyping}
-              className="w-9 h-9 rounded-xl bg-zinc-100 hover:bg-white text-zinc-900 disabled:opacity-25 disabled:hover:bg-zinc-100 flex items-center justify-center transition-all duration-150 active:scale-95 flex-shrink-0 shadow-sm"
+              className="w-9 h-9 rounded-xl bg-orange-500 hover:bg-orange-400 text-white disabled:opacity-40 disabled:hover:bg-orange-500 flex items-center justify-center transition-all duration-150 active:scale-95 flex-shrink-0 shadow-sm"
             >
               <Send size={14} className="translate-x-0.5" />
             </button>
@@ -441,12 +472,20 @@ export default function AIAssistant() {
       <button
         onClick={() => setIsOpen(!isOpen)}
         aria-label="Toggle AI Assistant"
-        className="group relative flex items-center justify-center w-13 h-13 rounded-full bg-[#18181b] hover:bg-[#27272a] border border-[#3f3f46] text-zinc-100 shadow-xl shadow-black/50 active:scale-95 transition-all duration-200"
+        className="group relative flex items-center gap-2.5 h-14 rounded-full bg-[var(--panel)] hover:bg-[var(--panel-alt)] border border-[var(--panel-border)] text-[var(--app-foreground)] shadow-xl shadow-black/30 active:scale-95 transition-all duration-200 px-2.5 pr-4"
       >
         {isOpen ? (
           <X size={20} className="text-zinc-200 transition-transform duration-200" />
         ) : (
-          <Bot size={22} className="text-zinc-100 group-hover:scale-105 transition-transform duration-200" />
+          <>
+            <span className="w-10 h-10 rounded-full bg-[#e7edf0] border border-[#cbd5d8] overflow-hidden flex items-center justify-center shadow-inner group-hover:scale-105 transition-transform duration-200">
+              <img src="/bot.gif" alt="Ouvrir l’assistant Djua" className="w-[135%] h-[135%] max-w-none object-cover mix-blend-multiply" />
+            </span>
+            <span className="hidden sm:flex flex-col items-start leading-tight">
+              <span className="text-xs font-semibold text-zinc-100">Djua Copilot</span>
+              <span className="text-[10px] text-zinc-400">Besoin d’aide ?</span>
+            </span>
+          </>
         )}
 
         {/* Badge d'état sobre */}

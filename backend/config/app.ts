@@ -1,7 +1,7 @@
-import { configProvider } from '@adonisjs/core'
+import { defineConfig as defineHttpConfig } from '@adonisjs/core/http'
 
-export default configProvider.create(() => ({
+export default {
   appKey: process.env.APP_KEY || 'change-me-in-production',
-  http: { trustProxy: false },
+  http: defineHttpConfig({ trustProxy: false }),
   logger: { enabled: true },
-}))
+}

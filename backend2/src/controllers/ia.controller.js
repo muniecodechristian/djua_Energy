@@ -11,9 +11,16 @@ export async function postConversation(req, res) {
     const result = await iaService.postConversation({ message, context });
     return res.json({ success: true, data: result });
   } catch (err) {
+    console.error('[IA Controller] Requête refusée', {
+      status: err.status || 500,
+    });
 
-    const status = err.status || 500;
-    const payload = err.data || { message: err.message };
-    return res.status(status).json({ success: false, error: payload });
+    return res.status(err.status === 400 ? 400 : 503).json({
+      success: false,
+      error: {
+        code: 'AI_SERVICE_UNAVAILABLE',
+        message: "L'assistant est momentanément indisponible. Réessayez dans quelques instants.",
+      },
+    });
   }
 }

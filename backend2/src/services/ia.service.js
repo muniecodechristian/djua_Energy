@@ -12,6 +12,15 @@ class IAService {
     });
   }
 
+  buildFallbackResponse() {
+    return {
+      assistant_message: "L'assistant met plus de temps que prévu à répondre. Vous pouvez réessayer dans quelques instants.",
+      next_questions: [],
+      can_recommend: false,
+      used_ai: false,
+    };
+  }
+
   async postConversation({ message, context = {} }) {
     if (!this.base) {
       throw new Error('IA API URL not configured (IA_API_URL)');
@@ -25,17 +34,27 @@ class IAService {
     const url = this.endpoint;
     try {
       const resp = await this.client.post(url, payload);
-      // Log au terminal du backend pour visionnage
-      console.log('\n=== [IA API RESPONSE] ===\n', JSON.stringify(resp.data, null, 2), '\n=========================\n');
+      console.log('[IA API] Réponse reçue', {
+        status: resp.status,
+        usedAI: resp.data?.used_ai ?? null,
+      });
       return resp.data;
     } catch (err) {
-      console.log(err)
-      // Normalize error
-      const status = err.response?.status || 500;
-      const data = err.response?.data || { message: err.message };
-      const e = new Error('Failed to call IA provider');
+      const status = err.response?.status || 0;
+      const isTimeout = err.code === 'ECONNABORTED' || err.code === 'ETIMEDOUT';
+      const isProviderFailure = isTimeout || status >= 500 || status === 0;
+
+      console.error('[IA API] Fournisseur indisponible', {
+        code: err.code || 'UNKNOWN',
+        status: status || 'NETWORK',
+      });
+
+      if (isProviderFailure) {
+        return this.buildFallbackResponse();
+      }
+
+      const e = new Error('IA provider request rejected');
       e.status = status;
-      e.data = data;
       throw e;
     }
   }

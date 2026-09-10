@@ -45,7 +45,7 @@ export default function ThemeToggle() {
       onClick={toggleTheme}
       whileHover={{ scale: 1.04, y: -1 }}
       whileTap={{ scale: 0.97 }}
-      className="fixed bottom-5 left-5 z-50 inline-flex items-center gap-2 rounded-full border border-[var(--panel-border)] bg-[var(--panel)]/80 px-3 py-2 shadow-[0_18px_40px_rgba(15,23,42,0.18)] backdrop-blur-xl transition-all duration-400 hover:border-orange-500/50 hover:shadow-[0_18px_40px_rgba(249,115,22,0.18)] sm:left-auto sm:right-[120px]"
+      className="fixed bottom-24 left-5 z-50 inline-flex items-center gap-2 rounded-full border border-[var(--panel-border)] bg-[var(--panel)]/95 px-3 py-2 shadow-[0_18px_40px_rgba(15,23,42,0.18)] backdrop-blur-xl transition-all duration-400 hover:border-orange-500/50 hover:shadow-[0_18px_40px_rgba(249,115,22,0.18)] sm:bottom-6 sm:left-auto sm:right-[220px]"
     >
       <span className="relative flex h-8 w-8 items-center justify-center rounded-full bg-[var(--panel-alt)] text-[var(--app-foreground)] ring-1 ring-[var(--panel-border)]">
         <motion.span
@@ -59,7 +59,7 @@ export default function ThemeToggle() {
         </motion.span>
       </span>
       <span className="hidden text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--app-foreground)] sm:inline">
-        {isDark ? 'Light' : 'Dark'}
+        {isDark ? 'Mode clair' : 'Mode sombre'}
       </span>
     </motion.button>
   );

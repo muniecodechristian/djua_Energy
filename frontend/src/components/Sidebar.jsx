@@ -31,7 +31,7 @@ const bottomNavItems = [
   { label: 'Docs & API', icon: FileCode, path: '/docs', kind: 'docs' },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({ isSidebarOpen = false, setIsSidebarOpen = () => {} }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [comingSoon, setComingSoon] = useState(null);
   const navigate = useNavigate();
@@ -50,6 +50,11 @@ export default function Sidebar() {
     logout(undefined, {
       onSuccess: () => navigate('/'),
     });
+  };
+
+  const navigateTo = (path) => {
+    navigate(path);
+    setIsSidebarOpen(false);
   };
 
   const handleComingSoon = (item) => {
@@ -108,14 +113,26 @@ export default function Sidebar() {
         )}
       </AnimatePresence>
 
+      {isSidebarOpen && (
+        <button
+          type="button"
+          aria-label="Fermer le menu"
+          onClick={() => setIsSidebarOpen(false)}
+          className="fixed inset-0 z-40 bg-slate-950/55 backdrop-blur-[2px] lg:hidden"
+        />
+      )}
+
       <aside
-        className={`relative flex flex-col justify-between h-screen bg-[var(--sidebar)] backdrop-blur-xl border-r border-[var(--sidebar-border)] text-[var(--sidebar-foreground)] transition-all duration-300 select-none z-30 ${
-          isCollapsed ? 'w-20' : 'w-64'
-        }`}
+        className={`fixed inset-y-0 left-0 flex w-[min(82vw,280px)] flex-col justify-between bg-[var(--sidebar)] backdrop-blur-xl border-r border-[var(--sidebar-border)] text-[var(--sidebar-foreground)] transition-transform duration-300 select-none z-50 lg:relative lg:z-30 lg:w-auto lg:translate-x-0 ${
+          isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        } ${isCollapsed ? 'lg:w-20' : 'lg:w-64'}`}
       >
         <button
-          onClick={toggleSidebar}
-          className="absolute -right-3 top-7 bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--muted-foreground)] hover:text-[var(--app-foreground)] rounded-full p-1 cursor-pointer shadow-[0_4px_12px_rgba(15,23,42,0.12)] transition-colors hover:border-[#FF7900]/50"
+          onClick={() => {
+            if (window.innerWidth < 1024) setIsSidebarOpen(false);
+            else toggleSidebar();
+          }}
+          className="absolute -right-3 top-7 z-10 hidden bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--muted-foreground)] hover:text-[var(--app-foreground)] rounded-full p-1 cursor-pointer shadow-[0_4px_12px_rgba(15,23,42,0.12)] transition-colors hover:border-[#FF7900]/50 lg:block"
         >
           {isCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
         </button>
@@ -123,8 +140,8 @@ export default function Sidebar() {
         <div>
           <div className={`flex items-center h-16 px-4 border-b border-[var(--sidebar-border)] ${isCollapsed ? 'justify-center' : 'justify-start'}`}>
             <div
-              onClick={() => navigate('/dashboard')}
-              className="flex items-center gap-3 cursor-pointer group"
+              onClick={() => navigateTo('/dashboard')}
+              className="flex min-w-0 items-center gap-3 cursor-pointer group"
             >
               <div className="w-8 h-8 bg-gradient-to-tr from-[#FF7900] to-amber-500 rounded-xl flex items-center justify-center font-bold text-white text-sm flex-shrink-0 shadow-[0_0_15px_rgba(255,121,0,0.3)] group-hover:shadow-[0_0_20px_rgba(255,121,0,0.5)] transition-shadow">
                 D
@@ -132,8 +149,8 @@ export default function Sidebar() {
 
               {!isCollapsed && (
                 <div className="flex flex-col">
-                  <span className="font-bold text-sm text-[var(--sidebar-foreground)] tracking-tight group-hover:text-[#FF7900] transition-colors">Djua Energy</span>
-                  <span className="text-[10px] font-medium text-[var(--muted-foreground)] uppercase tracking-widest mt-0.5">Télémétrie & Flotte</span>
+                  <span className="max-w-[175px] truncate font-bold text-sm text-[var(--sidebar-foreground)] tracking-tight group-hover:text-[#FF7900] transition-colors">Djua Energy</span>
+                  <span className="max-w-[175px] truncate text-[10px] font-medium text-[var(--muted-foreground)] uppercase tracking-widest mt-0.5">Télémétrie & Flotte</span>
                 </div>
               )}
             </div>
@@ -147,7 +164,7 @@ export default function Sidebar() {
               return (
                 <button
                   key={item.path}
-                  onClick={() => navigate(item.path)}
+                  onClick={() => navigateTo(item.path)}
                   title={isCollapsed ? item.label : undefined}
                   className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-xs font-medium transition-all duration-300 relative group ${
                     isActive
@@ -157,7 +174,7 @@ export default function Sidebar() {
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <Icon size={16} className={`flex-shrink-0 transition-colors ${isActive ? 'text-white' : 'text-[var(--muted-foreground)] group-hover:text-[var(--sidebar-foreground)]'}`} />
-                    {!isCollapsed && <span className="truncate">{item.label}</span>}
+                    {!isCollapsed && <span className="min-w-0 truncate" title={item.label}>{item.label}</span>}
                   </div>
                 </button>
               );
@@ -178,7 +195,7 @@ export default function Sidebar() {
                     handleComingSoon(item);
                     return;
                   }
-                  navigate(item.path);
+                    navigateTo(item.path);
                 }}
                 title={isCollapsed ? item.label : undefined}
                 className={`w-full flex items-center gap-3 px-3.5 py-2 rounded-xl text-xs font-medium transition-all duration-300 ${
@@ -188,7 +205,7 @@ export default function Sidebar() {
                 }`}
               >
                 <Icon size={16} className={`flex-shrink-0 ${isActive ? 'text-white' : 'text-[var(--muted-foreground)]'}`} />
-                {!isCollapsed && <span className="truncate">{item.label}</span>}
+                {!isCollapsed && <span className="min-w-0 truncate" title={item.label}>{item.label}</span>}
               </button>
             );
           })}

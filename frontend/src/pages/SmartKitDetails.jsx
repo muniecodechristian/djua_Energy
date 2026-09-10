@@ -61,22 +61,6 @@ const MapUpdater = ({ center }) => {
   return null;
 };
 
-// --- Sparkline mini ---
-const Spark = ({ data, color }) => (
-  <ResponsiveContainer width="100%" height={36}>
-    <AreaChart data={data} margin={{ top: 2, right: 0, left: 0, bottom: 0 }}>
-      <defs>
-        <linearGradient id={`sg${color.replace('#', '')}`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity={0.25} />
-          <stop offset="100%" stopColor={color} stopOpacity={0} />
-        </linearGradient>
-      </defs>
-      <Area type="monotone" dataKey="val" stroke={color} strokeWidth={1.5}
-        fill={`url(#sg${color.replace('#', '')})`} dot={false} isAnimationActive={false} />
-    </AreaChart>
-  </ResponsiveContainer>
-);
-
 // --- Badge de tendance ---
 const Trend = ({ prev, curr, unit = '' }) => {
   if (prev == null || curr == null) return null;
@@ -97,30 +81,29 @@ const Trend = ({ prev, curr, unit = '' }) => {
 
 // --- Carte Metrique --- icones toujours orange
 const ICON_ORANGE = '#f97316';
-const MetricCard = ({ icon: Icon, label, value, unit, color, sparkData, prev, curr, badge }) => (
+const MetricCard = ({ icon: Icon, label, description, value, unit, color, prev, curr, badge, featured = false }) => (
   <motion.div
     initial={{ opacity: 0, y: 12 }}
     animate={{ opacity: 1, y: 0 }}
-    className="relative bg-zinc-900/50 border border-zinc-800/70 rounded-2xl p-4 flex flex-col gap-1 overflow-hidden group hover:border-zinc-700/60 transition-all duration-300"
-    whileHover={{ scale: 1.015 }}
+    className={`relative bg-[#121516] border rounded-lg p-4 flex flex-col gap-1 overflow-hidden ${featured ? 'border-[#3b4543] min-h-[142px]' : 'border-[#2a2e2f] min-h-[126px]'}`}
   >
-    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-      style={{ background: `radial-gradient(ellipse at top left, ${color}10 0%, transparent 65%)` }} />
-
     <div className="flex items-center justify-between mb-1 relative z-10">
       <div className="flex items-center gap-2">
-        <div className="p-1.5 rounded-lg" style={{ background: '#f9731618', border: '1px solid #f9731630' }}>
+        <div className="p-1.5 rounded-md" style={{ background: '#f9731618', border: '1px solid #f9731630' }}>
           <Icon size={13} style={{ color: ICON_ORANGE }} />
         </div>
-        <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider">{label}</span>
+        <div>
+          <span className="block text-[11px] font-medium text-zinc-200">{label}</span>
+          {description && <span className="block text-[10px] text-zinc-500 mt-0.5">{description}</span>}
+        </div>
       </div>
       {badge && (
-        <span className="text-[9px] font-mono px-1.5 py-0.5 rounded border border-zinc-700 text-zinc-400 bg-zinc-950/60">{badge}</span>
+        <span className="text-[9px] px-1.5 py-0.5 rounded border border-zinc-700 text-zinc-500 bg-zinc-950/60">{badge}</span>
       )}
     </div>
 
     <div className="flex items-baseline gap-1.5 relative z-10">
-      <span className="text-2xl font-extrabold font-mono text-white tracking-tight leading-none">
+      <span className={`${featured ? 'text-3xl' : 'text-2xl'} font-extrabold font-mono text-zinc-100 tracking-tight leading-none`}>
         {value ?? '\u2014'}
       </span>
       {unit && <span className="text-sm font-mono text-zinc-400">{unit}</span>}
@@ -128,17 +111,12 @@ const MetricCard = ({ icon: Icon, label, value, unit, color, sparkData, prev, cu
 
     <Trend prev={prev} curr={curr} unit={unit} />
 
-    {sparkData && sparkData.length > 0 && (
-      <div className="mt-1 relative z-10">
-        <Spark data={sparkData} color={color} />
-      </div>
-    )}
   </motion.div>
 );
 
 // --- Skeleton de chargement ---
 const SkeletonCard = () => (
-  <div className="bg-zinc-900/50 border border-zinc-800/70 rounded-2xl p-4 flex flex-col gap-3 animate-pulse">
+  <div className="bg-[#121516] border border-[#2a2e2f] rounded-lg p-4 flex flex-col gap-3 animate-pulse">
     <div className="flex items-center gap-2">
       <div className="w-7 h-7 rounded-lg bg-zinc-800" />
       <div className="h-2.5 w-24 rounded bg-zinc-800" />
@@ -149,8 +127,8 @@ const SkeletonCard = () => (
 );
 
 const LoadingScreen = ({ kitId }) => (
-  <div className="min-h-screen bg-zinc-950 text-zinc-100 font-sans">
-    <header className="border-b border-zinc-800/70 px-5 py-4">
+  <div className="min-h-screen bg-[#0b0d0e] text-zinc-100 font-sans">
+    <header className="border-b border-[#292d2e] px-5 py-4">
       <div className="max-w-screen-2xl mx-auto flex items-center gap-4">
         <div className="w-10 h-10 rounded-xl bg-orange-500/10 border border-orange-500/25 flex items-center justify-center">
           <Zap size={18} className="text-orange-400" />
@@ -167,7 +145,7 @@ const LoadingScreen = ({ kitId }) => (
         </div>
       </div>
     </header>
-    <main className="max-w-screen-2xl mx-auto px-5 py-6 grid grid-cols-2 md:grid-cols-4 gap-4">
+    <main className="max-w-screen-2xl mx-auto px-5 py-6 grid grid-cols-2 md:grid-cols-4 gap-3">
       {Array.from({ length: 12 }).map((_, i) => <SkeletonCard key={i} />)}
     </main>
   </div>
@@ -175,12 +153,12 @@ const LoadingScreen = ({ kitId }) => (
 
 // --- Section Header ---
 const SectionTitle = ({ icon: Icon, title, subtitle, color = '#f97316' }) => (
-  <div className="flex items-center gap-2.5 mb-3">
-    <div className="p-1.5 rounded-lg" style={{ background: `${color}15`, border: `1px solid ${color}25` }}>
+  <div className="flex items-center gap-2.5 mb-4">
+    <div className="p-1.5 rounded-md" style={{ background: `${color}15`, border: `1px solid ${color}25` }}>
       <Icon size={14} style={{ color }} />
     </div>
     <div>
-      <h2 className="text-xs font-semibold font-mono text-zinc-200 uppercase tracking-widest">{title}</h2>
+      <h2 className="text-[11px] font-semibold font-mono text-zinc-200 uppercase tracking-[0.14em]">{title}</h2>
       {subtitle && <p className="text-[10px] text-zinc-500">{subtitle}</p>}
     </div>
   </div>
@@ -189,8 +167,8 @@ const SectionTitle = ({ icon: Icon, title, subtitle, color = '#f97316' }) => (
 // --- Panel wrapper ---
 const Panel = ({ children, className = '', glow = false, color = '#f97316' }) => (
   <div
-    className={`relative bg-zinc-900/50 border border-zinc-800/70 rounded-2xl overflow-hidden ${className}`}
-    style={glow ? { boxShadow: `0 0 30px -10px ${color}30` } : {}}
+    className={`relative bg-[#121516] border border-[#2a2e2f] rounded-lg overflow-hidden ${className}`}
+    style={glow ? { borderColor: `${color}45` } : {}}
   >
     {children}
   </div>
@@ -292,8 +270,6 @@ export default function SmartKitDetails() {
     };
   });
 
-  const spark = (key) => chartData.map(r => ({ val: r[key] ?? 0 }));
-
   const tabs = ['Synth\u00e8se', '\u00c9nergie Solaire', 'Environnement', 'R\u00e9seau & GPS'];
 
   const showToast = (msg) => {
@@ -304,7 +280,7 @@ export default function SmartKitDetails() {
   if (isChecking) return <LoadingScreen kitId={kitId} />;
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 font-sans selection:bg-orange-500/30">
+    <div className="min-h-screen bg-[#0b0d0e] text-zinc-100 font-sans selection:bg-orange-500/30">
 
       {/* TOAST */}
       <AnimatePresence>
@@ -313,7 +289,7 @@ export default function SmartKitDetails() {
             initial={{ opacity: 0, y: -20, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -20, scale: 0.96 }}
-            className="fixed top-5 right-5 z-50 px-4 py-3 rounded-xl bg-zinc-900/95 border border-zinc-700 text-zinc-200 text-xs shadow-2xl backdrop-blur-xl flex items-center gap-3"
+            className="fixed top-5 right-5 z-50 px-4 py-3 rounded-lg bg-[#171a1b] border border-[#3a3f40] text-zinc-200 text-xs shadow-2xl flex items-center gap-3"
           >
             <CheckCircle2 size={14} className="text-orange-400" />
             <span className="font-mono text-[11px]">{toast}</span>
@@ -322,8 +298,8 @@ export default function SmartKitDetails() {
       </AnimatePresence>
 
       {/* HEADER COCKPIT */}
-      <header className="sticky top-0 z-40 bg-zinc-950/85 backdrop-blur-xl border-b border-zinc-800/70">
-        <div className="max-w-screen-2xl mx-auto px-5 py-4">
+      <header className="sticky top-0 z-40 bg-[#0f1112] border-b border-[#292d2e]">
+        <div className="max-w-screen-2xl mx-auto px-5 py-3">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               <div className="relative">
@@ -338,7 +314,7 @@ export default function SmartKitDetails() {
                 <div className="flex items-center gap-2.5 flex-wrap">
                   <h1 className="text-lg font-bold font-mono text-white tracking-tight">{kitId || 'DK-SOLAR-092'}</h1>
                   {/* Badge statut — termes non-techniques */}
-                  <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[10px] font-semibold tracking-wide ${isLive
+                  <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-[10px] font-semibold tracking-wide ${isLive
                       ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-400'
                       : 'bg-zinc-900 border-zinc-800 text-zinc-400'
                     }`}>
@@ -347,7 +323,7 @@ export default function SmartKitDetails() {
                   </div>
                   {/* Badge source — termes non-techniques */}
                   {T && (
-                    <div className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[10px] font-medium ${dataSource === 'live'
+                    <div className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-[10px] font-medium ${dataSource === 'live'
                         ? 'bg-orange-500/10 border-orange-500/25 text-orange-400'
                         : 'bg-zinc-900 border-zinc-800 text-zinc-400'
                       }`}>
@@ -368,34 +344,34 @@ export default function SmartKitDetails() {
             <div className="flex items-center gap-2">
               <button
                 onClick={() => showToast('Diagnostic lanc\u00e9\u2026')}
-                className="px-3.5 py-2 bg-zinc-900 border border-zinc-800 hover:border-zinc-600 rounded-xl text-xs font-medium text-zinc-300 transition-all active:scale-95 flex items-center gap-2"
+                className="px-3.5 py-2 bg-[#171a1b] border border-[#343839] hover:border-zinc-500 rounded-md text-xs font-medium text-zinc-300 transition-colors active:scale-95 flex items-center gap-2"
               >
                 <Activity size={13} className="text-zinc-400" /> Diagnostic
               </button>
               <button
                 onClick={() => showToast('Intervention terrain cr\u00e9\u00e9e')}
-                className="px-3.5 py-2 bg-orange-600 hover:bg-orange-500 rounded-xl text-xs font-semibold text-white transition-all shadow-lg shadow-orange-950/50 active:scale-95"
+                className="px-3.5 py-2 bg-orange-600 hover:bg-orange-500 rounded-md text-xs font-semibold text-white transition-colors active:scale-95"
               >
                 Intervention
               </button>
-              <button className="p-2 bg-zinc-900 border border-zinc-800 hover:border-zinc-600 rounded-xl text-zinc-500 transition-all">
+              <button className="p-2 bg-[#171a1b] border border-[#343839] hover:border-zinc-500 rounded-md text-zinc-500 transition-colors">
                 <MoreHorizontal size={15} />
               </button>
             </div>
           </div>
 
           {/* Tabs */}
-          <nav className="flex gap-0.5 mt-4 overflow-x-auto hide-scrollbar">
+          <nav className="flex gap-0.5 mt-3 overflow-x-auto hide-scrollbar border-t border-[#202425] pt-2">
             {tabs.map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`relative px-4 py-2 text-[11px] font-semibold transition-all cursor-pointer bg-transparent border-none whitespace-nowrap rounded-lg ${activeTab === tab ? 'text-orange-400' : 'text-zinc-500 hover:text-zinc-300'
+                className={`relative px-4 py-2 text-[11px] font-semibold transition-colors cursor-pointer bg-transparent border-none whitespace-nowrap rounded-md ${activeTab === tab ? 'text-orange-400' : 'text-zinc-500 hover:text-zinc-300'
                   }`}
               >
                 {activeTab === tab && (
                   <motion.div layoutId="tab-bg"
-                    className="absolute inset-0 bg-orange-500/10 border border-orange-500/20 rounded-lg"
+                    className="absolute inset-0 bg-orange-500/10 border border-orange-500/20 rounded-md"
                     transition={{ type: 'spring', stiffness: 400, damping: 32 }} />
                 )}
                 <span className="relative">{tab}</span>
@@ -406,7 +382,7 @@ export default function SmartKitDetails() {
       </header>
 
       {/* MAIN */}
-      <main className="max-w-screen-2xl mx-auto px-5 py-6">
+      <main className="max-w-screen-2xl mx-auto px-5 py-5">
         <AnimatePresence mode="wait">
 
           {/* ===== SYNTHESE ===== */}
@@ -414,34 +390,49 @@ export default function SmartKitDetails() {
             <motion.div key="synthese"
               initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}
-              className="grid grid-cols-2 md:grid-cols-4 gap-4"
+              className="space-y-5"
             >
-              <MetricCard icon={Battery} label="\u00c9tat de Charge" value={T?.state_of_charge_pct} unit="%" color="#10b981"
-                sparkData={spark('soc')} prev={P?.state_of_charge_pct} curr={T?.state_of_charge_pct} badge="SoC" />
-              <MetricCard icon={BatteryCharging} label="Tension Batterie" value={T?.battery_voltage_v} unit=" V" color="#f97316"
-                sparkData={spark('tension_bat')} prev={P?.battery_voltage_v} curr={T?.battery_voltage_v} badge="VDC" />
-              <MetricCard icon={Zap} label="Courant Batterie" value={T?.battery_current_a} unit=" A" color="#eab308"
-                sparkData={spark('courant_bat')} prev={P?.battery_current_a} curr={T?.battery_current_a} badge="MPPT" />
-              <MetricCard icon={Activity} label="Puissance Batterie" value={T?.battery_power_w} unit=" W" color="#a78bfa"
-                sparkData={[]} prev={P?.battery_power_w} curr={T?.battery_power_w} badge="PWR" />
+              <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
+                <div>
+                  <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-orange-400 mb-1">Vue d'ensemble</p>
+                  <h2 className="text-xl md:text-2xl font-semibold tracking-tight text-zinc-100">Comment va votre kit ?</h2>
+                  <p className="text-xs text-zinc-500 mt-1">Les informations importantes sont regroupées ici pour une lecture rapide.</p>
+                </div>
+                <div className={`inline-flex items-center gap-2 px-3 py-2 rounded-md border text-xs ${isLive ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300' : 'border-zinc-700 bg-zinc-900 text-zinc-400'}`}>
+                  <span className={`h-2 w-2 rounded-full ${isLive ? 'bg-emerald-400' : 'bg-zinc-600'}`} />
+                  {isLive ? 'Tout fonctionne en direct' : 'Dernières données disponibles'}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+              <MetricCard icon={Battery} label="Batterie disponible" description="Niveau d'énergie restant" value={T?.state_of_charge_pct} unit="%" color="#10b981"
+                prev={P?.state_of_charge_pct} curr={T?.state_of_charge_pct} badge="Priorité" featured />
+              <MetricCard icon={BatteryCharging} label="Tension de la batterie" description="Stabilité de l'alimentation" value={T?.battery_voltage_v} unit=" V" color="#f97316"
+                prev={P?.battery_voltage_v} curr={T?.battery_voltage_v} badge="Batterie" featured />
+              <MetricCard icon={Zap} label="Énergie produite" description="Production du panneau solaire" value={T?.solar_power_w} unit=" W" color="#eab308"
+                prev={P?.solar_power_w} curr={T?.solar_power_w} badge="Solaire" featured />
+              <MetricCard icon={Activity} label="Consommation actuelle" description="Énergie utilisée maintenant" value={T?.battery_power_w} unit=" W" color="#a78bfa"
+                prev={P?.battery_power_w} curr={T?.battery_power_w} badge="Usage" featured />
 
               <MetricCard icon={ShieldCheck} label="Sant\u00e9 Batterie" value={T?.state_of_health_pct} unit="%" color="#06b6d4"
-                sparkData={[]} prev={null} curr={null} badge="SoH" />
+                prev={null} curr={null} badge="SoH" />
               <MetricCard icon={Sun} label="Tension Panneau PV" value={T?.solar_voltage_v} unit=" V" color="#fbbf24"
-                sparkData={spark('tension_pv')} prev={P?.solar_voltage_v} curr={T?.solar_voltage_v} badge="PV" />
+                prev={P?.solar_voltage_v} curr={T?.solar_voltage_v} badge="PV" />
               <MetricCard icon={TrendingUp} label="Courant Solaire" value={T?.solar_current_a} unit=" A" color="#fb923c"
-                sparkData={spark('courant_pv')} prev={P?.solar_current_a} curr={T?.solar_current_a} badge="PV" />
+                prev={P?.solar_current_a} curr={T?.solar_current_a} badge="PV" />
               <MetricCard icon={Layers} label="Puissance Solaire" value={T?.solar_power_w} unit=" W" color="#f97316"
-                sparkData={spark('puissance_pv')} prev={P?.solar_power_w} curr={T?.solar_power_w} badge="PV" />
+                prev={P?.solar_power_w} curr={T?.solar_power_w} badge="PV" />
 
               <MetricCard icon={Zap} label="\u00c9nergie G\u00e9n\u00e9r\u00e9e" value={T?.energy_generated_wh} unit=" Wh" color="#34d399"
-                sparkData={[]} prev={null} curr={null} badge="WH" />
+                prev={null} curr={null} badge="WH" />
               <MetricCard icon={Thermometer} label="Temp. Bo\u00eetier" value={T?.device_temperature_c} unit="\u00b0C" color="#f43f5e"
-                sparkData={spark('temp_boitier')} prev={P?.device_temperature_c} curr={T?.device_temperature_c} badge="ESP32" />
+                prev={P?.device_temperature_c} curr={T?.device_temperature_c} badge="ESP32" />
               <MetricCard icon={Thermometer} label="Temp. Ambiante" value={T?.ambient_temperature_c} unit="\u00b0C" color="#fb7185"
-                sparkData={spark('temp_ambiante')} prev={P?.ambient_temperature_c} curr={T?.ambient_temperature_c} badge="EXT" />
+                prev={P?.ambient_temperature_c} curr={T?.ambient_temperature_c} badge="EXT" />
               <MetricCard icon={Droplets} label="Humidit\u00e9" value={T?.humidity_pct} unit="%" color="#38bdf8"
-                sparkData={spark('humidite')} prev={P?.humidity_pct} curr={T?.humidity_pct} badge="RH" />
+                prev={P?.humidity_pct} curr={T?.humidity_pct} badge="RH" />
+
+              </div>
 
               {/* Graphe combine */}
               <div className="col-span-2 md:col-span-4">
@@ -555,7 +546,7 @@ export default function SmartKitDetails() {
                     ].map(({ label, value, color }) => (
                       <div key={label} className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-zinc-950/60 border border-zinc-800/50">
                         <span className="text-[11px] font-mono text-zinc-400">{label}</span>
-                        <span className="text-sm font-bold font-mono" style={{ color }}>{value}</span>
+                        <span className="text-sm font-bold font-mono text-zinc-200">{value}</span>
                       </div>
                     ))}
                   </div>
@@ -572,7 +563,7 @@ export default function SmartKitDetails() {
                     ].map(({ label, value, color }) => (
                       <div key={label} className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-zinc-950/60 border border-zinc-800/50">
                         <span className="text-[11px] font-mono text-zinc-400">{label}</span>
-                        <span className="text-sm font-bold font-mono" style={{ color }}>{value}</span>
+                        <span className="text-sm font-bold font-mono text-zinc-200">{value}</span>
                       </div>
                     ))}
                   </div>
@@ -660,7 +651,7 @@ export default function SmartKitDetails() {
                   <div className="p-4 rounded-xl bg-zinc-950/60 border border-zinc-800/50">
                     <div className="flex justify-between items-baseline mb-2">
                       <span className="text-[11px] font-mono text-zinc-400">Temp\u00e9rature Ext\u00e9rieure</span>
-                      <span className="text-xl font-extrabold font-mono text-amber-400">{T?.ambient_temperature_c ?? '\u2014'}\u00b0C</span>
+                      <span className="text-xl font-extrabold font-mono text-zinc-100">{T?.ambient_temperature_c ?? '\u2014'}\u00b0C</span>
                     </div>
                     <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
                       <motion.div animate={{ width: `${Math.min(100, (T?.ambient_temperature_c ?? 0) / 50 * 100)}%` }}
@@ -670,7 +661,7 @@ export default function SmartKitDetails() {
                   <div className="p-4 rounded-xl bg-zinc-950/60 border border-zinc-800/50">
                     <div className="flex justify-between items-baseline mb-2">
                       <span className="text-[11px] font-mono text-zinc-400">Humidit\u00e9 Relative</span>
-                      <span className="text-xl font-extrabold font-mono text-sky-400">{T?.humidity_pct ?? '\u2014'}%</span>
+                      <span className="text-xl font-extrabold font-mono text-zinc-100">{T?.humidity_pct ?? '\u2014'}%</span>
                     </div>
                     <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
                       <motion.div animate={{ width: `${T?.humidity_pct ?? 0}%` }}
