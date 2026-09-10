@@ -1,7 +1,7 @@
 // src/services/geofence.service.js
 import Kit from '../models/kit.model.js';
 import Alert from '../models/Alert.model.js';
-import { emitGeofenceAlert } from './socket.service.js';
+import { emitGeofenceAlert, emitGeofenceResolved } from './socket.service.js';
 
 // Utilitaire de calcul de distance (formule de Haversine) en mètres
 function calculateDistance(lat1, lon1, lat2, lon2) {
@@ -16,19 +16,28 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
   return R * c; 
 }
 
-/**
- * Vérifie si le kit s'est éloigné de plus de 2 km de sa position de référence dans le KitSchema
- */
+export const GEOFENCE_RADIUS_METERS = 90;
+
+const hasValidCoordinatePair = (latitude, longitude) => {
+  const lat = Number(latitude);
+  const lon = Number(longitude);
+  return Number.isFinite(lat) && Number.isFinite(lon)
+    && lat >= -90 && lat <= 90
+    && lon >= -180 && lon <= 180
+    && !(lat === 0 && lon === 0);
+};
+
+/** Vérifie si la position reçue sort du cercle de sécurité du kit. */
 export async function checkAndTriggerGeofence(kitId, incomingLat, incomingLon) {
-  if (!incomingLat || !incomingLon) return;
+  if (!hasValidCoordinatePair(incomingLat, incomingLon)) return null;
 
   try {
     // 1. Récupérer le modèle de kit en BDD pour obtenir sa position enregistrée
     const kit = await Kit.findOne({ kitId });
     
-    if (!kit || !kit.gpsCoordinates || kit.gpsCoordinates.latitude == null || kit.gpsCoordinates.longitude == null) {
+    if (!kit || !hasValidCoordinatePair(kit.gpsCoordinates?.latitude, kit.gpsCoordinates?.longitude)) {
       // Pas de position de référence stockée dans le kit, impossible de comparer
-      return; 
+      return null;
     }
 
     const refLat = kit.gpsCoordinates.latitude;
@@ -37,10 +46,9 @@ export async function checkAndTriggerGeofence(kitId, incomingLat, incomingLon) {
     // 2. Calculer la distance entre la position de référence du kit et la nouvelle position reçue
     const distanceMeters = calculateDistance(refLat, refLon, incomingLat, incomingLon);
 
-    // Seuil de déclenchement : 2 kilomètres = 2000 mètres
-    const THRESHOLD_METERS = 2000;
+    const isOutside = distanceMeters > GEOFENCE_RADIUS_METERS;
 
-    if (distanceMeters > THRESHOLD_METERS) {
+    if (isOutside) {
       // 3. Vérifier si une alerte "geofence_exit" est déjà active pour ce kit (anti-spam)
       const existingAlert = await Alert.findOne({
         kitId,
@@ -52,11 +60,11 @@ export async function checkAndTriggerGeofence(kitId, incomingLat, incomingLon) {
         // 4. Créer l'alerte avec la source venant du BACK ('system')
         const newAlert = await Alert.create({
           kitId,
-          source: 'system', //  Indique que l'alerte est générée par le serveur/backend
+          source: 'geofencing',
           type: 'geofence_exit',
           severity: 'critical',
-          label: 'Sortie de périmètre (Détecté par le Back)',
-          description: `Le kit ${kitId} a dépassé son rayon autorisé de 2 km. Distance mesurée : ${Math.round(distanceMeters)} mètres.`,
+          label: 'Sortie de périmètre',
+          description: `Le kit ${kitId} est sorti de son cercle de sécurité de ${GEOFENCE_RADIUS_METERS} m. Distance mesurée : ${Math.round(distanceMeters)} m.`,
           metadata: {
             referencePosition: { latitude: refLat, longitude: refLon },
             currentPosition: { latitude: incomingLat, longitude: incomingLon },
@@ -65,18 +73,22 @@ export async function checkAndTriggerGeofence(kitId, incomingLat, incomingLon) {
           status: 'active'
         });
 
-        console.log(` [GEOFENCE BACK] Alerte critique générée pour ${kitId} : ${Math.round(distanceMeters)}m de distance.`);
+        console.log(`[GEOFENCE] Alerte générée pour ${kitId}: ${Math.round(distanceMeters)} m`);
         
         // Émettre l'alerte au frontend via Socket.io
         emitGeofenceAlert(newAlert);
+        return newAlert;
       }
     } else {
-      // Si le kit est revenu dans la zone autorisée (< 2 km), on résout automatiquement l'alerte
-      await Alert.updateMany(
+      // Le retour dans le cercle clôt l'alerte active sans créer d'alerte inverse.
+      const resolved = await Alert.updateMany(
         { kitId, type: 'geofence_exit', status: 'active' },
         { status: 'resolved', resolvedAt: new Date() }
       );
+      if (resolved.modifiedCount > 0) emitGeofenceResolved(kitId);
     }
+
+    return { outside: isOutside, distanceMeters: Math.round(distanceMeters), referencePosition: { latitude: refLat, longitude: refLon }, currentPosition: { latitude: Number(incomingLat), longitude: Number(incomingLon) } };
 
   } catch (error) {
     console.error(" Erreur lors du calcul du geofencing back :", error);

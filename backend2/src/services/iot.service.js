@@ -12,6 +12,7 @@ import { enrichTelemetry, normalizeTelemetryPayload } from './telemetryEnricher.
 import EnrichedTelemetry from '../models/EnrichedTelemetry.js';
 import Telemetry from '../models/Telemetry.js';
 import { emitLiveTelemetry } from './socket.service.js';
+import { checkAndTriggerGeofence } from './geofence.service.js';
 
 export async function processStatus(deviceId, status) {
   console.log('[HTTP IoT] Statut reçu:', {
@@ -101,6 +102,9 @@ export async function processTelemetry(deviceId, payload) {
   // ── 4. Mise à jour des stores (mémoire + BDD kit) ─────────────────────────
   memoryStore.setDeviceTelemetry(deviceId, enriched);
   await dbStore.setDeviceTelemetry(deviceId, cleanPayload);
+
+  // Vérification serveur de la position par rapport au GPS initial du kit.
+  await checkAndTriggerGeofence(kitId, cleanPayload.latitude, cleanPayload.longitude);
 
   // ── 5. Émission Socket.io temps réel → room kit:{kitId} ───────────────────
   // Le frontend reçoit immédiatement les données si abonné à ce kit

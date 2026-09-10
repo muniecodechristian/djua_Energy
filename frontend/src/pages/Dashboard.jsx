@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Circle, CircleMarker, useMap } from 'react-leaflet';
+import { io } from 'socket.io-client';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css';
@@ -48,6 +49,17 @@ const createKitIcon = (status) => L.divIcon({
   iconAnchor: [15, 15],
   popupAnchor: [0, -15],
 });
+
+const MapSelectionUpdater = ({ marker }) => {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!marker) return;
+    map.flyTo([marker.coordinates[1], marker.coordinates[0]], 16, { duration: 0.8 });
+  }, [map, marker]);
+
+  return null;
+};
 
 // kpiData removed to be generated dynamically inside the component
 
@@ -98,6 +110,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const [activeHub, setActiveHub] = useState(null);
   const [physicalAddress, setPhysicalAddress] = useState("");
+  const [geofenceKitIds, setGeofenceKitIds] = useState(new Set());
   const addressCache = useRef({});
 
   const { data: kits, isLoading: kitsLoading } = useKitsQuery();
@@ -106,9 +119,47 @@ export default function Dashboard() {
   const { data: devices } = useDevicesQuery();
   const { data: telemetry } = useTelemetryQuery();
 
+  useEffect(() => {
+    const activeIds = new Set((Array.isArray(alerts) ? alerts : [])
+      .filter((alert) => alert.type === 'geofence_exit' && alert.status === 'active')
+      .map((alert) => alert.kitId));
+    setGeofenceKitIds(activeIds);
+  }, [alerts]);
+
+  useEffect(() => {
+    const serverUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    const socket = io(serverUrl, { withCredentials: true, transports: ['websocket', 'polling'] });
+    const handleGeofenceAlert = (alert) => {
+      if (!alert?.kitId) return;
+      setGeofenceKitIds((current) => new Set([...current, alert.kitId]));
+    };
+    const handleGeofenceResolved = ({ kitId }) => {
+      setGeofenceKitIds((current) => {
+        const next = new Set(current);
+        next.delete(kitId);
+        return next;
+      });
+    };
+    socket.on('geofence_alert', handleGeofenceAlert);
+    socket.on('geofence_resolved', handleGeofenceResolved);
+    return () => {
+      socket.off('geofence_alert', handleGeofenceAlert);
+      socket.off('geofence_resolved', handleGeofenceResolved);
+      socket.disconnect();
+    };
+  }, []);
+
   // ── Compteur temps réel via Socket.io ────────────────────────────────────────
   // activeKitIds = Set des kitIds qui ont envoyé une télémétrie ESP32 dans les 5 dernières minutes
   const { activeKitIds, activeCount, isSocketConnected } = useFleetLiveStatus();
+
+  const latestTelemetryByKit = useMemo(() => {
+    const latest = new Map();
+    (Array.isArray(telemetry) ? telemetry : []).forEach((entry) => {
+      if (!latest.has(entry.kitId)) latest.set(entry.kitId, entry);
+    });
+    return latest;
+  }, [telemetry]);
 
   /**
    * SENIOR LOGIC: Compute KPI stats from real DB data.
@@ -181,16 +232,21 @@ export default function Dashboard() {
 
     return kits
       .map((kit, index) => {
-        const lat = parseCoordinate(
+        const referenceLat = parseCoordinate(
           kit.gpsCoordinates?.latitude ?? kit.latitude ?? kit.lat
         );
-        const lng = parseCoordinate(
+        const referenceLng = parseCoordinate(
           kit.gpsCoordinates?.longitude ?? kit.longitude ?? kit.lng
         );
 
-        if (lat === null || lng === null) return null;
+        if (referenceLat === null || referenceLng === null) return null;
 
-        const isKitActive = activeKitIds.has(kit.kitId) || kit.status === 'active';
+        const latest = latestTelemetryByKit.get(kit.kitId);
+        const currentLat = parseCoordinate(latest?.gpsCoordinates?.latitude) ?? referenceLat;
+        const currentLng = parseCoordinate(latest?.gpsCoordinates?.longitude) ?? referenceLng;
+
+        const isOutsideGeofence = geofenceKitIds.has(kit.kitId);
+        const isKitActive = !isOutsideGeofence && (activeKitIds.has(kit.kitId) || kit.status === 'active');
 
         const safePhone = kit.clientPhone
           ? `*** *** ${kit.clientPhone.slice(-3)}`
@@ -199,15 +255,17 @@ export default function Dashboard() {
         return {
           id: kit._id || kit.kitId || `kit-${index}`,
           name: kit.kitId || `Kit #${index + 1}`,
-          coordinates: [lng, lat],
+          coordinates: [currentLng, currentLat],
+          referenceCoordinates: [referenceLat, referenceLng],
           status: isKitActive ? 'operational' : 'critical',
+          isOutsideGeofence,
           rawStatus: kit.status || 'inactif',
           model: kit.offerName || "Offre Inconnue",
           owner: safePhone
         };
       })
       .filter(Boolean);
-  }, [kits, activeKitIds]);
+  }, [kits, activeKitIds, geofenceKitIds, latestTelemetryByKit]);
 
   useEffect(() => {
     if (!activeHub) return;
@@ -409,26 +467,40 @@ export default function Dashboard() {
                 scrollWheelZoom
                 className="dashboard-map"
               >
+                <MapSelectionUpdater marker={activeHub} />
                 <TileLayer
                   url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                   attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                 />
 
                 {dynamicMarkers.map((marker) => (
-                  <Marker
-                    key={marker.id}
-                    position={[marker.coordinates[1], marker.coordinates[0]]}
-                    icon={createKitIcon(marker.status)}
-                    eventHandlers={{ click: () => setActiveHub(marker) }}
-                  >
-                    <Popup>
-                      <div className="dashboard-map-popup">
-                        <strong>{marker.name}</strong>
-                        <span>{marker.status === 'operational' ? 'Kit actif' : 'Kit à vérifier'}</span>
-                        <small>{marker.model}</small>
-                      </div>
-                    </Popup>
-                  </Marker>
+                  <React.Fragment key={marker.id}>
+                    <Circle
+                      center={[marker.referenceCoordinates[0], marker.referenceCoordinates[1]]}
+                      radius={90}
+                      pathOptions={{ color: marker.isOutsideGeofence ? '#dc2626' : '#059669', fillColor: marker.isOutsideGeofence ? '#ef4444' : '#10b981', fillOpacity: 0.12, weight: 2 }}
+                    />
+                    {activeHub?.id === marker.id && (
+                      <CircleMarker
+                        center={[marker.coordinates[1], marker.coordinates[0]]}
+                        radius={18}
+                        pathOptions={{ color: marker.isOutsideGeofence ? '#dc2626' : '#059669', fillColor: 'transparent', fillOpacity: 0, weight: 2, dashArray: '5 4' }}
+                      />
+                    )}
+                    <Marker
+                      position={[marker.coordinates[1], marker.coordinates[0]]}
+                      icon={createKitIcon(marker.status)}
+                      eventHandlers={{ click: () => setActiveHub(marker) }}
+                    >
+                      <Popup>
+                        <div className="dashboard-map-popup">
+                          <strong>{marker.name}</strong>
+                          <span>{marker.isOutsideGeofence ? 'Sortie du périmètre de 90 m' : marker.status === 'operational' ? 'Kit actif, dans sa zone' : 'Kit à vérifier'}</span>
+                          <small>{marker.model}</small>
+                        </div>
+                      </Popup>
+                    </Marker>
+                  </React.Fragment>
                 ))}
               </MapContainer>
 
@@ -475,6 +547,10 @@ export default function Dashboard() {
                 <div className="flex items-center gap-2.5">
                   <span className="w-2.5 h-2.5 rounded-full bg-rose-500" />
                   <span style={{ color: '#334155' }} className="font-semibold">Kit à vérifier</span>
+                </div>
+                <div className="flex items-center gap-2.5">
+                  <span className="w-3 h-2 rounded-full border-2 border-emerald-500" />
+                  <span style={{ color: '#334155' }} className="font-semibold">Cercle réel · 90 m (sélectionnez un kit)</span>
                 </div>
               </div>
             </div>

@@ -105,7 +105,7 @@ export default function GeofencingAlerts() {
     return {
       refCenter: [refPos.latitude, refPos.longitude],
       currentLoc: [currentPos.latitude, currentPos.longitude],
-      distance: meta.distanceMeters || 2000,
+      distance: meta.distanceMeters || 90,
     };
   };
 
@@ -121,7 +121,7 @@ export default function GeofencingAlerts() {
           </div>
           <div>
             <h1 className="text-md font-bold tracking-tight text-white">Supervision du Géorepérage (Geofencing)</h1>
-            <p className="text-xs text-zinc-400">Suivi en temps réel des kits solaires hors du périmètre autorisé de 2000m</p>
+            <p className="text-xs text-zinc-400">Suivi en temps réel des kits solaires hors de leur cercle de sécurité de 90 m</p>
           </div>
         </div>
 
@@ -230,10 +230,10 @@ export default function GeofencingAlerts() {
                   attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
                 />
 
-                {/* Reference Center (2000m radius limit) */}
+                {/* Cercle de sécurité de 90 mètres */}
                 <Circle
                   center={mapData.refCenter}
-                  radius={2000}
+                  radius={90}
                   pathOptions={{ color: '#FF7900', fillColor: '#FF7900', fillOpacity: 0.05, dashArray: '5, 8' }}
                 />
 
@@ -300,7 +300,7 @@ export default function GeofencingAlerts() {
                   <div className="border-t border-zinc-900 pt-3 flex items-center justify-between">
                     <span className="text-[11px] text-zinc-500">Dépassement</span>
                     <span className="text-xs font-extrabold text-red-500">
-                      +{Math.round(selectedAlert.metadata.distanceMeters - 2000)} mètres hors limite
+                      +{Math.max(0, Math.round(selectedAlert.metadata.distanceMeters - 90))} mètres hors limite
                     </span>
                   </div>
                 </div>

@@ -60,10 +60,15 @@ export async function setDeviceStatus(deviceId, status) {
  * Enregistre une nouvelle télémétrie en BDD et met à jour la position GPS du kit.
  */
 export async function setDeviceTelemetry(deviceId, payload) {
+  const gpsCoordinates = payload.gpsCoordinates || {
+    latitude: payload.latitude ?? null,
+    longitude: payload.longitude ?? null,
+  };
+
   // 1. Enregistre le log brut dans la collection Telemetry
   await Telemetry.create({
     kitId: deviceId,
-    gpsCoordinates: payload.gpsCoordinates || {},
+    gpsCoordinates,
     metrics: payload.metrics || payload,
     extraData: payload.extraData || {},
   });

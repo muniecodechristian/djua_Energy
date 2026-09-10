@@ -73,6 +73,10 @@ export function emitGeofenceAlert(alertData) {
   }
 }
 
+export function emitGeofenceResolved(kitId) {
+  if (io && kitId) io.emit('geofence_resolved', { kitId });
+}
+
 /**
  * Émet les données de télémétrie live vers le room du kit concerné.
  * Seuls les clients abonnés à ce kit via 'subscribe:kit' reçoivent l'événement.

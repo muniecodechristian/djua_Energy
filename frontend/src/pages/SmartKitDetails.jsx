@@ -16,7 +16,9 @@ import {
   Minus, ChevronRight, Cpu, Layers
 } from 'lucide-react';
 import { useKitLiveTelemetry } from '../hooks/tanstack/useKitLiveTelemetry.js';
-import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
+import { useAlertsQuery, useKitsQuery } from '../hooks/tanstack/useKitQueries.js';
+import { MapContainer, TileLayer, Marker, Circle, useMap } from 'react-leaflet';
+import { io } from 'socket.io-client';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -54,6 +56,25 @@ const fmt = (value, unit = '') => {
   return `${value}${unit}`;
 };
 
+const distanceInMeters = (lat1, lon1, lat2, lon2) => {
+  const earthRadius = 6371000;
+  const toRadians = (value) => value * Math.PI / 180;
+  const dLat = toRadians(lat2 - lat1);
+  const dLon = toRadians(lon2 - lon1);
+  const a = Math.sin(dLat / 2) ** 2
+    + Math.cos(toRadians(lat1)) * Math.cos(toRadians(lat2)) * Math.sin(dLon / 2) ** 2;
+  return earthRadius * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+};
+
+const hasValidGps = (latitude, longitude) => {
+  const lat = Number(latitude);
+  const lon = Number(longitude);
+  return Number.isFinite(lat) && Number.isFinite(lon)
+    && lat >= -90 && lat <= 90
+    && lon >= -180 && lon <= 180
+    && !(lat === 0 && lon === 0);
+};
+
 // --- Map auto-center ---
 const MapUpdater = ({ center }) => {
   const map = useMap();
@@ -85,28 +106,28 @@ const MetricCard = ({ icon: Icon, label, description, value, unit, color, prev, 
   <motion.div
     initial={{ opacity: 0, y: 12 }}
     animate={{ opacity: 1, y: 0 }}
-    className={`relative bg-[#121516] border rounded-lg p-4 flex flex-col gap-1 overflow-hidden ${featured ? 'border-[#3b4543] min-h-[142px]' : 'border-[#2a2e2f] min-h-[126px]'}`}
+    className={`relative bg-[var(--panel)] border border-[var(--panel-border)] rounded-lg p-4 flex flex-col gap-1 overflow-hidden ${featured ? 'min-h-[142px]' : 'min-h-[126px]'}`}
   >
     <div className="flex items-center justify-between mb-1 relative z-10">
       <div className="flex items-center gap-2">
-        <div className="p-1.5 rounded-md" style={{ background: '#f9731618', border: '1px solid #f9731630' }}>
+        <div className="p-1.5 rounded-md bg-orange-500/10 border border-orange-500/20">
           <Icon size={13} style={{ color: ICON_ORANGE }} />
         </div>
         <div>
-          <span className="block text-[11px] font-medium text-zinc-200">{label}</span>
-          {description && <span className="block text-[10px] text-zinc-500 mt-0.5">{description}</span>}
+          <span className="block text-[11px] font-medium text-[var(--app-foreground)]">{label}</span>
+          {description && <span className="block text-[10px] text-[var(--muted-foreground)] mt-0.5">{description}</span>}
         </div>
       </div>
       {badge && (
-        <span className="text-[9px] px-1.5 py-0.5 rounded border border-zinc-700 text-zinc-500 bg-zinc-950/60">{badge}</span>
+        <span className="text-[9px] px-1.5 py-0.5 rounded border border-[var(--panel-border)] text-[var(--muted-foreground)] bg-[var(--panel-alt)]">{badge}</span>
       )}
     </div>
 
     <div className="flex items-baseline gap-1.5 relative z-10">
-      <span className={`${featured ? 'text-3xl' : 'text-2xl'} font-extrabold font-mono text-zinc-100 tracking-tight leading-none`}>
+      <span className={`${featured ? 'text-3xl' : 'text-2xl'} font-extrabold font-mono text-[var(--app-foreground)] tracking-tight leading-none`}>
         {value ?? '\u2014'}
       </span>
-      {unit && <span className="text-sm font-mono text-zinc-400">{unit}</span>}
+      {unit && <span className="text-sm font-mono text-[var(--muted-foreground)]">{unit}</span>}
     </div>
 
     <Trend prev={prev} curr={curr} unit={unit} />
@@ -167,7 +188,7 @@ const SectionTitle = ({ icon: Icon, title, subtitle, color = '#f97316' }) => (
 // --- Panel wrapper ---
 const Panel = ({ children, className = '', glow = false, color = '#f97316' }) => (
   <div
-    className={`relative bg-[#121516] border border-[#2a2e2f] rounded-lg overflow-hidden ${className}`}
+    className={`relative bg-[var(--panel)] border border-[var(--panel-border)] rounded-lg overflow-hidden ${className}`}
     style={glow ? { borderColor: `${color}45` } : {}}
   >
     {children}
@@ -230,6 +251,10 @@ export default function SmartKitDetails() {
   const [isChecking, setIsChecking] = useState(true);
 
   const { telemetryRecords, latestTelemetry, isLive, dataSource, isLoading } = useKitLiveTelemetry(kitId);
+  const { data: kits = [] } = useKitsQuery();
+  const { data: alerts = [] } = useAlertsQuery();
+  const [liveGeofenceAlert, setLiveGeofenceAlert] = useState(null);
+  const kitReference = kits.find((kit) => kit.kitId === kitId);
 
   useEffect(() => {
     // On attend que le hook ait fini OU 3.5s max, le premier des deux
@@ -237,6 +262,36 @@ export default function SmartKitDetails() {
     const timer = setTimeout(() => setIsChecking(false), 3500);
     return () => clearTimeout(timer);
   }, [isLoading]);
+
+  useEffect(() => {
+    const existingAlert = (Array.isArray(alerts) ? alerts : []).find(
+      (alert) => alert.kitId === kitId
+        && alert.type === 'geofence_exit'
+        && alert.status === 'active'
+        && hasValidGps(alert.metadata?.currentPosition?.latitude, alert.metadata?.currentPosition?.longitude)
+    );
+    setLiveGeofenceAlert(existingAlert || null);
+  }, [alerts, kitId]);
+
+  useEffect(() => {
+    const serverUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    const socket = io(serverUrl, { withCredentials: true, transports: ['websocket', 'polling'] });
+    const handleGeofenceAlert = (alert) => {
+      if (alert?.kitId === kitId && hasValidGps(alert.metadata?.currentPosition?.latitude, alert.metadata?.currentPosition?.longitude)) {
+        setLiveGeofenceAlert(alert);
+      }
+    };
+    const handleGeofenceResolved = ({ kitId: resolvedKitId }) => {
+      if (resolvedKitId === kitId) setLiveGeofenceAlert(null);
+    };
+    socket.on('geofence_alert', handleGeofenceAlert);
+    socket.on('geofence_resolved', handleGeofenceResolved);
+    return () => {
+      socket.off('geofence_alert', handleGeofenceAlert);
+      socket.off('geofence_resolved', handleGeofenceResolved);
+      socket.disconnect();
+    };
+  }, [kitId]);
 
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 1000);
@@ -251,8 +306,20 @@ export default function SmartKitDetails() {
 
   const lastUpdate = formatTime(T?.event_time);
 
-  const lat = T?.latitude && !isNaN(T.latitude) ? Number(T.latitude) : -4.325;
-  const lng = T?.longitude && !isNaN(T.longitude) ? Number(T.longitude) : 15.3222;
+  const hasTelemetryGps = hasValidGps(T?.latitude, T?.longitude);
+  const lat = hasTelemetryGps
+    ? Number(T.latitude)
+    : Number(kitReference?.gpsCoordinates?.latitude ?? -4.325);
+  const lng = hasTelemetryGps
+    ? Number(T.longitude)
+    : Number(kitReference?.gpsCoordinates?.longitude ?? 15.3222);
+  const referenceLat = Number(kitReference?.gpsCoordinates?.latitude ?? lat);
+  const referenceLng = Number(kitReference?.gpsCoordinates?.longitude ?? lng);
+  const hasReferenceGps = hasValidGps(referenceLat, referenceLng);
+  const currentDistance = hasReferenceGps && hasTelemetryGps
+    ? distanceInMeters(referenceLat, referenceLng, lat, lng)
+    : null;
+  const isOutsideGeofence = Boolean(liveGeofenceAlert) || (currentDistance != null && currentDistance > 90);
 
   const chartData = telemetryRecords.slice(-24).map((r, i) => {
     const d = parseDateString(r.event_time);
@@ -280,7 +347,7 @@ export default function SmartKitDetails() {
   if (isChecking) return <LoadingScreen kitId={kitId} />;
 
   return (
-    <div className="min-h-screen bg-[#0b0d0e] text-zinc-100 font-sans selection:bg-orange-500/30">
+    <div className="smart-kit-shell min-h-screen bg-[var(--app-surface)] text-[var(--app-foreground)] font-sans selection:bg-orange-500/30">
 
       {/* TOAST */}
       <AnimatePresence>
@@ -298,21 +365,13 @@ export default function SmartKitDetails() {
       </AnimatePresence>
 
       {/* HEADER COCKPIT */}
-      <header className="sticky top-0 z-40 bg-[#0f1112] border-b border-[#292d2e]">
+      <header className="sticky top-0 z-40 bg-[var(--panel)] border-b border-[var(--panel-border)]">
         <div className="max-w-screen-2xl mx-auto px-5 py-3">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex items-center gap-4">
-              <div className="relative">
-                <div className="w-10 h-10 rounded-xl bg-orange-500/10 border border-orange-500/25 flex items-center justify-center">
-                  <Zap size={18} className="text-orange-400" />
-                </div>
-                <span className={`absolute -top-1 -right-1 w-3 h-3 rounded-full border-2 border-zinc-950 ${isLive ? 'bg-emerald-500' : 'bg-zinc-600'}`}>
-                  {isLive && <span className="absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-70" />}
-                </span>
-              </div>
               <div>
                 <div className="flex items-center gap-2.5 flex-wrap">
-                  <h1 className="text-lg font-bold font-mono text-white tracking-tight">{kitId || 'DK-SOLAR-092'}</h1>
+                  <h1 className="text-lg font-bold font-mono text-[var(--app-foreground)] tracking-tight">{kitId || 'DK-SOLAR-092'}</h1>
                   {/* Badge statut — termes non-techniques */}
                   <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-[10px] font-semibold tracking-wide ${isLive
                       ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-400'
@@ -321,6 +380,11 @@ export default function SmartKitDetails() {
                     <span className={`w-1.5 h-1.5 rounded-full ${isLive ? 'bg-emerald-400 animate-pulse' : 'bg-zinc-600'}`} />
                     {isLive ? 'Actif — données en direct' : 'Inactif — dernier relevé connu'}
                   </div>
+                  {isOutsideGeofence && (
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-red-500/40 bg-red-500 text-white text-[10px] font-semibold" title={`Distance actuelle : ${Math.round(currentDistance || 0)} m`}>
+                      <ShieldAlert size={11} /> Sortie du périmètre
+                    </div>
+                  )}
                   {/* Badge source — termes non-techniques */}
                   {T && (
                     <div className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-[10px] font-medium ${dataSource === 'live'
@@ -409,7 +473,7 @@ export default function SmartKitDetails() {
                 prev={P?.state_of_charge_pct} curr={T?.state_of_charge_pct} badge="Priorité" featured />
               <MetricCard icon={BatteryCharging} label="Tension de la batterie" description="Stabilité de l'alimentation" value={T?.battery_voltage_v} unit=" V" color="#f97316"
                 prev={P?.battery_voltage_v} curr={T?.battery_voltage_v} badge="Batterie" featured />
-              <MetricCard icon={Zap} label="Énergie produite" description="Production du panneau solaire" value={T?.solar_power_w} unit=" W" color="#eab308"
+              <MetricCard icon={Zap} label="Production instantanée" description="Puissance fournie par le panneau" value={T?.solar_power_w} unit=" W" color="#eab308"
                 prev={P?.solar_power_w} curr={T?.solar_power_w} badge="Solaire" featured />
               <MetricCard icon={Activity} label="Consommation actuelle" description="Énergie utilisée maintenant" value={T?.battery_power_w} unit=" W" color="#a78bfa"
                 prev={P?.battery_power_w} curr={T?.battery_power_w} badge="Usage" featured />
@@ -423,8 +487,8 @@ export default function SmartKitDetails() {
               <MetricCard icon={Layers} label="Puissance Solaire" value={T?.solar_power_w} unit=" W" color="#f97316"
                 prev={P?.solar_power_w} curr={T?.solar_power_w} badge="PV" />
 
-              <MetricCard icon={Zap} label="\u00c9nergie G\u00e9n\u00e9r\u00e9e" value={T?.energy_generated_wh} unit=" Wh" color="#34d399"
-                prev={null} curr={null} badge="WH" />
+              <MetricCard icon={Zap} label="Énergie produite (cumul)" description="Total généré depuis le dernier relevé" value={T?.energy_generated_wh} unit=" Wh" color="#34d399"
+                prev={null} curr={null} badge="Total" />
               <MetricCard icon={Thermometer} label="Temp. Bo\u00eetier" value={T?.device_temperature_c} unit="\u00b0C" color="#f43f5e"
                 prev={P?.device_temperature_c} curr={T?.device_temperature_c} badge="ESP32" />
               <MetricCard icon={Thermometer} label="Temp. Ambiante" value={T?.ambient_temperature_c} unit="\u00b0C" color="#fb7185"
@@ -775,11 +839,18 @@ export default function SmartKitDetails() {
                       url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                       className="map-tiles-dark"
                     />
+                    <Circle
+                      center={[referenceLat, referenceLng]}
+                      radius={90}
+                      pathOptions={{ color: isOutsideGeofence ? '#dc2626' : '#059669', fillColor: isOutsideGeofence ? '#ef4444' : '#10b981', fillOpacity: 0.14, weight: 2 }}
+                    />
                     <Marker position={[lat, lng]} icon={customIcon} />
+                    <Marker position={[referenceLat, referenceLng]} />
                   </MapContainer>
                   <div className="absolute bottom-3 left-3 z-[999] px-3 py-1.5 rounded-lg bg-zinc-950/90 border border-zinc-800 backdrop-blur-sm flex items-center gap-2">
                     <MapPin size={11} className="text-orange-400" />
                     <span className="text-[10px] font-mono text-zinc-300">
+                      {!hasTelemetryGps ? 'GPS indisponible · ' : isOutsideGeofence ? `Sortie : ${Math.round(currentDistance || 0)} m · ` : 'Zone 90 m · '}
                       LAT {lat.toFixed(6)} &nbsp; LNG {lng.toFixed(6)}
                     </span>
                   </div>
@@ -792,10 +863,32 @@ export default function SmartKitDetails() {
       </main>
 
       <style>{`
-        .map-tiles-dark {
+        .dark .map-tiles-dark {
           filter: invert(100%) hue-rotate(180deg) brightness(88%) contrast(92%) saturate(0.85);
         }
-        .leaflet-container { background: #09090b !important; }
+        .smart-kit-shell .bg-zinc-950\/60,
+        .smart-kit-shell .bg-zinc-950\/90,
+        .smart-kit-shell .bg-zinc-900 {
+          background: var(--panel-alt) !important;
+        }
+        .smart-kit-shell .border-zinc-800\/50,
+        .smart-kit-shell .border-zinc-800\/80,
+        .smart-kit-shell .border-zinc-800,
+        .smart-kit-shell .border-zinc-900 {
+          border-color: var(--panel-border) !important;
+        }
+        .smart-kit-shell .text-zinc-100,
+        .smart-kit-shell .text-zinc-200,
+        .smart-kit-shell .text-white {
+          color: var(--app-foreground) !important;
+        }
+        .smart-kit-shell .text-zinc-300,
+        .smart-kit-shell .text-zinc-400,
+        .smart-kit-shell .text-zinc-500,
+        .smart-kit-shell .text-zinc-600 {
+          color: var(--muted-foreground) !important;
+        }
+        .leaflet-container { background: var(--panel-alt) !important; }
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         @keyframes ping {
