@@ -102,38 +102,41 @@ const Trend = ({ prev, curr, unit = '' }) => {
 
 // --- Carte Metrique --- icones toujours orange
 const ICON_ORANGE = '#f97316';
-const MetricCard = ({ icon: Icon, label, description, value, unit, color, prev, curr, badge, featured = false }) => (
-  <motion.div
-    initial={{ opacity: 0, y: 12 }}
-    animate={{ opacity: 1, y: 0 }}
-    className={`relative bg-[var(--panel)] border border-[var(--panel-border)] rounded-lg p-4 flex flex-col gap-1 overflow-hidden ${featured ? 'min-h-[142px]' : 'min-h-[126px]'}`}
-  >
-    <div className="flex items-center justify-between mb-1 relative z-10">
-      <div className="flex items-center gap-2">
-        <div className="p-1.5 rounded-md bg-orange-500/10 border border-orange-500/20">
-          <Icon size={13} style={{ color: ICON_ORANGE }} />
+const MetricCard = ({ icon: Icon, label, description, value, unit, color, sparkData, prev, curr, badge, featured = false }) => {
+  color = '#f97316'; // Force la couleur orange pour toutes les cartes
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      className={`relative bg-[var(--panel)] border border-[var(--panel-border)] rounded-lg p-4 flex flex-col gap-1 overflow-hidden ${featured ? 'min-h-[142px]' : 'min-h-[126px]'}`}
+    >
+      <div className="flex items-center justify-between mb-1 relative z-10">
+        <div className="flex items-center gap-2">
+          <div className="p-1.5 rounded-md bg-orange-500/10 border border-orange-500/20">
+            <Icon size={13} style={{ color: ICON_ORANGE }} />
+          </div>
+          <div>
+            <span className="block text-[11px] font-medium text-[var(--app-foreground)]">{label}</span>
+            {description && <span className="block text-[10px] text-[var(--muted-foreground)] mt-0.5">{description}</span>}
+          </div>
         </div>
-        <div>
-          <span className="block text-[11px] font-medium text-[var(--app-foreground)]">{label}</span>
-          {description && <span className="block text-[10px] text-[var(--muted-foreground)] mt-0.5">{description}</span>}
-        </div>
+        {badge && (
+          <span className="text-[9px] px-1.5 py-0.5 rounded border border-[var(--panel-border)] text-[var(--muted-foreground)] bg-[var(--panel-alt)]">{badge}</span>
+        )}
       </div>
-      {badge && (
-        <span className="text-[9px] px-1.5 py-0.5 rounded border border-[var(--panel-border)] text-[var(--muted-foreground)] bg-[var(--panel-alt)]">{badge}</span>
-      )}
-    </div>
 
-    <div className="flex items-baseline gap-1.5 relative z-10">
-      <span className={`${featured ? 'text-3xl' : 'text-2xl'} font-extrabold font-mono text-[var(--app-foreground)] tracking-tight leading-none`}>
-        {value ?? '\u2014'}
-      </span>
-      {unit && <span className="text-sm font-mono text-[var(--muted-foreground)]">{unit}</span>}
-    </div>
+      <div className="flex items-baseline gap-1.5 relative z-10">
+        <span className={`${featured ? 'text-3xl' : 'text-2xl'} font-extrabold font-mono text-[var(--app-foreground)] tracking-tight leading-none`}>
+          {value ?? '\u2014'}
+        </span>
+        {unit && <span className="text-sm font-mono text-[var(--muted-foreground)]">{unit}</span>}
+      </div>
 
-    <Trend prev={prev} curr={curr} unit={unit} />
+      <Trend prev={prev} curr={curr} unit={unit} />
 
-  </motion.div>
-);
+    </motion.div>
+  );
+};
 
 // --- Skeleton de chargement ---
 const SkeletonCard = () => (
@@ -238,6 +241,296 @@ const SignalBars = ({ dbm }) => {
 };
 
 // ============================================================
+// COMPOSANT PREDICTION IA — Temps réel via Socket.io
+// ============================================================
+const PRIORITY_CONFIG = {
+  high:    { label: 'Priorité Élevée',   color: '#ef4444', bg: 'rgba(239,68,68,0.1)',   border: 'rgba(239,68,68,0.3)',   dot: 'bg-red-500'     },
+  medium:  { label: 'Priorité Modérée',  color: '#f59e0b', bg: 'rgba(245,158,11,0.1)',  border: 'rgba(245,158,11,0.3)',  dot: 'bg-amber-400'   },
+  low:     { label: 'Priorité Faible',   color: '#22c55e', bg: 'rgba(34,197,94,0.1)',   border: 'rgba(34,197,94,0.3)',   dot: 'bg-emerald-500' },
+  none:    { label: 'Aucune alerte',     color: '#6b7280', bg: 'rgba(107,114,128,0.1)', border: 'rgba(107,114,128,0.2)', dot: 'bg-zinc-500'    },
+};
+
+const ALERT_TYPE_LABELS = {
+  BATTERY_DEGRADATION: 'Dégradation Batterie',
+  battery_degradation: 'Dégradation Batterie',
+  ANOMALOUS_CONSUMPTION: 'Consommation Anormale',
+  anomalous_consumption: 'Consommation Anormale',
+  TEMP_WARNING: 'Avertissement Température',
+  temp_warning: 'Avertissement Température',
+  OVERHEATING: 'Surchauffe Matérielle',
+  overheating: 'Surchauffe Matérielle',
+  GRID_INSTABILITY: 'Instabilité du Réseau',
+  grid_instability: 'Instabilité du Réseau',
+  LOW_BATTERY: 'Batterie Faible',
+  low_battery: 'Batterie Faible',
+  CRITICAL_BATTERY: 'Batterie Critique',
+  critical_battery: 'Batterie Critique',
+  SOLAR_UNDERPERFORMANCE: 'Sous-performance Solaire',
+  solar_underperformance: 'Sous-performance Solaire',
+  GEOFENCE_EXIT: 'Sortie de Zone (Geofence)',
+  geofence_exit: 'Sortie de Zone (Geofence)',
+  SYSTEM_NORMAL: 'Système Normal',
+  normal: 'Normal',
+  none: 'Aucune'
+};
+
+const formatAlertType = (type) => {
+  if (!type) return 'Aucune';
+  if (ALERT_TYPE_LABELS[type]) return ALERT_TYPE_LABELS[type];
+  return type
+    .replace(/_/g, ' ')
+    .toLowerCase()
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+};
+
+const translateAlertTitle = (title, priority) => {
+  if (!title) {
+    return priority === 'none' ? 'Situation normale — aucune alerte détectée' : 'Alerte de fonctionnement détectée';
+  }
+  const lower = title.toLowerCase();
+  if (lower.includes('battery degradation')) return 'Avertissement de dégradation de la batterie';
+  if (lower.includes('anomalous consumption')) return 'Alerte de consommation électrique anormale';
+  if (lower.includes('overheating')) return 'Alerte de surchauffe du boîtier';
+  if (lower.includes('grid instability')) return 'Instabilité du réseau électrique';
+  if (lower.includes('low battery')) return 'Alerte de niveau de batterie bas';
+  return title;
+};
+
+const STATUS_LABELS = {
+  ok:               'Données enregistrées',
+  no_new_records:   'Aucun nouvel enregistrement (doublon ignoré)',
+  quarantined:      'Données mises en quarantaine',
+  error:            'Erreur de traitement',
+};
+
+function PredictionIATab({ kitId, showToast }) {
+  const [prediction, setPrediction] = useState(null);
+  const [isLiveMode, setIsLiveMode] = useState(false);
+  const [lastUpdate, setLastUpdate] = useState(null);
+  const [pulseKey, setPulseKey] = useState(0);
+  const serverUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
+  // Socket.io — écoute prediction:update depuis le script backend
+  useEffect(() => {
+    console.log("Tentative de connexion Socket.IO à", serverUrl);
+    const socket = io(serverUrl, { withCredentials: true, transports: ['websocket', 'polling'] });
+    
+    socket.on('connect', () => {
+      console.log("✅ Socket.IO connecté avec l'ID:", socket.id);
+    });
+    
+    socket.on('connect_error', (err) => {
+      console.error("❌ Erreur Socket.IO:", err.message);
+    });
+    
+    socket.on('prediction:update', ({ result, timestamp }) => {
+      console.log("📥 NOUVELLE PRÉDICTION REÇUE VIA SOCKET:", result);
+      setPrediction(result);
+      setLastUpdate(timestamp);
+      setPulseKey(k => k + 1);
+      setIsLiveMode(true);
+    });
+    return () => { socket.off('prediction:update'); socket.disconnect(); };
+  }, [serverUrl]);
+
+  const p = prediction;
+  const alert = p?.alert || null;
+  const priority = alert?.priority || 'none';
+  const cfg = PRIORITY_CONFIG[priority] || PRIORITY_CONFIG.none;
+  const metrics = p?.metrics || {};
+  const statusLabel = STATUS_LABELS[p?.status] || p?.status || '—';
+
+  const MetricBox = ({ label, value, sub, color = '#f97316' }) => (
+    <div className="flex flex-col gap-1 p-3.5 rounded-lg bg-zinc-950/60 border border-zinc-800/50">
+      <span className="text-[10px] uppercase tracking-[0.14em] font-mono text-zinc-500">{label}</span>
+      <span className="text-xl font-extrabold font-mono" style={{ color }}>{value ?? '—'}</span>
+      {sub && <span className="text-[10px] text-zinc-500 font-mono">{sub}</span>}
+    </div>
+  );
+
+  return (
+    <motion.div key="prediction"
+      initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}
+      className="space-y-4"
+    >
+      {/* Header */}
+      <Panel className="p-5">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-blue-400 mb-1">Module IA</p>
+            <h2 className="text-xl font-semibold tracking-tight text-zinc-100">Analyse Prédictive en Temps Réel</h2>
+            <p className="text-xs text-zinc-500 mt-1">
+              {isLiveMode
+                ? `Dernière mise à jour : ${lastUpdate ? new Date(lastUpdate).toLocaleTimeString('fr-FR') : '—'} · Données reçues automatiquement via le simulateur`
+                : 'En attente du simulateur IoT — lancez : node simulate-telemetry.js dans votre terminal'}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[11px] font-semibold ${isLiveMode ? 'border-blue-500/30 bg-blue-500/10 text-blue-400' : 'border-zinc-700 bg-zinc-900 text-zinc-500'}`}>
+              <span className={`w-2 h-2 rounded-full ${isLiveMode ? 'bg-blue-400 animate-pulse' : 'bg-zinc-600'}`} />
+              {isLiveMode ? 'Socket Connecté' : 'En attente…'}
+            </div>
+          </div>
+        </div>
+      </Panel>
+
+      {!p ? (
+        /* État vide */
+        <Panel className="p-12">
+          <div className="flex flex-col items-center gap-4 text-center">
+            <div className="w-16 h-16 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
+              <Activity size={28} className="text-blue-400" />
+            </div>
+            <div>
+              <p className="text-zinc-200 font-semibold text-sm mb-1">Aucune prédiction reçue</p>
+              <p className="text-zinc-500 text-xs max-w-xs">Lancez le simulateur dans votre terminal pour démarrer l'analyse automatique.</p>
+            </div>
+            <div className="mt-2 p-3 rounded-lg bg-zinc-950 border border-zinc-800 text-xs font-mono text-zinc-400">
+              <span className="text-zinc-600">$</span> node simulate-telemetry.js
+            </div>
+          </div>
+        </Panel>
+      ) : (
+        <>
+          {/* Alerte principale */}
+          <AnimatePresence mode="wait">
+            <motion.div key={`alert-${pulseKey}`}
+              initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <Panel className="p-5" glow color={cfg.color}>
+                <div className="flex items-start gap-4">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                    style={{ background: cfg.bg, border: `1px solid ${cfg.border}` }}>
+                    <ShieldAlert size={18} style={{ color: cfg.color }} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className={`w-2 h-2 rounded-full ${cfg.dot}`} />
+                      <span className="text-[11px] font-semibold font-mono uppercase tracking-wider" style={{ color: cfg.color }}>
+                        {cfg.label}
+                      </span>
+                      {alert?.type && (
+                        <span className="px-2 py-0.5 text-[10px] font-mono rounded border" style={{ borderColor: cfg.border, background: cfg.bg, color: cfg.color }}>
+                          {formatAlertType(alert.type)}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-zinc-100 font-semibold mt-1 text-sm">
+                      {translateAlertTitle(alert?.title, priority)}
+                    </p>
+                    {alert?.message && (
+                      <p className="text-zinc-400 text-xs mt-1 leading-relaxed">{alert.message}</p>
+                    )}
+                    {alert?.recommended_action && (
+                      <div className="mt-3 p-3 rounded-lg text-xs leading-relaxed"
+                        style={{ background: cfg.bg, border: `1px solid ${cfg.border}`, color: cfg.color }}>
+                        <span className="font-semibold">Action recommandée : </span>{alert.recommended_action}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </Panel>
+            </motion.div>
+          </AnimatePresence>
+
+
+          {/* Statut + scores */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Panel className="p-5">
+              <SectionTitle icon={CheckCircle2} title="Statut du pipeline" color="#22c55e" />
+              <div className="space-y-2">
+                {[
+                  { label: 'Statut du traitement',        value: statusLabel },
+                  { label: 'Priorité alerte',              value: cfg.label, color: cfg.color },
+                  { label: 'Type d\'alerte',               value: formatAlertType(alert?.type) },
+                  { label: 'ID de l\'appareil ciblé',      value: alert?.device_id || '—' },
+                ].map(({ label, value, color }) => (
+                  <div key={label} className="flex items-center justify-between p-2.5 rounded-lg bg-zinc-950/60 border border-zinc-800/50">
+                    <span className="text-[11px] font-mono text-zinc-400">{label}</span>
+                    <span className="text-[11px] font-mono font-semibold" style={{ color: color || '#d4d4d8' }}>{value}</span>
+                  </div>
+                ))}
+              </div>
+            </Panel>
+
+            <Panel className="p-5">
+              <SectionTitle icon={Activity} title="Analyse des Risques (IA)" color="#f59e0b" />
+              <div className="space-y-3">
+                {[
+                  { 
+                    label: 'Risque de Maintenance', 
+                    priority: alert?.maintenance_priority,
+                    color: '#f59e0b',
+                    getDesc: (p) => p === 'critical' ? { pct: 95, text: "Intervention technique urgente recommandée. Composants matériels en dégradation sévère." } :
+                                    p === 'high'     ? { pct: 85, text: "Intervention technique recommandée à court terme. Anomalies matérielles détectées." } :
+                                    p === 'medium'   ? { pct: 50, text: "Signes d'usure anormale. À surveiller lors de la prochaine révision." } :
+                                    p === 'low'      ? { pct: 20, text: "Légère déviation des paramètres de santé. Comportement globalement normal." } :
+                                                       { pct: 5,  text: "Matériel en bon état de fonctionnement. Aucun besoin de maintenance." }
+                  },
+                  { 
+                    label: 'Risque de Sécurité', 
+                    priority: alert?.security_priority,
+                    color: '#ef4444',
+                    getDesc: (p) => p === 'critical' ? { pct: 95, text: "DANGER: Risque de dommage matériel immédiat (surchauffe, surcharge)." } :
+                                    p === 'high'     ? { pct: 85, text: "Avertissement critique : comportements très anormaux pouvant mener à une défaillance de sécurité." } :
+                                    p === 'medium'   ? { pct: 50, text: "Comportement suspect ou limites d'utilisation approchées." } :
+                                    p === 'low'      ? { pct: 20, text: "Quelques métriques s'approchent des limites, mais restent sécuritaires." } :
+                                                       { pct: 5,  text: "Sécurité optimale. Aucun comportement risqué détecté." }
+                  },
+                  { 
+                    label: 'Score Global d\'Alerte', 
+                    priority: alert?.priority,
+                    color: '#a78bfa',
+                    getDesc: (p) => p === 'critical' ? { pct: 95, text: "Situation critique nécessitant une prise en charge immédiate par le support." } :
+                                    p === 'high'     ? { pct: 85, text: "Problème sévère détecté. Une action rapide est nécessaire pour éviter la panne." } :
+                                    p === 'medium'   ? { pct: 50, text: "Anomalie modérée. Un agent commercial ou technique devrait vérifier." } :
+                                    p === 'low'      ? { pct: 20, text: "Alerte mineure ou fluctuation temporaire. À observer." } :
+                                                       { pct: 5,  text: "Kit solaire parfaitement sain et autonome." }
+                  },
+                ].map(({ label, priority, color, getDesc }) => {
+                  // Si priority n'existe pas et qu'il n'y a pas d'alerte, on l'ignore
+                  if (!priority && !alert) return null;
+                  const { pct, text } = getDesc(priority || 'none');
+                  return (
+                    <div key={label} className="p-3 rounded-lg bg-zinc-950/60 border border-zinc-800/50 flex flex-col gap-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color }}>{label}</span>
+                        <span className="text-sm font-black font-mono" style={{ color }}>{pct} %</span>
+                      </div>
+                      <p className="text-[11px] text-zinc-400 leading-relaxed border-l-2 pl-2" style={{ borderLeftColor: color }}>
+                        {text}
+                      </p>
+                    </div>
+                  );
+                })}
+                
+                {alert?.confidence != null && (
+                  <div className="flex items-center justify-between p-2.5 rounded-lg bg-emerald-950/20 border border-emerald-900/30">
+                    <span className="text-[11px] font-mono text-emerald-500/70">Fiabilité de la prédiction IA</span>
+                    <span className="text-[11px] font-mono font-bold text-emerald-400">
+                      {Math.round(alert.confidence * 100)} %
+                    </span>
+                  </div>
+                )}
+                
+                {!alert && (
+                  <div className="p-3 rounded-lg bg-zinc-950/60 border border-zinc-800/50 flex flex-col gap-1.5 text-center py-6">
+                    <span className="text-sm font-semibold text-zinc-400">Aucun score disponible</span>
+                    <p className="text-[11px] text-zinc-500">Le modèle n'a pas encore analysé d'enregistrement.</p>
+                  </div>
+                )}
+              </div>
+            </Panel>
+          </div>
+        </>
+      )}
+    </motion.div>
+  );
+}
+
+// ============================================================
 // COMPOSANT PRINCIPAL
 // ============================================================
 export default function SmartKitDetails() {
@@ -245,6 +538,7 @@ export default function SmartKitDetails() {
   const kitId = searchParams.get('kitId');
   const [activeTab, setActiveTab] = useState('Synth\u00e8se');
   const [toast, setToast] = useState(null);
+  const [aiPredictionData, setAiPredictionData] = useState(null);
   const [now, setNow] = useState(new Date());
   const prevTelRef = useRef(null);
   // Chargement initial : on laisse 3.5s au serveur pour détecter l'état réel
@@ -337,7 +631,7 @@ export default function SmartKitDetails() {
     };
   });
 
-  const tabs = ['Synth\u00e8se', '\u00c9nergie Solaire', 'Environnement', 'R\u00e9seau & GPS'];
+  const tabs = ['Synth\u00e8se', '\u00c9nergie Solaire', 'Environnement', 'R\u00e9seau & GPS', 'Pr\u00e9diction IA'];
 
   const showToast = (msg) => {
     setToast(msg);
@@ -369,13 +663,21 @@ export default function SmartKitDetails() {
         <div className="max-w-screen-2xl mx-auto px-5 py-3">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex items-center gap-4">
+              {/* Point de statut simple — sans icone */}
+              <div className="relative">
+                <div className="w-10 h-10 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center">
+                  <span className={`w-3 h-3 rounded-full ${isLive ? 'bg-emerald-500' : 'bg-zinc-600'}`}>
+                    {isLive && <span className="absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-60" />}
+                  </span>
+                </div>
+              </div>
               <div>
                 <div className="flex items-center gap-2.5 flex-wrap">
                   <h1 className="text-lg font-bold font-mono text-[var(--app-foreground)] tracking-tight">{kitId || 'DK-SOLAR-092'}</h1>
                   {/* Badge statut — termes non-techniques */}
                   <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-[10px] font-semibold tracking-wide ${isLive
-                      ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-400'
-                      : 'bg-zinc-900 border-zinc-800 text-zinc-400'
+                    ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-400'
+                    : 'bg-zinc-900 border-zinc-800 text-zinc-400'
                     }`}>
                     <span className={`w-1.5 h-1.5 rounded-full ${isLive ? 'bg-emerald-400 animate-pulse' : 'bg-zinc-600'}`} />
                     {isLive ? 'Actif — données en direct' : 'Inactif — dernier relevé connu'}
@@ -388,8 +690,8 @@ export default function SmartKitDetails() {
                   {/* Badge source — termes non-techniques */}
                   {T && (
                     <div className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-[10px] font-medium ${dataSource === 'live'
-                        ? 'bg-orange-500/10 border-orange-500/25 text-orange-400'
-                        : 'bg-zinc-900 border-zinc-800 text-zinc-400'
+                      ? 'bg-orange-500/10 border-orange-500/25 text-orange-400'
+                      : 'bg-zinc-900 border-zinc-800 text-zinc-400'
                       }`}>
                       {dataSource === 'live'
                         ? <><Radio size={9} className="animate-pulse" /> Mis à jour automatiquement</>
@@ -469,32 +771,32 @@ export default function SmartKitDetails() {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
-              <MetricCard icon={Battery} label="Batterie disponible" description="Niveau d'énergie restant" value={T?.state_of_charge_pct} unit="%" color="#10b981"
-                prev={P?.state_of_charge_pct} curr={T?.state_of_charge_pct} badge="Priorité" featured />
-              <MetricCard icon={BatteryCharging} label="Tension de la batterie" description="Stabilité de l'alimentation" value={T?.battery_voltage_v} unit=" V" color="#f97316"
-                prev={P?.battery_voltage_v} curr={T?.battery_voltage_v} badge="Batterie" featured />
-              <MetricCard icon={Zap} label="Production instantanée" description="Puissance fournie par le panneau" value={T?.solar_power_w} unit=" W" color="#eab308"
-                prev={P?.solar_power_w} curr={T?.solar_power_w} badge="Solaire" featured />
-              <MetricCard icon={Activity} label="Consommation actuelle" description="Énergie utilisée maintenant" value={T?.battery_power_w} unit=" W" color="#a78bfa"
-                prev={P?.battery_power_w} curr={T?.battery_power_w} badge="Usage" featured />
+                <MetricCard icon={Battery} label="Batterie disponible" description="Niveau d'énergie restant" value={T?.state_of_charge_pct} unit="%" color="#10b981"
+                  prev={P?.state_of_charge_pct} curr={T?.state_of_charge_pct} badge="Priorité" featured />
+                <MetricCard icon={BatteryCharging} label="Tension de la batterie" description="Stabilité de l'alimentation" value={T?.battery_voltage_v} unit=" V" color="#f97316"
+                  prev={P?.battery_voltage_v} curr={T?.battery_voltage_v} badge="Batterie" featured />
+                <MetricCard icon={Zap} label="Production instantanée" description="Puissance fournie par le panneau" value={T?.solar_power_w} unit=" W" color="#eab308"
+                  prev={P?.solar_power_w} curr={T?.solar_power_w} badge="Solaire" featured />
+                <MetricCard icon={Activity} label="Consommation actuelle" description="Énergie utilisée maintenant" value={T?.battery_power_w} unit=" W" color="#a78bfa"
+                  prev={P?.battery_power_w} curr={T?.battery_power_w} badge="Usage" featured />
 
-              <MetricCard icon={ShieldCheck} label="Sant\u00e9 Batterie" value={T?.state_of_health_pct} unit="%" color="#06b6d4"
-                prev={null} curr={null} badge="SoH" />
-              <MetricCard icon={Sun} label="Tension Panneau PV" value={T?.solar_voltage_v} unit=" V" color="#fbbf24"
-                prev={P?.solar_voltage_v} curr={T?.solar_voltage_v} badge="PV" />
-              <MetricCard icon={TrendingUp} label="Courant Solaire" value={T?.solar_current_a} unit=" A" color="#fb923c"
-                prev={P?.solar_current_a} curr={T?.solar_current_a} badge="PV" />
-              <MetricCard icon={Layers} label="Puissance Solaire" value={T?.solar_power_w} unit=" W" color="#f97316"
-                prev={P?.solar_power_w} curr={T?.solar_power_w} badge="PV" />
+                <MetricCard icon={ShieldCheck} label="Sant\u00e9 Batterie" value={T?.state_of_health_pct} unit="%" color="#06b6d4"
+                  prev={null} curr={null} badge="SoH" />
+                <MetricCard icon={Sun} label="Tension Panneau PV" value={T?.solar_voltage_v} unit=" V" color="#fbbf24"
+                  prev={P?.solar_voltage_v} curr={T?.solar_voltage_v} badge="PV" />
+                <MetricCard icon={TrendingUp} label="Courant Solaire" value={T?.solar_current_a} unit=" A" color="#fb923c"
+                  prev={P?.solar_current_a} curr={T?.solar_current_a} badge="PV" />
+                <MetricCard icon={Layers} label="Puissance Solaire" value={T?.solar_power_w} unit=" W" color="#f97316"
+                  prev={P?.solar_power_w} curr={T?.solar_power_w} badge="PV" />
 
-              <MetricCard icon={Zap} label="Énergie produite (cumul)" description="Total généré depuis le dernier relevé" value={T?.energy_generated_wh} unit=" Wh" color="#34d399"
-                prev={null} curr={null} badge="Total" />
-              <MetricCard icon={Thermometer} label="Temp. Bo\u00eetier" value={T?.device_temperature_c} unit="\u00b0C" color="#f43f5e"
-                prev={P?.device_temperature_c} curr={T?.device_temperature_c} badge="ESP32" />
-              <MetricCard icon={Thermometer} label="Temp. Ambiante" value={T?.ambient_temperature_c} unit="\u00b0C" color="#fb7185"
-                prev={P?.ambient_temperature_c} curr={T?.ambient_temperature_c} badge="EXT" />
-              <MetricCard icon={Droplets} label="Humidit\u00e9" value={T?.humidity_pct} unit="%" color="#38bdf8"
-                prev={P?.humidity_pct} curr={T?.humidity_pct} badge="RH" />
+                <MetricCard icon={Zap} label="Énergie produite (cumul)" description="Total généré depuis le dernier relevé" value={T?.energy_generated_wh} unit=" Wh" color="#34d399"
+                  sparkData={[]} prev={null} curr={null} badge="Total" />
+                <MetricCard icon={Thermometer} label="Temp. Boîtier" value={T?.device_temperature_c} unit="°C" color="#f43f5e"
+                  sparkData={[]} prev={P?.device_temperature_c} curr={T?.device_temperature_c} badge="ESP32" />
+                <MetricCard icon={Thermometer} label="Temp. Ambiante" value={T?.ambient_temperature_c} unit="\u00b0C" color="#fb7185"
+                  prev={P?.ambient_temperature_c} curr={T?.ambient_temperature_c} badge="EXT" />
+                <MetricCard icon={Droplets} label="Humidit\u00e9" value={T?.humidity_pct} unit="%" color="#38bdf8"
+                  prev={P?.humidity_pct} curr={T?.humidity_pct} badge="RH" />
 
               </div>
 
@@ -537,8 +839,8 @@ export default function SmartKitDetails() {
                           <span className="text-[11px] font-mono text-zinc-400">{label}</span>
                         </div>
                         <span className={`text-[11px] font-mono px-2 py-0.5 rounded border ${alert || (value && value !== 'NONE' && value !== 'NON')
-                            ? 'bg-red-500/10 border-red-500/25 text-red-400'
-                            : 'bg-emerald-500/10 border-emerald-500/25 text-emerald-400'
+                          ? 'bg-red-500/10 border-red-500/25 text-red-400'
+                          : 'bg-emerald-500/10 border-emerald-500/25 text-emerald-400'
                           }`}>{value || 'AUCUN'}</span>
                       </div>
                     ))}
@@ -701,8 +1003,8 @@ export default function SmartKitDetails() {
                     </div>
                   </div>
                   <span className={`text-xs font-mono px-3 py-1 rounded-full border ${(T?.device_temperature_c ?? 0) > 60
-                      ? 'bg-red-500/15 border-red-500/25 text-red-400'
-                      : 'bg-emerald-500/15 border-emerald-500/25 text-emerald-400'
+                    ? 'bg-red-500/15 border-red-500/25 text-red-400'
+                    : 'bg-emerald-500/15 border-emerald-500/25 text-emerald-400'
                     }`}>
                     {(T?.device_temperature_c ?? 0) > 60 ? '\u26a0 Seuil critique approch\u00e9' : '\u2713 Temp\u00e9rature nominale'}
                   </span>
@@ -857,6 +1159,11 @@ export default function SmartKitDetails() {
                 </div>
               </Panel>
             </motion.div>
+          )}
+
+          {/* ===== PREDICTION IA ===== */}
+          {activeTab === 'Prédiction IA' && (
+            <PredictionIATab kitId={kitId} showToast={showToast} />
           )}
 
         </AnimatePresence>

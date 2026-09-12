@@ -43,11 +43,11 @@ export default function ThemeToggle() {
       type="button"
       aria-label={isDark ? 'Activer le thème clair' : 'Activer le thème sombre'}
       onClick={toggleTheme}
-      whileHover={{ scale: 1.04, y: -1 }}
-      whileTap={{ scale: 0.97 }}
-      className="fixed bottom-24 left-5 z-50 inline-flex items-center gap-2 rounded-full border border-[var(--panel-border)] bg-[var(--panel)]/95 px-3 py-2 shadow-[0_18px_40px_rgba(15,23,42,0.18)] backdrop-blur-xl transition-all duration-400 hover:border-orange-500/50 hover:shadow-[0_18px_40px_rgba(249,115,22,0.18)] sm:bottom-6 sm:left-auto sm:right-[220px]"
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
+      className="flex items-center gap-2 rounded-xl border border-[var(--panel-border)] bg-[var(--panel-alt)] px-3 py-2 text-xs font-semibold text-[var(--app-foreground)] hover:bg-[var(--panel)] hover:text-[#FF7900] transition-colors"
     >
-      <span className="relative flex h-8 w-8 items-center justify-center rounded-full bg-[var(--panel-alt)] text-[var(--app-foreground)] ring-1 ring-[var(--panel-border)]">
+      <span className="flex items-center justify-center text-[var(--app-foreground)]">
         <motion.span
           key={isDark ? 'dark' : 'light'}
           initial={{ rotate: -35, opacity: 0, scale: 0.7 }}
@@ -55,12 +55,13 @@ export default function ThemeToggle() {
           transition={{ duration: 0.25, ease: 'easeOut' }}
           className="flex items-center justify-center"
         >
-          {isDark ? <SunMedium size={16} className="text-orange-400" /> : <MoonStar size={16} className="text-orange-500" />}
+          {isDark ? <SunMedium size={17} className="text-orange-400" /> : <MoonStar size={17} className="text-orange-500" />}
         </motion.span>
       </span>
-      <span className="hidden text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--app-foreground)] sm:inline">
-        {isDark ? 'Mode clair' : 'Mode sombre'}
+      <span className="hidden sm:inline text-xs font-medium">
+        {isDark ? 'Clair' : 'Sombre'}
       </span>
     </motion.button>
   );
 }
+

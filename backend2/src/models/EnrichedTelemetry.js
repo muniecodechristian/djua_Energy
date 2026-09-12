@@ -61,7 +61,11 @@ const TelemetryRecordSchema = new mongoose.Schema({
   humidity_pct:         { type: Number, default: 0 },
 
   // Contexte géographique
-  region:            { type: String, default: 'unknown' },
+  region:            { type: String, default: 'kinshasa' },
+  geofence_status:   { type: String, default: 'inside' },
+  enclosure_opened:  { type: Boolean, default: false },
+  season:            { type: String, default: 'dry' },
+  day_period:        { type: String, default: 'day' },
   installation_type: { type: String, default: 'household_rooftop' },
 }, { _id: false, strict: false }); // strict: false pour les champs ML additionnels
 

@@ -27,7 +27,9 @@ class IAService {
     if (data?.answer) {
       return {
         assistant_message: data.answer,
-        next_questions: [],
+        answer: data.answer,
+        error: data.error,
+        next_questions: data.next_questions || [],
         can_recommend: false,
         used_ai: data.used_llm ?? false,
         source,
@@ -44,45 +46,11 @@ class IAService {
     };
   }
 
-  // ─── Fallback 100% local (aucun appel réseau) ───────────────────────────────
-  buildFallbackResponse(message = '') {
-    const q = message.toLowerCase();
-    let text =
-      "Je suis Djua Copilot. Le modèle IA distant est momentanément indisponible. Voici une réponse depuis le contexte local de la flotte.";
-
-    if (q.includes('device') || q.includes('boitier') || q.includes('kit') || q.includes('parc')) {
-      text =
-        "Analyse du parc : L'état global des équipements indique une disponibilité de 98.4%. Les boîtiers affichant une tension batterie inférieure à 11.5V ou une alerte tamper sont classés en priorité d'intervention.";
-    } else if (q.includes('maintenance') || q.includes('panne') || q.includes('risque')) {
-      text =
-        "Évaluation du risque maintenance : 2 kits solaires présentent des indicateurs de baisse de santé batterie (SoH < 75%). Une visite préventive est recommandée sous 48h.";
-    } else if (
-      q.includes('fraude') ||
-      q.includes('geofence') ||
-      q.includes('securite') ||
-      q.includes('sécurité')
-    ) {
-      text =
-        "Sécurité & Fraudolog : Le module de géofencing et les capteurs d'ouverture de boîtier sont actifs. Toute sortie de périmètre de 90m déclenche un signalement instantané.";
-    }
-
-    return {
-      assistant_message: text,
-      next_questions: [
-        "Quels sont les kits nécessitant une maintenance ?",
-        "Comment est calculé le risque de panne batterie ?",
-        "Afficher le statut de sécurité du parc",
-      ],
-      can_recommend: true,
-      used_ai: false,
-      source: 'LOCAL_FALLBACK',
-    };
-  }
-
-  // ─── Tentative sur un endpoint donné ────────────────────────────────────────
-  async tryEndpoint(endpoint, payload, label) {
+  async tryEndpoint(endpoint, payload, label, contextErrors) {
     try {
       const resp = await this.client.post(endpoint, payload);
+      console.log(`\n[IA API] 📥 RAW JSON RESPONSE from ${label}:`);
+      console.log(JSON.stringify(resp.data, null, 2));
       const normalized = this.normalizeMLResponse(resp.data, label);
       console.log(`[IA API] ✅ ${label} → réponse reçue`, {
         status: resp.status,
@@ -93,6 +61,12 @@ class IAService {
     } catch (err) {
       const status = err.response?.status || 0;
       const rawBody = err.response?.data;
+      const isTimeout = err.code === 'ECONNABORTED';
+      
+      if (isTimeout) {
+        contextErrors.timeout = true;
+      }
+
       console.warn(`[IA API] ⚠️ ${label} indisponible`, {
         status: status || err.code || 'NETWORK',
         body: typeof rawBody === 'string' ? rawBody.slice(0, 200) : JSON.stringify(rawBody)?.slice(0, 200),
@@ -109,26 +83,37 @@ class IAService {
 
     const trimmed = (message || '').trim();
 
+    const contextErrors = { timeout: false };
+
     // 1️⃣ Endpoint principal : /ai/chat  (schéma: { message })
     const primary = await this.tryEndpoint(
       '/ai/chat',
       { message: trimmed },
-      'REMOTE /ai/chat'
+      'REMOTE /ai/chat',
+      contextErrors
     );
     if (primary) return primary;
 
     // 2️⃣ Endpoint de secours : /demo/kit-console/chat  (schéma: { message, context })
-    // Cet endpoint fonctionne même quand /ai/chat est en 500
     const secondary = await this.tryEndpoint(
       '/demo/kit-console/chat',
       { message: trimmed, context: context || {} },
-      'REMOTE /demo/kit-console/chat'
+      'REMOTE /demo/kit-console/chat',
+      contextErrors
     );
     if (secondary) return secondary;
 
-    // 3️⃣ Fallback local (aucun fournisseur disponible)
-    console.info('[IA API] ⛔ Tous les endpoints distants sont indisponibles. Réponse locale activée.');
-    return this.buildFallbackResponse(message);
+    // 3️⃣ Aucun fournisseur disponible
+    console.error('[IA API] ⛔ Tous les endpoints distants sont indisponibles.');
+    
+    let errorMsg = "Le modèle IA est actuellement injoignable.";
+    if (contextErrors.timeout) {
+      errorMsg = "Le service IA a pris beaucoup de temps pour répondre (délai dépassé). Veuillez réessayer plus tard.";
+    }
+    
+    const error = new Error(errorMsg);
+    error.status = 503;
+    throw error;
   }
 }
 

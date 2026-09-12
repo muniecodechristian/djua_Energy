@@ -179,6 +179,14 @@ export default function AIAssistant() {
     const data = payload?.data ?? payload;
     if (!data) return { text: "Aucune réponse reçue.", nextQuestions: [] };
 
+    // Si l'API ML renvoie un 'answer' direct (comme dans le swagger)
+    if (data.answer) {
+      return {
+        text: data.answer,
+        nextQuestions: data.next_questions || data.nextQuestions || []
+      };
+    }
+
     // Si c'est le format spécifique avec assistant_message
     if (data.assistant_message) {
       return {
@@ -187,7 +195,7 @@ export default function AIAssistant() {
       };
     }
 
-    // Ne jamais afficher directement une erreur renvoyée dans une réponse 2xx.
+    // Ne jamais afficher directement une erreur si on n'a pas de réponse (answer ou assistant_message)
     if (data.error || data.errors) {
       return {
         text: "L'assistant est momentanément indisponible. Réessayez dans quelques instants.",

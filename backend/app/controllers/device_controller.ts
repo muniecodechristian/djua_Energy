@@ -1,7 +1,9 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { Kit,Telemetry,Alert } from '../models/index.js'
 import { publishCommand } from '../services/mqtt_service.js'
+
 const memory:Record<string,any>={}; const history:any[]=[]; const alertHistory:any[]=[]
+
 export async function health({response}:HttpContext){ return response.ok({success:true,status:'ok',message:'Backend is running',timestamp:new Date().toISOString()}) }
 export async function devices({response}:HttpContext){ const rows=await Kit.find().lean(); return response.ok({success:true,count:rows.length,data:rows}) }
 export async function device({params,response}:HttpContext){ const kit:any=await Kit.findOne({kitId:params.deviceId}).lean(); if(!kit)return response.notFound({success:false,message:'�quipement non trouv�'}); const t:any=await Telemetry.findOne({kitId:params.deviceId}).sort({createdAt:-1}).lean(); const a=await Alert.find({kitId:params.deviceId,status:'active'}).lean(); return response.ok({success:true,data:{...kit,telemetry:t?.battery||null,alerts:a}}) }

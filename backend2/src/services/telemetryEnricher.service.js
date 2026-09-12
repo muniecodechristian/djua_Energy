@@ -8,12 +8,12 @@ export const RETIRED_TELEMETRY_FIELDS = new Set([
   'serial_number', 'serialNumber',
   'battery_temperature_c', 'battery_age_months', 'distance_from_installation_m',
   'movement_detected', 'movement_duration_seconds', 'movement_event_count',
-  'tamper_detected', 'enclosure_opened', 'connection_status', 'connectivity_type',
+  'tamper_detected', 'connection_status', 'connectivity_type',
   'network_quality', 'connectivity_gap_seconds', 'security_risk_zone',
   'panel_temperature_c', 'solar_irradiance_w_m2', 'gps_accuracy_m',
   'impact_detected', 'identity_mismatch_detected', 'short_circuit_detected',
   'reset_count', 'sensor_failure_detected', 'device_error_code', 'usage_profile',
-  'season', 'day_period', 'speed_mps', 'network_operator',
+  'speed_mps', 'network_operator',
   'batteryTemperature', 'distanceInstallationM', 'movement', 'tamper',
   'connection', 'networkQuality', 'connectivityGapSeconds', 'riskZone',
   'panelTemperature', 'irradiance', 'gpsAccuracy', 'movementDuration',
@@ -69,6 +69,12 @@ function buildRecord(iotPayload, { kitId, deviceId, kitInfo }) {
   const ambientTemp = iotPayload.device_temperature_c
     ? Math.round(iotPayload.device_temperature_c - 4)
     : 34;
+
+  const currentMonth = new Date().getMonth();
+  const isDrySeason = currentMonth >= 5 && currentMonth <= 8; // Juin à Septembre
+  const season = isDrySeason ? 'dry' : 'rainy';
+  const currentHour = new Date().getHours();
+  const day_period = (currentHour >= 6 && currentHour < 18) ? 'day' : 'night';
   return {
     message_id: iotPayload.message_id || `msg-${Date.now()}`,
     schema_version: String(iotPayload.schema_version || '1.0'),
@@ -96,10 +102,14 @@ function buildRecord(iotPayload, { kitId, deviceId, kitInfo }) {
     energy_consumed_wh: Number(iotPayload.energy_consumed_wh ?? 0),
     overload_detected: iotPayload.overload_detected ?? false,
     abnormal_consumption_detected: iotPayload.abnormal_consumption_detected ?? iotPayload.overload_detected ?? false,
+    geofence_status: iotPayload.geofence_status || 'inside',
+    enclosure_opened: iotPayload.enclosure_opened ?? false,
     latitude: Number(iotPayload.latitude ?? 0.0),
     longitude: Number(iotPayload.longitude ?? 0.0),
     device_temperature_c: Number(deviceTemp),
-    region: iotPayload.region || kitInfo?.region || 'urban_periurban',
+    region: iotPayload.region || kitInfo?.region || 'kinshasa',
+    season: iotPayload.season || season,
+    day_period: iotPayload.day_period || day_period,
     ambient_temperature_c: Number(iotPayload.ambient_temperature_c ?? ambientTemp),
     humidity_pct: Number(iotPayload.humidity_pct ?? 62),
     installation_type: iotPayload.installation_type || kitInfo?.installationType || 'household_rooftop',

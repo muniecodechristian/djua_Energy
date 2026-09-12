@@ -3,7 +3,6 @@ import { Toaster } from 'react-hot-toast';
 import { Bot, Sparkles } from 'lucide-react';
 import { useCheckAuth } from './hooks/tanstack/useAuthMutations.js';
 import useAuthStore from './hooks/Zustand/useAuthStore.js';
-import ThemeToggle from './components/ThemeToggle';
 
 import Dashboard from './pages/Dashboard';
 import LoginTeak from './pages/LoginTeak';
@@ -81,7 +80,6 @@ function App() {
           error: { style: { borderColor: 'rgba(239, 68, 68, 0.5)' } },
         }}
       />
-      <ThemeToggle />
       <Routes>
         {/* Route publique */}
         <Route path="/" element={<LoginTeak />} />

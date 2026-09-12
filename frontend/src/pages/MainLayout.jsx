@@ -6,6 +6,7 @@ import { Button } from "../components/ui/button";
 import Sidebar from '@/components/Sidebar';
 import AIAssistant from '@/components/AIAssistant';
 import ErrorBoundary from '@/components/ErrorBoundary';
+import ThemeToggle from '@/components/ThemeToggle';
 import { useAlertsQuery, useDevicesQuery, useKitsQuery } from '@/hooks/tanstack/useKitQueries';
 
 const PageLoader = () => (
@@ -159,6 +160,7 @@ export default function MainLayout() {
                 <Bell size={18} />
               </Button>
             </motion.div>
+            <ThemeToggle />
           </div>
         </header>
 
