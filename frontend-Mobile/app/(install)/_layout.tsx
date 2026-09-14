@@ -8,7 +8,7 @@ export default function InstallLayout() {
   return (
     <Stack
       screenOptions={{
-        headerShown: true,
+        headerShown: false,
         headerStyle: {
           backgroundColor: '#FFFFFF',
         },
@@ -19,22 +19,8 @@ export default function InstallLayout() {
           fontWeight: '600',
         },
 
-        headerLeft: () => (
-          <TouchableOpacity
-            onPress={() => router.canGoBack() ? router.back() : router.replace('/')}
-            style={styles.headerButton}
-          >
-            <ChevronLeft size={24} color="#111827" />
-          </TouchableOpacity>
-        ),
-        headerRight: () => (
-          <TouchableOpacity
-            onPress={() => router.replace('/')}
-            style={styles.headerButton}
-          >
-            <X size={20} color="#6B7280" />
-          </TouchableOpacity>
-        ),
+
+
         contentStyle: {
           backgroundColor: '#FFFFFF',
         }
