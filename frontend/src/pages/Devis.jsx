@@ -35,6 +35,8 @@ import {
   X,
   Sparkles,
 } from 'lucide-react';
+import { useSolarRecommend } from '../hooks/tanstack/useSolarAdvisor';
+import SolarAdvisorResult, { SolarAdvisorTrigger } from '../components/SolarAdvisorResult';
 
 // --- COMPOSANT CARTE ADRESSE CLIENT ---
 function ClientAddressMap({ address }) {
@@ -878,6 +880,8 @@ export default function Devis() {
   const [isValidated, setIsValidated] = useState(Boolean(savedDraft?.isValidated));
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isQuoteOpen, setIsQuoteOpen] = useState(false);
+  const [mlResult, setMlResult] = useState(null);
+  const { mutate: recommendSolar, isPending: isRecommending } = useSolarRecommend();
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -1040,6 +1044,25 @@ export default function Devis() {
     }, 900);
   };
 
+  const handleAIRecommend = () => {
+    recommendSolar(
+      {
+        appliances,
+        clientInfo: selectedProfile === 'entreprise' ? companyForm : clientForm,
+        projectForm,
+      },
+      {
+        onSuccess: (data) => {
+          setMlResult(data);
+          toast.success("Recommandation générée par l'IA Djua.");
+        },
+        onError: () => {
+          toast.error("L'IA n'est pas disponible. Veuillez utiliser le devis standard.");
+        },
+      }
+    );
+  };
+
   const currentTitle = currentStep === 'profile' ? 'Choisir le profil' : currentStep === 'type' ? (selectedProfile === 'entreprise' ? 'Type d’entreprise' : 'Type de maison') : currentStep === 'details' ? (selectedProfile === 'entreprise' ? 'Données de l’établissement' : 'Identité du client') : currentStep === 'equipment' ? 'Équipements & dimensionnement' : 'Résumé final';
 
   return (
@@ -1182,7 +1205,28 @@ export default function Devis() {
 
                   <div className="rounded-2xl border border-zinc-800 bg-zinc-900/80 p-4"><div className="mb-3 flex items-center justify-between gap-3"><p className="text-[10px] uppercase tracking-[0.22em] text-zinc-500">Appareils cochés</p><span className="rounded-full border border-orange-500/30 bg-orange-500/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-orange-300">{appliances.reduce((sum, item) => sum + item.quantity, 0)} total</span></div><div className="space-y-2">{appliances.map((item) => { const ItemIcon = resolveCategoryIcon(item.category); return <div key={item.id} className="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-950/60 px-3 py-2 text-sm text-zinc-200"><div className="flex items-center gap-3"><span className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-800"><ItemIcon size={14} className="text-orange-300" /></span><div><p className="font-medium text-white">{item.name}</p><p className="text-[11px] text-zinc-400">{item.category}</p></div></div><div className="text-right text-xs text-zinc-400"><p>{item.quantity} × {item.watts} W</p><p>{(item.watts * item.hours * item.quantity / 1000).toFixed(2)} kWh/j</p></div></div>; })}</div>
 </div>                </div>
-                <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end"><button type="button" onClick={() => setCurrentStep('equipment')} className="rounded-full border border-zinc-700 bg-zinc-900/80 px-4 py-2.5 text-sm text-zinc-200 transition hover:border-orange-500/50 hover:text-white">Modifier</button><button type="button" onClick={handleSubmit} disabled={isSubmitting} className="inline-flex items-center justify-center gap-2 rounded-full bg-orange-500 px-5 py-3 text-sm font-semibold text-white shadow-[0_16px_30px_rgba(249,115,22,0.3)] transition hover:bg-orange-400 disabled:cursor-not-allowed disabled:bg-zinc-700 disabled:shadow-none">{isSubmitting ? 'Soumission...' : 'Valider le devis'}</button></div>
+                {mlResult && (
+                  <div className="mt-6">
+                    <SolarAdvisorResult 
+                      result={mlResult} 
+                      onClose={() => setMlResult(null)}
+                      onContactRequest={(id) => toast.success(`Demande de contact envoyée pour la recommandation ${id}`)}
+                    />
+                  </div>
+                )}
+                <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
+                  <button type="button" onClick={() => setCurrentStep('equipment')} className="rounded-full border border-zinc-700 bg-zinc-900/80 px-4 py-2.5 text-sm text-zinc-200 transition hover:border-orange-500/50 hover:text-white">Modifier</button>
+                  {!mlResult && (
+                    <div className="flex-1 sm:max-w-xs ml-auto">
+                      <SolarAdvisorTrigger 
+                        isLoading={isRecommending} 
+                        hasResult={!!mlResult}
+                        onClick={handleAIRecommend}
+                      />
+                    </div>
+                  )}
+                  <button type="button" onClick={handleSubmit} disabled={isSubmitting} className="inline-flex items-center justify-center gap-2 rounded-full bg-zinc-800 px-5 py-3 text-sm font-semibold text-white shadow-[0_16px_30px_rgba(0,0,0,0.3)] transition hover:bg-zinc-700 disabled:cursor-not-allowed disabled:bg-zinc-700 disabled:shadow-none">{isSubmitting ? 'Soumission...' : 'Générer devis standard'}</button>
+                </div>
                 {isValidated && (
                   <motion.div initial={{ opacity: 0, y: 14, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.45, ease: 'easeOut' }} className="mt-5 space-y-4 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm text-emerald-200">
                     <div className="flex items-start gap-3"><CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" /><span>Le devis a bien été préparé et est prêt pour la validation commerciale.</span></div>

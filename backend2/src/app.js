@@ -15,6 +15,7 @@ import orangeEnergyRoutes from "./routes/orangeEnergy.routes.js";
 import iaRoutes from "./routes/ia.routes.js";
 import mlRoutes from "./routes/ml.routes.js";
 import iotRoutes from "./routes/iot.routes.js";
+import solarRoutes from "./routes/solar.routes.js";
 import { swaggerSpec, swaggerUiOptions } from "./docs/swagger.config.js";
 
 const app = express();
@@ -117,5 +118,8 @@ app.use("/users/", orangeEnergyRoutes);
 
 // Routes pour relayer les requêtes vers l'API d'IA externe
 app.use("/ai", iaRoutes);
+
+// Routes Solar Advisor — proxy vers l'API ML du modèle de recommandation
+app.use("/solar", solarRoutes);
 
 export default app;
