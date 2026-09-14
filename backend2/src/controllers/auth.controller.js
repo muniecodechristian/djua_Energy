@@ -3,6 +3,8 @@ import User from '../models/user.model.js';
 import config from '../config/env.config.js';
 import { sendSuccess, sendError } from '../utils/apiResponse.js';
 
+const FOURTEEN_DAYS_MS = 14 * 24 * 60 * 60 * 1000; // 14 jours (2 semaines)
+
 /**
  * Generates JWT and sets it as an HttpOnly secure cookie.
  * @param {import('express').Response} res - Express response object.
@@ -10,14 +12,16 @@ import { sendSuccess, sendError } from '../utils/apiResponse.js';
  */
 const generateTokenAndSetCookie = (res, userId) => {
   const token = jwt.sign({ id: userId }, config.jwtSecret, {
-    expiresIn: '2h',
+    expiresIn: '14d', // 14 jours (2 semaines) au lieu de 2h
   });
+
+  const isProduction = process.env.NODE_ENV === 'production';
 
   const cookieOptions = {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production', // Only send over HTTPS in production
-    sameSite: 'strict', // Protect against CSRF
-    maxAge: 2 * 60 * 60 * 1000, // 2 hours
+    secure: isProduction, // Obligatoire HTTPS en production
+    sameSite: isProduction ? 'none' : 'lax', // 'none' en prod pour autoriser les cookies cross-site (Vercel -> Render)
+    maxAge: FOURTEEN_DAYS_MS, // 14 jours (2 semaines)
   };
 
   res.cookie('token', token, cookieOptions);
@@ -103,10 +107,11 @@ export const login = async (req, res) => {
  */
 export const logout = async (req, res) => {
   try {
+    const isProduction = process.env.NODE_ENV === 'production';
     res.cookie('token', '', {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
       expires: new Date(0), // Instantly expire the cookie
     });
 

@@ -16,6 +16,7 @@ import { toast } from 'sonner';
  */
 export const useCheckAuth = () => {
   const setUser = useAuthStore((state) => state.setUser);
+  const logout = useAuthStore((state) => state.logout);
   const setCheckingAuth = useAuthStore((state) => state.setCheckingAuth);
 
   return useQuery({
@@ -31,20 +32,25 @@ export const useCheckAuth = () => {
           return response.data.data;
         }
 
-        setUser(null);
+        logout();
         return null;
-      } catch {
-        // 401 = pas de session valide, c'est normal
-        setUser(null);
-        setCheckingAuth(false);
+      } catch (err) {
+        // Seul un statut 401 ou 403 explicite invalide la session active
+        if (err.response?.status === 401 || err.response?.status === 403) {
+          logout();
+        } else {
+          // En cas d'erreur réseau temporaire (micro-coupure, serveur de dev en relance),
+          // on conserve la session locale sans déconnecter l'utilisateur.
+          setCheckingAuth(false);
+        }
         return null;
       }
     },
     retry: false,
     refetchOnMount: true,
-    refetchOnReconnect: true,
-    staleTime: 1000 * 60 * 5,
-    refetchOnWindowFocus: true,
+    refetchOnReconnect: false,
+    staleTime: 1000 * 60 * 30, // Données de session valides 30 min en mémoire client
+    refetchOnWindowFocus: false, // Évite les re-vérifications destructives lors du changement d'onglet
   });
 };
 

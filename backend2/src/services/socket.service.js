@@ -14,8 +14,11 @@ let io = null;
 export function initSocket(httpServer) {
   io = new Server(httpServer, {
     cors: {
-      origin: ['http://localhost:5173', 'https://orangeenergyapi.vercel.app'],
-      methods: ['GET', 'POST'],
+      origin: (origin, callback) => {
+        // Autorise toutes les origines pour Socket.io tout en conservant credentials: true
+        callback(null, true);
+      },
+      methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
       credentials: true
     }
   });

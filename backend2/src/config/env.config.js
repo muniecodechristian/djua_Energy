@@ -9,6 +9,7 @@ const config = {
   // URL de l'API externe d'IA (fournie par votre collègue)
   // Ex: https://colleague-host.example.com
   iaApiUrl: process.env.IA_API_URL || '',
+  iaApiEndpoint: process.env.IA_API_ENDPOINT || '/ai/chat',
   iot: {
     apiKey: process.env.IOT_API_KEY || '',
     authRequired: process.env.IOT_AUTH_REQUIRED !== 'false',

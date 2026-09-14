@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { Button } from "../components/ui/button";
 import Sidebar from '@/components/Sidebar';
 import AIAssistant from '@/components/AIAssistant';
+import ErrorBoundary from '@/components/ErrorBoundary';
 import { useAlertsQuery, useDevicesQuery, useKitsQuery } from '@/hooks/tanstack/useKitQueries';
 
 const PageLoader = () => (
@@ -188,9 +189,11 @@ export default function MainLayout() {
         )}
 
         <div className="flex-1 bg-[var(--app-surface)]">
-          <Suspense fallback={<PageLoader />}>
-            <Outlet />
-          </Suspense>
+          <ErrorBoundary embedded>
+            <Suspense fallback={<PageLoader />}>
+              <Outlet />
+            </Suspense>
+          </ErrorBoundary>
         </div>
 
         <AIAssistant />

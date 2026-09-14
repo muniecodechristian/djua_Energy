@@ -19,15 +19,43 @@ import { swaggerSpec, swaggerUiOptions } from "./docs/swagger.config.js";
 
 const app = express();
 
-// ─── Middlewares de Sécurité Globale ──────────────────────────────────────────
-app.use(helmet()); // En-têtes HTTP sécurisés
+// ─── 1. CORS — Autoriser toutes les origines avec credentials ─────────────────
+const corsOptions = {
+  origin: (origin, callback) => {
+    // Permet explicitement toutes les origines entrantes (y compris requêtes sans origin comme curl/Postman)
+    // tout en restant 100% compatible avec credentials: true
+    callback(null, true);
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: [
+    "Content-Type",
+    "Authorization",
+    "X-Requested-With",
+    "Accept",
+    "Origin",
+  ],
+  exposedHeaders: ["Set-Cookie"],
+  optionsSuccessStatus: 200,
+};
+
+app.use(cors(corsOptions));
+
+// ─── 2. Middlewares de Sécurité Globale ───────────────────────────────────────
+app.use(
+  helmet({
+    crossOriginResourcePolicy: false,
+    crossOriginOpenerPolicy: false,
+  }),
+); // En-têtes HTTP sécurisés sans bloquer le cross-origin
 app.use(mongoSanitize()); // Protection contre l'injection NoSQL dans req.body, req.query, req.params
 app.use(hpp()); // Protection contre la pollution des paramètres HTTP (HPP)
 
-// Limiteur de débit global
+// ─── 3. Limiteur de débit global (relaxé en dev pour éviter les 429) ─────────
+const isDev = process.env.NODE_ENV !== "production";
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: process.env.NODE_ENV === "test" ? 1000 : 100, // limite chaque IP à 100 requêtes par fenêtre
+  max: isDev ? 10000 : 1000, // 10 000 requêtes en dev au lieu de 100
   standardHeaders: true,
   legacyHeaders: false,
   message: {
@@ -38,12 +66,6 @@ const globalLimiter = rateLimit({
 });
 app.use(globalLimiter);
 
-app.use(
-  cors({
-    origin: true,
-    credentials: true,
-  }),
-);
 app.use(express.json());
 app.use(cookieParser());
 

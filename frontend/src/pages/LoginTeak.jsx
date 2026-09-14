@@ -286,7 +286,8 @@ export default function LoginDjuaEnergy() {
                 loginMutation.isPending ? 'opacity-70 cursor-not-allowed' : ''
               }`}
             >
-              {loginMutation.isPending ? 'Connexion en cours...' : 'Se connecter'} <ArrowRightIcon className="w-3.5 h-3.5" />
+              <span>{loginMutation.isPending ? 'Connexion en cours...' : 'Se connecter'}</span>
+              <ArrowRightIcon className="w-3.5 h-3.5" />
             </motion.button>
           </motion.div>
         </form>

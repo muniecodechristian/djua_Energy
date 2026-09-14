@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MapContainer, TileLayer, Marker, Popup, Circle, CircleMarker, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Circle, CircleMarker, LayerGroup, useMap } from 'react-leaflet';
 import { io } from 'socket.io-client';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -474,19 +474,12 @@ export default function Dashboard() {
                 />
 
                 {dynamicMarkers.map((marker) => (
-                  <React.Fragment key={marker.id}>
+                  <LayerGroup key={marker.id}>
                     <Circle
                       center={[marker.referenceCoordinates[0], marker.referenceCoordinates[1]]}
                       radius={90}
                       pathOptions={{ color: marker.isOutsideGeofence ? '#dc2626' : '#059669', fillColor: marker.isOutsideGeofence ? '#ef4444' : '#10b981', fillOpacity: 0.12, weight: 2 }}
                     />
-                    {activeHub?.id === marker.id && (
-                      <CircleMarker
-                        center={[marker.coordinates[1], marker.coordinates[0]]}
-                        radius={18}
-                        pathOptions={{ color: marker.isOutsideGeofence ? '#dc2626' : '#059669', fillColor: 'transparent', fillOpacity: 0, weight: 2, dashArray: '5 4' }}
-                      />
-                    )}
                     <Marker
                       position={[marker.coordinates[1], marker.coordinates[0]]}
                       icon={createKitIcon(marker.status)}
@@ -500,8 +493,17 @@ export default function Dashboard() {
                         </div>
                       </Popup>
                     </Marker>
-                  </React.Fragment>
+                  </LayerGroup>
                 ))}
+
+                {activeHub && (
+                  <CircleMarker
+                    key={`active-hub-${activeHub.id}`}
+                    center={[activeHub.coordinates[1], activeHub.coordinates[0]]}
+                    radius={18}
+                    pathOptions={{ color: activeHub.isOutsideGeofence ? '#dc2626' : '#059669', fillColor: 'transparent', fillOpacity: 0, weight: 2, dashArray: '5 4' }}
+                  />
+                )}
               </MapContainer>
 
               {activeHub && (
