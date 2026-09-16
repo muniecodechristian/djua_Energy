@@ -81,7 +81,7 @@ const hasValidGps = (latitude, longitude) => {
 // --- Map auto-center ---
 const MapUpdater = ({ center }) => {
   const map = useMap();
-  useEffect(() => { map.setView(center, map.getZoom(), { animate: true }); }, [center, map]);
+  useEffect(() => { map.setView(center, map.getZoom(), { animate: !window.matchMedia("(prefers-reduced-motion: reduce)").matches }); }, [center, map]);
   return null;
 };
 
@@ -1167,7 +1167,7 @@ export default function SmartKitDetails() {
 
           {/* ===== PREDICTION IA ===== */}
           {activeTab === 'Prédiction IA' && (
-            <PredictionIATab kitId={kitId} showToast={showToast} />
+            <PredictionIATab key={kitId} kitId={kitId} showToast={showToast} />
           )}
 
         </AnimatePresence>

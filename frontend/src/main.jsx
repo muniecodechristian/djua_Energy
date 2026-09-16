@@ -54,7 +54,7 @@ const queryClient = new QueryClient({
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <MotionConfig reducedMotion="user"><BrowserRouter> 
+      <MotionConfig reducedMotion="user"><BrowserRouter>
         <ErrorBoundary>
           <App />
         </ErrorBoundary>

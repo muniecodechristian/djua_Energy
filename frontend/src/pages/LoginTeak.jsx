@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useLoginMutation } from '../hooks/tanstack/useAuthMutations.js';
 
 // --- ICÔNES SVG INLINE (Zéro dépendance, performance maximale) ---
@@ -291,6 +291,7 @@ export default function LoginDjuaEnergy() {
             </motion.button>
           </motion.div>
         </form>
+        <Link to="/dashboard" className="mt-5 text-xs font-medium text-orange-600 hover:text-orange-500 underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-4">Consulter la supervision sans connexion</Link>
 
         {/* LIENS INFÉRIEURS */}
         <motion.div 

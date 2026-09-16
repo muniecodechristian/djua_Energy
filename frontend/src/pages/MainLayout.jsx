@@ -25,7 +25,7 @@ export default function MainLayout() {
     window.addEventListener('keydown', shortcut);
     return () => window.removeEventListener('keydown', shortcut);
   }, []);
-  const results = [...navigation.map(item => ({label:item.label, description:item.description, path:item.path})), ...asList(kits.data).map(kit => ({label:kit.kitId || 'Équipement', description:kit.province || kit.region || 'Fiche équipement', path:detailUrl(kit.kitId)}))].filter(item => (item.label + ' ' + item.description).toLowerCase().includes(search.toLowerCase())).slice(0, 10);
+  const results = [...navigation.map(item => ({label:item.label, description:item.description, path:item.path})), ...asList(kits.data).filter(kit => kit.kitId).map(kit => ({label:kit.kitId || 'Équipement', description:kit.province || kit.region || 'Fiche équipement', path:detailUrl(kit.kitId)}))].filter(item => (item.label + ' ' + item.description).toLowerCase().includes(search.toLowerCase())).slice(0, 10);
   return <div className="ops-shell">
     <a className="ops-skip-link" href="#main-content">Aller au contenu</a>
     <Sidebar isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen}/>
@@ -36,7 +36,7 @@ export default function MainLayout() {
       </header>
       <main id="main-content" tabIndex={-1} ref={content} className="ops-content"><ErrorBoundary embedded><Suspense fallback={<div className="ops-empty" role="status">Chargement de votre espace…</div>}><Outlet/></Suspense></ErrorBoundary></main>
     </div>
-    <dialog className="ops-search-dialog" ref={dialog} onClick={event => { if(event.target === dialog.current) dialog.current.close(); }}>
+    <dialog aria-label="Recherche de pages et d’équipements" className="ops-search-dialog" ref={dialog} onClick={event => { if(event.target === dialog.current) dialog.current.close(); }}>
       <div className="ops-search-head"><Search size={20}/><input aria-label="Rechercher une page ou un kit" placeholder="Rechercher une page, un équipement…" value={search} onChange={event => setSearch(event.target.value)}/><button className="ops-icon-button" aria-label="Fermer la recherche" onClick={() => dialog.current.close()}><X size={18}/></button></div>
       <p className="ops-eyebrow">Pages et équipements</p>
       <div className="ops-search-results">{results.map(item => <button key={item.path} onClick={() => { dialog.current.close(); navigate(item.path); }}><span><strong>{item.label}</strong><small>{item.description}</small></span><ArrowUpRight size={16}/></button>)}{results.length === 0 && <p className="ops-empty">Aucun résultat pour cette recherche.</p>}</div>

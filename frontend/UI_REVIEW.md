@@ -37,3 +37,5 @@ Il s’agit de critères de conception, pas d’une certification de conformité
 
 ## Validation
 Compilation Vite, lint ciblé et tests des règles métier : sélection de la mesure récente, priorités, données manquantes, coordonnées et isolation des prédictions. Les endpoints locaux /api/telemetry et /api/alerts ont répondu avec succès, sans enregistrements lors de la vérification.
+
+Résultat : 7 tests métier réussis, compilation réussie, contrôle lint ciblé sans erreur. Le bundle principal passe de 1 444,97 ko à 544,70 ko avant compression ; Vite signale encore un chunk supérieur à 500 ko. Les vérifications ne remplacent pas une recette visuelle dans un navigateur.
