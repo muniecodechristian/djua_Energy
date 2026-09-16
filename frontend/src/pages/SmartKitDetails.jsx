@@ -19,6 +19,8 @@ import { useKitLiveTelemetry } from '../hooks/tanstack/useKitLiveTelemetry.js';
 import { useAlertsQuery, useKitsQuery } from '../hooks/tanstack/useKitQueries.js';
 import { MapContainer, TileLayer, Marker, Circle, useMap } from 'react-leaflet';
 import { io } from 'socket.io-client';
+import api from '../api/axios';
+import { predictionMatchesKit } from '../lib/operations';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -67,6 +69,7 @@ const distanceInMeters = (lat1, lon1, lat2, lon2) => {
 };
 
 const hasValidGps = (latitude, longitude) => {
+  if (latitude == null || longitude == null || latitude === '' || longitude === '') return false;
   const lat = Number(latitude);
   const lon = Number(longitude);
   return Number.isFinite(lat) && Number.isFinite(lon)
@@ -159,7 +162,7 @@ const LoadingScreen = ({ kitId }) => (
         </div>
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <span className="text-lg font-bold font-mono text-white">{kitId || 'DK-SOLAR-092'}</span>
+            <span className="text-lg font-bold font-mono text-white">{kitId || 'Équipement non sélectionné'}</span>
             <div className="flex items-center gap-2 px-3 py-1 rounded-lg bg-zinc-900 border border-zinc-800 text-[10px] font-mono text-zinc-400">
               <RefreshCw size={10} className="animate-spin text-orange-400" />
               Vérification de l’état du kit…
@@ -308,7 +311,7 @@ function PredictionIATab({ kitId, showToast }) {
   const [isLiveMode, setIsLiveMode] = useState(false);
   const [lastUpdate, setLastUpdate] = useState(null);
   const [pulseKey, setPulseKey] = useState(0);
-  const serverUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  const serverUrl = api.defaults.baseURL;
 
   // Socket.io — écoute prediction:update depuis le script backend
   useEffect(() => {
@@ -323,7 +326,11 @@ function PredictionIATab({ kitId, showToast }) {
       console.error("❌ Erreur Socket.IO:", err.message);
     });
     
-    socket.on('prediction:update', ({ result, timestamp }) => {
+    setPrediction(null);
+    setLastUpdate(null);
+    setIsLiveMode(false);
+    socket.on('prediction:update', ({ result, timestamp, kitId: eventKitId }) => {
+      if (!predictionMatchesKit({kitId:eventKitId,result}, kitId)) return;
       console.log("📥 NOUVELLE PRÉDICTION REÇUE VIA SOCKET:", result);
       setPrediction(result);
       setLastUpdate(timestamp);
@@ -331,7 +338,7 @@ function PredictionIATab({ kitId, showToast }) {
       setIsLiveMode(true);
     });
     return () => { socket.off('prediction:update'); socket.disconnect(); };
-  }, [serverUrl]);
+  }, [serverUrl, kitId]);
 
   const p = prediction;
   const alert = p?.alert || null;
@@ -362,14 +369,14 @@ function PredictionIATab({ kitId, showToast }) {
             <h2 className="text-xl font-semibold tracking-tight text-zinc-100">Analyse Prédictive en Temps Réel</h2>
             <p className="text-xs text-zinc-500 mt-1">
               {isLiveMode
-                ? `Dernière mise à jour : ${lastUpdate ? new Date(lastUpdate).toLocaleTimeString('fr-FR') : '—'} · Données reçues automatiquement via le simulateur`
-                : 'En attente du simulateur IoT — lancez : node simulate-telemetry.js dans votre terminal'}
+                ? `Dernière mise à jour : ${lastUpdate ? new Date(lastUpdate).toLocaleTimeString('fr-FR') : '—'} · Résultat du modèle reçu pour cet équipement`
+                : 'Aucun résultat du modèle reçu pour cet équipement pendant cette session.'}
             </p>
           </div>
           <div className="flex items-center gap-2">
             <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[11px] font-semibold ${isLiveMode ? 'border-blue-500/30 bg-blue-500/10 text-blue-400' : 'border-zinc-700 bg-zinc-900 text-zinc-500'}`}>
               <span className={`w-2 h-2 rounded-full ${isLiveMode ? 'bg-blue-400 animate-pulse' : 'bg-zinc-600'}`} />
-              {isLiveMode ? 'Socket Connecté' : 'En attente…'}
+              {isLiveMode ? 'Résultat reçu' : 'En attente…'}
             </div>
           </div>
         </div>
@@ -384,10 +391,7 @@ function PredictionIATab({ kitId, showToast }) {
             </div>
             <div>
               <p className="text-zinc-200 font-semibold text-sm mb-1">Aucune prédiction reçue</p>
-              <p className="text-zinc-500 text-xs max-w-xs">Lancez le simulateur dans votre terminal pour démarrer l'analyse automatique.</p>
-            </div>
-            <div className="mt-2 p-3 rounded-lg bg-zinc-950 border border-zinc-800 text-xs font-mono text-zinc-400">
-              <span className="text-zinc-600">$</span> node simulate-telemetry.js
+              <p className="text-zinc-500 text-xs max-w-xs">Les résultats s’affichent lorsqu’une analyse de cet équipement est reçue. L’absence de résultat ne permet pas de conclure à l’absence de risque.</p>
             </div>
           </div>
         </Panel>
@@ -536,7 +540,7 @@ function PredictionIATab({ kitId, showToast }) {
 export default function SmartKitDetails() {
   const [searchParams] = useSearchParams();
   const kitId = searchParams.get('kitId');
-  const [activeTab, setActiveTab] = useState('Synth\u00e8se');
+  const [activeTab, setActiveTab] = useState(searchParams.get('tab') === 'ai' ? 'Prédiction IA' : 'Synth\u00e8se');
   const [toast, setToast] = useState(null);
   const [aiPredictionData, setAiPredictionData] = useState(null);
   const [now, setNow] = useState(new Date());
@@ -568,7 +572,7 @@ export default function SmartKitDetails() {
   }, [alerts, kitId]);
 
   useEffect(() => {
-    const serverUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    const serverUrl = api.defaults.baseURL;
     const socket = io(serverUrl, { withCredentials: true, transports: ['websocket', 'polling'] });
     const handleGeofenceAlert = (alert) => {
       if (alert?.kitId === kitId && hasValidGps(alert.metadata?.currentPosition?.latitude, alert.metadata?.currentPosition?.longitude)) {
@@ -603,12 +607,12 @@ export default function SmartKitDetails() {
   const hasTelemetryGps = hasValidGps(T?.latitude, T?.longitude);
   const lat = hasTelemetryGps
     ? Number(T.latitude)
-    : Number(kitReference?.gpsCoordinates?.latitude ?? -4.325);
+    : Number(kitReference?.gpsCoordinates?.latitude ?? -3.5);
   const lng = hasTelemetryGps
     ? Number(T.longitude)
-    : Number(kitReference?.gpsCoordinates?.longitude ?? 15.3222);
-  const referenceLat = Number(kitReference?.gpsCoordinates?.latitude ?? lat);
-  const referenceLng = Number(kitReference?.gpsCoordinates?.longitude ?? lng);
+    : Number(kitReference?.gpsCoordinates?.longitude ?? 23.5);
+  const referenceLat = kitReference?.gpsCoordinates?.latitude == null ? NaN : Number(kitReference.gpsCoordinates.latitude);
+  const referenceLng = kitReference?.gpsCoordinates?.longitude == null ? NaN : Number(kitReference.gpsCoordinates.longitude);
   const hasReferenceGps = hasValidGps(referenceLat, referenceLng);
   const currentDistance = hasReferenceGps && hasTelemetryGps
     ? distanceInMeters(referenceLat, referenceLng, lat, lng)
@@ -618,16 +622,16 @@ export default function SmartKitDetails() {
   const chartData = telemetryRecords.slice(-24).map((r, i) => {
     const d = parseDateString(r.event_time);
     return {
-      time: d ? d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : `${i + 1}h`,
-      tension_bat: r.battery_voltage_v ?? 0,
-      courant_bat: r.battery_current_a ?? 0,
-      tension_pv: r.solar_voltage_v ?? 0,
-      courant_pv: r.solar_current_a ?? 0,
-      puissance_pv: r.solar_power_w ?? 0,
-      soc: r.state_of_charge_pct ?? 0,
-      temp_boitier: r.device_temperature_c ?? 0,
-      temp_ambiante: r.ambient_temperature_c ?? 0,
-      humidite: r.humidity_pct ?? 0,
+      time: d ? d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : `Mesure ${i + 1}`,
+      tension_bat: r.battery_voltage_v ?? null,
+      courant_bat: r.battery_current_a ?? null,
+      tension_pv: r.solar_voltage_v ?? null,
+      courant_pv: r.solar_current_a ?? null,
+      puissance_pv: r.solar_power_w ?? null,
+      soc: r.state_of_charge_pct ?? null,
+      temp_boitier: r.device_temperature_c ?? null,
+      temp_ambiante: r.ambient_temperature_c ?? null,
+      humidite: r.humidity_pct ?? null,
     };
   });
 
@@ -673,7 +677,7 @@ export default function SmartKitDetails() {
               </div>
               <div>
                 <div className="flex items-center gap-2.5 flex-wrap">
-                  <h1 className="text-lg font-bold font-mono text-[var(--app-foreground)] tracking-tight">{kitId || 'DK-SOLAR-092'}</h1>
+                  <h1 className="text-lg font-bold font-mono text-[var(--app-foreground)] tracking-tight">{kitId || 'Équipement non sélectionné'}</h1>
                   {/* Badge statut — termes non-techniques */}
                   <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-[10px] font-semibold tracking-wide ${isLive
                     ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-400'
@@ -766,7 +770,7 @@ export default function SmartKitDetails() {
                 </div>
                 <div className={`inline-flex items-center gap-2 px-3 py-2 rounded-md border text-xs ${isLive ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300' : 'border-zinc-700 bg-zinc-900 text-zinc-400'}`}>
                   <span className={`h-2 w-2 rounded-full ${isLive ? 'bg-emerald-400' : 'bg-zinc-600'}`} />
-                  {isLive ? 'Tout fonctionne en direct' : 'Dernières données disponibles'}
+                  {isLive ? 'Signal temps réel reçu' : 'Dernières données disponibles'}
                 </div>
               </div>
 
@@ -777,7 +781,7 @@ export default function SmartKitDetails() {
                   prev={P?.battery_voltage_v} curr={T?.battery_voltage_v} badge="Batterie" featured />
                 <MetricCard icon={Zap} label="Production instantanée" description="Puissance fournie par le panneau" value={T?.solar_power_w} unit=" W" color="#eab308"
                   prev={P?.solar_power_w} curr={T?.solar_power_w} badge="Solaire" featured />
-                <MetricCard icon={Activity} label="Consommation actuelle" description="Énergie utilisée maintenant" value={T?.battery_power_w} unit=" W" color="#a78bfa"
+                <MetricCard icon={Activity} label="Puissance batterie" description="Puissance mesurée aux bornes de la batterie" value={T?.battery_power_w} unit=" W" color="#a78bfa"
                   prev={P?.battery_power_w} curr={T?.battery_power_w} badge="Usage" featured />
 
                 <MetricCard icon={ShieldCheck} label="Sant\u00e9 Batterie" value={T?.state_of_health_pct} unit="%" color="#06b6d4"
@@ -789,7 +793,7 @@ export default function SmartKitDetails() {
                 <MetricCard icon={Layers} label="Puissance Solaire" value={T?.solar_power_w} unit=" W" color="#f97316"
                   prev={P?.solar_power_w} curr={T?.solar_power_w} badge="PV" />
 
-                <MetricCard icon={Zap} label="Énergie produite (cumul)" description="Total généré depuis le dernier relevé" value={T?.energy_generated_wh} unit=" Wh" color="#34d399"
+                <MetricCard icon={Zap} label="Énergie produite (intervalle)" description="Énergie mesurée sur l’intervalle de relevé" value={T?.energy_generated_wh} unit=" Wh" color="#34d399"
                   sparkData={[]} prev={null} curr={null} badge="Total" />
                 <MetricCard icon={Thermometer} label="Temp. Boîtier" value={T?.device_temperature_c} unit="°C" color="#f43f5e"
                   sparkData={[]} prev={P?.device_temperature_c} curr={T?.device_temperature_c} badge="ESP32" />
@@ -936,7 +940,7 @@ export default function SmartKitDetails() {
                   <div className="mt-4">
                     <div className="flex justify-between text-[10px] font-mono text-zinc-500 mb-1.5">
                       <span>Niveau de charge batterie</span>
-                      <span className="text-emerald-400">{T?.state_of_charge_pct ?? 0}%</span>
+                      <span className="text-emerald-400">{T?.state_of_charge_pct ?? '—'}%</span>
                     </div>
                     <div className="h-2 w-full bg-zinc-800 rounded-full overflow-hidden">
                       <motion.div
@@ -1006,7 +1010,7 @@ export default function SmartKitDetails() {
                     ? 'bg-red-500/15 border-red-500/25 text-red-400'
                     : 'bg-emerald-500/15 border-emerald-500/25 text-emerald-400'
                     }`}>
-                    {(T?.device_temperature_c ?? 0) > 60 ? '\u26a0 Seuil critique approch\u00e9' : '\u2713 Temp\u00e9rature nominale'}
+                    {T?.device_temperature_c == null ? 'Température indisponible' : T.device_temperature_c > 60 ? '\u26a0 Seuil critique approch\u00e9' : 'Température mesurée sous 60 °C'}
                   </span>
                 </div>
               </Panel>
@@ -1132,7 +1136,7 @@ export default function SmartKitDetails() {
                 <div className="h-72 w-full rounded-xl overflow-hidden border border-zinc-800/80 relative">
                   <MapContainer
                     center={[lat, lng]}
-                    zoom={14}
+                    zoom={hasTelemetryGps || hasReferenceGps ? 14 : 5}
                     style={{ height: '100%', width: '100%' }}
                     zoomControl={true}
                   >
@@ -1141,19 +1145,19 @@ export default function SmartKitDetails() {
                       url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                       className="map-tiles-dark"
                     />
-                    <Circle
+                    {hasReferenceGps && <Circle
                       center={[referenceLat, referenceLng]}
                       radius={90}
                       pathOptions={{ color: isOutsideGeofence ? '#dc2626' : '#059669', fillColor: isOutsideGeofence ? '#ef4444' : '#10b981', fillOpacity: 0.14, weight: 2 }}
-                    />
-                    <Marker position={[lat, lng]} icon={customIcon} />
-                    <Marker position={[referenceLat, referenceLng]} />
+                    />}
+                    {hasTelemetryGps && <Marker position={[lat, lng]} icon={customIcon} />}
+                    {hasReferenceGps && <Marker position={[referenceLat, referenceLng]} />}
                   </MapContainer>
                   <div className="absolute bottom-3 left-3 z-[999] px-3 py-1.5 rounded-lg bg-zinc-950/90 border border-zinc-800 backdrop-blur-sm flex items-center gap-2">
                     <MapPin size={11} className="text-orange-400" />
                     <span className="text-[10px] font-mono text-zinc-300">
                       {!hasTelemetryGps ? 'GPS indisponible · ' : isOutsideGeofence ? `Sortie : ${Math.round(currentDistance || 0)} m · ` : 'Zone 90 m · '}
-                      LAT {lat.toFixed(6)} &nbsp; LNG {lng.toFixed(6)}
+                      {(hasTelemetryGps || hasReferenceGps) ? 'LAT ' + lat.toFixed(6) + ' · LNG ' + lng.toFixed(6) : 'Aucune position connue'}
                     </span>
                   </div>
                 </div>

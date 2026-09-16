@@ -55,6 +55,7 @@ app.use(hpp()); // Protection contre la pollution des paramètres HTTP (HPP)
 // ─── 3. Limiteur de débit global (relaxé en dev pour éviter les 429) ─────────
 const isDev = process.env.NODE_ENV !== "production";
 const globalLimiter = rateLimit({
+  skip: (req) => req.method === 'POST' && /^\/auth\/login\/?$/i.test(req.path),
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: isDev ? 10000 : 1000, // 10 000 requêtes en dev au lieu de 100
   standardHeaders: true,

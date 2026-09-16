@@ -2,13 +2,13 @@
 import { Router } from 'express';
 import { rateLimit } from 'express-rate-limit';
 import { validate } from '../middlewares/validate.middleware.js';
-import { loginSchema, registerSchema } from '../schemas/auth.schema.js';
+import { registerSchema } from '../schemas/auth.schema.js';
 import { register, login, logout, getMe } from '../controllers/auth.controller.js';
 import { protect } from '../middlewares/auth.middleware.js';
 
 const router = Router();
 
-// Limiteur de débit strict pour la route de connexion et d'inscription
+// Limiteur de débit strict pour la route d'inscription
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: process.env.NODE_ENV === 'test' ? 1000 : 5, // Limite chaque IP à 5 tentatives par fenêtre de 15 minutes
@@ -24,7 +24,7 @@ const authLimiter = rateLimit({
 router.post('/register', authLimiter, validate(registerSchema), register);
 
 // POST /auth/login
-router.post('/login', authLimiter, login);
+router.post('/login', login);
 
 // POST /auth/logout
 router.post('/logout', logout);

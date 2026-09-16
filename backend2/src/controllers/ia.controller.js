@@ -37,7 +37,8 @@ export async function analyzeTelemetry(req, res) {
     // Broadcast en temps réel à tous les clients connectés
     try {
       const io = getIO();
-      io.emit('prediction:update', { timestamp: new Date().toISOString(), result: data });
+      const kitId = req.body?.identity?.kit_id || req.body?.kit_id || req.body?.kitId;
+      io.emit('prediction:update', { kitId, timestamp: new Date().toISOString(), result: data });
     } catch (_) { /* Socket pas encore init */ }
 
     return res.json(data);
