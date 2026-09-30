@@ -121,17 +121,17 @@ export async function recommend(req, res) {
 
   // ── LOG : payload complet envoyé au modèle ─────────────────────────────────
   console.log('\n════════════════════════════════════════════════════════════════');
-  console.log('📤  [Solar Advisor] PAYLOAD → POST /solar-advisor/recommend');
+  console.log('  [Solar Advisor] PAYLOAD → POST /solar-advisor/recommend');
   console.log('════════════════════════════════════════════════════════════════');
-  console.log(`🌐  URL cible : ${ML_BASE}/solar-advisor/recommend`);
-  console.log(`📦  Appareils normalisés (${normalizedAppliances.length}) :`);
+  console.log(`  URL cible : ${ML_BASE}/solar-advisor/recommend`);
+  console.log(`  Appareils normalisés (${normalizedAppliances.length}) :`);
   normalizedAppliances.forEach((a, i) => {
     console.log(
       `    [${i + 1}] "${a.name}" × ${a.quantity} | ${a.hours_per_day}h/j | period: ${a.usage_period} | id: ${a.appliance_id}`,
     );
   });
-  console.log('📋  Contexte client :');
-  console.log(`    city           : ${payload.city ?? '(non fourni)'}`);
+  console.log('  Contexte client :');
+  console.log(`   city           : ${payload.city ?? '(non fourni)'}`);
   console.log(`    region         : ${payload.region ?? '(non fourni)'}`);
   console.log(`    housing_type   : ${payload.housing_type ?? '(non fourni)'}`);
   console.log(`    people_count   : ${payload.people_count ?? '(non fourni)'}`);
@@ -140,7 +140,7 @@ export async function recommend(req, res) {
   console.log(`    preference     : ${payload.preference}`);
   console.log(`    customer_id    : ${payload.customer_id}`);
   console.log(`    source         : ${payload.source}`);
-  console.log('📄  Payload JSON complet envoyé au modèle :');
+  console.log('  Payload JSON complet envoyé au modèle :');
   console.log(JSON.stringify(payload, null, 2));
   console.log('════════════════════════════════════════════════════════════════\n');
 
@@ -152,7 +152,7 @@ export async function recommend(req, res) {
 
     // ── LOG : vraie réponse du modèle ─────────────────────────────────────────
     console.log('\n════════════════════════════════════════════════════════════════');
-    console.log(`✅  [Solar Advisor] RÉPONSE reçue en ${elapsed}ms — HTTP ${mlRes.status}`);
+    console.log(`  [Solar Advisor] RÉPONSE reçue en ${elapsed}ms — HTTP ${mlRes.status}`);
     console.log('════════════════════════════════════════════════════════════════');
     console.log(JSON.stringify(mlRes.data, null, 2));
     console.log('════════════════════════════════════════════════════════════════\n');
