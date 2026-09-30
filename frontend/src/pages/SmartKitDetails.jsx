@@ -579,15 +579,20 @@ export default function SmartKitDetails() {
             <div>
               <div className="flex flex-wrap items-center gap-2.5">
                 <h1 className="text-xl font-semibold tracking-tight">{kitId || 'Équipement non sélectionné'}</h1>
-                <Pill tone={isLive ? 'ok' : 'off'} dot pulse={isLive}>
-                  {isLive ? 'En ligne' : 'Hors ligne, dernier relevé connu'}
+                <Pill tone={isLive ? 'ok' : 'warn'} dot pulse={isLive}>
+                  {isLive ? '● En ligne — données en direct' : '⚠ Hors ligne — données DB'}
                 </Pill>
+                {!isLive && T && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 border border-amber-500/30 px-2.5 py-1 text-[11px] font-semibold text-amber-400">
+                    Dernier relevé : {formatTime(T?.event_time)}
+                  </span>
+                )}
                 {isOutsideGeofence && <Pill tone="bad">Hors périmètre</Pill>}
               </div>
               <p className={`mt-1 text-sm ${MUTED}`}>
-                Dernier paquet reçu à <strong className={`font-medium ${FG} tabular-nums`}>{formatTime(T?.event_time)}</strong>
-                {T && <> · {dataSource === 'live' ? 'mise à jour automatique' : 'données enregistrées'}</>}
-                {' '}· Il est <Clock />
+                {isLive
+                  ? <>Mise à jour automatique · Il est <Clock /></>
+                  : <>ESP32 silencieux — dernières données enregistrées en DB · Il est <Clock /></>}
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -641,7 +646,11 @@ export default function SmartKitDetails() {
               <div className="space-y-5">
                 <div>
                   <h2 className="text-2xl font-semibold tracking-tight">Comment va votre kit ?</h2>
-                  <p className={`mt-1 text-sm ${MUTED}`}>{isLive ? 'Les chiffres se mettent à jour en direct.' : 'Le kit ne transmet plus : ce sont les derniers chiffres reçus.'}</p>
+                  <p className={`mt-1 text-sm ${MUTED}`}>
+                    {isLive
+                      ? <><span className="text-emerald-400 font-medium">● Données en direct</span> — L'ESP32 transmet activement.</>  
+                      : <><span className="text-amber-400 font-medium">⚠ ESP32 silencieux</span> — Dernières mesures enregistrées en base de données affichées. Le kit peut être hors réseau.</>}
+                  </p>
                 </div>
 
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">

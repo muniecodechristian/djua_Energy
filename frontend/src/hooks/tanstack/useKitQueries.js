@@ -114,10 +114,32 @@ export const useKitTelemetryQuery = (kitId) => {
   return useQuery({
     queryKey: ['telemetry', kitId],
     queryFn: async () => {
-      const response = await api.get('/api/ml/telemetry', {
+      // Essai 1 : données enrichies (EnrichedTelemetry en DB)
+      const enrichedRes = await api.get('/api/ml/telemetry', {
         params: { kit_id: kitId, limit: 20, sort: 'desc' },
       });
-      return response.data?.success ? response.data.data : [];
+      const enrichedDocs = enrichedRes.data?.success ? enrichedRes.data.data : [];
+
+      if (enrichedDocs.length > 0) {
+        console.log(`[KitTelemetry] ${kitId} → ${enrichedDocs.length} doc(s) enrichi(s) trouvé(s) en DB`);
+        return enrichedDocs;
+      }
+
+      // Fallback : données brutes IoT (/api/telemetry/:kitId)
+      console.warn(`[KitTelemetry] ${kitId} → Aucun doc enrichi, fallback sur /api/telemetry/${kitId}`);
+      const rawRes = await api.get(`/api/telemetry/${kitId}`, {
+        params: { limit: 50, sort: 'desc' },
+      });
+      const rawRecords = rawRes.data?.success ? rawRes.data.data : [];
+
+      if (rawRecords.length > 0) {
+        console.log(`[KitTelemetry] ${kitId} → ${rawRecords.length} enregistrement(s) brut(s) trouvé(s)`);
+        // Adapter les données brutes au format attendu (doc avec records[])
+        return [{ records: rawRecords, _isFallback: true }];
+      }
+
+      console.warn(`[KitTelemetry] ${kitId} → Aucune donnée trouvée nulle part en DB`);
+      return [];
     },
     enabled: Boolean(kitId),
     staleTime: 1000 * 15,

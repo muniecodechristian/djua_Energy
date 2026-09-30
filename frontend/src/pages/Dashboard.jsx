@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { geoNaturalEarth1, geoPath, geoGraticule10 } from 'd3-geo';
-import { feature, mesh } from 'topojson-client';
-import worldTopo from 'world-atlas/countries-50m.json';
+import { Link, useNavigate } from 'react-router-dom';
+import { MapContainer, TileLayer, Popup, Circle, CircleMarker, useMap } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
 import {
   ArrowUpRight, RefreshCw, Sun, Radio, AlertTriangle, BrainCircuit,
   MapPin, Activity, Wrench, CircleHelp, Zap, Shield, ChevronRight,
-  Search, FileText, Gauge, Plus, Minus, Crosshair,
+  Search, FileText, Gauge, Plus, Minus, Crosshair, CheckCircle2, ExternalLink,
 } from 'lucide-react';
 import { useKitsQuery, useAlertsQuery, useTelemetryQuery } from '../hooks/tanstack/useKitQueries';
 import { useFleetLiveStatus } from '../hooks/tanstack/useFleetLiveStatus';
@@ -17,9 +16,9 @@ import {
 
 /* ---------- petits helpers de style ---------- */
 const STATUS = {
-  alert: { label: 'Alerte', badge: 'bg-amber-500/15 text-amber-400 border-amber-500/30', dot: '#f59e0b' },
-  online: { label: 'Signal récent', badge: 'bg-cyan-500/15 text-cyan-400 border-cyan-500/30', dot: '#22d3ee' },
-  offline: { label: 'À vérifier', badge: 'bg-zinc-500/15 text-zinc-400 border-zinc-500/30', dot: '#64748b' },
+  alert: { label: 'Alerte', badge: 'bg-amber-500/15 text-amber-400 border-amber-500/30', dot: '#f59e0b', hex: '#f59e0b' },
+  online: { label: 'Signal récent', badge: 'bg-cyan-500/15 text-cyan-400 border-cyan-500/30', dot: '#22d3ee', hex: '#22d3ee' },
+  offline: { label: 'À vérifier', badge: 'bg-zinc-500/15 text-zinc-400 border-zinc-500/30', dot: '#64748b', hex: '#64748b' },
 };
 
 const SEV = {
@@ -32,109 +31,85 @@ const SEV = {
 const panel = 'rounded-2xl border border-white/[0.06] bg-[#111113]';
 const chip = 'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] font-semibold tracking-wide';
 
-/* ---------- Carte du monde sombre (SVG, sans tuiles ni Leaflet) ---------- */
-const MW = 960;
-const MH = 500;
-const projection = geoNaturalEarth1().fitExtent([[8, 8], [MW - 8, MH - 8]], { type: 'Sphere' });
-const pathGen = geoPath(projection);
-const LAND = pathGen(feature(worldTopo, worldTopo.objects.land));
-const BORDERS = pathGen(mesh(worldTopo, worldTopo.objects.countries, (a, b) => a !== b));
-const GRATICULE = pathGen(geoGraticule10());
-const toXY = ([lat, lng]) => projection([lng, lat]); // coordinates(kit) = [lat, lng]
-
-function WorldMap({ points, selectedId, onSelect }) {
-  const home = useMemo(() => {
-    const [x, y] = toXY([-3.5, 23.5]); // centre d'origine : RDC
-    return { x, y, k: 3 };
-  }, []);
-  const [view, setView] = useState(home);
-
-  const sel = points.find(p => p.id === selectedId);
-  const selXY = sel ? toXY(sel.coords) : null;
-  const selKey = selXY ? selXY.join(',') : '';
-
+/* ---------- Carte Leaflet avec Geofencing ---------- */
+function MapController({ selectedCoords }) {
+  const map = useMap();
   useEffect(() => {
-    if (selXY) setView({ x: selXY[0], y: selXY[1], k: 5 });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selKey]);
+    if (selectedCoords) {
+      map.flyTo(selectedCoords, 16, { duration: 1.5 });
+    }
+  }, [selectedCoords, map]);
+  return null;
+}
 
-  const zoom = f => setView(v => ({ ...v, k: Math.min(14, Math.max(1, v.k * f)) }));
-  const { k } = view;
-  const tx = MW / 2 - view.x * k;
-  const ty = MH / 2 - view.y * k;
+function LeafletMap({ points, selectedId, onSelect }) {
+  const defaultCenter = [-4.0383, 21.7587]; // RDC Center
+  const selectedPoint = points.find(p => p.id === selectedId)?.coords;
 
   return (
-    <>
-      <svg
-        viewBox={`0 0 ${MW} ${MH}`}
-        preserveAspectRatio="xMidYMid slice"
-        className="absolute inset-0 h-full w-full"
-        role="img"
-        aria-label="Carte du parc"
+    <div className="absolute inset-0 h-full w-full z-0">
+      <MapContainer 
+        center={defaultCenter} 
+        zoom={5} 
+        className="h-full w-full"
+        zoomControl={false}
       >
-        <defs>
-          <radialGradient id="wm-bg" cx="50%" cy="45%" r="75%">
-            <stop offset="0%" stopColor="#15151a" />
-            <stop offset="100%" stopColor="#09090b" />
-          </radialGradient>
-          <pattern id="wm-dots" width="3.2" height="3.2" patternUnits="userSpaceOnUse">
-            <circle cx="1.6" cy="1.6" r="0.75" fill="#a1a1aa" />
-          </pattern>
-          {Object.entries(STATUS).map(([key, v]) => (
-            <radialGradient key={key} id={`wm-glow-${key}`}>
-              <stop offset="0%" stopColor={v.dot} stopOpacity="0.55" />
-              <stop offset="100%" stopColor={v.dot} stopOpacity="0" />
-            </radialGradient>
-          ))}
-        </defs>
+        <TileLayer
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        />
+        
+        <MapController selectedCoords={selectedPoint} />
 
-        <rect width={MW} height={MH} fill="url(#wm-bg)" />
-
-        <g style={{ transform: `translate(${tx}px, ${ty}px) scale(${k})`, transformOrigin: '0 0', transition: 'transform .9s cubic-bezier(.4,0,.2,1)' }}>
-          <path d={GRATICULE} fill="none" stroke="#fff" strokeOpacity="0.035" strokeWidth="0.5" vectorEffect="non-scaling-stroke" />
-          <path d={LAND} fill="#141417" />
-          <path d={LAND} fill="url(#wm-dots)" opacity="0.5" />
-          <path d={BORDERS} fill="none" stroke="#9a9aa4" strokeOpacity="0.4" strokeWidth="0.6" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
-          <path d={LAND} fill="none" stroke="#b4b4bd" strokeOpacity="0.5" strokeWidth="0.8" vectorEffect="non-scaling-stroke" />
-
-          {points.map(p => {
-            const xy = toXY(p.coords);
-            if (!xy) return null;
-            const isSel = p.id === selectedId;
-            return (
-              <g key={p.id} transform={`translate(${xy[0]} ${xy[1]})`} onClick={() => onSelect(p.kitId)} style={{ cursor: 'pointer' }}>
-                <circle r={18 / k} fill={`url(#wm-glow-${p.status})`} />
-                {isSel && (
-                  <circle r={8 / k} fill="none" stroke="#fff" strokeWidth={1.2 / k}>
-                    <animate attributeName="r" values={`${7 / k};${15 / k}`} dur="1.8s" repeatCount="indefinite" />
-                    <animate attributeName="stroke-opacity" values="0.8;0" dur="1.8s" repeatCount="indefinite" />
-                  </circle>
-                )}
-                <circle r={4.4 / k} fill={STATUS[p.status].dot} stroke="#0a0a0b" strokeWidth={1.6 / k} />
-                <title>{p.kitId}</title>
-              </g>
-            );
-          })}
-
-          {sel && selXY && (
-            <g transform={`translate(${selXY[0]} ${selXY[1]}) scale(${1 / k})`} pointerEvents="none">
-              <g transform="translate(0 -14)">
-                <rect x={-(sel.kitId.length * 3.6 + 24)} y={-24} width={sel.kitId.length * 7.2 + 48} height={24} rx="7"
-                  fill="#000" fillOpacity="0.78" stroke="#fff" strokeOpacity="0.14" />
-                <circle cx={-(sel.kitId.length * 3.6 + 10)} cy={-12} r="3" fill={STATUS[sel.status].dot} />
-                <text x="4" y={-8} textAnchor="middle" fontSize="11" fill="#fff" fontFamily="ui-monospace, monospace">{sel.kitId}</text>
-              </g>
-            </g>
-          )}
-        </g>
-      </svg>
-
-      <div className="absolute bottom-3 right-3 z-[500] flex flex-col overflow-hidden rounded-lg border border-white/10 bg-black/60 text-zinc-300 backdrop-blur">
-        <button onClick={() => zoom(1.6)} aria-label="Zoomer" className="p-2 hover:bg-white/10"><Plus size={14} /></button>
-        <button onClick={() => zoom(1 / 1.6)} aria-label="Dézoomer" className="border-t border-white/10 p-2 hover:bg-white/10"><Minus size={14} /></button>
-        <button onClick={() => setView(home)} aria-label="Recentrer" className="border-t border-white/10 p-2 hover:bg-white/10"><Crosshair size={14} /></button>
-      </div>
-    </>
+        {points.map(p => {
+          if (!p.coords) return null;
+          const isSelected = p.id === selectedId;
+          const color = STATUS[p.status]?.hex || '#64748b';
+          
+          return (
+            <div key={p.id}>
+              {/* Cercle de Geofencing (90m de rayon) */}
+              <Circle 
+                center={p.coords} 
+                radius={90} 
+                pathOptions={{ 
+                  color: color, 
+                  fillColor: color, 
+                  fillOpacity: isSelected ? 0.25 : 0.1,
+                  weight: isSelected ? 2 : 1,
+                  dashArray: '4 4'
+                }} 
+              />
+              
+              {/* Marqueur principal avec un rayon constant en pixels */}
+              <CircleMarker
+                center={p.coords}
+                radius={isSelected ? 8 : 5}
+                pathOptions={{
+                  color: '#000',
+                  fillColor: color,
+                  fillOpacity: 1,
+                  weight: 1.5
+                }}
+                eventHandlers={{ click: () => onSelect(p.kitId) }}
+              >
+                <Popup className="text-zinc-900 rounded-xl overflow-hidden">
+                  <div className="font-sans">
+                    <strong className="block text-sm font-bold mb-1">{p.kitId}</strong>
+                    <span className={`inline-block px-2 py-0.5 rounded-md text-xs font-semibold text-white`} style={{ backgroundColor: color }}>
+                      {STATUS[p.status].label}
+                    </span>
+                    <div className="mt-2 text-[10px] text-zinc-500">
+                      Geofence: 90 mètres
+                    </div>
+                  </div>
+                </Popup>
+              </CircleMarker>
+            </div>
+          );
+        })}
+      </MapContainer>
+    </div>
   );
 }
 
@@ -148,6 +123,7 @@ export default function Dashboard() {
   const [filter, setFilter] = useState('all');
   const [tab, setTab] = useState('overview');
   const [selectedId, setSelectedId] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const interval = setInterval(() => setNow(Date.now()), 30000);
@@ -173,20 +149,40 @@ export default function Dashboard() {
 
   const statusOf = kit => (affected.has(kit.kitId) ? 'alert' : recent(kit) ? 'online' : 'offline');
 
+  const operational = kits.length - affected.size;
+  const pctOnline   = kits.length > 0 ? Math.round((online / kits.length) * 100) : 0;
+  const pctCritical = kits.length > 0 ? Math.round((affected.size / kits.length) * 100) : 0;
+  const pctOps      = kits.length > 0 ? Math.round((operational / kits.length) * 100) : 0;
+
   const kpis = [
-    { label: 'Équipements', value: cv(kitsQuery, kits.length), hint: 'Inventaire des kits', icon: Sun, accent: '#f97316', to: '/parc' },
     {
-      label: 'Signal récent', value: kitsQuery.isError || kitsQuery.isPending ? '—' : cv(telemetryQuery, online),
-      hint: 'Mesure < 5 min', icon: Radio, accent: '#22d3ee', to: '/parc'
+      label: 'Kits installés',
+      value: cv(kitsQuery, kits.length),
+      hint: 'Parc total déployé',
+      icon: Sun, accent: '#f97316', to: '/parc',
+      pct: null, // pas de % pour le total
     },
     {
-      label: 'Alertes ouvertes', value: cv(alertsQuery, alerts.length),
-      hint: alertsQuery.isSuccess ? `${affected.size} kit(s) concerné(s)` : 'Source indisponible',
-      icon: AlertTriangle, accent: '#f59e0b', to: '/notification'
+      label: 'Kits en ligne',
+      value: kitsQuery.isError || kitsQuery.isPending ? '—' : cv(telemetryQuery, online),
+      hint: 'Signal actif — < 5 min',
+      icon: Radio, accent: '#22d3ee', to: '/parc',
+      pct: pctOnline, pctColor: 'text-emerald-400',
+      liveIndicator: true,
     },
     {
-      label: 'Sans observation', value: kitsQuery.isError || kitsQuery.isPending ? '—' : cv(telemetryQuery, kits.length - online),
-      hint: 'Aucun signal récent', icon: CircleHelp, accent: '#a78bfa', to: '/parc'
+      label: 'Kits en situation critique',
+      value: cv(alertsQuery, alerts.length),
+      hint: alertsQuery.isSuccess ? `${affected.size} kit(s) impacté(s)` : 'Source indisponible',
+      icon: AlertTriangle, accent: '#ef4444', to: '/notification',
+      pct: pctCritical, pctColor: alerts.length > 0 ? 'text-red-400' : 'text-zinc-500',
+    },
+    {
+      label: 'Kits opérationnels',
+      value: kitsQuery.isError || kitsQuery.isPending ? '—' : cv(kitsQuery, operational),
+      hint: 'Aucune alerte active',
+      icon: CheckCircle2, accent: '#a78bfa', to: '/parc',
+      pct: pctOps, pctColor: 'text-violet-400',
     },
   ];
 
@@ -226,7 +222,7 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-900 p-3 text-zinc-300 sm:p-4">
+    <div className="min-h-screen  p-3 text-zinc-300 sm:p-4">
       {/* ================= HEADER ================= */}
       <header className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <div>
@@ -297,11 +293,15 @@ export default function Dashboard() {
               const pt = coordinates(kit);
               const kitAlerts = alerts.filter(a => a.kitId === kit.kitId).length;
               return (
-                <button
+              <div
                   key={kit.kitId || kit._id}
-                  onClick={() => setSelectedId(kit.kitId)}
-                  className={`w-full rounded-xl border p-3 text-left transition ${active ? 'border-white/15 bg-white/[0.06]' : 'border-white/[0.05] bg-white/[0.02] hover:bg-white/[0.04]'
-                    }`}
+                  onClick={() => {
+                    setSelectedId(kit.kitId);
+                    navigate(detailUrl(kit.kitId));
+                  }}
+                  className={`cursor-pointer w-full rounded-xl border p-3 text-left transition ${
+                    active ? 'border-white/15 bg-white/[0.06]' : 'border-white/[0.05] bg-white/[0.02] hover:bg-white/[0.04]'
+                  }`}
                 >
                   <div className="flex items-center justify-between">
                     <span className="font-mono text-[13px] font-semibold tracking-wide text-white">{kit.kitId}</span>
@@ -321,11 +321,12 @@ export default function Dashboard() {
                     <span className="text-zinc-400">
                       {pt ? 'Géolocalisé' : 'Position non renseignée'}
                     </span>
-                    <span className="text-zinc-500">
-                      {kitAlerts > 0 ? `${kitAlerts} alerte(s)` : 'Aucune alerte'}
+                    <span className="inline-flex items-center gap-1 text-zinc-500 hover:text-sky-400">
+                      {kitAlerts > 0 ? `${kitAlerts} alerte(s)` : 'Voir le détail'}
+                      <ExternalLink size={10} />
                     </span>
                   </div>
-                </button>
+                </div>
               );
             })}
 
@@ -345,23 +346,38 @@ export default function Dashboard() {
         <div className="flex min-w-0 flex-col gap-3">
           {/* -------- KPI -------- */}
           <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-            {kpis.map(({ label, value, hint, icon: Icon, accent, to }) => (
+            {kpis.map(({ label, value, hint, icon: Icon, accent, to, pct, pctColor, liveIndicator }) => (
               <Link key={label} to={to} className={`${panel} group p-3.5 transition hover:border-white/15`}>
                 <div className="flex items-center justify-between text-[11px] text-zinc-500">
-                  <span>{label}</span>
+                  <span className="flex items-center gap-1.5">
+                    {liveIndicator && (
+                      <span className="relative flex h-2 w-2">
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                        <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+                      </span>
+                    )}
+                    {label}
+                  </span>
                   <span className="rounded-lg p-1.5" style={{ background: `${accent}22`, color: accent }}>
                     <Icon size={13} />
                   </span>
                 </div>
                 <strong className="mt-1 block text-2xl font-semibold tabular-nums text-white">{value}</strong>
-                <span className="text-[11px] text-zinc-500">{hint}</span>
+                <div className="mt-1 flex items-end justify-between">
+                  <span className="text-[11px] text-zinc-500">{hint}</span>
+                  {pct !== null && pct !== undefined && (
+                    <span className={`text-xs font-bold tabular-nums ${pctColor || 'text-zinc-400'}`}>
+                      {pct}%
+                    </span>
+                  )}
+                </div>
               </Link>
             ))}
           </div>
 
           {/* -------- CARTE -------- */}
           <section className={`${panel} relative h-[380px] overflow-hidden lg:h-auto lg:min-h-[360px] lg:flex-1`}>
-            <WorldMap
+            <LeafletMap
               points={located.map(({ kit, point }) => ({ id: kit.kitId || kit._id, kitId: kit.kitId, coords: point, status: statusOf(kit) }))}
               selectedId={selected?.kitId}
               onSelect={setSelectedId}

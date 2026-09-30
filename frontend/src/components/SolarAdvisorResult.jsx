@@ -402,6 +402,7 @@ export default function SolarAdvisorResult({ result, onClose, onContactRequest }
   const [tab, setTab]               = useState('quote');   // 'quote' | 'sizing' | 'appliances' | 'components'
   const [showAlternatives, setShowAlternatives] = useState(false);
   const [showAssumptions, setShowAssumptions]   = useState(false);
+  const [isChatModalOpen, setIsChatModalOpen]   = useState(false);
 
   if (!result) return null;
 
@@ -748,7 +749,39 @@ export default function SolarAdvisorResult({ result, onClose, onContactRequest }
         )}
 
         {/* ── Chat contextuel ────────────────────────────────────────────── */}
-        {recId && <SolarChat recommendationId={recId} />}
+        {recId && (
+          <div className="pt-2 border-t border-[var(--panel-border)] flex justify-end">
+            <button 
+              onClick={() => setIsChatModalOpen(true)}
+              className="flex items-center gap-2 rounded-2xl bg-orange-500/10 text-orange-500 hover:bg-orange-500/20 font-bold text-sm px-5 py-3 transition"
+            >
+              <MessageSquare size={16} /> Discuter avec l'Assistant IA
+            </button>
+          </div>
+        )}
+
+        <AnimatePresence>
+          {isChatModalOpen && recId && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                className="w-full max-w-lg relative"
+              >
+                <button 
+                  onClick={() => setIsChatModalOpen(false)}
+                  className="absolute -top-12 right-0 w-10 h-10 flex items-center justify-center rounded-full bg-zinc-800 text-zinc-300 hover:bg-zinc-700 hover:text-white transition shadow-lg"
+                >
+                  <X size={18} />
+                </button>
+                <div className="shadow-[0_30px_80px_rgba(0,0,0,0.5)] rounded-2xl">
+                  <SolarChat recommendationId={recId} />
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
 
         {/* ── Actions commerciales ───────────────────────────────────────── */}
         <div className="flex flex-col sm:flex-row gap-3 pt-2 border-t border-[var(--panel-border)]">

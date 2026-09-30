@@ -524,9 +524,8 @@ function AddModal({ onClose, onAdd, defaultCategory = 'Multimédia' }) {
                   onChange={(event) => handleNameChange(event.target.value)}
                   placeholder="Ex. Machine à laver"
                   autoFocus
-                  className={`w-full rounded-xl border bg-[var(--devis-field)] px-3 py-3 text-base text-[var(--devis-field-foreground)] placeholder:text-[var(--devis-muted)] outline-none transition focus:border-orange-500/70 focus:ring-2 focus:ring-orange-500/15 ${
-                    nameError ? 'border-red-500/80 focus:border-red-500 focus:ring-red-500/20' : 'border-[var(--devis-border)]'
-                  }`}
+                  className={`w-full rounded-xl border bg-[var(--devis-field)] px-3 py-3 text-base text-[var(--devis-field-foreground)] placeholder:text-[var(--devis-muted)] outline-none transition focus:border-orange-500/70 focus:ring-2 focus:ring-orange-500/15 ${nameError ? 'border-red-500/80 focus:border-red-500 focus:ring-red-500/20' : 'border-[var(--devis-border)]'
+                    }`}
                 />
                 {nameError ? <span className="text-xs font-medium text-red-500">{nameError}</span> : null}
               </label>
@@ -564,11 +563,10 @@ function AddModal({ onClose, onAdd, defaultCategory = 'Multimédia' }) {
                 <button
                   type="button"
                   onClick={() => setPowerMode('watts')}
-                  className={`flex items-center justify-center gap-2 rounded-xl border px-3 py-3 text-sm font-medium transition ${
-                    powerMode === 'watts'
-                      ? 'border-orange-500 bg-orange-500/10 text-orange-500 shadow-[inset_0_0_0_1px_rgba(249,115,22,0.15)]'
-                      : 'border-[var(--devis-border)] bg-[var(--devis-panel)] text-[var(--devis-foreground)] hover:border-orange-500/50'
-                  }`}
+                  className={`flex items-center justify-center gap-2 rounded-xl border px-3 py-3 text-sm font-medium transition ${powerMode === 'watts'
+                    ? 'border-orange-500 bg-orange-500/10 text-orange-500 shadow-[inset_0_0_0_1px_rgba(249,115,22,0.15)]'
+                    : 'border-[var(--devis-border)] bg-[var(--devis-panel)] text-[var(--devis-foreground)] hover:border-orange-500/50'
+                    }`}
                 >
                   <span>⚡</span>
                   <span>Puissance en Watts (W)</span>
@@ -577,11 +575,10 @@ function AddModal({ onClose, onAdd, defaultCategory = 'Multimédia' }) {
                 <button
                   type="button"
                   onClick={() => setPowerMode('volts')}
-                  className={`flex items-center justify-center gap-2 rounded-xl border px-3 py-3 text-sm font-medium transition ${
-                    powerMode === 'volts'
-                      ? 'border-orange-500 bg-orange-500/10 text-orange-500 shadow-[inset_0_0_0_1px_rgba(249,115,22,0.15)]'
-                      : 'border-[var(--devis-border)] bg-[var(--devis-panel)] text-[var(--devis-foreground)] hover:border-orange-500/50'
-                  }`}
+                  className={`flex items-center justify-center gap-2 rounded-xl border px-3 py-3 text-sm font-medium transition ${powerMode === 'volts'
+                    ? 'border-orange-500 bg-orange-500/10 text-orange-500 shadow-[inset_0_0_0_1px_rgba(249,115,22,0.15)]'
+                    : 'border-[var(--devis-border)] bg-[var(--devis-panel)] text-[var(--devis-foreground)] hover:border-orange-500/50'
+                    }`}
                 >
                   <span>⚡</span>
                   <span>Tension (V) et courant (A)</span>
@@ -1204,11 +1201,11 @@ export default function Devis() {
                   )}
 
                   <div className="rounded-2xl border border-zinc-800 bg-zinc-900/80 p-4"><div className="mb-3 flex items-center justify-between gap-3"><p className="text-[10px] uppercase tracking-[0.22em] text-zinc-500">Appareils cochés</p><span className="rounded-full border border-orange-500/30 bg-orange-500/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-orange-300">{appliances.reduce((sum, item) => sum + item.quantity, 0)} total</span></div><div className="space-y-2">{appliances.map((item) => { const ItemIcon = resolveCategoryIcon(item.category); return <div key={item.id} className="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-950/60 px-3 py-2 text-sm text-zinc-200"><div className="flex items-center gap-3"><span className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-800"><ItemIcon size={14} className="text-orange-300" /></span><div><p className="font-medium text-white">{item.name}</p><p className="text-[11px] text-zinc-400">{item.category}</p></div></div><div className="text-right text-xs text-zinc-400"><p>{item.quantity} × {item.watts} W</p><p>{(item.watts * item.hours * item.quantity / 1000).toFixed(2)} kWh/j</p></div></div>; })}</div>
-</div>                </div>
+                  </div>                </div>
                 {mlResult && (
                   <div className="mt-6">
-                    <SolarAdvisorResult 
-                      result={mlResult} 
+                    <SolarAdvisorResult
+                      result={mlResult}
                       onClose={() => setMlResult(null)}
                       onContactRequest={(id) => toast.success(`Demande de contact envoyée pour la recommandation ${id}`)}
                     />
@@ -1216,11 +1213,11 @@ export default function Devis() {
                 )}
                 <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <button type="button" onClick={() => setCurrentStep('equipment')} className="rounded-full border border-zinc-700 bg-zinc-900/80 px-4 py-2.5 text-sm text-zinc-200 transition hover:border-orange-500/50 hover:text-white">Modifier</button>
-                  
+
                   {!mlResult && (
                     <div className="w-full sm:w-auto sm:min-w-[280px]">
-                      <SolarAdvisorTrigger 
-                        isLoading={isRecommending} 
+                      <SolarAdvisorTrigger
+                        isLoading={isRecommending}
                         hasResult={!!mlResult}
                         onClick={handleAIRecommend}
                       />
