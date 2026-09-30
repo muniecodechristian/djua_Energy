@@ -2,18 +2,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  LineChart, Line, AreaChart, Area, XAxis, YAxis,
-  Tooltip, ResponsiveContainer, CartesianGrid, RadialBarChart, RadialBar, PolarAngleAxis
+  AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid
 } from 'recharts';
 import {
-  Activity, ShieldAlert, Wifi, Zap,
-  RefreshCw, MoreHorizontal, MapPin,
-  Radio, Database, Server,
-  ShieldCheck, Thermometer, Droplets,
-  Sun, BatteryCharging, Battery, Navigation,
-  Signal, AlertTriangle, CheckCircle2, Clock,
-  ArrowUpRight, TrendingUp, TrendingDown,
-  Minus, ChevronRight, Cpu, Layers
+  AlertTriangle, CheckCircle2, Minus, TrendingDown, TrendingUp, Sparkles
 } from 'lucide-react';
 import { useKitLiveTelemetry } from '../hooks/tanstack/useKitLiveTelemetry.js';
 import { useAlertsQuery, useKitsQuery } from '../hooks/tanstack/useKitQueries.js';
@@ -24,18 +16,38 @@ import { predictionMatchesKit } from '../lib/operations';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
-// --- Custom Leaflet Marker ---
+/* ------------------------------------------------------------------
+   Design tokens
+   - Neutres : viennent de vos variables CSS (--panel, --panel-border...)
+   - Orange : SEULE couleur de marque (#FF7900, orange Orange)
+   - Vert / rouge / ambre : réservés aux ÉTATS (ok / alerte / attention)
+------------------------------------------------------------------- */
+const ORANGE = '#FF7900';
+const SURFACE = 'bg-[var(--panel)] border border-[var(--panel-border)]';
+const MUTED = 'text-[var(--muted-foreground)]';
+const FG = 'text-[var(--app-foreground)]';
+const SUBTLE = 'bg-[var(--panel-alt)]';
+const FOCUS = 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FF7900]';
+
+const TONES = {
+  ok: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+  warn: 'bg-amber-500/10 text-amber-700 dark:text-amber-400',
+  bad: 'bg-red-500/10 text-red-600 dark:text-red-400',
+  off: `${SUBTLE} ${MUTED}`,
+  brand: 'bg-[#FF7900]/10 text-[#C2410C] dark:text-[#FF9A3D]',
+};
+
+/* ------------------------------ Utils ------------------------------ */
 const customIcon = L.divIcon({
   className: 'custom-leaflet-marker',
   html: `<div style="position:relative;display:flex;align-items:center;justify-content:center;width:28px;height:28px;">
-    <span style="position:absolute;display:inline-flex;height:100%;width:100%;border-radius:50%;background:rgba(249,115,22,0.35);animation:ping 1.4s cubic-bezier(0,0,.2,1) infinite;"></span>
-    <span style="position:relative;display:inline-flex;border-radius:50%;width:14px;height:14px;background:#f97316;border:2.5px solid #09090b;box-shadow:0 0 0 3px rgba(249,115,22,0.25);"></span>
+    <span style="position:absolute;height:100%;width:100%;border-radius:50%;background:rgba(255,121,0,0.35);animation:kit-ping 1.6s cubic-bezier(0,0,.2,1) infinite;"></span>
+    <span style="position:relative;border-radius:50%;width:14px;height:14px;background:${ORANGE};border:2.5px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.25);"></span>
   </div>`,
   iconSize: [28, 28],
   iconAnchor: [14, 14],
 });
 
-// --- Date Parser robuste ---
 const parseDateString = (v) => {
   if (!v) return null;
   let d = new Date(v);
@@ -43,29 +55,27 @@ const parseDateString = (v) => {
   d = new Date(Number(v) * 1000);
   if (!isNaN(d.getTime())) return d;
   d = new Date(Number(v));
-  if (!isNaN(d.getTime())) return d;
-  return null;
+  return isNaN(d.getTime()) ? null : d;
 };
 
 const formatTime = (v) => {
   const d = parseDateString(v);
-  return d ? d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '\u2014';
+  return d ? d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '—';
 };
 
 const fmt = (value, unit = '') => {
-  if (value === undefined || value === null) return '\u2014';
-  if (typeof value === 'number') return `${Number(value.toFixed(2)).toString()}${unit}`;
+  if (value === undefined || value === null) return '—';
+  if (typeof value === 'number') return `${Number(value.toFixed(2))}${unit}`;
   return `${value}${unit}`;
 };
 
 const distanceInMeters = (lat1, lon1, lat2, lon2) => {
-  const earthRadius = 6371000;
-  const toRadians = (value) => value * Math.PI / 180;
-  const dLat = toRadians(lat2 - lat1);
-  const dLon = toRadians(lon2 - lon1);
-  const a = Math.sin(dLat / 2) ** 2
-    + Math.cos(toRadians(lat1)) * Math.cos(toRadians(lat2)) * Math.sin(dLon / 2) ** 2;
-  return earthRadius * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const R = 6371000;
+  const rad = (x) => (x * Math.PI) / 180;
+  const dLat = rad(lat2 - lat1);
+  const dLon = rad(lon2 - lon1);
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(rad(lat1)) * Math.cos(rad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 };
 
 const hasValidGps = (latitude, longitude) => {
@@ -73,556 +83,436 @@ const hasValidGps = (latitude, longitude) => {
   const lat = Number(latitude);
   const lon = Number(longitude);
   return Number.isFinite(lat) && Number.isFinite(lon)
-    && lat >= -90 && lat <= 90
-    && lon >= -180 && lon <= 180
+    && lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180
     && !(lat === 0 && lon === 0);
 };
 
-// --- Map auto-center ---
+/* Valeur précédente = valeur d'avant le dernier changement réel
+   (l'ancienne version comparait T à lui-même après chaque re-render). */
+const usePreviousOnChange = (value) => {
+  const ref = useRef({ prev: null, curr: value });
+  if (value !== ref.current.curr) ref.current = { prev: ref.current.curr, curr: value };
+  return ref.current.prev;
+};
+
 const MapUpdater = ({ center }) => {
   const map = useMap();
-  useEffect(() => { map.setView(center, map.getZoom(), { animate: !window.matchMedia("(prefers-reduced-motion: reduce)").matches }); }, [center, map]);
+  useEffect(() => {
+    map.setView(center, map.getZoom(), { animate: !window.matchMedia('(prefers-reduced-motion: reduce)').matches });
+  }, [center, map]);
   return null;
 };
 
-// --- Badge de tendance ---
-const Trend = ({ prev, curr, unit = '' }) => {
-  if (prev == null || curr == null) return null;
-  const diff = curr - prev;
-  if (Math.abs(diff) < 0.01) return (
-    <span className="flex items-center gap-0.5 text-[10px] font-mono text-zinc-500">
-      <Minus size={9} /> stable
-    </span>
-  );
-  const up = diff > 0;
+/* ---------------------------- Primitives ---------------------------- */
+const Card = ({ title, subtitle, action, children, className = '' }) => (
+  <section className={`${SURFACE} rounded-lg p-5 ${className}`}>
+    {(title || action) && (
+      <header className="mb-4 flex items-start justify-between gap-3">
+        <div>
+          <h2 className={`text-sm font-semibold ${FG}`}>{title}</h2>
+          {subtitle && <p className={`mt-0.5 text-xs ${MUTED}`}>{subtitle}</p>}
+        </div>
+        {action}
+      </header>
+    )}
+    {children}
+  </section>
+);
+
+const Pill = ({ tone = 'off', dot = false, pulse = false, children, className = '' }) => (
+  <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${TONES[tone]} ${className}`}>
+    {dot && <span className={`h-1.5 w-1.5 rounded-full bg-current ${pulse ? 'animate-pulse' : ''}`} />}
+    {children}
+  </span>
+);
+
+const Meter = ({ value, max = 100, warnBelow, className = '' }) => {
+  const pct = Math.min(100, Math.max(0, ((value ?? 0) / max) * 100));
+  const low = warnBelow != null && value != null && value < warnBelow;
   return (
-    <span className={`flex items-center gap-0.5 text-[10px] font-mono ${up ? 'text-emerald-400' : 'text-red-400'}`}>
-      {up ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
-      {up ? '+' : ''}{diff.toFixed(2)}{unit}
+    <div className={`h-1.5 w-full overflow-hidden rounded-full ${SUBTLE} ${className}`} role="presentation">
+      <div
+        className="h-full rounded-full transition-[width] duration-700"
+        style={{ width: `${pct}%`, background: low ? '#DC2626' : ORANGE }}
+      />
+    </div>
+  );
+};
+
+const Trend = ({ prev, curr, unit = '' }) => {
+  if (prev == null || curr == null) return <span className="h-4" />;
+  const diff = curr - prev;
+  if (Math.abs(diff) < 0.01) {
+    return <span className={`inline-flex items-center gap-1 text-xs ${MUTED}`}><Minus size={12} /> Stable</span>;
+  }
+  const Icon = diff > 0 ? TrendingUp : TrendingDown;
+  return (
+    <span className={`inline-flex items-center gap-1 text-xs tabular-nums ${MUTED}`}>
+      <Icon size={12} /> {diff > 0 ? '+' : ''}{diff.toFixed(2)}{unit} depuis le relevé précédent
     </span>
   );
 };
 
-// --- Carte Metrique --- icones toujours orange
-const ICON_ORANGE = '#f97316';
-const MetricCard = ({ icon: Icon, label, description, value, unit, color, sparkData, prev, curr, badge, featured = false }) => {
-  color = '#f97316'; // Force la couleur orange pour toutes les cartes
+/* Grand indicateur : uniquement pour les 4 chiffres qui comptent */
+const Stat = ({ label, hint, value, unit, prev, curr, meter, primary = false }) => (
+  <div className={`${SURFACE} rounded-lg p-5 ${primary ? 'border-t-2 border-t-[#FF7900]' : ''}`}>
+    <p className={`text-sm font-medium ${FG}`}>{label}</p>
+    <p className={`text-xs ${MUTED}`}>{hint}</p>
+    <p className={`mt-3 flex items-baseline gap-1.5 tabular-nums ${FG}`}>
+      <span className="text-4xl font-semibold tracking-tight">{value ?? '—'}</span>
+      {value != null && <span className={`text-base ${MUTED}`}>{unit}</span>}
+    </p>
+    {meter && <Meter {...meter} className="mt-3" />}
+    <div className="mt-2 min-h-[16px]"><Trend prev={prev} curr={curr} unit={unit} /></div>
+  </div>
+);
+
+/* Ligne label / valeur : remplace 12 cartes identiques */
+const Row = ({ label, value, meter, status }) => (
+  <div className="py-2.5">
+    <div className="flex items-center justify-between gap-4">
+      <span className={`text-sm ${MUTED}`}>{label}</span>
+      {status || <span className={`text-sm font-medium tabular-nums ${FG}`}>{value}</span>}
+    </div>
+    {meter && <Meter {...meter} className="mt-2" />}
+  </div>
+);
+const RowList = ({ children }) => <div className="divide-y divide-[var(--panel-border)]">{children}</div>;
+
+/* Un seul graphique, une seule unité, un choix de mesure */
+const TrendChart = ({ data, options, height = 256 }) => {
+  const [key, setKey] = useState(options[0].key);
+  const cur = options.find((o) => o.key === key) || options[0];
+  const hasData = data.some((d) => d[cur.key] != null);
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      className={`relative bg-[var(--panel)] border border-[var(--panel-border)] rounded-lg p-4 flex flex-col gap-1 overflow-hidden ${featured ? 'min-h-[142px]' : 'min-h-[126px]'}`}
-    >
-      <div className="flex items-center justify-between mb-1 relative z-10">
-        <div className="flex items-center gap-2">
-          <div className="p-1.5 rounded-md bg-orange-500/10 border border-orange-500/20">
-            <Icon size={13} style={{ color: ICON_ORANGE }} />
+    <div>
+      <div className="mb-3 flex flex-wrap gap-1.5" role="group" aria-label="Mesure affichée">
+        {options.map((o) => (
+          <button
+            key={o.key}
+            type="button"
+            onClick={() => setKey(o.key)}
+            aria-pressed={key === o.key}
+            className={`rounded-md border px-3 py-1.5 text-xs font-medium transition-colors ${FOCUS} ${key === o.key
+              ? 'border-[#FF7900] bg-[#FF7900]/10 text-[var(--app-foreground)]'
+              : `border-[var(--panel-border)] ${MUTED} hover:text-[var(--app-foreground)]`}`}
+          >
+            {o.label}
+          </button>
+        ))}
+      </div>
+      <div style={{ height }}>
+        {hasData ? (
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+              <defs>
+                <linearGradient id={`fill-${cur.key}`} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={ORANGE} stopOpacity={0.22} />
+                  <stop offset="100%" stopColor={ORANGE} stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid stroke="var(--panel-border)" vertical={false} />
+              <XAxis dataKey="time" tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }} tickLine={false} axisLine={false} minTickGap={32} />
+              <YAxis tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }} tickLine={false} axisLine={false} width={44} domain={['auto', 'auto']} />
+              <Tooltip
+                formatter={(v) => [`${fmt(v)} ${cur.unit}`, cur.label]}
+                contentStyle={{ background: 'var(--panel)', border: '1px solid var(--panel-border)', borderRadius: 8, fontSize: 12, color: 'var(--app-foreground)' }}
+              />
+              <Area type="monotone" dataKey={cur.key} stroke={ORANGE} strokeWidth={2} fill={`url(#fill-${cur.key})`} dot={false} connectNulls />
+            </AreaChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className={`flex h-full items-center justify-center rounded-md ${SUBTLE} text-sm ${MUTED}`}>
+            Pas encore de relevés pour cette mesure.
           </div>
-          <div>
-            <span className="block text-[11px] font-medium text-[var(--app-foreground)]">{label}</span>
-            {description && <span className="block text-[10px] text-[var(--muted-foreground)] mt-0.5">{description}</span>}
-          </div>
-        </div>
-        {badge && (
-          <span className="text-[9px] px-1.5 py-0.5 rounded border border-[var(--panel-border)] text-[var(--muted-foreground)] bg-[var(--panel-alt)]">{badge}</span>
         )}
       </div>
-
-      <div className="flex items-baseline gap-1.5 relative z-10">
-        <span className={`${featured ? 'text-3xl' : 'text-2xl'} font-extrabold font-mono text-[var(--app-foreground)] tracking-tight leading-none`}>
-          {value ?? '\u2014'}
-        </span>
-        {unit && <span className="text-sm font-mono text-[var(--muted-foreground)]">{unit}</span>}
-      </div>
-
-      <Trend prev={prev} curr={curr} unit={unit} />
-
-    </motion.div>
-  );
-};
-
-// --- Skeleton de chargement ---
-const SkeletonCard = () => (
-  <div className="bg-[#121516] border border-[#2a2e2f] rounded-lg p-4 flex flex-col gap-3 animate-pulse">
-    <div className="flex items-center gap-2">
-      <div className="w-7 h-7 rounded-lg bg-zinc-800" />
-      <div className="h-2.5 w-24 rounded bg-zinc-800" />
-    </div>
-    <div className="h-7 w-20 rounded bg-zinc-800" />
-    <div className="h-8 w-full rounded bg-zinc-800/60" />
-  </div>
-);
-
-const LoadingScreen = ({ kitId }) => (
-  <div className="min-h-screen bg-[#0b0d0e] text-zinc-100 font-sans">
-    <header className="border-b border-[#292d2e] px-5 py-4">
-      <div className="max-w-screen-2xl mx-auto flex items-center gap-4">
-        <div className="w-10 h-10 rounded-xl bg-orange-500/10 border border-orange-500/25 flex items-center justify-center">
-          <Zap size={18} className="text-orange-400" />
-        </div>
-        <div className="space-y-2">
-          <div className="flex items-center gap-3">
-            <span className="text-lg font-bold font-mono text-white">{kitId || 'Équipement non sélectionné'}</span>
-            <div className="flex items-center gap-2 px-3 py-1 rounded-lg bg-zinc-900 border border-zinc-800 text-[10px] font-mono text-zinc-400">
-              <RefreshCw size={10} className="animate-spin text-orange-400" />
-              Vérification de l’état du kit…
-            </div>
-          </div>
-          <p className="text-[11px] text-zinc-500 font-mono">Connexion au kit en cours, veuillez patienter</p>
-        </div>
-      </div>
-    </header>
-    <main className="max-w-screen-2xl mx-auto px-5 py-6 grid grid-cols-2 md:grid-cols-4 gap-3">
-      {Array.from({ length: 12 }).map((_, i) => <SkeletonCard key={i} />)}
-    </main>
-  </div>
-);
-
-// --- Section Header ---
-const SectionTitle = ({ icon: Icon, title, subtitle, color = '#f97316' }) => (
-  <div className="flex items-center gap-2.5 mb-4">
-    <div className="p-1.5 rounded-md" style={{ background: `${color}15`, border: `1px solid ${color}25` }}>
-      <Icon size={14} style={{ color }} />
-    </div>
-    <div>
-      <h2 className="text-[11px] font-semibold font-mono text-zinc-200 uppercase tracking-[0.14em]">{title}</h2>
-      {subtitle && <p className="text-[10px] text-zinc-500">{subtitle}</p>}
-    </div>
-  </div>
-);
-
-// --- Panel wrapper ---
-const Panel = ({ children, className = '', glow = false, color = '#f97316' }) => (
-  <div
-    className={`relative bg-[var(--panel)] border border-[var(--panel-border)] rounded-lg overflow-hidden ${className}`}
-    style={glow ? { borderColor: `${color}45` } : {}}
-  >
-    {children}
-  </div>
-);
-
-// --- Gauge radiale ---
-const RadialGauge = ({ value, max = 100, color, label, unit }) => {
-  const pct = Math.min(100, Math.max(0, ((value ?? 0) / max) * 100));
-  const data = [{ value: pct, fill: color }];
-  return (
-    <div className="flex flex-col items-center gap-1">
-      <div className="relative" style={{ width: 90, height: 90 }}>
-        <RadialBarChart
-          width={90} height={90}
-          innerRadius={30} outerRadius={42}
-          data={data} startAngle={220} endAngle={-40}
-          barSize={8}
-        >
-          <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
-          <RadialBar dataKey="value" cornerRadius={4} background={{ fill: '#1c1c1e' }} />
-        </RadialBarChart>
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-base font-extrabold font-mono text-white">{value ?? '\u2014'}</span>
-          <span className="text-[9px] font-mono text-zinc-500">{unit}</span>
-        </div>
-      </div>
-      <span className="text-[10px] font-mono text-zinc-400 text-center leading-tight">{label}</span>
     </div>
   );
 };
 
-// --- Signal strength bars ---
+const Clock = () => {
+  const [now, setNow] = useState(new Date());
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(t);
+  }, []);
+  return <span className="tabular-nums">{now.toLocaleTimeString('fr-FR')}</span>;
+};
+
 const SignalBars = ({ dbm }) => {
   const strength = dbm >= -50 ? 4 : dbm >= -65 ? 3 : dbm >= -80 ? 2 : 1;
   return (
-    <div className="flex items-end gap-0.5 h-4">
-      {[1, 2, 3, 4].map(b => (
-        <div key={b} className="w-1.5 rounded-sm" style={{
-          height: `${b * 22}%`,
-          background: b <= strength ? '#f97316' : '#27272a',
-          minHeight: 3
-        }} />
+    <div className="flex h-5 items-end gap-0.5" aria-hidden="true">
+      {[1, 2, 3, 4].map((b) => (
+        <div key={b} className="w-1.5 rounded-sm" style={{ height: `${b * 25}%`, background: b <= strength ? ORANGE : 'var(--panel-border)' }} />
       ))}
     </div>
   );
 };
 
-// ============================================================
-// COMPOSANT PREDICTION IA — Temps réel via Socket.io
-// ============================================================
-const PRIORITY_CONFIG = {
-  high:    { label: 'Priorité Élevée',   color: '#ef4444', bg: 'rgba(239,68,68,0.1)',   border: 'rgba(239,68,68,0.3)',   dot: 'bg-red-500'     },
-  medium:  { label: 'Priorité Modérée',  color: '#f59e0b', bg: 'rgba(245,158,11,0.1)',  border: 'rgba(245,158,11,0.3)',  dot: 'bg-amber-400'   },
-  low:     { label: 'Priorité Faible',   color: '#22c55e', bg: 'rgba(34,197,94,0.1)',   border: 'rgba(34,197,94,0.3)',   dot: 'bg-emerald-500' },
-  none:    { label: 'Aucune alerte',     color: '#6b7280', bg: 'rgba(107,114,128,0.1)', border: 'rgba(107,114,128,0.2)', dot: 'bg-zinc-500'    },
+/* ----------------------------- Chargement ---------------------------- */
+const LoadingScreen = ({ kitId }) => (
+  <div className="min-h-screen bg-[var(--app-surface)]" aria-busy="true">
+    <header className={`${SURFACE} border-x-0 border-t-0 px-5 py-4`}>
+      <div className="mx-auto max-w-screen-2xl">
+        <h1 className={`text-lg font-semibold ${FG}`}>{kitId || 'Équipement non sélectionné'}</h1>
+        <p className={`mt-1 text-sm ${MUTED}`}>Connexion au kit en cours…</p>
+      </div>
+    </header>
+    <main className="mx-auto grid max-w-screen-2xl grid-cols-1 gap-3 px-5 py-6 sm:grid-cols-2 xl:grid-cols-4">
+      {Array.from({ length: 4 }).map((_, i) => (
+        <div key={i} className={`${SURFACE} h-40 animate-pulse rounded-lg`} />
+      ))}
+    </main>
+  </div>
+);
+
+/* --------------------------- Prédiction IA --------------------------- */
+const PRIORITY = {
+  critical: { label: 'Critique', tone: 'bad' },
+  high: { label: 'Élevée', tone: 'bad' },
+  medium: { label: 'Modérée', tone: 'warn' },
+  low: { label: 'Faible', tone: 'ok' },
+  none: { label: 'Aucune alerte', tone: 'off' },
 };
 
 const ALERT_TYPE_LABELS = {
-  BATTERY_DEGRADATION: 'Dégradation Batterie',
-  battery_degradation: 'Dégradation Batterie',
-  ANOMALOUS_CONSUMPTION: 'Consommation Anormale',
-  anomalous_consumption: 'Consommation Anormale',
-  TEMP_WARNING: 'Avertissement Température',
-  temp_warning: 'Avertissement Température',
-  OVERHEATING: 'Surchauffe Matérielle',
-  overheating: 'Surchauffe Matérielle',
-  GRID_INSTABILITY: 'Instabilité du Réseau',
-  grid_instability: 'Instabilité du Réseau',
-  LOW_BATTERY: 'Batterie Faible',
-  low_battery: 'Batterie Faible',
-  CRITICAL_BATTERY: 'Batterie Critique',
-  critical_battery: 'Batterie Critique',
-  SOLAR_UNDERPERFORMANCE: 'Sous-performance Solaire',
-  solar_underperformance: 'Sous-performance Solaire',
-  GEOFENCE_EXIT: 'Sortie de Zone (Geofence)',
-  geofence_exit: 'Sortie de Zone (Geofence)',
-  SYSTEM_NORMAL: 'Système Normal',
+  battery_degradation: 'Dégradation de la batterie',
+  anomalous_consumption: 'Consommation anormale',
+  temp_warning: 'Avertissement température',
+  overheating: 'Surchauffe du boîtier',
+  grid_instability: 'Instabilité du réseau',
+  low_battery: 'Batterie faible',
+  critical_battery: 'Batterie critique',
+  solar_underperformance: 'Production solaire faible',
+  geofence_exit: 'Sortie de zone',
+  system_normal: 'Système normal',
   normal: 'Normal',
-  none: 'Aucune'
+  none: 'Aucune',
 };
 
 const formatAlertType = (type) => {
   if (!type) return 'Aucune';
-  if (ALERT_TYPE_LABELS[type]) return ALERT_TYPE_LABELS[type];
-  return type
-    .replace(/_/g, ' ')
-    .toLowerCase()
-    .replace(/\b\w/g, (c) => c.toUpperCase());
+  const key = String(type).toLowerCase();
+  if (ALERT_TYPE_LABELS[key]) return ALERT_TYPE_LABELS[key];
+  const s = key.replace(/_/g, ' ');
+  return s.charAt(0).toUpperCase() + s.slice(1);
 };
 
 const translateAlertTitle = (title, priority) => {
-  if (!title) {
-    return priority === 'none' ? 'Situation normale — aucune alerte détectée' : 'Alerte de fonctionnement détectée';
-  }
-  const lower = title.toLowerCase();
-  if (lower.includes('battery degradation')) return 'Avertissement de dégradation de la batterie';
-  if (lower.includes('anomalous consumption')) return 'Alerte de consommation électrique anormale';
-  if (lower.includes('overheating')) return 'Alerte de surchauffe du boîtier';
-  if (lower.includes('grid instability')) return 'Instabilité du réseau électrique';
-  if (lower.includes('low battery')) return 'Alerte de niveau de batterie bas';
+  if (!title) return priority === 'none' ? 'Situation normale, aucune alerte détectée' : 'Alerte de fonctionnement détectée';
+  const l = title.toLowerCase();
+  if (l.includes('battery degradation')) return 'Dégradation de la batterie détectée';
+  if (l.includes('anomalous consumption')) return 'Consommation électrique anormale';
+  if (l.includes('overheating')) return 'Surchauffe du boîtier';
+  if (l.includes('grid instability')) return 'Instabilité du réseau électrique';
+  if (l.includes('low battery')) return 'Niveau de batterie bas';
   return title;
 };
 
 const STATUS_LABELS = {
-  ok:               'Données enregistrées',
-  no_new_records:   'Aucun nouvel enregistrement (doublon ignoré)',
-  quarantined:      'Données mises en quarantaine',
-  error:            'Erreur de traitement',
+  ok: 'Données enregistrées',
+  no_new_records: 'Aucun nouvel enregistrement',
+  quarantined: 'Données mises en quarantaine',
+  error: 'Erreur de traitement',
 };
 
-function PredictionIATab({ kitId, showToast }) {
+const RISK_SCALE = {
+  critical: 95, high: 85, medium: 50, low: 20, none: 5,
+};
+const RISKS = [
+  {
+    label: 'Maintenance',
+    field: 'maintenance_priority',
+    text: {
+      critical: 'Intervention urgente recommandée. Composants fortement dégradés.',
+      high: 'Intervention recommandée à court terme. Anomalies matérielles détectées.',
+      medium: 'Usure anormale. À vérifier lors de la prochaine visite.',
+      low: 'Légère dérive des paramètres de santé. Comportement globalement normal.',
+      none: 'Matériel en bon état. Aucune maintenance nécessaire.',
+    },
+  },
+  {
+    label: 'Sécurité',
+    field: 'security_priority',
+    text: {
+      critical: 'Risque immédiat de dommage matériel (surchauffe, surcharge).',
+      high: 'Comportement très anormal pouvant mener à une défaillance.',
+      medium: 'Comportement suspect ou limites d’utilisation approchées.',
+      low: 'Quelques mesures proches des limites, mais sans danger.',
+      none: 'Aucun comportement à risque détecté.',
+    },
+  },
+  {
+    label: 'Alerte globale',
+    field: 'priority',
+    text: {
+      critical: 'Situation critique : prise en charge immédiate par le support.',
+      high: 'Problème sévère. Une action rapide évitera la panne.',
+      medium: 'Anomalie modérée. Un technicien ou un agent devrait vérifier.',
+      low: 'Alerte mineure ou fluctuation temporaire. À surveiller.',
+      none: 'Kit sain et autonome.',
+    },
+  },
+];
+
+function PredictionIATab({ kitId }) {
   const [prediction, setPrediction] = useState(null);
-  const [isLiveMode, setIsLiveMode] = useState(false);
   const [lastUpdate, setLastUpdate] = useState(null);
-  const [pulseKey, setPulseKey] = useState(0);
   const serverUrl = api.defaults.baseURL;
 
-  // Socket.io — écoute prediction:update depuis le script backend
   useEffect(() => {
-    console.log("Tentative de connexion Socket.IO à", serverUrl);
     const socket = io(serverUrl, { withCredentials: true, transports: ['websocket', 'polling'] });
-    
-    socket.on('connect', () => {
-      console.log("✅ Socket.IO connecté avec l'ID:", socket.id);
-    });
-    
-    socket.on('connect_error', (err) => {
-      console.error("❌ Erreur Socket.IO:", err.message);
-    });
-    
     setPrediction(null);
     setLastUpdate(null);
-    setIsLiveMode(false);
     socket.on('prediction:update', ({ result, timestamp, kitId: eventKitId }) => {
-      if (!predictionMatchesKit({kitId:eventKitId,result}, kitId)) return;
-      console.log("📥 NOUVELLE PRÉDICTION REÇUE VIA SOCKET:", result);
+      if (!predictionMatchesKit({ kitId: eventKitId, result }, kitId)) return;
       setPrediction(result);
       setLastUpdate(timestamp);
-      setPulseKey(k => k + 1);
-      setIsLiveMode(true);
     });
     return () => { socket.off('prediction:update'); socket.disconnect(); };
   }, [serverUrl, kitId]);
 
-  const p = prediction;
-  const alert = p?.alert || null;
-  const priority = alert?.priority || 'none';
-  const cfg = PRIORITY_CONFIG[priority] || PRIORITY_CONFIG.none;
-  const metrics = p?.metrics || {};
-  const statusLabel = STATUS_LABELS[p?.status] || p?.status || '—';
-
-  const MetricBox = ({ label, value, sub, color = '#f97316' }) => (
-    <div className="flex flex-col gap-1 p-3.5 rounded-lg bg-zinc-950/60 border border-zinc-800/50">
-      <span className="text-[10px] uppercase tracking-[0.14em] font-mono text-zinc-500">{label}</span>
-      <span className="text-xl font-extrabold font-mono" style={{ color }}>{value ?? '—'}</span>
-      {sub && <span className="text-[10px] text-zinc-500 font-mono">{sub}</span>}
-    </div>
-  );
+  const alert = prediction?.alert || null;
+  const priority = PRIORITY[alert?.priority] ? alert.priority : 'none';
+  const cfg = PRIORITY[priority];
 
   return (
-    <motion.div key="prediction"
-      initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}
-      className="space-y-4"
-    >
-      {/* Header */}
-      <Panel className="p-5">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-blue-400 mb-1">Module IA</p>
-            <h2 className="text-xl font-semibold tracking-tight text-zinc-100">Analyse Prédictive en Temps Réel</h2>
-            <p className="text-xs text-zinc-500 mt-1">
-              {isLiveMode
-                ? `Dernière mise à jour : ${lastUpdate ? new Date(lastUpdate).toLocaleTimeString('fr-FR') : '—'} · Résultat du modèle reçu pour cet équipement`
-                : 'Aucun résultat du modèle reçu pour cet équipement pendant cette session.'}
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[11px] font-semibold ${isLiveMode ? 'border-blue-500/30 bg-blue-500/10 text-blue-400' : 'border-zinc-700 bg-zinc-900 text-zinc-500'}`}>
-              <span className={`w-2 h-2 rounded-full ${isLiveMode ? 'bg-blue-400 animate-pulse' : 'bg-zinc-600'}`} />
-              {isLiveMode ? 'Résultat reçu' : 'En attente…'}
-            </div>
-          </div>
-        </div>
-      </Panel>
+    <div className="space-y-4">
+      <Card
+        title="Analyse prédictive"
+        subtitle={prediction
+          ? `Dernier résultat reçu à ${lastUpdate ? new Date(lastUpdate).toLocaleTimeString('fr-FR') : '—'}`
+          : 'Aucun résultat reçu pour cet équipement pendant cette session.'}
+        action={<Pill tone={prediction ? 'brand' : 'off'} dot pulse={!!prediction}>{prediction ? 'Résultat reçu' : 'En attente'}</Pill>}
+      >
+        {!prediction && (
+          <p className={`max-w-xl text-sm ${MUTED}`}>
+            Les résultats s’affichent dès qu’une analyse de cet équipement est reçue. L’absence de résultat ne permet pas de conclure à l’absence de risque.
+          </p>
+        )}
+      </Card>
 
-      {!p ? (
-        /* État vide */
-        <Panel className="p-12">
-          <div className="flex flex-col items-center gap-4 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
-              <Activity size={28} className="text-blue-400" />
-            </div>
-            <div>
-              <p className="text-zinc-200 font-semibold text-sm mb-1">Aucune prédiction reçue</p>
-              <p className="text-zinc-500 text-xs max-w-xs">Les résultats s’affichent lorsqu’une analyse de cet équipement est reçue. L’absence de résultat ne permet pas de conclure à l’absence de risque.</p>
-            </div>
-          </div>
-        </Panel>
-      ) : (
+      {prediction && (
         <>
-          {/* Alerte principale */}
-          <AnimatePresence mode="wait">
-            <motion.div key={`alert-${pulseKey}`}
-              initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
-            >
-              <Panel className="p-5" glow color={cfg.color}>
-                <div className="flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                    style={{ background: cfg.bg, border: `1px solid ${cfg.border}` }}>
-                    <ShieldAlert size={18} style={{ color: cfg.color }} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className={`w-2 h-2 rounded-full ${cfg.dot}`} />
-                      <span className="text-[11px] font-semibold font-mono uppercase tracking-wider" style={{ color: cfg.color }}>
-                        {cfg.label}
-                      </span>
-                      {alert?.type && (
-                        <span className="px-2 py-0.5 text-[10px] font-mono rounded border" style={{ borderColor: cfg.border, background: cfg.bg, color: cfg.color }}>
-                          {formatAlertType(alert.type)}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-zinc-100 font-semibold mt-1 text-sm">
-                      {translateAlertTitle(alert?.title, priority)}
-                    </p>
-                    {alert?.message && (
-                      <p className="text-zinc-400 text-xs mt-1 leading-relaxed">{alert.message}</p>
-                    )}
-                    {alert?.recommended_action && (
-                      <div className="mt-3 p-3 rounded-lg text-xs leading-relaxed"
-                        style={{ background: cfg.bg, border: `1px solid ${cfg.border}`, color: cfg.color }}>
-                        <span className="font-semibold">Action recommandée : </span>{alert.recommended_action}
-                      </div>
-                    )}
-                  </div>
+          <Card>
+            <div className="flex items-start gap-4">
+              <div className={`mt-0.5 rounded-md p-2 ${TONES[cfg.tone]}`}>
+                {priority === 'none' ? <CheckCircle2 size={18} /> : <AlertTriangle size={18} />}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Pill tone={cfg.tone}>Priorité : {cfg.label}</Pill>
+                  {alert?.type && <span className={`text-xs ${MUTED}`}>{formatAlertType(alert.type)}</span>}
                 </div>
-              </Panel>
-            </motion.div>
-          </AnimatePresence>
-
-
-          {/* Statut + scores */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Panel className="p-5">
-              <SectionTitle icon={CheckCircle2} title="Statut du pipeline" color="#22c55e" />
-              <div className="space-y-2">
-                {[
-                  { label: 'Statut du traitement',        value: statusLabel },
-                  { label: 'Priorité alerte',              value: cfg.label, color: cfg.color },
-                  { label: 'Type d\'alerte',               value: formatAlertType(alert?.type) },
-                  { label: 'ID de l\'appareil ciblé',      value: alert?.device_id || '—' },
-                ].map(({ label, value, color }) => (
-                  <div key={label} className="flex items-center justify-between p-2.5 rounded-lg bg-zinc-950/60 border border-zinc-800/50">
-                    <span className="text-[11px] font-mono text-zinc-400">{label}</span>
-                    <span className="text-[11px] font-mono font-semibold" style={{ color: color || '#d4d4d8' }}>{value}</span>
+                <p className={`mt-2 text-base font-semibold ${FG}`}>{translateAlertTitle(alert?.title, priority)}</p>
+                {alert?.message && <p className={`mt-1 max-w-2xl text-sm leading-relaxed ${MUTED}`}>{alert.message}</p>}
+                {alert?.recommended_action && (
+                  <div className={`mt-4 rounded-md border-l-2 border-l-[#FF7900] ${SUBTLE} p-3 text-sm ${FG}`}>
+                    <span className="font-semibold">À faire : </span>{alert.recommended_action}
                   </div>
-                ))}
+                )}
               </div>
-            </Panel>
+            </div>
+          </Card>
 
-            <Panel className="p-5">
-              <SectionTitle icon={Activity} title="Analyse des Risques (IA)" color="#f59e0b" />
-              <div className="space-y-3">
-                {[
-                  { 
-                    label: 'Risque de Maintenance', 
-                    priority: alert?.maintenance_priority,
-                    color: '#f59e0b',
-                    getDesc: (p) => p === 'critical' ? { pct: 95, text: "Intervention technique urgente recommandée. Composants matériels en dégradation sévère." } :
-                                    p === 'high'     ? { pct: 85, text: "Intervention technique recommandée à court terme. Anomalies matérielles détectées." } :
-                                    p === 'medium'   ? { pct: 50, text: "Signes d'usure anormale. À surveiller lors de la prochaine révision." } :
-                                    p === 'low'      ? { pct: 20, text: "Légère déviation des paramètres de santé. Comportement globalement normal." } :
-                                                       { pct: 5,  text: "Matériel en bon état de fonctionnement. Aucun besoin de maintenance." }
-                  },
-                  { 
-                    label: 'Risque de Sécurité', 
-                    priority: alert?.security_priority,
-                    color: '#ef4444',
-                    getDesc: (p) => p === 'critical' ? { pct: 95, text: "DANGER: Risque de dommage matériel immédiat (surchauffe, surcharge)." } :
-                                    p === 'high'     ? { pct: 85, text: "Avertissement critique : comportements très anormaux pouvant mener à une défaillance de sécurité." } :
-                                    p === 'medium'   ? { pct: 50, text: "Comportement suspect ou limites d'utilisation approchées." } :
-                                    p === 'low'      ? { pct: 20, text: "Quelques métriques s'approchent des limites, mais restent sécuritaires." } :
-                                                       { pct: 5,  text: "Sécurité optimale. Aucun comportement risqué détecté." }
-                  },
-                  { 
-                    label: 'Score Global d\'Alerte', 
-                    priority: alert?.priority,
-                    color: '#a78bfa',
-                    getDesc: (p) => p === 'critical' ? { pct: 95, text: "Situation critique nécessitant une prise en charge immédiate par le support." } :
-                                    p === 'high'     ? { pct: 85, text: "Problème sévère détecté. Une action rapide est nécessaire pour éviter la panne." } :
-                                    p === 'medium'   ? { pct: 50, text: "Anomalie modérée. Un agent commercial ou technique devrait vérifier." } :
-                                    p === 'low'      ? { pct: 20, text: "Alerte mineure ou fluctuation temporaire. À observer." } :
-                                                       { pct: 5,  text: "Kit solaire parfaitement sain et autonome." }
-                  },
-                ].map(({ label, priority, color, getDesc }) => {
-                  // Si priority n'existe pas et qu'il n'y a pas d'alerte, on l'ignore
-                  if (!priority && !alert) return null;
-                  const { pct, text } = getDesc(priority || 'none');
-                  return (
-                    <div key={label} className="p-3 rounded-lg bg-zinc-950/60 border border-zinc-800/50 flex flex-col gap-1.5">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color }}>{label}</span>
-                        <span className="text-sm font-black font-mono" style={{ color }}>{pct} %</span>
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <Card title="Traitement">
+              <RowList>
+                <Row label="Statut" value={STATUS_LABELS[prediction.status] || prediction.status || '—'} />
+                <Row label="Priorité" value={cfg.label} />
+                <Row label="Type d’alerte" value={formatAlertType(alert?.type)} />
+                <Row label="Appareil ciblé" value={alert?.device_id || '—'} />
+                {alert?.confidence != null && <Row label="Fiabilité de la prédiction" value={`${Math.round(alert.confidence * 100)} %`} />}
+              </RowList>
+            </Card>
+
+            <Card title="Niveaux de risque" subtitle="Estimés par le modèle">
+              {!alert ? (
+                <p className={`text-sm ${MUTED}`}>Le modèle n’a pas encore analysé d’enregistrement.</p>
+              ) : (
+                <div className="space-y-4">
+                  {RISKS.map(({ label, field, text }) => {
+                    const level = RISK_SCALE[alert[field]] != null ? alert[field] : 'none';
+                    return (
+                      <div key={label}>
+                        <div className="flex items-baseline justify-between">
+                          <span className={`text-sm font-medium ${FG}`}>{label}</span>
+                          <span className={`text-sm tabular-nums ${MUTED}`}>{RISK_SCALE[level]} %</span>
+                        </div>
+                        <Meter value={RISK_SCALE[level]} className="mt-1.5" />
+                        <p className={`mt-1.5 text-xs leading-relaxed ${MUTED}`}>{text[level]}</p>
                       </div>
-                      <p className="text-[11px] text-zinc-400 leading-relaxed border-l-2 pl-2" style={{ borderLeftColor: color }}>
-                        {text}
-                      </p>
-                    </div>
-                  );
-                })}
-                
-                {alert?.confidence != null && (
-                  <div className="flex items-center justify-between p-2.5 rounded-lg bg-emerald-950/20 border border-emerald-900/30">
-                    <span className="text-[11px] font-mono text-emerald-500/70">Fiabilité de la prédiction IA</span>
-                    <span className="text-[11px] font-mono font-bold text-emerald-400">
-                      {Math.round(alert.confidence * 100)} %
-                    </span>
-                  </div>
-                )}
-                
-                {!alert && (
-                  <div className="p-3 rounded-lg bg-zinc-950/60 border border-zinc-800/50 flex flex-col gap-1.5 text-center py-6">
-                    <span className="text-sm font-semibold text-zinc-400">Aucun score disponible</span>
-                    <p className="text-[11px] text-zinc-500">Le modèle n'a pas encore analysé d'enregistrement.</p>
-                  </div>
-                )}
-              </div>
-            </Panel>
+                    );
+                  })}
+                </div>
+              )}
+            </Card>
           </div>
         </>
       )}
-    </motion.div>
+    </div>
   );
 }
 
-// ============================================================
-// COMPOSANT PRINCIPAL
-// ============================================================
+/* ============================ Page principale ============================ */
+const TAB_IDS = { synthese: 'Synthèse', solaire: 'Énergie solaire', env: 'Environnement', gps: 'Réseau et GPS', ia: 'Prédiction IA' };
+
 export default function SmartKitDetails() {
   const [searchParams] = useSearchParams();
   const kitId = searchParams.get('kitId');
-  const [activeTab, setActiveTab] = useState(searchParams.get('tab') === 'ai' ? 'Prédiction IA' : 'Synth\u00e8se');
+  const [activeTab, setActiveTab] = useState(searchParams.get('tab') === 'ai' ? 'ia' : 'synthese');
   const [toast, setToast] = useState(null);
-  const [aiPredictionData, setAiPredictionData] = useState(null);
-  const [now, setNow] = useState(new Date());
-  const prevTelRef = useRef(null);
-  // Chargement initial : on laisse 3.5s au serveur pour détecter l'état réel
   const [isChecking, setIsChecking] = useState(true);
+  const [liveGeofenceAlert, setLiveGeofenceAlert] = useState(null);
 
   const { telemetryRecords, latestTelemetry, isLive, dataSource, isLoading } = useKitLiveTelemetry(kitId);
   const { data: kits = [] } = useKitsQuery();
   const { data: alerts = [] } = useAlertsQuery();
-  const [liveGeofenceAlert, setLiveGeofenceAlert] = useState(null);
   const kitReference = kits.find((kit) => kit.kitId === kitId);
 
+  const T = latestTelemetry;
+  const P = usePreviousOnChange(T);
+
   useEffect(() => {
-    // On attend que le hook ait fini OU 3.5s max, le premier des deux
     if (!isLoading) { setIsChecking(false); return; }
     const timer = setTimeout(() => setIsChecking(false), 3500);
     return () => clearTimeout(timer);
   }, [isLoading]);
 
   useEffect(() => {
-    const existingAlert = (Array.isArray(alerts) ? alerts : []).find(
-      (alert) => alert.kitId === kitId
-        && alert.type === 'geofence_exit'
-        && alert.status === 'active'
-        && hasValidGps(alert.metadata?.currentPosition?.latitude, alert.metadata?.currentPosition?.longitude)
+    const existing = (Array.isArray(alerts) ? alerts : []).find(
+      (a) => a.kitId === kitId && a.type === 'geofence_exit' && a.status === 'active'
+        && hasValidGps(a.metadata?.currentPosition?.latitude, a.metadata?.currentPosition?.longitude)
     );
-    setLiveGeofenceAlert(existingAlert || null);
+    setLiveGeofenceAlert(existing || null);
   }, [alerts, kitId]);
 
   useEffect(() => {
-    const serverUrl = api.defaults.baseURL;
-    const socket = io(serverUrl, { withCredentials: true, transports: ['websocket', 'polling'] });
-    const handleGeofenceAlert = (alert) => {
-      if (alert?.kitId === kitId && hasValidGps(alert.metadata?.currentPosition?.latitude, alert.metadata?.currentPosition?.longitude)) {
-        setLiveGeofenceAlert(alert);
+    const socket = io(api.defaults.baseURL, { withCredentials: true, transports: ['websocket', 'polling'] });
+    socket.on('geofence_alert', (a) => {
+      if (a?.kitId === kitId && hasValidGps(a.metadata?.currentPosition?.latitude, a.metadata?.currentPosition?.longitude)) {
+        setLiveGeofenceAlert(a);
       }
-    };
-    const handleGeofenceResolved = ({ kitId: resolvedKitId }) => {
-      if (resolvedKitId === kitId) setLiveGeofenceAlert(null);
-    };
-    socket.on('geofence_alert', handleGeofenceAlert);
-    socket.on('geofence_resolved', handleGeofenceResolved);
-    return () => {
-      socket.off('geofence_alert', handleGeofenceAlert);
-      socket.off('geofence_resolved', handleGeofenceResolved);
-      socket.disconnect();
-    };
+    });
+    socket.on('geofence_resolved', ({ kitId: id }) => { if (id === kitId) setLiveGeofenceAlert(null); });
+    return () => { socket.off('geofence_alert'); socket.off('geofence_resolved'); socket.disconnect(); };
   }, [kitId]);
 
-  useEffect(() => {
-    const t = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(t);
-  }, []);
-
-  const T = latestTelemetry;
-  const P = prevTelRef.current;
-  useEffect(() => {
-    if (T) prevTelRef.current = T;
-  }, [T]);
-
-  const lastUpdate = formatTime(T?.event_time);
-
   const hasTelemetryGps = hasValidGps(T?.latitude, T?.longitude);
-  const lat = hasTelemetryGps
-    ? Number(T.latitude)
-    : Number(kitReference?.gpsCoordinates?.latitude ?? -3.5);
-  const lng = hasTelemetryGps
-    ? Number(T.longitude)
-    : Number(kitReference?.gpsCoordinates?.longitude ?? 23.5);
-  const referenceLat = kitReference?.gpsCoordinates?.latitude == null ? NaN : Number(kitReference.gpsCoordinates.latitude);
-  const referenceLng = kitReference?.gpsCoordinates?.longitude == null ? NaN : Number(kitReference.gpsCoordinates.longitude);
-  const hasReferenceGps = hasValidGps(referenceLat, referenceLng);
-  const currentDistance = hasReferenceGps && hasTelemetryGps
-    ? distanceInMeters(referenceLat, referenceLng, lat, lng)
-    : null;
+  const lat = hasTelemetryGps ? Number(T.latitude) : Number(kitReference?.gpsCoordinates?.latitude ?? -3.5);
+  const lng = hasTelemetryGps ? Number(T.longitude) : Number(kitReference?.gpsCoordinates?.longitude ?? 23.5);
+  const refLat = kitReference?.gpsCoordinates?.latitude == null ? NaN : Number(kitReference.gpsCoordinates.latitude);
+  const refLng = kitReference?.gpsCoordinates?.longitude == null ? NaN : Number(kitReference.gpsCoordinates.longitude);
+  const hasReferenceGps = hasValidGps(refLat, refLng);
+  const currentDistance = hasReferenceGps && hasTelemetryGps ? distanceInMeters(refLat, refLng, lat, lng) : null;
   const isOutsideGeofence = Boolean(liveGeofenceAlert) || (currentDistance != null && currentDistance > 90);
 
   const chartData = telemetryRecords.slice(-24).map((r, i) => {
     const d = parseDateString(r.event_time);
     return {
-      time: d ? d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : `Mesure ${i + 1}`,
+      time: d ? d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : `#${i + 1}`,
       tension_bat: r.battery_voltage_v ?? null,
       courant_bat: r.battery_current_a ?? null,
       tension_pv: r.solar_voltage_v ?? null,
@@ -635,577 +525,310 @@ export default function SmartKitDetails() {
     };
   });
 
-  const tabs = ['Synth\u00e8se', '\u00c9nergie Solaire', 'Environnement', 'R\u00e9seau & GPS', 'Pr\u00e9diction IA'];
+  const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 3000); };
 
-  const showToast = (msg) => {
-    setToast(msg);
-    setTimeout(() => setToast(null), 3000);
-  };
+  /* Problèmes à signaler en haut de page */
+  const issues = [];
+  if (isOutsideGeofence) issues.push(`Le kit est sorti de son périmètre${currentDistance != null ? ` (${Math.round(currentDistance)} m)` : ''}.`);
+  if (T?.overload_detected) issues.push('Surcharge détectée.');
+  if (T?.abnormal_consumption_detected) issues.push('Consommation anormale détectée.');
+  if (T?.battery_error_code && T.battery_error_code !== 'NONE') issues.push(`Erreur batterie : ${T.battery_error_code}.`);
+  if (T?.solar_error_code && T.solar_error_code !== 'NONE') issues.push(`Erreur panneau : ${T.solar_error_code}.`);
 
   if (isChecking) return <LoadingScreen kitId={kitId} />;
 
+  const errorRows = [
+    { label: 'Erreur batterie', bad: T?.battery_error_code && T.battery_error_code !== 'NONE', text: T?.battery_error_code && T.battery_error_code !== 'NONE' ? T.battery_error_code : 'Aucune' },
+    { label: 'Erreur panneau', bad: T?.solar_error_code && T.solar_error_code !== 'NONE', text: T?.solar_error_code && T.solar_error_code !== 'NONE' ? T.solar_error_code : 'Aucune' },
+    { label: 'Surcharge', bad: T?.overload_detected, text: T?.overload_detected ? 'Détectée' : 'Non' },
+    { label: 'Consommation anormale', bad: T?.abnormal_consumption_detected, text: T?.abnormal_consumption_detected ? 'Détectée' : 'Non' },
+  ];
+
+  const duration = (sec) => (sec == null ? '—' : `${Math.floor(sec / 3600)} h ${String(Math.floor((sec % 3600) / 60)).padStart(2, '0')}`);
+  const rssi = T?.signal_strength_dbm;
+
   return (
-    <div className="smart-kit-shell min-h-screen bg-[var(--app-surface)] text-[var(--app-foreground)] font-sans selection:bg-orange-500/30">
+    <div className="min-h-screen bg-[var(--app-surface)] font-sans text-[var(--app-foreground)] selection:bg-[#FF7900]/30">
+      <style>{`
+        .dark .map-tiles-dark { filter: invert(100%) hue-rotate(180deg) brightness(88%) contrast(92%) saturate(0.85); }
+        .leaflet-container { background: var(--panel-alt) !important; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        @keyframes kit-ping { 75%, 100% { transform: scale(2.2); opacity: 0; } }
+        @media (prefers-reduced-motion: reduce) { .animate-pulse { animation: none !important; } }
+      `}</style>
 
-      {/* TOAST */}
-      <AnimatePresence>
-        {toast && (
-          <motion.div
-            initial={{ opacity: 0, y: -20, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -20, scale: 0.96 }}
-            className="fixed top-5 right-5 z-50 px-4 py-3 rounded-lg bg-[#171a1b] border border-[#3a3f40] text-zinc-200 text-xs shadow-2xl flex items-center gap-3"
-          >
-            <CheckCircle2 size={14} className="text-orange-400" />
-            <span className="font-mono text-[11px]">{toast}</span>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Confirmation */}
+      <div aria-live="polite" className="pointer-events-none fixed right-5 top-5 z-50">
+        <AnimatePresence>
+          {toast && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+              className={`${SURFACE} flex items-center gap-2 rounded-md px-4 py-3 text-sm shadow-lg`}
+            >
+              <CheckCircle2 size={16} className="text-emerald-500" /> {toast}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
 
-      {/* HEADER COCKPIT */}
-      <header className="sticky top-0 z-40 bg-[var(--panel)] border-b border-[var(--panel-border)]">
-        <div className="max-w-screen-2xl mx-auto px-5 py-3">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              {/* Point de statut simple — sans icone */}
-              <div className="relative">
-                <div className="w-10 h-10 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center">
-                  <span className={`w-3 h-3 rounded-full ${isLive ? 'bg-emerald-500' : 'bg-zinc-600'}`}>
-                    {isLive && <span className="absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-60" />}
-                  </span>
-                </div>
+      {/* En-tête */}
+      <header className={`sticky top-0 z-40 ${SURFACE} border-x-0 border-t-0`}>
+        <div className="mx-auto max-w-screen-2xl px-5 pt-4">
+          <div className="flex flex-col justify-between gap-3 md:flex-row md:items-start">
+            <div>
+              <div className="flex flex-wrap items-center gap-2.5">
+                <h1 className="text-xl font-semibold tracking-tight">{kitId || 'Équipement non sélectionné'}</h1>
+                <Pill tone={isLive ? 'ok' : 'off'} dot pulse={isLive}>
+                  {isLive ? 'En ligne' : 'Hors ligne, dernier relevé connu'}
+                </Pill>
+                {isOutsideGeofence && <Pill tone="bad">Hors périmètre</Pill>}
               </div>
-              <div>
-                <div className="flex items-center gap-2.5 flex-wrap">
-                  <h1 className="text-lg font-bold font-mono text-[var(--app-foreground)] tracking-tight">{kitId || 'Équipement non sélectionné'}</h1>
-                  {/* Badge statut — termes non-techniques */}
-                  <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-[10px] font-semibold tracking-wide ${isLive
-                    ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-400'
-                    : 'bg-zinc-900 border-zinc-800 text-zinc-400'
-                    }`}>
-                    <span className={`w-1.5 h-1.5 rounded-full ${isLive ? 'bg-emerald-400 animate-pulse' : 'bg-zinc-600'}`} />
-                    {isLive ? 'Actif — données en direct' : 'Inactif — dernier relevé connu'}
-                  </div>
-                  {isOutsideGeofence && (
-                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-red-500/40 bg-red-500 text-white text-[10px] font-semibold" title={`Distance actuelle : ${Math.round(currentDistance || 0)} m`}>
-                      <ShieldAlert size={11} /> Sortie du périmètre
-                    </div>
-                  )}
-                  {/* Badge source — termes non-techniques */}
-                  {T && (
-                    <div className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-[10px] font-medium ${dataSource === 'live'
-                      ? 'bg-orange-500/10 border-orange-500/25 text-orange-400'
-                      : 'bg-zinc-900 border-zinc-800 text-zinc-400'
-                      }`}>
-                      {dataSource === 'live'
-                        ? <><Radio size={9} className="animate-pulse" /> Mis à jour automatiquement</>
-                        : <><Database size={9} /> Données enregistrées</>}
-                    </div>
-                  )}
-                </div>
-                <div className="flex items-center gap-3 text-[10px] text-zinc-500 font-mono mt-0.5">
-                  <span>Dernier paquet : <strong className="text-zinc-300">{lastUpdate}</strong></span>
-                  <span className="text-zinc-700">\u2022</span>
-                  <span>{now.toLocaleTimeString('fr-FR')}</span>
-                </div>
-              </div>
+              <p className={`mt-1 text-sm ${MUTED}`}>
+                Dernier paquet reçu à <strong className={`font-medium ${FG} tabular-nums`}>{formatTime(T?.event_time)}</strong>
+                {T && <> · {dataSource === 'live' ? 'mise à jour automatique' : 'données enregistrées'}</>}
+                {' '}· Il est <Clock />
+              </p>
             </div>
-
             <div className="flex items-center gap-2">
               <button
-                onClick={() => showToast('Diagnostic lanc\u00e9\u2026')}
-                className="px-3.5 py-2 bg-[#171a1b] border border-[#343839] hover:border-zinc-500 rounded-md text-xs font-medium text-zinc-300 transition-colors active:scale-95 flex items-center gap-2"
+                type="button" onClick={() => showToast('Diagnostic lancé')}
+                className={`rounded-md border border-[var(--panel-border)] px-4 py-2 text-sm font-medium transition-colors hover:bg-[var(--panel-alt)] ${FOCUS}`}
               >
-                <Activity size={13} className="text-zinc-400" /> Diagnostic
+                Lancer un diagnostic
               </button>
               <button
-                onClick={() => showToast('Intervention terrain cr\u00e9\u00e9e')}
-                className="px-3.5 py-2 bg-orange-600 hover:bg-orange-500 rounded-md text-xs font-semibold text-white transition-colors active:scale-95"
+                type="button" onClick={() => showToast('Intervention terrain créée')}
+                className={`rounded-md bg-[#FF7900] px-4 py-2 text-sm font-semibold text-black transition-colors hover:bg-[#FF8F2E] ${FOCUS}`}
               >
-                Intervention
-              </button>
-              <button className="p-2 bg-[#171a1b] border border-[#343839] hover:border-zinc-500 rounded-md text-zinc-500 transition-colors">
-                <MoreHorizontal size={15} />
+                Créer une intervention
               </button>
             </div>
           </div>
 
-          {/* Tabs */}
-          <nav className="flex gap-0.5 mt-3 overflow-x-auto hide-scrollbar border-t border-[#202425] pt-2">
-            {tabs.map((tab) => (
+          <nav className="hide-scrollbar -mb-px mt-4 flex gap-6 overflow-x-auto" role="tablist" aria-label="Sections du kit">
+            {Object.entries(TAB_IDS).map(([id, label]) => (
               <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`relative px-4 py-2 text-[11px] font-semibold transition-colors cursor-pointer bg-transparent border-none whitespace-nowrap rounded-md ${activeTab === tab ? 'text-orange-400' : 'text-zinc-500 hover:text-zinc-300'
-                  }`}
+                key={id} type="button" role="tab" aria-selected={activeTab === id}
+                onClick={() => setActiveTab(id)}
+                className={`whitespace-nowrap border-b-2 pb-3 text-sm font-medium transition-colors ${FOCUS} ${activeTab === id
+                  ? 'border-[#FF7900] text-[var(--app-foreground)]'
+                  : `border-transparent ${MUTED} hover:text-[var(--app-foreground)]`}`}
               >
-                {activeTab === tab && (
-                  <motion.div layoutId="tab-bg"
-                    className="absolute inset-0 bg-orange-500/10 border border-orange-500/20 rounded-md"
-                    transition={{ type: 'spring', stiffness: 400, damping: 32 }} />
-                )}
-                <span className="relative">{tab}</span>
+                {label}
               </button>
             ))}
           </nav>
         </div>
       </header>
 
-      {/* MAIN */}
-      <main className="max-w-screen-2xl mx-auto px-5 py-5">
+      <main className="mx-auto max-w-screen-2xl px-5 py-6">
+        {issues.length > 0 && (
+          <div role="alert" className="mb-5 flex items-start gap-3 rounded-lg border border-red-500/30 bg-red-500/10 p-4">
+            <AlertTriangle size={18} className="mt-0.5 shrink-0 text-red-600 dark:text-red-400" />
+            <div>
+              <p className={`text-sm font-semibold ${FG}`}>{issues.length > 1 ? `${issues.length} points demandent votre attention` : 'Un point demande votre attention'}</p>
+              <ul className={`mt-1 space-y-0.5 text-sm ${MUTED}`}>{issues.map((i) => <li key={i}>{i}</li>)}</ul>
+            </div>
+          </div>
+        )}
+
         <AnimatePresence mode="wait">
+          <motion.div key={activeTab} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
 
-          {/* ===== SYNTHESE ===== */}
-          {activeTab === 'Synth\u00e8se' && (
-            <motion.div key="synthese"
-              initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}
-              className="space-y-5"
-            >
-              <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
+            {/* ============ Synthèse ============ */}
+            {activeTab === 'synthese' && (
+              <div className="space-y-5">
                 <div>
-                  <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-orange-400 mb-1">Vue d'ensemble</p>
-                  <h2 className="text-xl md:text-2xl font-semibold tracking-tight text-zinc-100">Comment va votre kit ?</h2>
-                  <p className="text-xs text-zinc-500 mt-1">Les informations importantes sont regroupées ici pour une lecture rapide.</p>
+                  <h2 className="text-2xl font-semibold tracking-tight">Comment va votre kit ?</h2>
+                  <p className={`mt-1 text-sm ${MUTED}`}>{isLive ? 'Les chiffres se mettent à jour en direct.' : 'Le kit ne transmet plus : ce sont les derniers chiffres reçus.'}</p>
                 </div>
-                <div className={`inline-flex items-center gap-2 px-3 py-2 rounded-md border text-xs ${isLive ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300' : 'border-zinc-700 bg-zinc-900 text-zinc-400'}`}>
-                  <span className={`h-2 w-2 rounded-full ${isLive ? 'bg-emerald-400' : 'bg-zinc-600'}`} />
-                  {isLive ? 'Signal temps réel reçu' : 'Dernières données disponibles'}
+
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                  <Stat primary label="Batterie disponible" hint="Énergie restante" value={T?.state_of_charge_pct} unit="%"
+                    prev={P?.state_of_charge_pct} curr={T?.state_of_charge_pct} meter={{ value: T?.state_of_charge_pct, warnBelow: 20 }} />
+                  <Stat label="Production solaire" hint="Puissance du panneau à cet instant" value={T?.solar_power_w} unit=" W"
+                    prev={P?.solar_power_w} curr={T?.solar_power_w} />
+                  <Stat label="Tension batterie" hint="Stabilité de l’alimentation" value={T?.battery_voltage_v} unit=" V"
+                    prev={P?.battery_voltage_v} curr={T?.battery_voltage_v} />
+                  <Stat label="Puissance batterie" hint="Mesurée aux bornes" value={T?.battery_power_w} unit=" W"
+                    prev={P?.battery_power_w} curr={T?.battery_power_w} />
+                </div>
+
+                <Card title="Évolution" subtitle="24 derniers relevés">
+                  <TrendChart
+                    data={chartData}
+                    options={[
+                      { key: 'soc', label: 'Batterie (%)', unit: '%' },
+                      { key: 'puissance_pv', label: 'Production solaire (W)', unit: 'W' },
+                      { key: 'tension_bat', label: 'Tension batterie (V)', unit: 'V' },
+                      { key: 'courant_bat', label: 'Courant batterie (A)', unit: 'A' },
+                      { key: 'tension_pv', label: 'Tension panneau (V)', unit: 'V' },
+                      { key: 'courant_pv', label: 'Courant panneau (A)', unit: 'A' },
+                    ]}
+                  />
+                </Card>
+
+                <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+                  <Card title="Autres mesures" className="lg:col-span-1">
+                    <RowList>
+                      <Row label="Santé de la batterie" value={fmt(T?.state_of_health_pct, ' %')} />
+                      <Row label="Tension du panneau" value={fmt(T?.solar_voltage_v, ' V')} />
+                      <Row label="Courant du panneau" value={fmt(T?.solar_current_a, ' A')} />
+                      <Row label="Énergie produite (intervalle)" value={fmt(T?.energy_generated_wh, ' Wh')} />
+                      <Row label="Température du boîtier" value={fmt(T?.device_temperature_c, ' °C')} />
+                      <Row label="Température ambiante" value={fmt(T?.ambient_temperature_c, ' °C')} />
+                      <Row label="Humidité" value={fmt(T?.humidity_pct, ' %')} />
+                    </RowList>
+                  </Card>
+
+                  <Card title="Diagnostic" className="lg:col-span-1">
+                    <RowList>
+                      {errorRows.map((r) => (
+                        <Row key={r.label} label={r.label} status={<Pill tone={r.bad ? 'bad' : 'ok'}>{r.text}</Pill>} />
+                      ))}
+                    </RowList>
+                  </Card>
+
+                  <Card title="Cycles de charge" className="lg:col-span-1">
+                    <RowList>
+                      <Row label="Durée de charge" value={duration(T?.charge_duration_seconds)} />
+                      <Row label="Durée de décharge" value={duration(T?.discharge_duration_seconds)} />
+                      <Row label="N° de séquence" value={T?.sequence_number ?? '—'} />
+                    </RowList>
+                  </Card>
                 </div>
               </div>
+            )}
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
-                <MetricCard icon={Battery} label="Batterie disponible" description="Niveau d'énergie restant" value={T?.state_of_charge_pct} unit="%" color="#10b981"
-                  prev={P?.state_of_charge_pct} curr={T?.state_of_charge_pct} badge="Priorité" featured />
-                <MetricCard icon={BatteryCharging} label="Tension de la batterie" description="Stabilité de l'alimentation" value={T?.battery_voltage_v} unit=" V" color="#f97316"
-                  prev={P?.battery_voltage_v} curr={T?.battery_voltage_v} badge="Batterie" featured />
-                <MetricCard icon={Zap} label="Production instantanée" description="Puissance fournie par le panneau" value={T?.solar_power_w} unit=" W" color="#eab308"
-                  prev={P?.solar_power_w} curr={T?.solar_power_w} badge="Solaire" featured />
-                <MetricCard icon={Activity} label="Puissance batterie" description="Puissance mesurée aux bornes de la batterie" value={T?.battery_power_w} unit=" W" color="#a78bfa"
-                  prev={P?.battery_power_w} curr={T?.battery_power_w} badge="Usage" featured />
-
-                <MetricCard icon={ShieldCheck} label="Sant\u00e9 Batterie" value={T?.state_of_health_pct} unit="%" color="#06b6d4"
-                  prev={null} curr={null} badge="SoH" />
-                <MetricCard icon={Sun} label="Tension Panneau PV" value={T?.solar_voltage_v} unit=" V" color="#fbbf24"
-                  prev={P?.solar_voltage_v} curr={T?.solar_voltage_v} badge="PV" />
-                <MetricCard icon={TrendingUp} label="Courant Solaire" value={T?.solar_current_a} unit=" A" color="#fb923c"
-                  prev={P?.solar_current_a} curr={T?.solar_current_a} badge="PV" />
-                <MetricCard icon={Layers} label="Puissance Solaire" value={T?.solar_power_w} unit=" W" color="#f97316"
-                  prev={P?.solar_power_w} curr={T?.solar_power_w} badge="PV" />
-
-                <MetricCard icon={Zap} label="Énergie produite (intervalle)" description="Énergie mesurée sur l’intervalle de relevé" value={T?.energy_generated_wh} unit=" Wh" color="#34d399"
-                  sparkData={[]} prev={null} curr={null} badge="Total" />
-                <MetricCard icon={Thermometer} label="Temp. Boîtier" value={T?.device_temperature_c} unit="°C" color="#f43f5e"
-                  sparkData={[]} prev={P?.device_temperature_c} curr={T?.device_temperature_c} badge="ESP32" />
-                <MetricCard icon={Thermometer} label="Temp. Ambiante" value={T?.ambient_temperature_c} unit="\u00b0C" color="#fb7185"
-                  prev={P?.ambient_temperature_c} curr={T?.ambient_temperature_c} badge="EXT" />
-                <MetricCard icon={Droplets} label="Humidit\u00e9" value={T?.humidity_pct} unit="%" color="#38bdf8"
-                  prev={P?.humidity_pct} curr={T?.humidity_pct} badge="RH" />
-
-              </div>
-
-              {/* Graphe combine */}
-              <div className="col-span-2 md:col-span-4">
-                <Panel className="p-5">
-                  <SectionTitle icon={Activity} title="Analyse T\u00e9l\u00e9m\u00e9trique Continue"
-                    subtitle="Courbes tension / courant \u2014 Batterie & Panneau Solaire (24 derniers relev\u00e9s)" />
-                  <div className="h-64">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={chartData.length > 0 ? chartData : []} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="2 2" stroke="#1c1c1e" vertical={false} />
-                        <XAxis dataKey="time" stroke="#3f3f46" fontSize={9} tickLine={false} axisLine={false} />
-                        <YAxis stroke="#3f3f46" fontSize={9} tickLine={false} axisLine={false} />
-                        <Tooltip contentStyle={{ backgroundColor: '#09090b', borderColor: '#27272a', borderRadius: '10px', fontSize: '11px', fontFamily: 'monospace' }} />
-                        <Line type="monotone" dataKey="tension_bat" name="Tension Bat. (V)" stroke="#f97316" strokeWidth={1.8} dot={false} />
-                        <Line type="monotone" dataKey="courant_bat" name="Courant Bat. (A)" stroke="#eab308" strokeWidth={1.8} dot={false} />
-                        <Line type="monotone" dataKey="tension_pv" name="Tension PV (V)" stroke="#34d399" strokeWidth={1.4} dot={false} strokeDasharray="4 2" />
-                        <Line type="monotone" dataKey="courant_pv" name="Courant PV (A)" stroke="#38bdf8" strokeWidth={1.4} dot={false} strokeDasharray="4 2" />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
-                </Panel>
-              </div>
-
-              {/* Erreurs */}
-              <div className="col-span-2">
-                <Panel className="p-5 h-full">
-                  <SectionTitle icon={ShieldAlert} title="Codes Erreur & Alertes" color="#f43f5e" />
-                  <div className="space-y-2.5">
-                    {[
-                      { label: 'Erreur Batterie', value: T?.battery_error_code, icon: Battery },
-                      { label: 'Erreur Panneau PV', value: T?.solar_error_code, icon: Sun },
-                      { label: 'Surcharge D\u00e9tect\u00e9e', value: T?.overload_detected ? 'OUI' : 'NON', icon: AlertTriangle, alert: T?.overload_detected },
-                      { label: 'Conso. Anormale', value: T?.abnormal_consumption_detected ? 'OUI' : 'NON', icon: Activity, alert: T?.abnormal_consumption_detected },
-                    ].map(({ label, value, icon: Icon, alert }) => (
-                      <div key={label} className="flex items-center justify-between p-2.5 rounded-lg bg-zinc-950/60 border border-zinc-800/50">
-                        <div className="flex items-center gap-2">
-                          <Icon size={12} className={alert ? 'text-red-400' : 'text-zinc-500'} />
-                          <span className="text-[11px] font-mono text-zinc-400">{label}</span>
-                        </div>
-                        <span className={`text-[11px] font-mono px-2 py-0.5 rounded border ${alert || (value && value !== 'NONE' && value !== 'NON')
-                          ? 'bg-red-500/10 border-red-500/25 text-red-400'
-                          : 'bg-emerald-500/10 border-emerald-500/25 text-emerald-400'
-                          }`}>{value || 'AUCUN'}</span>
-                      </div>
-                    ))}
-                  </div>
-                </Panel>
-              </div>
-
-              {/* Cycles de charge */}
-              <div className="col-span-2">
-                <Panel className="p-5 h-full">
-                  <SectionTitle icon={Clock} title="Cycles de Charge" color="#a78bfa" />
-                  <div className="grid grid-cols-2 gap-3 mt-1">
-                    {[
-                      { label: 'Dur\u00e9e Charge', sec: T?.charge_duration_seconds, color: '#10b981' },
-                      { label: 'Dur\u00e9e D\u00e9charge', sec: T?.discharge_duration_seconds, color: '#f97316' },
-                    ].map(({ label, sec, color }) => {
-                      const h = sec != null ? Math.floor(sec / 3600) : null;
-                      const m = sec != null ? Math.floor((sec % 3600) / 60) : null;
-                      return (
-                        <div key={label} className="flex flex-col items-center justify-center p-4 rounded-xl bg-zinc-950/60 border border-zinc-800/50 gap-1">
-                          <span className="text-[10px] font-mono text-zinc-500 uppercase">{label}</span>
-                          <span className="text-xl font-extrabold font-mono" style={{ color }}>
-                            {sec != null ? `${h}h${String(m).padStart(2, '0')}` : '\u2014'}
-                          </span>
-                          {sec != null && <span className="text-[9px] text-zinc-600 font-mono">{sec} sec</span>}
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <div className="mt-3 p-3 rounded-xl bg-zinc-950/60 border border-zinc-800/50 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Cpu size={12} className="text-zinc-500" />
-                      <span className="text-[11px] font-mono text-zinc-400">N\u00b0 S\u00e9quence</span>
-                    </div>
-                    <span className="text-[11px] font-mono text-orange-400">{T?.sequence_number ?? '\u2014'}</span>
-                  </div>
-                </Panel>
-              </div>
-            </motion.div>
-          )}
-
-          {/* ===== ENERGIE SOLAIRE ===== */}
-          {activeTab === '\u00c9nergie Solaire' && (
-            <motion.div key="solaire"
-              initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}
-              className="space-y-4"
-            >
-              <Panel className="p-6">
-                <SectionTitle icon={Sun} title="Vue Panneau Photovolta\u00efque" subtitle="Donn\u00e9es temps r\u00e9el depuis le contr\u00f4leur MPPT" color="#fbbf24" />
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 mt-4">
-                  <RadialGauge value={T?.solar_voltage_v} max={50} color="#fbbf24" label="Tension PV" unit="V" />
-                  <RadialGauge value={T?.solar_current_a} max={20} color="#fb923c" label="Courant PV" unit="A" />
-                  <RadialGauge value={T?.solar_power_w} max={400} color="#f97316" label="Puissance PV" unit="W" />
-                  <RadialGauge value={T?.energy_generated_wh} max={2000} color="#34d399" label="\u00c9nergie G\u00e9n\u00e9r\u00e9e" unit="Wh" />
+            {/* ============ Énergie solaire ============ */}
+            {activeTab === 'solaire' && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                  <Card title="Panneau solaire" subtitle="Relevés du contrôleur de charge">
+                    <RowList>
+                      <Row label="Tension" value={fmt(T?.solar_voltage_v, ' V')} meter={{ value: T?.solar_voltage_v, max: 50 }} />
+                      <Row label="Courant" value={fmt(T?.solar_current_a, ' A')} meter={{ value: T?.solar_current_a, max: 20 }} />
+                      <Row label="Puissance" value={fmt(T?.solar_power_w, ' W')} meter={{ value: T?.solar_power_w, max: 400 }} />
+                      <Row label="Énergie sur l’intervalle" value={fmt(T?.energy_generated_wh, ' Wh')} />
+                    </RowList>
+                  </Card>
+                  <Card title="Batterie">
+                    <RowList>
+                      <Row label="Niveau de charge" value={fmt(T?.state_of_charge_pct, ' %')} meter={{ value: T?.state_of_charge_pct, warnBelow: 20 }} />
+                      <Row label="Santé" value={fmt(T?.state_of_health_pct, ' %')} meter={{ value: T?.state_of_health_pct }} />
+                      <Row label="Tension" value={fmt(T?.battery_voltage_v, ' V')} />
+                      <Row label="Courant" value={fmt(T?.battery_current_a, ' A')} />
+                      <Row label="Puissance" value={fmt(T?.battery_power_w, ' W')} />
+                    </RowList>
+                  </Card>
                 </div>
-              </Panel>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Panel className="p-5">
-                  <SectionTitle icon={BatteryCharging} title="Batterie \u2014 D\u00e9tail Complet" color="#10b981" />
-                  <div className="space-y-2 mt-2">
-                    {[
-                      { label: 'Tension', value: fmt(T?.battery_voltage_v, ' V'), color: '#f97316' },
-                      { label: 'Courant', value: fmt(T?.battery_current_a, ' A'), color: '#eab308' },
-                      { label: 'Puissance', value: fmt(T?.battery_power_w, ' W'), color: '#a78bfa' },
-                      { label: '\u00c9tat de Charge (SoC)', value: fmt(T?.state_of_charge_pct, ' %'), color: '#10b981' },
-                      { label: '\u00c9tat de Sant\u00e9 (SoH)', value: fmt(T?.state_of_health_pct, ' %'), color: '#06b6d4' },
-                    ].map(({ label, value, color }) => (
-                      <div key={label} className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-zinc-950/60 border border-zinc-800/50">
-                        <span className="text-[11px] font-mono text-zinc-400">{label}</span>
-                        <span className="text-sm font-bold font-mono text-zinc-200">{value}</span>
-                      </div>
-                    ))}
-                  </div>
-                </Panel>
-
-                <Panel className="p-5">
-                  <SectionTitle icon={Sun} title="Panneau Solaire \u2014 D\u00e9tail" color="#fbbf24" />
-                  <div className="space-y-2 mt-2">
-                    {[
-                      { label: 'Tension PV', value: fmt(T?.solar_voltage_v, ' V'), color: '#fbbf24' },
-                      { label: 'Courant PV', value: fmt(T?.solar_current_a, ' A'), color: '#fb923c' },
-                      { label: 'Puissance PV', value: fmt(T?.solar_power_w, ' W'), color: '#f97316' },
-                      { label: '\u00c9nergie Intervalle', value: fmt(T?.energy_generated_wh, ' Wh'), color: '#34d399' },
-                    ].map(({ label, value, color }) => (
-                      <div key={label} className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-zinc-950/60 border border-zinc-800/50">
-                        <span className="text-[11px] font-mono text-zinc-400">{label}</span>
-                        <span className="text-sm font-bold font-mono text-zinc-200">{value}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="mt-4">
-                    <div className="flex justify-between text-[10px] font-mono text-zinc-500 mb-1.5">
-                      <span>Niveau de charge batterie</span>
-                      <span className="text-emerald-400">{T?.state_of_charge_pct ?? '—'}%</span>
-                    </div>
-                    <div className="h-2 w-full bg-zinc-800 rounded-full overflow-hidden">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${T?.state_of_charge_pct ?? 0}%` }}
-                        transition={{ duration: 1.2, ease: 'easeOut' }}
-                        className="h-full rounded-full"
-                        style={{ background: `linear-gradient(90deg, #10b981, ${(T?.state_of_charge_pct ?? 0) > 60 ? '#34d399' : '#fbbf24'})` }}
-                      />
-                    </div>
-                  </div>
-                </Panel>
+                <Card title="Historique solaire" subtitle="24 derniers relevés">
+                  <TrendChart
+                    data={chartData}
+                    options={[
+                      { key: 'puissance_pv', label: 'Puissance (W)', unit: 'W' },
+                      { key: 'tension_pv', label: 'Tension (V)', unit: 'V' },
+                      { key: 'courant_pv', label: 'Courant (A)', unit: 'A' },
+                      { key: 'soc', label: 'Batterie (%)', unit: '%' },
+                    ]}
+                  />
+                </Card>
               </div>
+            )}
 
-              <Panel className="p-5">
-                <SectionTitle icon={Activity} title="Courbe Puissance Solaire & SoC" color="#fbbf24" />
-                <div className="h-56">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
-                      <defs>
-                        <linearGradient id="gpv" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#fbbf24" stopOpacity={0.25} />
-                          <stop offset="100%" stopColor="#fbbf24" stopOpacity={0} />
-                        </linearGradient>
-                        <linearGradient id="gsoc" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#10b981" stopOpacity={0.2} />
-                          <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="2 2" stroke="#1c1c1e" vertical={false} />
-                      <XAxis dataKey="time" stroke="#3f3f46" fontSize={9} tickLine={false} axisLine={false} />
-                      <YAxis stroke="#3f3f46" fontSize={9} tickLine={false} axisLine={false} />
-                      <Tooltip contentStyle={{ backgroundColor: '#09090b', borderColor: '#27272a', borderRadius: '10px', fontSize: '11px', fontFamily: 'monospace' }} />
-                      <Area type="monotone" dataKey="puissance_pv" name="Puissance PV (W)" stroke="#fbbf24" strokeWidth={1.8} fill="url(#gpv)" dot={false} />
-                      <Area type="monotone" dataKey="soc" name="SoC (%)" stroke="#10b981" strokeWidth={1.8} fill="url(#gsoc)" dot={false} />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
-              </Panel>
-            </motion.div>
-          )}
-
-          {/* ===== ENVIRONNEMENT ===== */}
-          {activeTab === 'Environnement' && (
-            <motion.div key="env"
-              initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}
-              className="grid grid-cols-1 md:grid-cols-3 gap-4"
-            >
-              <Panel className="p-5 md:col-span-1" glow color="#f43f5e">
-                <SectionTitle icon={Thermometer} title="Temp\u00e9rature Bo\u00eetier ESP32" color="#f43f5e" />
-                <div className="flex flex-col items-center justify-center py-6 gap-3">
-                  <div className="relative w-32 h-32 flex items-center justify-center">
-                    <svg className="absolute inset-0" viewBox="0 0 128 128">
-                      <circle cx="64" cy="64" r="54" fill="none" stroke="#1c1c1e" strokeWidth="10" />
-                      <circle cx="64" cy="64" r="54" fill="none" stroke="#f43f5e"
-                        strokeWidth="10" strokeLinecap="round"
-                        strokeDasharray={`${Math.min(100, (T?.device_temperature_c ?? 0) / 80 * 100) * 3.39} 339`}
-                        transform="rotate(-90 64 64)" />
-                    </svg>
-                    <div className="text-center">
-                      <span className="text-3xl font-extrabold font-mono text-white">{T?.device_temperature_c ?? '\u2014'}</span>
-                      <span className="text-sm text-zinc-400 block">\u00b0C</span>
-                    </div>
-                  </div>
-                  <span className={`text-xs font-mono px-3 py-1 rounded-full border ${(T?.device_temperature_c ?? 0) > 60
-                    ? 'bg-red-500/15 border-red-500/25 text-red-400'
-                    : 'bg-emerald-500/15 border-emerald-500/25 text-emerald-400'
-                    }`}>
-                    {T?.device_temperature_c == null ? 'Température indisponible' : T.device_temperature_c > 60 ? '\u26a0 Seuil critique approch\u00e9' : 'Température mesurée sous 60 °C'}
-                  </span>
-                </div>
-              </Panel>
-
-              <Panel className="p-5 md:col-span-1">
-                <SectionTitle icon={Droplets} title="Conditions Ambiantes" color="#38bdf8" />
-                <div className="space-y-4 mt-2">
-                  <div className="p-4 rounded-xl bg-zinc-950/60 border border-zinc-800/50">
-                    <div className="flex justify-between items-baseline mb-2">
-                      <span className="text-[11px] font-mono text-zinc-400">Temp\u00e9rature Ext\u00e9rieure</span>
-                      <span className="text-xl font-extrabold font-mono text-zinc-100">{T?.ambient_temperature_c ?? '\u2014'}\u00b0C</span>
-                    </div>
-                    <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
-                      <motion.div animate={{ width: `${Math.min(100, (T?.ambient_temperature_c ?? 0) / 50 * 100)}%` }}
-                        className="h-full bg-amber-400 rounded-full" />
-                    </div>
-                  </div>
-                  <div className="p-4 rounded-xl bg-zinc-950/60 border border-zinc-800/50">
-                    <div className="flex justify-between items-baseline mb-2">
-                      <span className="text-[11px] font-mono text-zinc-400">Humidit\u00e9 Relative</span>
-                      <span className="text-xl font-extrabold font-mono text-zinc-100">{T?.humidity_pct ?? '\u2014'}%</span>
-                    </div>
-                    <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
-                      <motion.div animate={{ width: `${T?.humidity_pct ?? 0}%` }}
-                        className="h-full rounded-full" style={{ background: 'linear-gradient(90deg, #38bdf8, #818cf8)' }} />
-                    </div>
-                  </div>
-                </div>
-              </Panel>
-
-              <Panel className="p-5 md:col-span-1">
-                <SectionTitle icon={Activity} title="Historique Temp\u00e9ratures" color="#f43f5e" />
-                <div className="h-52">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={chartData} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="2 2" stroke="#1c1c1e" vertical={false} />
-                      <XAxis dataKey="time" stroke="#3f3f46" fontSize={8} tickLine={false} axisLine={false} />
-                      <YAxis stroke="#3f3f46" fontSize={8} tickLine={false} axisLine={false} />
-                      <Tooltip contentStyle={{ backgroundColor: '#09090b', borderColor: '#27272a', borderRadius: '10px', fontSize: '11px', fontFamily: 'monospace' }} />
-                      <Line type="monotone" dataKey="temp_boitier" name="Bo\u00eetier (\u00b0C)" stroke="#f43f5e" strokeWidth={1.8} dot={false} />
-                      <Line type="monotone" dataKey="temp_ambiante" name="Ambiante (\u00b0C)" stroke="#fbbf24" strokeWidth={1.4} dot={false} strokeDasharray="4 2" />
-                      <Line type="monotone" dataKey="humidite" name="Humidit\u00e9 (%)" stroke="#38bdf8" strokeWidth={1.4} dot={false} strokeDasharray="4 2" />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-              </Panel>
-            </motion.div>
-          )}
-
-          {/* ===== RESEAU & GPS ===== */}
-          {activeTab === 'R\u00e9seau & GPS' && (
-            <motion.div key="gps"
-              initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}
-              className="grid grid-cols-1 md:grid-cols-3 gap-4"
-            >
-              <Panel className="p-5 md:col-span-1">
-                <SectionTitle icon={Signal} title="R\u00e9seau & Connectivit\u00e9" color="#f97316" />
-                <div className="space-y-3 mt-2">
-                  <div className="p-3.5 rounded-xl bg-zinc-950/60 border border-zinc-800/50">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-[11px] font-mono text-zinc-400">Intensit\u00e9 Signal (RSSI)</span>
-                      <SignalBars dbm={T?.signal_strength_dbm ?? -99} />
-                    </div>
-                    <span className="text-2xl font-extrabold font-mono text-orange-400">
-                      {T?.signal_strength_dbm != null ? `${T.signal_strength_dbm} dBm` : '\u2014'}
-                    </span>
-                    <p className="text-[10px] text-zinc-500 mt-0.5 font-mono">
-                      {(T?.signal_strength_dbm ?? -99) >= -65 ? 'Signal excellent' : (T?.signal_strength_dbm ?? -99) >= -80 ? 'Signal correct' : 'Signal faible'}
+            {/* ============ Environnement ============ */}
+            {activeTab === 'env' && (
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+                <div className="space-y-4 lg:col-span-1">
+                  <Card title="Boîtier électronique" subtitle="Seuil de vigilance : 60 °C">
+                    <p className="flex items-baseline gap-1.5 tabular-nums">
+                      <span className="text-4xl font-semibold tracking-tight">{T?.device_temperature_c ?? '—'}</span>
+                      {T?.device_temperature_c != null && <span className={`text-base ${MUTED}`}>°C</span>}
                     </p>
-                  </div>
-
-                  <div className="p-3.5 rounded-xl bg-zinc-950/60 border border-zinc-800/50">
-                    <span className="text-[10px] font-mono text-zinc-500 block mb-1">Mode de réception</span>
-                    <div className="flex items-center gap-2">
-                      {isLive
-                        ? <Radio size={14} className="text-orange-400 animate-pulse" />
-                        : <Database size={14} className="text-zinc-500" />}
-                      <span className="text-sm font-bold font-mono text-white">
-                        {isLive
-                          ? 'Mis à jour en temps réel'
-                          : 'Affichage du dernier relevé connu'}
-                      </span>
-                    </div>
-                    <p className="text-[10px] text-zinc-500 mt-1">
-                      {isLive
-                        ? 'Le kit envoie des données à cet instant.'
-                        : 'Le kit ne transmet plus. Les données affichées sont les dernières reçues.'}
+                    <Meter value={T?.device_temperature_c} max={80} className="mt-3" />
+                    <p className="mt-3">
+                      <Pill tone={T?.device_temperature_c == null ? 'off' : T.device_temperature_c > 60 ? 'bad' : 'ok'}>
+                        {T?.device_temperature_c == null ? 'Température indisponible' : T.device_temperature_c > 60 ? 'Seuil dépassé' : 'Sous le seuil'}
+                      </Pill>
                     </p>
-                  </div>
-
-                  <div className="p-3.5 rounded-xl bg-zinc-950/60 border border-zinc-800/50">
-                    <span className="text-[10px] font-mono text-zinc-500 block mb-1">ID Message</span>
-                    <span className="text-[11px] font-mono text-zinc-300 break-all">{T?.message_id || '\u2014'}</span>
-                  </div>
-
-                  <div className="p-3.5 rounded-xl bg-zinc-950/60 border border-zinc-800/50">
-                    <span className="text-[10px] font-mono text-zinc-500 block mb-1">R\u00e9gion d\u2019Installation</span>
-                    <span className="text-sm font-bold font-mono text-white capitalize">{T?.region || 'Kinshasa, DRC'}</span>
-                  </div>
-
-                  <div className="p-3.5 rounded-xl bg-zinc-950/60 border border-zinc-800/50">
-                    <span className="text-[10px] font-mono text-zinc-500 block mb-1">Type d\u2019Installation</span>
-                    <span className="text-[11px] font-mono text-zinc-300 capitalize">
-                      {(T?.installation_type || 'household_rooftop').replace(/_/g, ' ')}
-                    </span>
-                  </div>
+                  </Card>
+                  <Card title="Conditions extérieures">
+                    <RowList>
+                      <Row label="Température" value={fmt(T?.ambient_temperature_c, ' °C')} meter={{ value: T?.ambient_temperature_c, max: 50 }} />
+                      <Row label="Humidité relative" value={fmt(T?.humidity_pct, ' %')} meter={{ value: T?.humidity_pct }} />
+                    </RowList>
+                  </Card>
                 </div>
-              </Panel>
+                <Card title="Historique" subtitle="24 derniers relevés" className="lg:col-span-2">
+                  <TrendChart
+                    height={300}
+                    data={chartData}
+                    options={[
+                      { key: 'temp_boitier', label: 'Boîtier (°C)', unit: '°C' },
+                      { key: 'temp_ambiante', label: 'Ambiante (°C)', unit: '°C' },
+                      { key: 'humidite', label: 'Humidité (%)', unit: '%' },
+                    ]}
+                  />
+                </Card>
+              </div>
+            )}
 
-              <Panel className="p-5 md:col-span-2" glow color="#f97316">
-                <div className="flex items-start justify-between mb-4 flex-wrap gap-2">
-                  <SectionTitle icon={MapPin} title="Localisation GPS Temps R\u00e9el"
-                    subtitle="Coordonn\u00e9es GNSS depuis l\u2019ESP32 \u2014 mise \u00e0 jour automatique" color="#f97316" />
-                  <div className="flex items-center gap-1.5 text-[10px] font-mono text-zinc-500 px-2.5 py-1.5 rounded-lg bg-zinc-950/60 border border-zinc-800/50">
-                    <Navigation size={10} className="text-orange-400" />
-                    <span className="text-orange-400 font-semibold">{lat.toFixed(5)}</span>
-                    <span className="text-zinc-600">,</span>
-                    <span className="text-orange-400 font-semibold">{lng.toFixed(5)}</span>
+            {/* ============ Réseau et GPS ============ */}
+            {activeTab === 'gps' && (
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+                <Card title="Connexion" className="lg:col-span-1">
+                  <div className="mb-2 flex items-center justify-between">
+                    <div>
+                      <p className="text-3xl font-semibold tabular-nums">{rssi != null ? `${rssi} dBm` : '—'}</p>
+                      <p className={`text-xs ${MUTED}`}>
+                        {rssi == null ? 'Signal indisponible' : rssi >= -65 ? 'Signal excellent' : rssi >= -80 ? 'Signal correct' : 'Signal faible'}
+                      </p>
+                    </div>
+                    <SignalBars dbm={rssi ?? -99} />
                   </div>
-                </div>
+                  <RowList>
+                    <Row label="Réception" value={isLive ? 'En direct' : 'Dernier relevé connu'} />
+                    <Row label="Région" value={T?.region || 'Kinshasa, RDC'} />
+                    <Row label="Type d’installation" value={(T?.installation_type || 'household_rooftop').replace(/_/g, ' ')} />
+                    <Row label="ID du message" value={<span className="break-all text-xs">{T?.message_id || '—'}</span>} />
+                  </RowList>
+                </Card>
 
-                <div className="h-72 w-full rounded-xl overflow-hidden border border-zinc-800/80 relative">
-                  <MapContainer
-                    center={[lat, lng]}
-                    zoom={hasTelemetryGps || hasReferenceGps ? 14 : 5}
-                    style={{ height: '100%', width: '100%' }}
-                    zoomControl={true}
-                  >
-                    <MapUpdater center={[lat, lng]} />
-                    <TileLayer
-                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                      className="map-tiles-dark"
-                    />
-                    {hasReferenceGps && <Circle
-                      center={[referenceLat, referenceLng]}
-                      radius={90}
-                      pathOptions={{ color: isOutsideGeofence ? '#dc2626' : '#059669', fillColor: isOutsideGeofence ? '#ef4444' : '#10b981', fillOpacity: 0.14, weight: 2 }}
-                    />}
-                    {hasTelemetryGps && <Marker position={[lat, lng]} icon={customIcon} />}
-                    {hasReferenceGps && <Marker position={[referenceLat, referenceLng]} />}
-                  </MapContainer>
-                  <div className="absolute bottom-3 left-3 z-[999] px-3 py-1.5 rounded-lg bg-zinc-950/90 border border-zinc-800 backdrop-blur-sm flex items-center gap-2">
-                    <MapPin size={11} className="text-orange-400" />
-                    <span className="text-[10px] font-mono text-zinc-300">
-                      {!hasTelemetryGps ? 'GPS indisponible · ' : isOutsideGeofence ? `Sortie : ${Math.round(currentDistance || 0)} m · ` : 'Zone 90 m · '}
-                      {(hasTelemetryGps || hasReferenceGps) ? 'LAT ' + lat.toFixed(6) + ' · LNG ' + lng.toFixed(6) : 'Aucune position connue'}
-                    </span>
+                <Card
+                  title="Position du kit"
+                  subtitle={hasTelemetryGps ? `${lat.toFixed(5)}, ${lng.toFixed(5)}` : 'GPS indisponible'}
+                  action={hasReferenceGps && hasTelemetryGps
+                    ? <Pill tone={isOutsideGeofence ? 'bad' : 'ok'}>{isOutsideGeofence ? `Hors zone : ${Math.round(currentDistance || 0)} m` : 'Dans la zone de 90 m'}</Pill>
+                    : null}
+                  className="lg:col-span-2"
+                >
+                  <div className="relative h-80 w-full overflow-hidden rounded-md border border-[var(--panel-border)]">
+                    <MapContainer center={[lat, lng]} zoom={hasTelemetryGps || hasReferenceGps ? 14 : 5} style={{ height: '100%', width: '100%' }}>
+                      <MapUpdater center={[lat, lng]} />
+                      <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" className="map-tiles-dark" />
+                      {hasReferenceGps && (
+                        <Circle
+                          center={[refLat, refLng]} radius={90}
+                          pathOptions={{ color: isOutsideGeofence ? '#DC2626' : ORANGE, fillColor: isOutsideGeofence ? '#DC2626' : ORANGE, fillOpacity: 0.12, weight: 2 }}
+                        />
+                      )}
+                      {hasTelemetryGps && <Marker position={[lat, lng]} icon={customIcon} />}
+                      {hasReferenceGps && <Marker position={[refLat, refLng]} />}
+                    </MapContainer>
                   </div>
-                </div>
-              </Panel>
-            </motion.div>
-          )}
+                  {!hasTelemetryGps && !hasReferenceGps && (
+                    <p className={`mt-3 text-sm ${MUTED}`}>Aucune position connue pour ce kit.</p>
+                  )}
+                </Card>
+              </div>
+            )}
 
-          {/* ===== PREDICTION IA ===== */}
-          {activeTab === 'Prédiction IA' && (
-            <PredictionIATab key={kitId} kitId={kitId} showToast={showToast} />
-          )}
-
+            {/* ============ Prédiction IA ============ */}
+            {activeTab === 'ia' && <PredictionIATab key={kitId} kitId={kitId} />}
+          </motion.div>
         </AnimatePresence>
       </main>
-
-      <style>{`
-        .dark .map-tiles-dark {
-          filter: invert(100%) hue-rotate(180deg) brightness(88%) contrast(92%) saturate(0.85);
-        }
-        .smart-kit-shell .bg-zinc-950\/60,
-        .smart-kit-shell .bg-zinc-950\/90,
-        .smart-kit-shell .bg-zinc-900 {
-          background: var(--panel-alt) !important;
-        }
-        .smart-kit-shell .border-zinc-800\/50,
-        .smart-kit-shell .border-zinc-800\/80,
-        .smart-kit-shell .border-zinc-800,
-        .smart-kit-shell .border-zinc-900 {
-          border-color: var(--panel-border) !important;
-        }
-        .smart-kit-shell .text-zinc-100,
-        .smart-kit-shell .text-zinc-200,
-        .smart-kit-shell .text-white {
-          color: var(--app-foreground) !important;
-        }
-        .smart-kit-shell .text-zinc-300,
-        .smart-kit-shell .text-zinc-400,
-        .smart-kit-shell .text-zinc-500,
-        .smart-kit-shell .text-zinc-600 {
-          color: var(--muted-foreground) !important;
-        }
-        .leaflet-container { background: var(--panel-alt) !important; }
-        .hide-scrollbar::-webkit-scrollbar { display: none; }
-        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        @keyframes ping {
-          75%, 100% { transform: scale(2.2); opacity: 0; }
-        }
-      `}</style>
     </div>
   );
 }

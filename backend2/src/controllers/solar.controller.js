@@ -23,6 +23,12 @@ async function proxyToML(method, path, data, res) {
       : await mlClient.post(path, data);
 
     console.log(`[Solar]  ${method.toUpperCase()} ${path} → ${mlRes.status}`);
+    console.log('\n════════════════════════════════════════════════════════════════');
+    console.log(`  [Solar API Proxy] RÉPONSE de ${path} — HTTP ${mlRes.status}`);
+    console.log('════════════════════════════════════════════════════════════════');
+    console.log(JSON.stringify(mlRes.data, null, 2));
+    console.log('════════════════════════════════════════════════════════════════\n');
+    
     return res.json({ success: true, data: mlRes.data });
   } catch (err) {
     const status = err.response?.status || 0;

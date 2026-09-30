@@ -180,8 +180,8 @@ export default function AdministrationSettings() {
                             L’inventaire, les alertes et la télémétrie sont chargés depuis le serveur. Les
                             brouillons de maintenance sont enregistrés localement.
                         </p>
-                        <Link className={linkBtn} to="/telemetry">
-                            Consulter les mesures <ArrowUpRight size={15} />
+                        <Link className={linkBtn} to="/parc">
+                            Consulter le parc <ArrowUpRight size={15} />
                         </Link>
                     </div>
                 </section>

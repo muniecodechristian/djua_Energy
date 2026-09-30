@@ -1214,10 +1214,11 @@ export default function Devis() {
                     />
                   </div>
                 )}
-                <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
+                <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <button type="button" onClick={() => setCurrentStep('equipment')} className="rounded-full border border-zinc-700 bg-zinc-900/80 px-4 py-2.5 text-sm text-zinc-200 transition hover:border-orange-500/50 hover:text-white">Modifier</button>
+                  
                   {!mlResult && (
-                    <div className="flex-1 sm:max-w-xs ml-auto">
+                    <div className="w-full sm:w-auto sm:min-w-[280px]">
                       <SolarAdvisorTrigger 
                         isLoading={isRecommending} 
                         hasResult={!!mlResult}
@@ -1225,7 +1226,6 @@ export default function Devis() {
                       />
                     </div>
                   )}
-                  <button type="button" onClick={handleSubmit} disabled={isSubmitting} className="inline-flex items-center justify-center gap-2 rounded-full bg-zinc-800 px-5 py-3 text-sm font-semibold text-white shadow-[0_16px_30px_rgba(0,0,0,0.3)] transition hover:bg-zinc-700 disabled:cursor-not-allowed disabled:bg-zinc-700 disabled:shadow-none">{isSubmitting ? 'Soumission...' : 'Générer devis standard'}</button>
                 </div>
                 {isValidated && (
                   <motion.div initial={{ opacity: 0, y: 14, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.45, ease: 'easeOut' }} className="mt-5 space-y-4 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm text-emerald-200">

@@ -7,8 +7,8 @@ const config = {
   orangeEnergyApiUrl: process.env.ORANGE_ENERGY_API_URL || 'https://orangeenergyapi.vercel.app',
 
   // URL de l'API externe d'IA (fournie par votre collègue)
-  // Ex: https://colleague-host.example.com
-  iaApiUrl: process.env.IA_API_URL || '',
+  // Ex: https://djua-energy-data-ai.onrender.com
+  iaApiUrl: process.env.IA_API_URL || 'https://djua-energy-data-ai.onrender.com',
   iaApiEndpoint: process.env.IA_API_ENDPOINT || '/ai/chat',
   iot: {
     apiKey: process.env.IOT_API_KEY || '',

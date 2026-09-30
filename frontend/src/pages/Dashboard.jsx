@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { geoNaturalEarth1, geoPath, geoGraticule10 } from 'd3-geo';
 import { feature, mesh } from 'topojson-client';
@@ -177,7 +177,7 @@ export default function Dashboard() {
     { label: 'Équipements', value: cv(kitsQuery, kits.length), hint: 'Inventaire des kits', icon: Sun, accent: '#f97316', to: '/parc' },
     {
       label: 'Signal récent', value: kitsQuery.isError || kitsQuery.isPending ? '—' : cv(telemetryQuery, online),
-      hint: 'Mesure < 5 min', icon: Radio, accent: '#22d3ee', to: '/telemetry'
+      hint: 'Mesure < 5 min', icon: Radio, accent: '#22d3ee', to: '/parc'
     },
     {
       label: 'Alertes ouvertes', value: cv(alertsQuery, alerts.length),
@@ -186,7 +186,7 @@ export default function Dashboard() {
     },
     {
       label: 'Sans observation', value: kitsQuery.isError || kitsQuery.isPending ? '—' : cv(telemetryQuery, kits.length - online),
-      hint: 'Aucun signal récent', icon: CircleHelp, accent: '#a78bfa', to: '/diagnostics'
+      hint: 'Aucun signal récent', icon: CircleHelp, accent: '#a78bfa', to: '/parc'
     },
   ];
 
@@ -226,7 +226,7 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#0a0a0b] p-3 text-zinc-300 sm:p-4">
+    <div className="min-h-screen bg-slate-900 p-3 text-zinc-300 sm:p-4">
       {/* ================= HEADER ================= */}
       <header className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <div>
@@ -438,8 +438,8 @@ export default function Dashboard() {
                       Consultez les mesures du kit, les résultats du modèle et les recommandations à valider avant intervention.
                     </p>
                     <div className="mt-3 flex flex-wrap gap-2">
-                      <Link to="/diagnostics" className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-[11px] font-semibold text-black hover:bg-zinc-200">
-                        <BrainCircuit size={12} /> Examiner
+                      <Link to={detailUrl(selected.kitId, true)} className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-[11px] font-semibold text-black hover:bg-zinc-200">
+                        <BrainCircuit size={12} /> Diagnostic IA
                       </Link>
                       <Link to={detailUrl(selected.kitId)} className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-[11px] font-medium text-white hover:bg-white/5">
                         <FileText size={12} /> Ouvrir la fiche
@@ -556,9 +556,9 @@ export default function Dashboard() {
               <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
                 {[
                   { label: 'Parc solaire', desc: 'Fiche équipements', to: '/parc', icon: Sun, accent: '#f97316' },
-                  { label: 'Télémétrie', desc: 'Capteurs & mesures', to: '/telemetry', icon: Gauge, accent: '#22d3ee' },
+                  { label: 'Alertes', desc: 'Anomalies & pannes', to: '/notification', icon: AlertTriangle, accent: '#f59e0b' },
                   { label: 'Devis', desc: 'Dimensionnement offres', to: '/devis', icon: ArrowUpRight, accent: '#a78bfa' },
-                  { label: 'Maintenance', desc: 'Interventions', to: '/InterventionWizard', icon: Wrench, accent: '#f59e0b' },
+                  { label: 'Maintenance', desc: 'Interventions', to: '/InterventionWizard', icon: Wrench, accent: '#22d3ee' },
                 ].map(({ label, desc, to, icon: Icon, accent }) => (
                   <Link key={to} to={to} className="group flex items-center gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 transition hover:bg-white/[0.05]">
                     <span className="rounded-lg p-2" style={{ background: `${accent}22`, color: accent }}>

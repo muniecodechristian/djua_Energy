@@ -2,8 +2,6 @@ import { lazy } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { Toaster as SonnerToaster } from 'sonner';
-const Diagnostics = lazy(() => import('./pages/Diagnostics'));
-
 import { useCheckAuth } from './hooks/tanstack/useAuthMutations.js';
 
 
@@ -17,7 +15,6 @@ const CustomerProfile = lazy(() => import('./pages/CustomerProfile'));
 const OperationsOverview = lazy(() => import('./pages/OperationsOverview'));
 const AdministrationSettings = lazy(() => import('./pages/AdministrationSettings'));
 const OrangeKitsRegistry = lazy(() => import('./pages/OrangeKitsRegistry'));
-const TelemetryDashboard = lazy(() => import('./pages/TelemetryDashboard'));
 const Devis = lazy(() => import('./pages/Devis'));
 
 function App() {
@@ -46,7 +43,7 @@ function App() {
 
         {/* Pages accessibles sans connexion */}
         <Route element={<MainLayout />}>
-          <Route path="/diagnostics" element={<Diagnostics />} />
+          <Route path="/diagnostics"          element={<Navigate to="/parc" replace />} />
           <Route path="/dashboard"            element={<Dashboard />} />
           <Route path="/devis"                element={<Devis />} />
           <Route path="/notification"         element={<FleetStatusFeed />} />
@@ -58,7 +55,7 @@ function App() {
           <Route path="/AdministrationSettings" element={<AdministrationSettings />} />
           <Route path="/parc"                 element={<OrangeKitsRegistry />} />
           <Route path="/orange-kits"          element={<Navigate to="/parc" replace />} />
-          <Route path="/telemetry"            element={<TelemetryDashboard />} />
+          <Route path="/telemetry"            element={<Navigate to="/parc" replace />} />
           <Route path="/geofencing"           element={<Navigate to="/notification" replace />} />
         </Route>
         <Route path="*" element={<Navigate to="/dashboard" replace />} />

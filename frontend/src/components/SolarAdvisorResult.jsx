@@ -770,14 +770,14 @@ export default function SolarAdvisorResult({ result, onClose, onContactRequest }
 export function SolarAdvisorTrigger({ isLoading, hasResult, onClick }) {
   return (
     <motion.button type="button" onClick={onClick} disabled={isLoading}
-      whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }}
-      className="w-full flex items-center justify-center gap-3 rounded-2xl bg-zinc-900 text-zinc-100 hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 font-bold text-sm px-6 py-4 shadow-md transition disabled:opacity-60 disabled:cursor-not-allowed">
+      whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+      className="w-full flex items-center justify-center gap-3 rounded-full bg-orange-500 px-6 py-4 text-sm font-semibold text-white shadow-[0_16px_30px_rgba(249,115,22,0.3)] transition hover:bg-orange-400 disabled:cursor-not-allowed disabled:bg-zinc-800 disabled:text-zinc-500 disabled:shadow-none">
       {isLoading ? (
-        <><Loader2 size={16} className="animate-spin" />Génération de l'étude...</>
+        <><Loader2 size={16} className="animate-spin" />Génération du devis avec l'IA...</>
       ) : hasResult ? (
-        <><CheckCircle2 size={16} />Étude technique disponible</>
+        <><CheckCircle2 size={16} />Devis IA généré avec succès</>
       ) : (
-        <><Calculator size={16} />Générer l'étude technique</>
+        <><Calculator size={16} />Générer le devis avec l'IA (Djua)</>
       )}
     </motion.button>
   );
