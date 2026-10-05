@@ -18,6 +18,9 @@ interface InstallState {
   location: GeoLocation | null;
   diagnosticStatus: DiagnosticStatus;
   diagnosticChecks: DiagnosticCheck[];
+  // ── Champs du modèle Kit backend ──────────────────────────────────────
+  clientPhone: string | null;   // N° Orange du client (clientPhone dans Kit)
+  installedBy: string | null;   // Identifiant du technicien installateur
 
   // ─── Actions ──────────────────────────────────────────────────────────
   setBoxId: (id: string) => void;
@@ -26,12 +29,15 @@ interface InstallState {
   setManualData: (data: SystemData) => void;
   setLocation: (loc: GeoLocation) => void;
   setDiagnostic: (status: DiagnosticStatus, checks: DiagnosticCheck[]) => void;
+  setClientPhone: (phone: string) => void;
+  setInstalledBy: (tech: string) => void;
 
   // ─── Construct payload prêt à envoyer au backend ──────────────────────
   buildPayload: () => InstallPayload | null;
 
   reset: () => void;
 }
+
 
 const initialState = {
   boxId: null,
@@ -42,6 +48,8 @@ const initialState = {
   location: null,
   diagnosticStatus: 'pending' as DiagnosticStatus,
   diagnosticChecks: [],
+  clientPhone: null,
+  installedBy: null,
 };
 
 export const useInstallStore = create<InstallState>((set, get) => ({
@@ -54,6 +62,8 @@ export const useInstallStore = create<InstallState>((set, get) => ({
   setLocation: (loc) => set({ location: loc }),
   setDiagnostic: (status, checks) =>
     set({ diagnosticStatus: status, diagnosticChecks: checks }),
+  setClientPhone: (phone) => set({ clientPhone: phone }),
+  setInstalledBy: (tech) => set({ installedBy: tech }),
 
   /**
    * Construit le payload complet prêt à POST /api/installations
@@ -63,6 +73,7 @@ export const useInstallStore = create<InstallState>((set, get) => ({
     const {
       boxId, hasQuote, quoteId, quoteData, manualData,
       location, diagnosticStatus, diagnosticChecks,
+      clientPhone, installedBy,
     } = get();
 
     if (!boxId || !location) return null;
@@ -82,6 +93,9 @@ export const useInstallStore = create<InstallState>((set, get) => ({
       diagnosticChecks,
       installedAt: new Date().toISOString(),
       ...(quoteData?.client ? { clientName: quoteData.client } : {}),
+      // ── Champs du modèle Kit backend ──
+      ...(clientPhone ? { clientPhone } : {}),
+      ...(installedBy ? { installedBy } : {}),
     };
   },
 

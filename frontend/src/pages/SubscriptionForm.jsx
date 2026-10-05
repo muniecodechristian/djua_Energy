@@ -215,6 +215,19 @@ const BillingSection = () => {
         Choix du Kit & Facturation
       </h2>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* ── Identifiant Kit (champ clé pour le modèle backend) ── */}
+        <div>
+          <Label required>Identifiant Kit (kitId)</Label>
+          <input
+            type="text"
+            placeholder="ex: KIT-084XXXXXXX ou OE-2026-001"
+            {...register('kitId', { required: 'Identifiant du kit obligatoire' })}
+            className={getInputClasses(errors.kitId)}
+          />
+          <ErrorMsg message={errors.kitId?.message} />
+          <p className="text-[11px] text-zinc-600 mt-1">ID physique inscrit sur l'équipement solaire</p>
+        </div>
+
         <div>
           <Label required>Zone d'Installation</Label>
           <input type="text" placeholder="ex: Kinshasa / Mont-Ngafula" {...register('installationZone', { required: "Zone d'installation obligatoire" })} className={getInputClasses(errors.installationZone)} />
@@ -309,29 +322,75 @@ export default function SubscriptionForm() {
   });
 
   const onSubmit = async (data) => {
-    // Le calcul du total se fait proprement ici, juste avant l'envoi à l'API
-    const calculatedTotal = Number(data.subscriptionFeeTTC || 0) + (Number(data.monthlyFeeTTC || 0) * Number(data.monthsCount || 1));
-    const payload = { ...data, totalAmount: calculatedTotal };
+    const calculatedTotal =
+      Number(data.subscriptionFeeTTC || 0) +
+      Number(data.monthlyFeeTTC || 0) * Number(data.monthsCount || 1);
+
+    // ── Champs du modèle Kit attendus par le backend ────────────────────────
+    // Modèle : { kitId, clientPhone, status, gpsCoordinates }
+    // Le schéma est strict:false → les champs supplémentaires sont conservés.
+    const kitPayload = {
+      kitId: data.kitId,                              // Identifiant unique du kit (obligatoire)
+      clientPhone: data.primaryPhone || data.companyPhone, // N° Orange du client (obligatoire)
+      status: 'active',                               // Actif dès la souscription
+      gpsCoordinates: { latitude: null, longitude: null }, // GPS à renseigner par IoT
+
+      // Champs supplémentaires conservés grâce à strict:false
+      offerName: data.offerName,
+      installationZone: data.installationZone,
+      region: data.installationZone,
+      province: data.installationZone,
+      fullName: data.fullName || data.representativeName,
+      companyName: data.companyName,
+      subscriptionFeeTTC: data.subscriptionFeeTTC,
+      monthlyFeeTTC: data.monthlyFeeTTC,
+      monthsCount: data.monthsCount,
+      totalAmount: calculatedTotal,
+      clientType: data.clientType,
+      signedDate: data.signedDate,
+      locationSignedAt: data.locationSignedAt,
+      acceptTerms: data.acceptTerms,
+    };
+
+    // ── Champs du modèle User pour créer le compte opérateur ───────────────
+    const userPayload = {
+      nom: (data.fullName || data.companyName || '').split(' ').slice(1).join(' ') || 'Client',
+      prenom: (data.fullName || '').split(' ')[0] || 'Orange',
+      postNom: '',
+      identifier: data.primaryPhone || data.companyPhone || data.email,
+      password: data.primaryPhone || data.companyPhone, // Mot de passe provisoire = numéro
+      role: 'kitireceveur',
+    };
 
     const toastId = toast.loading('Enregistrement de la souscription en cours...');
     try {
-      if (typeof createClient === 'function') {
-        await createClient(payload);
-      } else if (typeof createUser === 'function') {
-        await createUser(payload);
-      } else {
-        const response = await fetch('/api/auth/create-user', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-        const result = await response.json();
-        if (!response.ok || !result.success) throw new Error(result.message || 'Échec de la souscription.');
+      // ÉTAPE 1 — Créer/mettre à jour le Kit dans la base (upsert via status IoT)
+      // Route backend : POST /api/iot/:deviceId/status
+      // Cela crée le kit avec upsert si inexistant, puis on met le statut initial
+      await api.post(`/api/iot/${kitPayload.kitId}/status`, { status: 'active' });
+
+      // ÉTAPE 2 — Envoyer toutes les métadonnées du kit via la télémétrie initiale
+      // Route backend : POST /api/iot/:deviceId/telemetry
+      // Cela enrichit le document Kit avec offerName, clientPhone, zone, etc.
+      await api.post(`/api/iot/${kitPayload.kitId}/telemetry`, {
+        ...kitPayload,
+        kit_id: kitPayload.kitId,      // Clé reconnue par processTelemetry
+        device_id: kitPayload.kitId,
+      });
+
+      // ÉTAPE 3 (optionnel) — Créer le compte utilisateur opérateur
+      try {
+        await api.post('/auth/register', userPayload);
+      } catch (userErr) {
+        // L'utilisateur peut déjà exister — on ne bloque pas la souscription
+        console.warn('[SubscriptionForm] Compte utilisateur déjà existant ou non créé :', userErr?.response?.data?.message);
       }
-      toast.success('Souscription enregistrée avec succès !', { id: toastId });
-      methods.reset(); // Optionnel : vide le formulaire après succès
+
+      toast.success(`Kit ${kitPayload.kitId} enregistré avec succès !`, { id: toastId });
+      methods.reset();
     } catch (err) {
-      toast.error(err?.message || 'Erreur lors de la création du dossier.', { id: toastId });
+      const msg = err?.response?.data?.message || err?.message || 'Erreur lors de la création du dossier.';
+      toast.error(msg, { id: toastId });
     }
   };
 

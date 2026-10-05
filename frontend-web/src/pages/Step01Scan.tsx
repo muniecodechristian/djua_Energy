@@ -1,7 +1,8 @@
 import { useRef, useEffect, useState } from 'react';
 import jsQR from 'jsqr';
-import { X, Zap, ZapOff, Keyboard } from 'lucide-react';
+import { X, Zap, ZapOff, Keyboard, Loader2 } from 'lucide-react';
 import { useInstallStore } from '../store/useInstallStore';
+import { devicesApi } from '../services/api';
 
 interface Props { onNext: () => void; }
 
@@ -16,6 +17,35 @@ export default function Step01Scan({ onNext }: Props) {
   const [manualMode, setManualMode] = useState(false);
   const [manualId, setManualId] = useState('');
   const [cameraError, setCameraError] = useState(false);
+  
+  const [checking, setChecking] = useState(false);
+  const [alreadyExists, setAlreadyExists] = useState(false);
+
+  // ─── Vérification en base ────────────────────────────────────────────────
+  const checkAndProceed = async (id: string) => {
+    if (checking) return;
+    setChecking(true);
+    setAlreadyExists(false);
+    
+    try {
+      const device = await devicesApi.getDevice(id);
+      if (device) {
+        // Le kit existe déjà
+        setAlreadyExists(true);
+      } else {
+        // Le kit n'existe pas, on peut l'installer
+        setBoxId(id);
+        onNext();
+      }
+    } catch (err) {
+      console.error('Erreur vérification kit:', err);
+      // En cas d'erreur réseau, on permet de continuer
+      setBoxId(id);
+      onNext();
+    } finally {
+      setChecking(false);
+    }
+  };
 
   // ─── Démarrage caméra ──────────────────────────────────────────────────
   useEffect(() => {
@@ -54,20 +84,20 @@ export default function Step01Scan({ onNext }: Props) {
       if (code?.data) {
         scanned.current = true;
         streamRef.current?.getTracks().forEach(t => t.stop());
-        setBoxId(code.data);
-        onNext();
+        checkAndProceed(code.data);
         return;
       }
     }
-    rafRef.current = requestAnimationFrame(tick);
+    if (!checking) {
+      rafRef.current = requestAnimationFrame(tick);
+    }
   };
 
   // ─── Saisie manuelle ──────────────────────────────────────────────────
   const handleManualSubmit = () => {
     const id = manualId.trim();
     if (!id) return;
-    setBoxId(id);
-    onNext();
+    checkAndProceed(id);
   };
 
   if (manualMode) {
@@ -80,19 +110,61 @@ export default function Step01Scan({ onNext }: Props) {
           <h1 className="screen-title">Saisir l'identifiant</h1>
           <p className="screen-desc">Entrez l'ID inscrit sur l'étiquette du boîtier.</p>
           <label className="label-text">Identifiant du boîtier</label>
-          <div className="input-wrap" style={{ marginBottom: 24 }}>
+          <div className="input-wrap" style={{ marginBottom: alreadyExists ? 8 : 24 }}>
             <input
               value={manualId}
-              onChange={e => setManualId(e.target.value)}
+              onChange={e => {
+                setManualId(e.target.value);
+                setAlreadyExists(false);
+              }}
               placeholder="Ex: DJB-00482"
               onKeyDown={e => e.key === 'Enter' && handleManualSubmit()}
               autoFocus
+              disabled={checking}
             />
           </div>
+          {alreadyExists && (
+            <div style={{ color: '#E11D48', fontSize: 14, marginBottom: 24, padding: '12px', background: '#FFE4E6', borderRadius: 8 }}>
+              Ce boîtier est déjà enregistré dans le système. Vous ne pouvez pas l'installer à nouveau.
+            </div>
+          )}
         </div>
         <div className="screen-footer">
-          <button className="btn btn-primary" disabled={!manualId.trim()} onClick={handleManualSubmit}>
-            Continuer
+          <button className="btn btn-primary" disabled={!manualId.trim() || checking} onClick={handleManualSubmit}>
+            {checking ? <Loader2 className="spinner" size={20} /> : 'Continuer'}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ─── Ecran de scan en cours de vérification ───────────────────────────
+  if (checking) {
+    return (
+      <div className="screen" style={{ background: '#0F172A', color: '#fff', justifyContent: 'center', alignItems: 'center' }}>
+        <Loader2 className="spinner" size={48} color="#FF7900" style={{ marginBottom: 24 }} />
+        <h2 style={{ fontSize: 20, fontWeight: 600 }}>Vérification du boîtier...</h2>
+        <p style={{ color: '#94A3B8', marginTop: 8 }}>Veuillez patienter.</p>
+      </div>
+    );
+  }
+
+  if (alreadyExists && !manualMode) {
+    return (
+      <div className="screen" style={{ background: '#fff' }}>
+        <div className="screen-content" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', height: '100%' }}>
+          <div style={{ width: 64, height: 64, borderRadius: 32, background: '#FFE4E6', color: '#E11D48', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 24 }}>
+            <X size={32} />
+          </div>
+          <h1 className="screen-title" style={{ color: '#0F172A' }}>Boîtier déjà existant</h1>
+          <p className="screen-desc" style={{ marginBottom: 32 }}>Ce boîtier est déjà enregistré dans le système. Vous ne pouvez pas l'installer une deuxième fois.</p>
+          <button className="btn btn-primary" onClick={() => {
+            setAlreadyExists(false);
+            scanned.current = false;
+            // relance la caméra
+            rafRef.current = requestAnimationFrame(tick);
+          }}>
+            Scanner un autre boîtier
           </button>
         </div>
       </div>

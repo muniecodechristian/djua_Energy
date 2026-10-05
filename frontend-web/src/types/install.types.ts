@@ -33,7 +33,7 @@ export interface DiagnosticCheck {
 // ─── Payload final envoyé au backend ─────────────────────────────────────────
 
 export interface InstallPayload {
-  boxId: string;                         // ID du boîtier scanné
+  boxId: string;                         // ID du boîtier scanné (= kitId dans le modèle Kit)
   source: 'quote' | 'manual';           // Origine des données système
   quoteId?: string;                      // Référence devis Orange Energy
   system: SystemData;                    // Spécifications du système installé
@@ -42,6 +42,9 @@ export interface InstallPayload {
   diagnosticChecks: DiagnosticCheck[];  // Détail de chaque vérification
   installedAt: string;                  // ISO timestamp de l'installation
   clientName?: string;                  // Nom du client (si devis)
+  // ── Champs du modèle Kit backend (obligatoires) ──
+  clientPhone?: string;                 // N° Orange du client (à saisir si présent)
+  installedBy?: string;                 // Identifiant du technicien installateur
 }
 
 // ─── Réponse backend esperée ──────────────────────────────────────────────────

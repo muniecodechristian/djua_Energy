@@ -72,26 +72,55 @@ export const devicesApi = {
 
   /**
    * Enregistre l'installation d'un boîtier avec toutes les données collectées.
-   * POST /api/installations  (endpoint à créer côté backend)
-   * Pour l'instant, simule avec un délai.
+   *
+   * Stratégie : les routes /api/installations n'existent pas dans le backend.
+   * On utilise les deux routes IoT réelles qui font un upsert sur le modèle Kit :
+   *   1. POST /api/iot/:deviceId/status  → crée le Kit en base (upsert) avec status='active'
+   *   2. POST /api/iot/:deviceId/telemetry → enrichit le document Kit avec tous les champs
+   *      (system, location, clientPhone, quoteId, etc.) grâce à strict:false sur le schéma.
+   *
+   * Modèle Kit backend :
+   *   { kitId, clientPhone, status, gpsCoordinates, ...extraFields (strict:false) }
    */
   registerInstall: async (payload: InstallPayload): Promise<InstallResponse> => {
     try {
-      const { data } = await api.post<InstallResponse>('/installations', payload);
-      return data;
+      const deviceId = payload.boxId;  // boxId = kitId dans le modèle backend
+
+      // ÉTAPE 1 — Crée ou met à jour le Kit avec status='active' (upsert)
+      await api.post(`/iot/${deviceId}/status`, { status: 'active' });
+
+      // ÉTAPE 2 — Envoie toutes les métadonnées via la route telemetry
+      // processTelemetry() dans iot_controller.ts accepte tous les champs
+      // supplémentaires (strict:false) et les persiste dans le document Kit.
+      await api.post(`/iot/${deviceId}/telemetry`, {
+        kit_id: deviceId,        // clé reconnue par processTelemetry
+        device_id: deviceId,
+        kitId: deviceId,
+        // GPS (attendu par gpsCoordinates dans le modèle)
+        latitude: payload.location.latitude,
+        longitude: payload.location.longitude,
+        // Champs supplémentaires conservés grâce à strict:false
+        source: payload.source,
+        quoteId: payload.quoteId ?? null,
+        clientName: payload.clientName ?? null,
+        installedAt: payload.installedAt,
+        diagnosticStatus: payload.diagnosticStatus,
+        diagnosticChecks: payload.diagnosticChecks,
+        locationName: payload.location.name,
+        locationAccuracy: payload.location.accuracy,
+        system: payload.system,
+      });
+
+      return {
+        success: true,
+        data: {
+          installationId: `INST-${deviceId}-${Date.now()}`,
+          kitId: deviceId,
+          message: `Kit ${deviceId} enregistré avec succès`,
+        },
+      };
     } catch (err: any) {
-      // Fallback mock si l'endpoint n'existe pas encore
-      if (err.response?.status === 404) {
-        console.warn('[API] /api/installations non trouvé — mode mock activé');
-        return {
-          success: true,
-          data: {
-            installationId: `INST-${Date.now()}`,
-            kitId: payload.boxId,
-            message: 'Installation enregistrée (mock)',
-          },
-        };
-      }
+      console.error('[API] Erreur enregistrement installation:', err);
       return {
         success: false,
         error: err.response?.data?.message ?? err.message,
