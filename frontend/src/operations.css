@@ -891,3 +891,7 @@
 .ops-filter-label { position:relative;z-index:1; }
 .dashboard-panel-interactive { transition-property:border-color; }
 .dashboard-panel-interactive:hover,.dashboard-panel-interactive:active { transform:none; }
+
+.ops-back-button { display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:36px;padding:7px 10px;border:1px solid var(--ops-line);border-radius:8px;background:var(--ops-surface);color:var(--ops-ink);font-size:12px;font-weight:600;flex-shrink:0; }
+.ops-back-button:hover { border-color:#FF7900;color:var(--ops-accent); }
+@media(max-width:650px) { .ops-back-button { width:34px;padding:7px; }.ops-back-button span { display:none; } }

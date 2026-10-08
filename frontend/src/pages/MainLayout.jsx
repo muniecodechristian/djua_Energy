@@ -1,3 +1,4 @@
+import BackButton from '../components/BackButton';
 import { motion, useReducedMotion } from 'framer-motion';
 import { easeOut } from '../lib/motion';
 import { Suspense, useEffect, useRef, useState } from 'react';
@@ -19,6 +20,8 @@ export default function MainLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const info = pageInfo(location.pathname);
+  const secondaryPage = !navigation.some(item => item.path.toLowerCase() === location.pathname.toLowerCase());
+  const backFallback = /smartkit|customerprofile/i.test(location.pathname) ? '/parc' : '/dashboard';
   const kits = useKitsQuery();
   const alerts = useAlertsQuery();
   const count = activeAlerts(alerts.data).length;
@@ -34,7 +37,7 @@ export default function MainLayout() {
     <Sidebar isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen}/>
     <div className="ops-main">
       <header className="ops-topbar">
-        <div className="ops-breadcrumb"><button className="ops-icon-button ops-menu-toggle" aria-label="Ouvrir la navigation" aria-expanded={isSidebarOpen} aria-controls="primary-navigation" onClick={() => setIsSidebarOpen(true)}><Menu size={20}/></button><span className="ops-breadcrumb-root">Espace de travail</span><ChevronRight size={14}/><strong>{info.label}</strong></div>
+        <div className="ops-breadcrumb">{secondaryPage && <BackButton fallback={backFallback}/>}<button className="ops-icon-button ops-menu-toggle" aria-label="Ouvrir la navigation" aria-expanded={isSidebarOpen} aria-controls="primary-navigation" onClick={() => setIsSidebarOpen(true)}><Menu size={20}/></button><span className="ops-breadcrumb-root">Espace de travail</span><ChevronRight size={14}/><strong>{info.label}</strong></div>
         <div className="ops-topbar-actions"><button className="ops-search-trigger" onClick={() => dialog.current?.showModal()} aria-label="Rechercher une page ou un équipement"><Search size={16}/><span>Rechercher…</span><kbd>Ctrl K</kbd></button><Link className="ops-icon-button ops-notifications" to="/notification" aria-label={alerts.isSuccess ? count + ' alertes ouvertes' : 'Consulter les alertes'}><Bell size={18}/>{count > 0 && <i/>}</Link><ThemeToggle/></div>
       </header>
       <motion.main initial={reduced ? false : { opacity: 0.85, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: reduced ? 0 : 0.2, ease: easeOut }} key={location.pathname} id="main-content" tabIndex={-1} ref={content} className="ops-content"><ErrorBoundary embedded><Suspense fallback={<div className="ops-empty" role="status">Chargement de votre espace…</div>}><Outlet/></Suspense></ErrorBoundary></motion.main>
