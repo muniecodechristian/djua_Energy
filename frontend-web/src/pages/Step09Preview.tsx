@@ -6,10 +6,10 @@ import { useInstallStore } from '../store/useInstallStore';
 interface Props { onNext: () => void; onBack: (step: number) => void; }
 
 export default function Step09Preview({ onNext, onBack }: Props) {
-  const { boxId, hasQuote, quoteId, quoteData, manualData, location } = useInstallStore();
+  const { boxId, hasQuote, quoteId, quoteData, manualData, location, clientPhone, setClientPhone } = useInstallStore();
   
   const system = hasQuote && quoteData ? quoteData.system : manualData;
-  const isComplete = boxId && system && location;
+  const isComplete = boxId && system && location && clientPhone?.trim();
 
   return (
     <div className="screen fade-enter">
@@ -92,6 +92,25 @@ export default function Step09Preview({ onNext, onBack }: Props) {
           ) : (
             <p style={{ color: 'var(--error)', fontSize: 14 }}>Localisation manquante</p>
           )}
+        </div>
+
+        <div className="card-white" style={{ marginTop: 16 }}>
+          <label className="label-text" htmlFor="client-phone">Téléphone du client</label>
+          <p className="screen-desc" style={{ marginBottom: 12 }}>
+            Ce numéro est nécessaire pour associer l'installation au client.
+          </p>
+          <div className="input-wrap">
+            <input
+              id="client-phone"
+              type="tel"
+              autoComplete="tel"
+              inputMode="tel"
+              placeholder="+243 000 000 000"
+              value={clientPhone ?? ''}
+              onChange={event => setClientPhone(event.target.value)}
+              required
+            />
+          </div>
         </div>
         
         <div className="pb-safe" />

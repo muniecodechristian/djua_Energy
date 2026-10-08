@@ -10,8 +10,13 @@ import type {
 
 // ─── Client axios de base ────────────────────────────────────────────────────
 
+const isLocalHost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+const apiOrigin = import.meta.env.VITE_API_URL ?? (
+  isLocalHost ? '' : 'https://djua-energy-backend.onrender.com'
+);
+
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: `${apiOrigin.replace(/\/$/, '')}/api`,
   timeout: 15_000,
   headers: { 'Content-Type': 'application/json' },
 });
