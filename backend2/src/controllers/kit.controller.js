@@ -93,7 +93,28 @@ export async function createKit(req, res) {
 
     return res.status(201).json({ success: true, data: kit });
   } catch (err) {
-    console.error('[Kit Controller] createKit error:', err);
+    console.error('[Kit Controller] createKit error:', {
+      name: err.name,
+      code: err.code,
+      message: err.message,
+      errors: err.errors,
+    });
+
+    if (err.code === 11000) {
+      return res.status(409).json({
+        success: false,
+        message: `Le kit ${kitId} existe déjà dans le système`,
+      });
+    }
+
+    if (err.name === 'ValidationError' || err.name === 'CastError') {
+      return res.status(400).json({
+        success: false,
+        message: 'Les données de l’installation sont invalides',
+        details: Object.values(err.errors ?? {}).map(({ path, message }) => ({ path, message })),
+      });
+    }
+
     return res.status(500).json({ success: false, message: 'Erreur serveur interne' });
   }
 }

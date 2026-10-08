@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from 'react-leaflet';
 import { MapPin } from 'lucide-react';
 import { StepIndicator } from '../components/ui/StepIndicator';
 import { Button } from '../components/ui/Button';
@@ -18,16 +18,31 @@ L.Icon.Default.mergeOptions({
 
 interface Props { onNext: () => void; }
 
+function MapPositionController({ position }: { position: [number, number] }) {
+  const map = useMap();
+
+  useEffect(() => {
+    map.setView(position, map.getZoom());
+  }, [map, position]);
+
+  return null;
+}
+
 // Composant interne qui écoute les clics sur la carte
 function LocationPicker({
   position,
   setPosition,
+  onPositionChange,
 }: {
   position: [number, number];
   setPosition: (p: [number, number]) => void;
+  onPositionChange: () => void;
 }) {
   useMapEvents({
-    click: (e) => setPosition([e.latlng.lat, e.latlng.lng]),
+    click: (e) => {
+      setPosition([e.latlng.lat, e.latlng.lng]);
+      onPositionChange();
+    },
   });
   return <Marker position={position} />;
 }
@@ -36,14 +51,61 @@ export default function Step07Location({ onNext }: Props) {
   const setLocation = useInstallStore(s => s.setLocation);
   const [isLocating, setIsLocating] = useState(true);
   const [position, setPosition] = useState<[number, number]>([-4.3224, 15.307]);
-  const [locationName, setLocationName] = useState('Gombe, Kinshasa');
+  const [locationName, setLocationName] = useState('');
+  const [isNameEdited, setIsNameEdited] = useState(false);
+  const [isGeocoding, setIsGeocoding] = useState(false);
   const [accuracy, setAccuracy] = useState(12);
+
+  useEffect(() => {
+    if (isNameEdited) return undefined;
+
+    const controller = new AbortController();
+    const [latitude, longitude] = position;
+    const timer = window.setTimeout(async () => {
+      setIsGeocoding(true);
+      try {
+        const params = new URLSearchParams({
+          format: 'jsonv2',
+          addressdetails: '1',
+          lat: latitude.toString(),
+          lon: longitude.toString(),
+        });
+        const response = await fetch(`https://nominatim.openstreetmap.org/reverse?${params}`, {
+          signal: controller.signal,
+          headers: { 'Accept-Language': 'fr' },
+        });
+        if (!response.ok) throw new Error('Géocodage indisponible');
+
+        const result = await response.json();
+        const address = result.address ?? {};
+        const district = address.neighbourhood ?? address.suburb ?? address.village
+          ?? address.town ?? address.city_district ?? address.city;
+        const city = address.city ?? address.town ?? address.municipality ?? address.county;
+        const placeName = [district, city].filter((name, index, names) => name && names.indexOf(name) === index).join(', ');
+
+        if (!isNameEdited) {
+          setLocationName(placeName || result.name || `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`);
+        }
+      } catch (error) {
+        if (error instanceof Error && error.name === 'AbortError') return;
+        if (!isNameEdited) setLocationName(`${latitude.toFixed(5)}, ${longitude.toFixed(5)}`);
+      } finally {
+        if (!controller.signal.aborted) setIsGeocoding(false);
+      }
+    }, 1000);
+
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+  }, [position, isNameEdited]);
 
   // Tenter la géolocalisation réelle
   useEffect(() => {
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setPosition([pos.coords.latitude, pos.coords.longitude]);
+        setIsNameEdited(false);
         setAccuracy(Math.round(pos.coords.accuracy));
         setIsLocating(false);
       },
@@ -84,8 +146,16 @@ export default function Step07Location({ onNext }: Props) {
           className="map-el"
           zoomControl={false}
         >
-          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-          <LocationPicker position={position} setPosition={setPosition} />
+          <TileLayer
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          />
+          <MapPositionController position={position} />
+          <LocationPicker
+            position={position}
+            setPosition={setPosition}
+            onPositionChange={() => setIsNameEdited(false)}
+          />
         </MapContainer>
 
         <div className="map-overlay-card">
@@ -95,13 +165,16 @@ export default function Step07Location({ onNext }: Props) {
           <div style={{ flex: 1 }}>
             <input
               value={locationName}
-              onChange={e => setLocationName(e.target.value)}
+              onChange={e => {
+                setLocationName(e.target.value);
+                setIsNameEdited(true);
+              }}
               style={{
                 border: 'none', outline: 'none', fontFamily: 'inherit',
                 fontSize: 15, fontWeight: 700, color: 'var(--text)', width: '100%',
                 background: 'transparent',
               }}
-              placeholder="Nom de la localisation"
+              placeholder={isGeocoding ? 'Recherche du lieu...' : 'Nom de la localisation'}
             />
             <p className="map-accuracy">Précision : ± {accuracy} m</p>
           </div>
