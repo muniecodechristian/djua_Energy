@@ -1,3 +1,4 @@
+import PageEntrance from '../components/PageEntrance';
 import { Link } from 'react-router-dom';
 import {
     Palette,
@@ -71,7 +72,7 @@ export default function AdministrationSettings() {
         : '';
 
     return (
-        <div className="flex flex-col gap-5 p-4 text-zinc-900 dark:text-zinc-100 sm:p-6">
+        <PageEntrance className="flex flex-col gap-5 p-4 text-zinc-900 dark:text-zinc-100 sm:p-6">
             {/* En-tête */}
             <header>
                 <h1 className="mb-1 text-[22px] font-semibold tracking-tight">Paramètres</h1>
@@ -200,6 +201,6 @@ export default function AdministrationSettings() {
                     </div>
                 </section>
             </div>
-        </div>
+        </PageEntrance>
     );
 }

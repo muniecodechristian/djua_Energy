@@ -1,7 +1,9 @@
+import PageEntrance from '../components/PageEntrance';
+import { quickSpring, revealGroup, revealItem } from '../lib/motion';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { MapContainer, TileLayer, Popup, Circle, CircleMarker, useMap } from 'react-leaflet';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import 'leaflet/dist/leaflet.css';
 import {
   ArrowUpRight, RefreshCw, Sun, Radio, AlertTriangle, BrainCircuit,
@@ -30,13 +32,14 @@ const SEV = {
 };
 
 // Styles partagés (Glassmorphism & Bordures subtiles)
-const panel = 'relative overflow-hidden rounded-2xl border border-zinc-200/80 bg-white/60 backdrop-blur-xl shadow-sm dark:border-white/[0.08] dark:bg-[#111113]/60';
-const panelHover = 'transition-all duration-300 hover:shadow-md hover:border-zinc-300 dark:hover:border-white/20 dark:hover:bg-[#111113]/80';
+const panel = 'dashboard-panel relative overflow-hidden rounded-2xl border';
+const panelHover = 'dashboard-panel-interactive';
 const chip = 'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider transition-colors';
 
 /* ---------- Animations Framer Motion ---------- */
-const containerAnim = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.05 } } };
-const itemAnim = { hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } } };
+const containerAnim = revealGroup;
+const itemAnim = revealItem;
+const MotionLink = motion.create(Link);
 
 /* ---------- Carte Leaflet avec Geofencing ---------- */
 function MapController({ selectedCoords }) {
@@ -112,6 +115,7 @@ function LeafletMap({ points, selectedId, onSelect }) {
 }
 
 export default function Dashboard() {
+ const reduced = useReducedMotion();
   const kitsQuery = useKitsQuery();
   const alertsQuery = useAlertsQuery();
   const telemetryQuery = useTelemetryQuery();
@@ -195,7 +199,7 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="relative min-h-screen bg-background text-foreground font-sans selection:bg-sky-500/30">
+    <PageEntrance className="dashboard-home relative min-h-screen bg-background text-foreground font-sans selection:bg-sky-500/30">
 
       <div className="relative z-10 p-3 sm:p-5 max-w-[1600px] mx-auto flex flex-col gap-5 h-screen">
 
@@ -208,7 +212,7 @@ export default function Dashboard() {
           <div className="flex items-center gap-3">
             <div className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold backdrop-blur-md border ${isSocketConnected ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'border-zinc-500/20 bg-zinc-500/10 text-zinc-600 dark:text-zinc-400'}`}>
               <span className="relative flex h-2 w-2">
-                {isSocketConnected && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />}
+                {isSocketConnected && <span className="absolute inline-flex h-full w-full app-status-ping rounded-full bg-emerald-400 opacity-75" />}
                 <span className={`relative inline-flex h-2 w-2 rounded-full ${isSocketConnected ? 'bg-emerald-500' : 'bg-zinc-500'}`} />
               </span>
               {isSocketConnected ? 'WebSocket Actif' : 'Hors ligne'}
@@ -217,9 +221,9 @@ export default function Dashboard() {
             <button
               onClick={refresh}
               disabled={refreshing}
-              className="group relative inline-flex items-center gap-2 overflow-hidden rounded-full bg-zinc-900 dark:bg-white px-4 py-2 text-xs font-semibold text-white dark:text-black transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100"
+              className="group relative inline-flex items-center gap-2 overflow-hidden rounded-full bg-zinc-900 dark:bg-white px-4 py-2 text-xs font-semibold text-white dark:text-black transition-all hover:scale-[1.01] active:scale-[0.98] disabled:opacity-50 disabled:hover:scale-100"
             >
-              <RefreshCw size={14} className={refreshing ? 'animate-spin' : 'transition-transform group-hover:rotate-180'} />
+              <RefreshCw size={14} className={refreshing ? 'animate-spin' : 'transition-transform group-hover:rotate-12'} />
               {refreshing ? 'Synchronisation...' : 'Actualiser'}
               <div className="absolute inset-0 rounded-full ring-1 ring-inset ring-black/10 dark:ring-white/10" />
             </button>
@@ -298,9 +302,9 @@ export default function Dashboard() {
                       return (
                         <motion.div
                           layout
-                          initial={{ opacity: 0, scale: 0.95 }}
+                          initial={{ opacity: 0 }}
                           animate={{ opacity: 1, scale: 1 }}
-                          exit={{ opacity: 0, scale: 0.95 }}
+                          exit={{ opacity: 0 }}
                           key={kit.kitId || kit._id}
                           onClick={() => {
                             setSelectedId(kit.kitId);
@@ -349,10 +353,10 @@ export default function Dashboard() {
           <div className="flex flex-col gap-5 min-w-0 h-full">
 
             {/* -------- KPI CARDS -------- */}
-            <motion.div variants={containerAnim} initial="hidden" animate="show" className="grid grid-cols-2 gap-4 xl:grid-cols-4 shrink-0">
+            <motion.div variants={containerAnim} initial={reduced ? false : "hidden"} animate="show" className="grid grid-cols-2 gap-4 xl:grid-cols-4 shrink-0">
               {kpis.map(({ label, value, hint, icon: Icon, accent, to, pct, pctColor, liveIndicator }) => (
                 <motion.div variants={itemAnim} key={label}>
-                  <Link to={to} className={`${panel} ${panelHover} group block p-4 h-full relative`}>
+                  <MotionLink to={to} whileHover={reduced ? undefined : { y: -3 }} whileTap={reduced ? undefined : { scale: 0.985, y: 0 }} transition={quickSpring} className={`${panel} ${panelHover} group block p-4 h-full relative`}>
                     <div className="absolute top-0 right-0 p-4 opacity-10 transition-opacity group-hover:opacity-20" style={{ color: accent }}>
                       <Icon size={64} className="-mt-4 -mr-4" />
                     </div>
@@ -361,13 +365,13 @@ export default function Dashboard() {
                       <span className="flex items-center gap-2">
                         {liveIndicator && (
                           <span className="relative flex h-2 w-2">
-                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                            <span className="absolute inline-flex h-full w-full app-status-ping rounded-full bg-emerald-400 opacity-75" />
                             <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
                           </span>
                         )}
                         {label}
                       </span>
-                      <span className="rounded-lg p-2 transition-transform group-hover:scale-110" style={{ backgroundColor: `${accent}15`, color: accent }}>
+                      <span className="rounded-lg p-2 transition-transform group-hover:scale-105" style={{ backgroundColor: `${accent}15`, color: accent }}>
                         <Icon size={14} />
                       </span>
                     </div>
@@ -384,7 +388,7 @@ export default function Dashboard() {
                         </span>
                       )}
                     </div>
-                  </Link>
+                  </MotionLink>
                 </motion.div>
               ))}
             </motion.div>
@@ -583,7 +587,7 @@ export default function Dashboard() {
                         <div>
                           <div className="flex items-center gap-3">
                             <span className="relative flex h-3 w-3">
-                              {isSocketConnected && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />}
+                              {isSocketConnected && <span className="absolute inline-flex h-full w-full app-status-ping rounded-full bg-emerald-400 opacity-75" />}
                               <span className={`relative inline-flex h-3 w-3 rounded-full ${isSocketConnected ? 'bg-emerald-500' : 'bg-zinc-500'}`} />
                             </span>
                             <strong className="text-base font-bold text-zinc-900 dark:text-white">
@@ -639,6 +643,6 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
-    </div>
+    </PageEntrance>
   );
 }

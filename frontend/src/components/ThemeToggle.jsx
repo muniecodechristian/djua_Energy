@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import { MoonStar, SunMedium } from 'lucide-react';
 
 export default function ThemeToggle() {
+ const reduced = useReducedMotion();
   const [isDark, setIsDark] = useState(() => {
     if (typeof document === 'undefined') return true;
     return document.documentElement.classList.contains('dark');
@@ -43,14 +44,14 @@ export default function ThemeToggle() {
       type="button"
       aria-label={isDark ? 'Activer le thème clair' : 'Activer le thème sombre'}
       onClick={toggleTheme}
-      whileHover={{ scale: 1.05 }}
-      whileTap={{ scale: 0.95 }}
+      whileHover={reduced ? undefined : { scale: 1.025 }}
+      whileTap={reduced ? undefined : { scale: 0.97 }}
       className="flex items-center gap-2 rounded-xl border border-[var(--panel-border)] bg-[var(--panel-alt)] px-3 py-2 text-xs font-semibold text-[var(--app-foreground)] hover:bg-[var(--panel)] hover:text-[#FF7900] transition-colors"
     >
       <span className="flex items-center justify-center text-[var(--app-foreground)]">
         <motion.span
           key={isDark ? 'dark' : 'light'}
-          initial={{ rotate: -35, opacity: 0, scale: 0.7 }}
+          initial={reduced ? false : { rotate: -20, opacity: 0, scale: 0.85 }}
           animate={{ rotate: 0, opacity: 1, scale: 1 }}
           transition={{ duration: 0.25, ease: 'easeOut' }}
           className="flex items-center justify-center"

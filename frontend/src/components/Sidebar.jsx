@@ -1,3 +1,5 @@
+import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from 'framer-motion';
+import { quickSpring } from '../lib/motion';
 import { useEffect, useRef, useState } from 'react';
 import { NavLink, Link } from 'react-router-dom';
 import { Sun, PanelLeftClose, PanelLeftOpen, X, LogOut, LogIn } from 'lucide-react';
@@ -5,6 +7,7 @@ import { navigation } from '../lib/navigation';
 import useAuthStore from '../hooks/Zustand/useAuthStore';
 import { useLogoutMutation } from '../hooks/tanstack/useAuthMutations';
 export default function Sidebar({ isSidebarOpen, setIsSidebarOpen }) {
+ const reduced = useReducedMotion();
   const [collapsed, setCollapsed] = useState(false);
   const [mobile, setMobile] = useState(() => window.matchMedia('(max-width: 900px)').matches);
   const panel = useRef(null);
@@ -38,16 +41,16 @@ export default function Sidebar({ isSidebarOpen, setIsSidebarOpen }) {
     return () => window.removeEventListener('keydown', close);
   }, [setIsSidebarOpen]);
   return <>
-    {isSidebarOpen && <button className="ops-backdrop" aria-label="Fermer la navigation" onClick={() => setIsSidebarOpen(false)} />}
+    <AnimatePresence>{isSidebarOpen && <motion.button initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: reduced ? 0 : 0.15 }} className="ops-backdrop" aria-label="Fermer la navigation" onClick={() => setIsSidebarOpen(false)} />}</AnimatePresence>
     <aside ref={panel} inert={mobile && !isSidebarOpen ? true : undefined} id="primary-navigation" className={'ops-sidebar ' + (collapsed ? 'is-collapsed ' : '') + (isSidebarOpen ? 'is-open' : '')}>
       <Link to="/dashboard" className="ops-brand" onClick={() => setIsSidebarOpen(false)}><span className="ops-brand-icon"><Sun size={23}/></span><span className="ops-nav-label"><strong>djua<span className="ops-brand-light"> energy</span></strong><small>SOLAR OPERATIONS</small></span></Link>
       <button className="ops-mobile-close ops-icon-button" aria-label="Fermer le menu" onClick={() => setIsSidebarOpen(false)}><X size={18}/></button>
-      <nav aria-label="Navigation principale">
+      <LayoutGroup id="primary-nav"><nav aria-label="Navigation principale">
         {['Supervision', 'Exploitation', 'Gestion'].map(section => <div className="ops-nav-group" key={section}>
           <p className="ops-nav-section">{section}</p>
-          {navigation.filter(item => item.section === section).map(({path, label, icon: Icon}) => <NavLink key={path} to={path} title={label} onClick={() => setIsSidebarOpen(false)} className={({isActive}) => 'ops-nav-item' + (isActive ? ' is-active' : '')}><Icon size={18}/><span className="ops-nav-label">{label}</span></NavLink>)}
+          {navigation.filter(item => item.section === section).map(({path, label, icon: Icon}) => <NavLink key={path} to={path} title={label} onClick={() => setIsSidebarOpen(false)} className={({isActive}) => 'ops-nav-item' + (isActive ? ' is-active' : '')}>{({isActive}) => <>{isActive && <motion.span className="ops-nav-indicator" layoutId="active-nav" transition={reduced ? { duration: 0 } : quickSpring}/>}<Icon size={18}/><span className="ops-nav-label">{label}</span></>}</NavLink>)}
         </div>)}
-      </nav>
+      </nav></LayoutGroup>
       <div className="ops-sidebar-bottom">
         <div className="ops-workspace ops-nav-label"><span className="ops-status-dot"/><span>Espace de supervision<small>Parc solaire · RDC</small></span></div>
         <div className="ops-account"><div className="ops-avatar">{user?.prenom?.[0] || 'V'}</div><div className="ops-nav-label"><strong>{user ? [user.prenom, user.nom].filter(Boolean).join(' ') || 'Utilisateur' : 'Visiteur'}</strong><small>{user ? 'Session connectée' : 'Navigation libre'}</small></div>{user ? <button className="ops-icon-button" aria-label="Se déconnecter" disabled={logout.isPending} onClick={() => logout.mutate()}><LogOut size={17}/></button> : <Link className="ops-icon-button" to="/" aria-label="Se connecter"><LogIn size={17}/></Link>}</div>

@@ -825,3 +825,69 @@
 .ops-table tbody tr:hover {background:var(--ops-canvas)}
 .dv-reorder {display:flex;gap:6px;padding:6px;border:1px dashed var(--line);border-radius:10px;margin-bottom:6px}
 @media(prefers-reduced-motion:reduce) {*,*::before,*::after {animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
+
+/* Shared Devis/dashboard surfaces: keep the reference values identical. */
+:root {
+  --saas-panel:#ffffff;
+  --saas-card:#f8f8f9;
+  --saas-card-raised:#ededef;
+  --saas-card-border:#dcdce0;
+  --saas-panel-shadow:0 24px 60px rgba(20,20,30,.09);
+  --motion-fast:120ms;
+  --motion-normal:200ms;
+  --motion-ease:cubic-bezier(.2,.8,.2,1);
+}
+:root.dark {
+  --saas-panel:#131315;
+  --saas-card:#1a1a1d;
+  --saas-card-raised:#232327;
+  --saas-card-border:#2d2d32;
+  --saas-panel-shadow:0 24px 60px rgba(0,0,0,.45);
+}
+.dashboard-panel {
+  background:var(--saas-panel);
+  border-color:var(--saas-card-border);
+  box-shadow:var(--saas-panel-shadow);
+}
+.dashboard-panel-interactive { transition:transform var(--motion-normal) var(--motion-ease),border-color var(--motion-fast) ease; }
+.dashboard-panel-interactive:focus-visible { outline:2px solid #FF7900;outline-offset:3px; }
+@media(hover:hover) and (pointer:fine) {
+  .dashboard-panel-interactive:hover { transform:translateY(-2px);border-color:#FF7900; }
+}
+.dashboard-panel-interactive:active { transform:translateY(0); }
+.ops-shell :is(button,a,input,select,textarea):not(.leaflet-container *) {
+  transition-property:background-color,border-color,color,box-shadow;
+  transition-duration:var(--motion-fast);
+  transition-timing-function:var(--motion-ease);
+}
+.ops-shell :is(.ops-button,.ops-icon-button,.dv-btn,.dashboard-panel-interactive) {
+  transition-property:background-color,border-color,color,box-shadow,transform;
+}
+@media(prefers-reduced-motion:no-preference) {
+  .ops-content { animation:app-page-enter 180ms ease-out; }
+  .ops-page,.db-page { animation:none; }
+  .ops-search-dialog[open] { animation:app-dialog-enter 180ms var(--motion-ease); }
+  .ops-backdrop { animation:app-page-enter 150ms ease-out; }
+  .app-status-ping { animation:app-status-ping 1s ease-out 2; }
+}
+@keyframes app-page-enter { from { opacity:.8; } to { opacity:1; } }
+@keyframes app-dialog-enter { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:translateY(0); } }
+@keyframes app-status-ping { 0% {transform:scale(1);opacity:.6;} 100% {transform:scale(1.8);opacity:0;} }
+.app-status-ping { pointer-events:none; }
+@media(prefers-reduced-motion:reduce) {
+  .dashboard-panel-interactive:hover,.ops-kpi:hover,.db-kpi:hover { transform:none; }
+  .app-status-ping { display:none; }
+}
+
+.ops-content { animation:none!important; }
+.ops-nav-item { position:relative; isolation:isolate; }
+.ops-nav-item > svg,.ops-nav-item > .ops-nav-label { position:relative;z-index:1; }
+.ops-nav-item.is-active { background:transparent;box-shadow:none;transform:none; }
+.ops-nav-item:hover { transform:none; }
+.ops-nav-indicator { position:absolute;inset:0;z-index:0;border-radius:8px;background:#FF7900;pointer-events:none; }
+.ops-motion-tabs button { position:relative;isolation:isolate; }
+.ops-motion-tabs button.active { background:transparent; }
+.ops-filter-indicator { position:absolute;inset:0;background:#FF7900;border-radius:6px;pointer-events:none; }
+.ops-filter-label { position:relative;z-index:1; }
+.dashboard-panel-interactive { transition-property:border-color; }
+.dashboard-panel-interactive:hover,.dashboard-panel-interactive:active { transform:none; }

@@ -1,3 +1,4 @@
+import PageEntrance from '../components/PageEntrance';
 import { useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { Wrench, Save, Check, ArrowUpRight, ClipboardList, Clock, CheckCircle2 } from 'lucide-react';
@@ -72,7 +73,7 @@ export default function InterventionWizard() {
   const displayedList = activeTab === 'planned' ? plannedInterventions : completedInterventions;
 
   return (
-    <div className="ops-page">
+    <PageEntrance className="ops-page">
       <div className="ops-page-heading">
         <div>
           <p className="ops-eyebrow">EXPLOITATION</p>
@@ -216,6 +217,6 @@ export default function InterventionWizard() {
           </div>
         </section>
       </div>
-    </div>
+    </PageEntrance>
   );
 }

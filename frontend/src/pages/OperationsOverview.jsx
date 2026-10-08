@@ -1,3 +1,5 @@
+import { revealItem } from '../lib/motion';
+import PageEntrance from '../components/PageEntrance';
 import React from 'react';
 import { motion } from 'framer-motion';
 import {
@@ -89,11 +91,11 @@ const MiniSparkline = ({ data, stroke }) => (
 // --- MAIN OPERATIONS OVERVIEW COMPONENT ---
 
 export default function OperationsOverview() {
-  const staggerContainer = { hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.04 } } };
-  const fadeUp = { hidden: { opacity: 0, y: 12 }, visible: { opacity: 1, y: 0, transition: { duration: 0.35 } } };
+  const staggerContainer = { hidden: { opacity: 0 }, visible: { opacity: 1, transition: { when: 'beforeChildren', delayChildren: 0.04, staggerChildren: 0.06 } } };
+  const fadeUp = { hidden: revealItem.hidden, visible: revealItem.show };
 
   return (
-    <div className="min-h-screen bg-transparent text-slate-200 p-4 md:p-6 font-sans space-y-5">
+    <PageEntrance className="min-h-screen bg-transparent text-slate-200 p-4 md:p-6 font-sans space-y-5">
       
       <div className="ops-notice" role="note">Écran de démonstration : les indicateurs et graphiques ci-dessous sont des exemples, sans lien avec le parc réel.</div>
       {/* TOP HEADER BAR */}
@@ -382,6 +384,6 @@ export default function OperationsOverview() {
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
       `}} />
-    </div>
+    </PageEntrance>
   );
 }

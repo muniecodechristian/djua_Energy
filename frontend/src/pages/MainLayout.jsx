@@ -1,3 +1,5 @@
+import { motion, useReducedMotion } from 'framer-motion';
+import { easeOut } from '../lib/motion';
 import { Suspense, useEffect, useRef, useState } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { Search, Bell, Menu, X, ArrowUpRight, ChevronRight } from 'lucide-react';
@@ -9,6 +11,7 @@ import { useKitsQuery, useAlertsQuery } from '../hooks/tanstack/useKitQueries';
 import { navigation, pageInfo } from '../lib/navigation';
 import { asList, activeAlerts, detailUrl } from '../lib/operations';
 export default function MainLayout() {
+ const reduced = useReducedMotion();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [search, setSearch] = useState('');
   const dialog = useRef(null);
@@ -34,7 +37,7 @@ export default function MainLayout() {
         <div className="ops-breadcrumb"><button className="ops-icon-button ops-menu-toggle" aria-label="Ouvrir la navigation" aria-expanded={isSidebarOpen} aria-controls="primary-navigation" onClick={() => setIsSidebarOpen(true)}><Menu size={20}/></button><span className="ops-breadcrumb-root">Espace de travail</span><ChevronRight size={14}/><strong>{info.label}</strong></div>
         <div className="ops-topbar-actions"><button className="ops-search-trigger" onClick={() => dialog.current?.showModal()} aria-label="Rechercher une page ou un équipement"><Search size={16}/><span>Rechercher…</span><kbd>Ctrl K</kbd></button><Link className="ops-icon-button ops-notifications" to="/notification" aria-label={alerts.isSuccess ? count + ' alertes ouvertes' : 'Consulter les alertes'}><Bell size={18}/>{count > 0 && <i/>}</Link><ThemeToggle/></div>
       </header>
-      <main id="main-content" tabIndex={-1} ref={content} className="ops-content"><ErrorBoundary embedded><Suspense fallback={<div className="ops-empty" role="status">Chargement de votre espace…</div>}><Outlet/></Suspense></ErrorBoundary></main>
+      <motion.main initial={reduced ? false : { opacity: 0.85, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: reduced ? 0 : 0.2, ease: easeOut }} key={location.pathname} id="main-content" tabIndex={-1} ref={content} className="ops-content"><ErrorBoundary embedded><Suspense fallback={<div className="ops-empty" role="status">Chargement de votre espace…</div>}><Outlet/></Suspense></ErrorBoundary></motion.main>
     </div>
     <dialog aria-label="Recherche de pages et d’équipements" className="ops-search-dialog" ref={dialog} onClick={event => { if(event.target === dialog.current) dialog.current.close(); }}>
       <div className="ops-search-head"><Search size={20}/><input aria-label="Rechercher une page ou un kit" placeholder="Rechercher une page, un équipement…" value={search} onChange={event => setSearch(event.target.value)}/><button className="ops-icon-button" aria-label="Fermer la recherche" onClick={() => dialog.current.close()}><X size={18}/></button></div>

@@ -1,3 +1,4 @@
+import PageEntrance from '../components/PageEntrance';
 import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { useClientsQuery } from '../hooks/tanstack/useKitQueries.js';
@@ -97,7 +98,7 @@ export default function CustomerProfile() {
   const fadeUp = { hidden: { opacity: 0, y: 15 }, visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" } } };
 
   return (
-    <div className="min-h-screen text-slate-200 p-4 md:p-6">
+    <PageEntrance className="min-h-screen text-slate-200 p-4 md:p-6">
       
       {/* FIL D'ARIANE ET ACTIONS SUPÉRIEURES */}
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-800">
@@ -571,6 +572,6 @@ export default function CustomerProfile() {
       </>
     )}
   </motion.div>
-</div>
+</PageEntrance>
   );
 }

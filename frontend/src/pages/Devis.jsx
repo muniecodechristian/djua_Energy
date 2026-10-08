@@ -1,3 +1,4 @@
+import PageEntrance from '../components/PageEntrance';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, animate, motion } from 'framer-motion';
 import toast from 'react-hot-toast';
@@ -78,16 +79,16 @@ import SolarAdvisorResult, { SolarAdvisorTrigger } from '../components/SolarAdvi
 ──────────────────────────────────────────────────────────────────────────── */
 const CSS = `
 .devis-shell{
-  --bg:#0a0a0b;--panel:#131315;--card:#1a1a1d;--card2:#232327;--field:#0e0e10;--line:#2d2d32;
+  --bg:#0a0a0b;--panel:var(--saas-panel);--card:var(--saas-card);--card2:var(--saas-card-raised);--field:#0e0e10;--line:var(--saas-card-border);
   --fg:#fafafa;--muted:#9c9ca6;--or:#ff7900;--or-soft:rgba(255,121,0,.13);--or-line:rgba(255,121,0,.55);
   --ok:#3ccf62;--ok-soft:rgba(60,207,98,.12);--err:#ff6161;--err-soft:rgba(255,97,97,.12);
-  --shadow:0 24px 60px rgba(0,0,0,.45);
+  --shadow:var(--saas-panel-shadow);
   background:var(--bg);
   color:var(--fg);font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;
 }
 :root[data-theme='light'] .devis-shell{
-  --bg:#f2f2f3;--panel:#ffffff;--card:#f8f8f9;--card2:#ededef;--field:#ffffff;--line:#dcdce0;
-  --fg:#111114;--muted:#686873;--or-soft:rgba(255,121,0,.11);--shadow:0 24px 60px rgba(20,20,30,.09);
+  --bg:#f2f2f3;--panel:var(--saas-panel);--card:var(--saas-card);--card2:var(--saas-card-raised);--field:#ffffff;--line:var(--saas-card-border);
+  --fg:#111114;--muted:#686873;--or-soft:rgba(255,121,0,.11);--shadow:var(--saas-panel-shadow);
   background:var(--bg);
 }
 .devis-shell *{-webkit-tap-highlight-color:transparent}
@@ -1450,7 +1451,7 @@ export default function Devis() {
   const setClient = (key) => (e) => setClientForm((prev) => ({ ...prev, [key]: e.target.value }));
 
   return (
-    <div className="devis-shell min-h-screen px-3 py-5 sm:px-4 md:px-8 lg:px-10">
+    <PageEntrance className="devis-shell min-h-screen px-3 py-5 sm:px-4 md:px-8 lg:px-10">
       <style>{CSS}</style>
       {isQuoteOpen && <QuotePreview selectedProfile={selectedProfile} selectedType={selectedType} customType={customType} companyForm={companyForm} clientForm={clientForm} site={siteForm} appliances={appliances} calc={calc} onClose={() => setIsQuoteOpen(false)} />}
 
@@ -1495,7 +1496,7 @@ export default function Devis() {
         <div className="grid items-start gap-6 xl:grid-cols-[1.7fr_0.8fr]">
           <section key={shakeKey} className={`dv-panel min-w-0 p-5 md:p-7 ${shakeKey ? 'dv-shake' : ''}`}>
             <AnimatePresence mode="wait" initial={false}>
-              <motion.div key={currentStep} initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -24 }} transition={{ duration: 0.22, ease: 'easeOut' }}>
+              <PageEntrance key={currentStep}>
 
                 {/* PROFIL */}
                 {currentStep === 'profile' && (
@@ -1697,7 +1698,7 @@ export default function Devis() {
                     </AnimatePresence>
                   </>
                 )}
-              </motion.div>
+              </PageEntrance>
             </AnimatePresence>
           </section>
 
@@ -1708,6 +1709,6 @@ export default function Devis() {
       <AnimatePresence>
         {isAdding && <AddModal defaultCategory={defaultApplianceCategory} onClose={() => setIsAdding(false)} onAdd={handleAddAppliance} />}
       </AnimatePresence>
-    </div>
+    </PageEntrance>
   );
 }

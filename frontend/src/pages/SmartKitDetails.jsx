@@ -1,3 +1,4 @@
+import PageEntrance from '../components/PageEntrance';
 import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -570,7 +571,7 @@ export default function SmartKitDetails() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--app-surface)] font-sans text-[var(--app-foreground)] selection:bg-[#FF7900]/30">
+    <PageEntrance className="min-h-screen bg-[var(--app-surface)] font-sans text-[var(--app-foreground)] selection:bg-[#FF7900]/30">
       <style>{`
         .dark .map-tiles-dark { filter: invert(100%) hue-rotate(180deg) brightness(88%) contrast(92%) saturate(0.85); }
         .leaflet-container { background: var(--panel-alt) !important; }
@@ -937,6 +938,6 @@ export default function SmartKitDetails() {
           </div>
         )}
       </AnimatePresence>
-    </div>
+    </PageEntrance>
   );
 }
