@@ -38,3 +38,25 @@ export const getInterventions = async (req, res) => {
     res.status(500).json({ success: false, message: 'Erreur serveur' });
   }
 };
+
+export const updateInterventionStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    
+    if (!status) {
+      return res.status(400).json({ success: false, message: 'Le statut est requis' });
+    }
+
+    const updated = await Intervention.findByIdAndUpdate(id, { status }, { new: true });
+    
+    if (!updated) {
+      return res.status(404).json({ success: false, message: 'Intervention non trouvée' });
+    }
+
+    res.status(200).json({ success: true, data: updated });
+  } catch (error) {
+    console.error('Erreur lors de la mise à jour du statut:', error);
+    res.status(500).json({ success: false, message: 'Erreur serveur' });
+  }
+};

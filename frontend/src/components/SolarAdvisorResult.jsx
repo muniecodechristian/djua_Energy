@@ -62,15 +62,15 @@ function SectionTitle({ icon: Icon, title, badge }) {
 
 function KpiCard({ icon: Icon, label, value, sub, accent }) {
   const accentCls = accent
-    ? 'border-emerald-500/40 bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 shadow-[0_0_20px_rgba(16,185,129,0.12)]'
+    ? 'border-[#ff7900]/40 bg-gradient-to-br from-[#ff7900]/10 to-[#ff7900]/5 shadow-[0_0_20px_rgba(255,121,0,0.15)]'
     : 'border-[var(--panel-border)] bg-[var(--panel-alt)]';
   return (
     <div className={`rounded-2xl border p-4 flex flex-col gap-1.5 transition-all ${accentCls}`}>
       <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-[var(--muted-foreground)] font-bold">
-        <Icon size={12} className={accent ? 'text-emerald-500' : 'text-[var(--muted-foreground)]'} />
+        <Icon size={12} className={accent ? 'text-[#ff7900]' : 'text-[var(--muted-foreground)]'} />
         {label}
       </div>
-      <div className={`text-2xl font-black tracking-tight ${accent ? 'text-emerald-500' : 'text-[var(--app-foreground)]'}`}>
+      <div className={`text-2xl font-black tracking-tight ${accent ? 'text-[#ff7900]' : 'text-[var(--app-foreground)]'}`}>
         {value}
       </div>
       {sub && <div className="text-[10px] text-[var(--muted-foreground)] leading-snug">{sub}</div>}
@@ -449,15 +449,16 @@ export default function SolarAdvisorResult({ result, onClose, onContactRequest }
   ];
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 10 }}
-      transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-      className="rounded-3xl border border-[var(--panel-border)] bg-[var(--app-surface)] shadow-[0_30px_80px_rgba(0,0,0,0.2)] overflow-hidden"
-    >
-      {/* ── HEADER ────────────────────────────────────────────────────────── */}
-      <div className="px-5 pt-5 pb-4 border-b border-[var(--panel-border)] bg-[var(--panel)]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 sm:p-6" style={{ zIndex: 9999 }} onClick={(e) => { if (e.target === e.currentTarget && onClose) onClose(); }}>
+      <motion.div
+        initial={{ opacity: 0, y: 40, scale: 0.95 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 40, scale: 0.95 }}
+        transition={{ type: 'spring', stiffness: 320, damping: 30 }}
+        className="w-full max-w-5xl max-h-[92vh] flex flex-col rounded-3xl border border-[var(--panel-border)] bg-[var(--app-surface)] shadow-[0_30px_80px_rgba(0,0,0,0.5)] overflow-hidden"
+      >
+        {/* ── HEADER ────────────────────────────────────────────────────────── */}
+        <div className="flex-none px-5 pt-5 pb-4 border-b border-[var(--panel-border)] bg-[var(--panel)]">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-[var(--panel-alt)] border border-[var(--panel-border)] flex items-center justify-center">
@@ -503,8 +504,9 @@ export default function SolarAdvisorResult({ result, onClose, onContactRequest }
         )}
       </div>
 
-      {/* ── KPIs ──────────────────────────────────────────────────────────── */}
-      <div className="px-5 pt-5 grid grid-cols-2 md:grid-cols-4 xl:grid-cols-5 gap-3">
+      <div className="flex-1 overflow-y-auto">
+        {/* ── KPIs ──────────────────────────────────────────────────────────── */}
+        <div className="px-5 pt-5 grid grid-cols-2 md:grid-cols-4 xl:grid-cols-5 gap-3">
         <KpiCard icon={TrendingUp}  label="Budget estimé"    value={fmtCurrency(totalPrice, currency)} sub={`${quoteItems.length} références`} accent />
         <KpiCard icon={Sun}         label="Champ solaire"    value={totalPvKw ? `${totalPvKw.toFixed(1)} kWc` : '—'} sub={panelCount ? `${panelCount} modules × ${panelPowerW}W` : null} />
         <KpiCard icon={Battery}     label="Parc batterie"    value={battUsableWh ? fmtWh(battUsableWh) : '—'} sub={battCount ? `${battCount} unités · ${sysVoltage}V` : null} />
@@ -513,16 +515,16 @@ export default function SolarAdvisorResult({ result, onClose, onContactRequest }
       </div>
 
       {/* ── TABS ──────────────────────────────────────────────────────────── */}
-      <div className="px-5 pt-4">
-        <div className="flex gap-1 border-b border-[var(--panel-border)]">
+      <div className="px-5 pt-5 pb-2">
+        <div className="inline-flex items-center gap-1 p-1.5 rounded-2xl bg-zinc-100 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700/50">
           {TABS.map(({ id, label, icon: Icon }) => (
             <button key={id} onClick={() => setTab(id)}
-              className={`flex items-center gap-1.5 px-3 py-2.5 text-[11px] font-bold transition-all border-b-2 -mb-px ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all duration-300 ${
                 tab === id
-                  ? 'border-zinc-800 text-zinc-900 dark:border-zinc-300 dark:text-zinc-100'
-                  : 'border-transparent text-[var(--muted-foreground)] hover:text-[var(--app-foreground)]'
+                  ? 'bg-white dark:bg-zinc-700 text-[#ff7900] shadow-sm ring-1 ring-zinc-900/5 dark:ring-white/10'
+                  : 'text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 hover:bg-black/5 dark:hover:bg-white/5'
               }`}>
-              <Icon size={12} />
+              <Icon size={14} className={tab === id ? 'text-[#ff7900]' : ''} />
               {label}
             </button>
           ))}
@@ -533,42 +535,112 @@ export default function SolarAdvisorResult({ result, onClose, onContactRequest }
 
         {/* ══ TAB : DEVIS ══════════════════════════════════════════════════ */}
         {tab === 'quote' && (
-          <div className="space-y-5">
-            {/* Lignes du devis */}
-            <div>
-              <SectionTitle icon={FileText} title="Évaluation budgétaire" badge={`${quoteItems.length} lignes`} />
-              <div className="rounded-2xl border border-[var(--panel-border)] bg-[var(--panel)] divide-y divide-[var(--panel-border)] overflow-hidden">
-                {quoteItems.map((item, i) => (
-                  <QuoteItemRow key={i} item={item} />
-                ))}
-                {/* Total */}
-                <div className="flex items-center justify-between px-4 py-4 bg-[var(--panel-alt)] border-t border-[var(--panel-border)]">
-                  <div>
-                    <div className="text-sm font-black text-[var(--app-foreground)]">SOUS-TOTAL HT</div>
-                    {quote.pricing_notice && (
-                      <div className="text-[10px] text-[var(--muted-foreground)] mt-0.5">{quote.pricing_notice}</div>
-                    )}
+          <div className="space-y-6 max-w-4xl mx-auto pb-4">
+            {/* Design Papier / Bureautique */}
+            <div className="bg-white border border-[#e4e4e7] shadow-md p-8 sm:p-12 text-[#111] mx-auto w-full relative selection:bg-[#ff7900]/20">
+              {/* En-tête Devis */}
+              <div className="flex flex-col sm:flex-row justify-between items-start border-b-2 border-[#111] pb-6 mb-8 gap-6">
+                <div>
+                  <h1 className="text-3xl font-black uppercase tracking-tighter text-[#111]">DEVIS PROFORMA</h1>
+                  <div className="text-sm font-bold text-[#777] mt-1">
+                    Réf : {recId?.split('-')[0].toUpperCase() || 'DJUA-2026-01'}
                   </div>
-                  <div className="text-xl font-black text-[var(--app-foreground)]">{fmtCurrency(totalPrice, currency)}</div>
                 </div>
+                <div className="text-left sm:text-right">
+                  <div className="text-2xl font-black text-[#ff7900] tracking-tight">DJUA ENERGY</div>
+                  <div className="text-xs font-semibold text-[#666] uppercase tracking-widest mt-1">Solutions Solaires Intelligentes</div>
+                  <div className="text-sm text-[#555] mt-2">Avenue de l'Énergie, Kinshasa</div>
+                  <div className="text-sm text-[#555]">contact@djua.com</div>
+                </div>
+              </div>
+
+              {/* Infos Client & Dates */}
+              <div className="flex flex-col sm:flex-row justify-between mb-8 gap-6">
+                <div className="bg-[#fafafa] border border-[#e4e4e7] p-4 w-full sm:w-1/2">
+                  <div className="text-[10px] font-bold text-[#999] uppercase tracking-widest mb-2">Destinataire</div>
+                  <div className="font-black text-[#111] text-base">{result.clientInfo?.fullName || result.clientInfo?.companyName || 'Client Djua'}</div>
+                  <div className="text-sm text-[#666] mt-1">{result.clientInfo?.phone || ''}</div>
+                  <div className="text-sm text-[#666]">{result.site?.adresse || result.clientInfo?.adresse || 'Adresse à confirmer'}</div>
+                  <div className="text-sm text-[#666]">{result.site?.ville || result.clientInfo?.ville || ''}</div>
+                </div>
+                <div className="w-full sm:w-1/3 flex flex-col justify-end text-sm">
+                  <div className="flex justify-between border-b border-[#e4e4e7] py-2">
+                    <span className="font-bold text-[#555]">Date d'émission :</span>
+                    <span className="font-semibold text-[#111]">{new Date().toLocaleDateString('fr-CD')}</span>
+                  </div>
+                  <div className="flex justify-between border-b border-[#e4e4e7] py-2">
+                    <span className="font-bold text-[#555]">Validité :</span>
+                    <span className="font-semibold text-[#111]">14 jours</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Tableau Devis */}
+              <div className="mb-8 overflow-x-auto">
+                <table className="w-full text-sm text-left">
+                  <thead className="bg-[#f4f4f5] border-y border-[#d4d4d8]">
+                    <tr>
+                      <th className="py-3 px-4 font-bold text-[#444] uppercase tracking-wider text-xs">Désignation</th>
+                      <th className="py-3 px-4 font-bold text-[#444] uppercase tracking-wider text-xs text-center w-20">Qté</th>
+                      <th className="py-3 px-4 font-bold text-[#444] uppercase tracking-wider text-xs text-right w-32">P.U.</th>
+                      <th className="py-3 px-4 font-bold text-[#444] uppercase tracking-wider text-xs text-right w-36">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#e4e4e7]">
+                    {quoteItems.map((item, i) => (
+                      <tr key={i} className="hover:bg-[#fafafa] transition-colors">
+                        <td className="py-4 px-4">
+                          <div className="font-bold text-[#111]">{item.label}</div>
+                          <div className="text-xs text-[#777] mt-1">{ITEM_TYPE_LABELS[item.item_type]?.label || item.item_type}</div>
+                        </td>
+                        <td className="py-4 px-4 text-center font-semibold text-[#333]">{item.quantity}</td>
+                        <td className="py-4 px-4 text-right text-[#666]">{fmtCurrency(item.unit_price, item.currency)}</td>
+                        <td className="py-4 px-4 text-right font-black text-[#111]">{fmtCurrency(item.line_total, item.currency)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Totaux */}
+              <div className="flex justify-end">
+                <div className="w-full sm:w-80 bg-[#fafafa] border border-[#e4e4e7] p-5 rounded-sm">
+                  <div className="flex justify-between items-center mb-3">
+                    <span className="text-sm font-bold text-[#555]">SOUS-TOTAL HT</span>
+                    <span className="text-sm font-bold text-[#333]">{fmtCurrency(totalPrice, currency)}</span>
+                  </div>
+                  {quote.pricing_notice && (
+                    <div className="text-[10px] text-[#777] mb-3 pb-3 border-b border-[#e4e4e7]">{quote.pricing_notice}</div>
+                  )}
+                  <div className="flex justify-between items-center border-t border-[#d4d4d8] pt-3 mt-1">
+                    <span className="text-lg font-black text-[#111]">NET À PAYER</span>
+                    <span className="text-xl font-black text-[#ff7900]">{fmtCurrency(totalPrice, currency)}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Pied de page bureautique */}
+              <div className="mt-16 pt-6 border-t border-[#e4e4e7] text-center">
+                <p className="text-[10px] text-[#555] uppercase tracking-widest font-semibold mb-1">Djua Energy - L'énergie qui vous ressemble</p>
+                <p className="text-[10px] text-[#999]">Ce document est une estimation générée par notre IA. Les tarifs finaux peuvent être ajustés après une visite technique du site.</p>
               </div>
             </div>
 
             {/* Alternatives */}
             {alternatives.length > 0 && (
-              <div>
+              <div className="mt-8 pt-4 border-t border-[var(--panel-border)]">
                 <button onClick={() => setShowAlternatives(!showAlternatives)}
-                  className="w-full flex items-center justify-between py-2 text-sm font-bold text-[var(--app-foreground)] hover:opacity-70 transition">
+                  className="w-full flex items-center justify-between py-3 px-4 rounded-xl border border-[var(--panel-border)] bg-[var(--panel-alt)] text-sm font-bold text-[var(--app-foreground)] hover:bg-[var(--panel)] transition">
                   <span className="flex items-center gap-2">
-                    <BarChart3 size={14} className="text-[var(--muted-foreground)]" />
-                    Options de gamme ({alternatives.length})
+                    <BarChart3 size={15} className="text-[#ff7900]" />
+                    Options d'évolution proposées ({alternatives.length})
                   </span>
-                  {showAlternatives ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                  {showAlternatives ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
                 </button>
                 <AnimatePresence>
                   {showAlternatives && (
                     <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
-                      className="overflow-hidden grid gap-3 md:grid-cols-2 mt-2">
+                      className="overflow-hidden grid gap-4 md:grid-cols-2 mt-4">
                       {alternatives.map((alt, i) => (
                         <AlternativeCard key={i} alt={alt} currency={currency} />
                       ))}
@@ -750,12 +822,12 @@ export default function SolarAdvisorResult({ result, onClose, onContactRequest }
 
         {/* ── Chat contextuel ────────────────────────────────────────────── */}
         {recId && (
-          <div className="pt-2 border-t border-[var(--panel-border)] flex justify-end">
+          <div className="px-5 pt-4 pb-1 flex justify-center">
             <button 
               onClick={() => setIsChatModalOpen(true)}
-              className="flex items-center gap-2 rounded-2xl bg-orange-500/10 text-orange-500 hover:bg-orange-500/20 font-bold text-sm px-5 py-3 transition"
+              className="flex items-center gap-2 rounded-full bg-gradient-to-r from-[#ff7900] to-[#ff9100] text-white hover:shadow-lg hover:shadow-[#ff7900]/20 font-bold text-sm px-6 py-3 transition-all hover:-translate-y-0.5 active:scale-95"
             >
-              <MessageSquare size={16} /> Discuter avec l'Assistant IA
+              <MessageSquare size={16} /> Poser une question à l'Assistant IA
             </button>
           </div>
         )}
@@ -784,7 +856,7 @@ export default function SolarAdvisorResult({ result, onClose, onContactRequest }
         </AnimatePresence>
 
         {/* ── Actions commerciales ───────────────────────────────────────── */}
-        <div className="flex flex-col sm:flex-row gap-3 pt-2 border-t border-[var(--panel-border)]">
+        <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-[var(--panel-border)]">
           <button onClick={() => onContactRequest?.(recId)}
             className="flex-1 flex items-center justify-center gap-2 rounded-2xl bg-zinc-900 text-zinc-100 hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 font-bold text-sm px-5 py-3.5 shadow-md transition active:scale-[0.98]">
             <Phone size={15} />Transmettre au service commercial
@@ -795,7 +867,9 @@ export default function SolarAdvisorResult({ result, onClose, onContactRequest }
           </button>
         </div>
       </div>
-    </motion.div>
+      </div>
+      </motion.div>
+    </div>
   );
 }
 

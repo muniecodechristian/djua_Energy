@@ -79,6 +79,7 @@ function normalizeAppliance(a) {
     quantity: Math.max(1, parseInt(a.quantity, 10) || 1),
     hours_per_day: Math.max(0.5, parseFloat(a.hours ?? a.hours_per_day ?? 1)),
     usage_period,
+    day_share: a.day_share ?? undefined,
     essential: a.essential ?? true,
     simultaneous: a.simultaneous ?? true,
   };
@@ -115,7 +116,10 @@ export async function recommend(req, res) {
     appliances: normalizedAppliances,
     city: rest.city || undefined,
     region: rest.region || undefined,
+    address: rest.address || undefined,
+    location_coords: rest.location_coords || undefined,
     housing_type: rest.housing_type || undefined,
+    site_details: rest.site_details || undefined,
     people_count: rest.people_count ? parseInt(rest.people_count, 10) : undefined,
     autonomy_hours: rest.autonomy_hours ?? 10,
     budget: rest.budget || undefined,

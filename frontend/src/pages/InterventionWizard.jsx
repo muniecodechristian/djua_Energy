@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { Wrench, Save, Check, ArrowUpRight, ClipboardList, Clock } from 'lucide-react';
+import { Wrench, Save, Check, ArrowUpRight, ClipboardList, Clock, CheckCircle2 } from 'lucide-react';
 import { useKitsQuery } from '../hooks/tanstack/useKitQueries';
-import { useCreateIntervention, useGetInterventions } from '../hooks/tanstack/useInterventions';
+import { useCreateIntervention, useGetInterventions, useUpdateInterventionStatus } from '../hooks/tanstack/useInterventions';
 import { asList, detailUrl, formatDate } from '../lib/operations';
 
 const localDay = () => { const date = new Date(); return [date.getFullYear(),String(date.getMonth()+1).padStart(2,'0'),String(date.getDate()).padStart(2,'0')].join('-'); };
@@ -12,8 +12,11 @@ export default function InterventionWizard() {
   const query = useKitsQuery();
   const interventionsQuery = useGetInterventions();
   const createIntervention = useCreateIntervention();
+  const updateStatus = useUpdateInterventionStatus();
   
   const interventions = asList(interventionsQuery.data);
+  const plannedInterventions = interventions.filter(i => i.status !== 'Terminée');
+  const completedInterventions = interventions.filter(i => i.status === 'Terminée');
 
   const [kitId, setKitId] = useState(params.get('kitId') || '');
   const [reason, setReason] = useState('Vérification d’une anomalie');
@@ -22,6 +25,7 @@ export default function InterventionWizard() {
   const [notes, setNotes] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [activeTab, setActiveTab] = useState('planned');
 
   const save = (event) => {
     event.preventDefault();
@@ -48,6 +52,7 @@ export default function InterventionWizard() {
         setMessage('Intervention enregistrée avec succès (conservée pendant 2 semaines).');
         setNotes('');
         setDate('');
+        setActiveTab('planned');
       },
       onError: () => {
         setError('Erreur lors de l’enregistrement de l’intervention.');
@@ -63,6 +68,8 @@ export default function InterventionWizard() {
       default: return 'var(--text-muted)';
     }
   };
+
+  const displayedList = activeTab === 'planned' ? plannedInterventions : completedInterventions;
 
   return (
     <div className="ops-page">
@@ -132,40 +139,81 @@ export default function InterventionWizard() {
           </form>
         </section>
 
-        <section className="ops-card">
+        <section className="ops-card flex flex-col h-full">
           <div className="ops-card-heading">
-            <h2>Interventions prévues</h2>
-            <span className="ops-counter">{interventions.length}</span>
+            <h2>Suivi des interventions</h2>
+            <div className="flex bg-[#1e293b] rounded-lg p-1 overflow-hidden border border-[#334155]">
+              <button 
+                type="button"
+                className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-colors ${activeTab === 'planned' ? 'bg-[#ff7900] text-black' : 'text-slate-400 hover:text-slate-200'}`}
+                onClick={() => setActiveTab('planned')}
+              >
+                Planifiées ({plannedInterventions.length})
+              </button>
+              <button 
+                type="button"
+                className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-colors ${activeTab === 'completed' ? 'bg-[#10b981] text-white' : 'text-slate-400 hover:text-slate-200'}`}
+                onClick={() => setActiveTab('completed')}
+              >
+                Terminées ({completedInterventions.length})
+              </button>
+            </div>
           </div>
-          {interventionsQuery.isLoading ? (
-            <div className="ops-empty">
-              <h3>Chargement...</h3>
-            </div>
-          ) : interventions.length === 0 ? (
-            <div className="ops-empty">
-              <span className="ops-empty-icon"><ClipboardList size={26}/></span>
-              <h3>Aucune intervention</h3>
-              <p>Commencez par planifier une intervention à gauche.</p>
-            </div>
-          ) : (
-            <div className="ops-drafts">
-              {interventions.map(intervention => (
-                <article key={intervention._id}>
-                  <span className="ops-badge info">{intervention.status || 'Planifiée'}</span>
-                  <h3>{intervention.kitId}</h3>
-                  <p>{intervention.title}</p>
-                  <small style={{ color: getPriorityColor(intervention.priority) }}>
-                    Priorité: {intervention.priority}
-                  </small>
-                  {intervention.description && <p className="ops-draft-notes">{intervention.description}</p>}
-                  <small>Créé le {formatDate(intervention.createdAt)}</small>
-                  <Link className="ops-text-link" to={detailUrl(intervention.kitId)}>
-                    Fiche équipement <ArrowUpRight size={14}/>
-                  </Link>
-                </article>
-              ))}
-            </div>
-          )}
+
+          <div className="flex-1 overflow-y-auto pr-1" style={{ maxHeight: 'calc(100vh - 250px)' }}>
+            {interventionsQuery.isLoading ? (
+              <div className="ops-empty">
+                <h3>Chargement...</h3>
+              </div>
+            ) : displayedList.length === 0 ? (
+              <div className="ops-empty">
+                <span className="ops-empty-icon"><ClipboardList size={26}/></span>
+                <h3>{activeTab === 'planned' ? 'Aucune intervention prévue' : 'Aucune intervention terminée'}</h3>
+                {activeTab === 'planned' && <p>Commencez par planifier une intervention à gauche.</p>}
+              </div>
+            ) : (
+              <div className="ops-drafts space-y-3">
+                {displayedList.map(intervention => (
+                  <article key={intervention._id} className={`p-4 rounded-xl border ${activeTab === 'completed' ? 'border-emerald-500/20 bg-emerald-500/5 opacity-80' : 'border-slate-700 bg-slate-800/50'} relative`}>
+                    <div className="flex items-start justify-between mb-2">
+                      <div>
+                        <span className={`ops-badge ${activeTab === 'completed' ? 'success' : 'info'} mb-1`}>{intervention.status || 'Planifiée'}</span>
+                        <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                          {intervention.kitId}
+                          <Link className="text-slate-400 hover:text-[#ff7900]" to={detailUrl(intervention.kitId)} title="Fiche équipement">
+                            <ArrowUpRight size={14}/>
+                          </Link>
+                        </h3>
+                      </div>
+                      {activeTab === 'planned' && (
+                        <button 
+                          onClick={() => updateStatus.mutate({ id: intervention._id, status: 'Terminée' })}
+                          disabled={updateStatus.isLoading}
+                          className="flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-xs font-semibold rounded-lg border border-emerald-500/30 transition-colors"
+                          title="Marquer comme fait"
+                        >
+                          <CheckCircle2 size={14} /> Fait
+                        </button>
+                      )}
+                    </div>
+                    
+                    <p className="text-sm text-slate-300 font-medium">{intervention.title}</p>
+                    
+                    {intervention.description && <p className="text-xs text-slate-400 mt-2 bg-black/20 p-2 rounded-lg border border-white/5">{intervention.description}</p>}
+                    
+                    <div className="flex items-center justify-between mt-3 text-[10px]">
+                      <small style={{ color: activeTab === 'planned' ? getPriorityColor(intervention.priority) : '#64748b' }} className="font-bold uppercase tracking-wider">
+                        Priorité: {intervention.priority}
+                      </small>
+                      <small className="text-slate-500">
+                        Prévue: {formatDate(intervention.scheduledDate || intervention.createdAt)}
+                      </small>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+          </div>
         </section>
       </div>
     </div>

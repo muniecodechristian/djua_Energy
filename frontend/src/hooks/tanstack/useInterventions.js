@@ -26,3 +26,17 @@ export const useGetInterventions = (kitId = null) => {
     },
   });
 };
+
+export const useUpdateInterventionStatus = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ id, status }) => {
+      const response = await api.patch(`/api/interventions/${id}/status`, { status });
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['interventions']);
+    },
+  });
+};

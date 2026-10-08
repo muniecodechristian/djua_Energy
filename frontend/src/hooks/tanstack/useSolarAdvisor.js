@@ -33,6 +33,7 @@ export function mapAppliancesToML(appliances = []) {
       quantity:      Math.max(1, parseInt(a.quantity, 10) || 1),
       hours_per_day: Math.max(0.5, parseFloat(a.hours ?? a.hours_per_day ?? 1)),
       usage_period:  periodMap[a.period] || periodMap[a.usage_period] || 'mixed',
+      day_share:     a.dayShare ?? undefined,
       essential:     a.essential    ?? true,
       simultaneous:  a.simultaneous ?? true,
     };
@@ -45,21 +46,25 @@ export function mapAppliancesToML(appliances = []) {
 export function useSolarRecommend() {
   return useMutation({
     mutationKey: ['solar', 'recommend'],
-    mutationFn: async ({ appliances, clientInfo = {}, projectForm = {} }) => {
-      // Résoudre la ville et région selon le profil (personne vs entreprise)
-      const city   = projectForm.location || clientInfo.ville    || clientInfo.city    || undefined;
-      const region = projectForm.location || clientInfo.province || clientInfo.region  || undefined;
+    mutationFn: async ({ appliances, clientInfo = {}, projectForm = {}, site = {}, buildingType }) => {
+      // Résoudre la ville et région selon le profil et la nouvelle carte (site)
+      const city   = site.ville || projectForm.location || clientInfo.ville    || clientInfo.city    || undefined;
+      const region = site.province || site.quartier || projectForm.location || clientInfo.province || clientInfo.region  || undefined;
+      const address = site.adresse || clientInfo.adresse || undefined;
 
       // Résoudre le contact
       const phone = clientInfo.phone || undefined;
       const name  = clientInfo.fullName || clientInfo.companyName || clientInfo.contactName || undefined;
-      const contact = phone ? { phone, ...(name ? { name } : {}) } : undefined;
+      const contact = phone ? { phone, name, email: clientInfo.email } : undefined;
 
       const payload = {
         appliances:    mapAppliancesToML(appliances),
         city,
         region,
-        housing_type:  clientInfo.selectedType || clientInfo.housing_type || undefined,
+        address,
+        location_coords: site.lat && site.lng ? { lat: site.lat, lng: site.lng } : undefined,
+        housing_type:  buildingType || clientInfo.selectedType || clientInfo.housing_type || undefined,
+        site_details:  site.details || undefined,
         people_count:  projectForm.occupants ? parseInt(projectForm.occupants, 10) : undefined,
         autonomy_hours: 10,
         preference:    'balanced',

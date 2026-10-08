@@ -44,6 +44,29 @@ import {
   Wrench,
   X,
   Zap,
+  // Building detail icons
+  Waves,        // Tôle
+  Blocks,       // Dalle béton
+  Triangle,     // Tuiles
+  CircleCheck,  // Oui
+  Ban,          // Non
+  KeyRound,     // Propriétaire
+  FileCheck,    // Locataire
+  UserCog,      // Syndic / gérant
+  Sun as SunIcon,// Aucune ombre
+  CloudSun,     // Un peu d'ombre
+  TreePine,     // Beaucoup d'ombre
+  Unplug,       // Coupures
+  Fuel,         // Groupe électrogène
+  DoorOpen,     // Accès libre
+  Handshake,    // Accord syndic
+  ShieldOff,    // Impossible
+  Sunrise,      // Jour
+  Sunset,       // Jour & soir
+  Moon,         // 24h/24
+  Cable,        // SNEL
+  PlugZap,      // Pas de réseau
+  ImagePlus,    // For equipment images
 } from 'lucide-react';
 import { useSolarRecommend } from '../hooks/tanstack/useSolarAdvisor';
 import SolarAdvisorResult, { SolarAdvisorTrigger } from '../components/SolarAdvisorResult';
@@ -192,11 +215,11 @@ const getStepOrder = (profile) => (profile === 'entreprise'
 /* ─── Détails du bâtiment : ce qu'on demande dépend du type choisi ─── */
 const ROOF = {
   type: 'choice', key: 'roof', label: 'Type de toiture', options: [
-    { value: 'Tôle', emoji: '〰️' }, { value: 'Dalle béton', emoji: '🧱' }, { value: 'Tuiles', emoji: '🔺' }, { value: 'Autre', emoji: '✏️' },
+    { value: 'Tôle', icon: Waves }, { value: 'Dalle béton', icon: Blocks }, { value: 'Tuiles', icon: Triangle }, { value: 'Autre', icon: PencilLine },
   ],
 };
-const YES_NO = [{ value: 'Oui', emoji: '✅' }, { value: 'Non', emoji: '🚫' }];
-const ROLE = { type: 'choice', key: 'role', label: 'Le client est…', options: [{ value: 'Propriétaire', emoji: '🔑' }, { value: 'Locataire', emoji: '📄' }, { value: 'Syndic / gérant', emoji: '🧑‍💼' }] };
+const YES_NO = [{ value: 'Oui', icon: CircleCheck }, { value: 'Non', icon: Ban }];
+const ROLE = { type: 'choice', key: 'role', label: 'Le client est…', options: [{ value: 'Propriétaire', icon: KeyRound }, { value: 'Locataire', icon: FileCheck }, { value: 'Syndic / gérant', icon: UserCog }] };
 
 const DETAIL_SCHEMA = {
   house: {
@@ -206,7 +229,7 @@ const DETAIL_SCHEMA = {
       { type: 'stepper', key: 'levels', label: 'Nombre de niveaux', def: 1, min: 1, max: 6 },
       { type: 'stepper', key: 'rooms', label: 'Nombre de pièces', def: 4, min: 1, max: 30 },
       ROOF,
-      { type: 'choice', key: 'shade', label: 'Ombre sur le toit', options: [{ value: 'Aucune', emoji: '☀️' }, { value: 'Un peu', emoji: '⛅' }, { value: 'Beaucoup', emoji: '🌳' }] },
+      { type: 'choice', key: 'shade', label: 'Ombre sur le toit', options: [{ value: 'Aucune', icon: SunIcon }, { value: 'Un peu', icon: CloudSun }, { value: 'Beaucoup', icon: TreePine }] },
       { type: 'choice', key: 'fence', label: 'Parcelle clôturée', options: YES_NO },
     ],
   },
@@ -219,7 +242,7 @@ const DETAIL_SCHEMA = {
       { type: 'stepper', key: 'myFloor', label: 'Étage du client', def: 1, min: 0, max: 40, format: (v) => (v === 0 ? 'RDC' : v) },
       { type: 'text', key: 'door', label: 'N° de porte / appartement', placeholder: 'Ex : B12' },
       { type: 'choice', key: 'elevator', label: 'Ascenseur', options: YES_NO },
-      { type: 'choice', key: 'roofAccess', label: 'Accès au toit', options: [{ value: 'Libre', emoji: '🔓' }, { value: 'Accord syndic', emoji: '🤝' }, { value: 'Impossible', emoji: '⛔' }] },
+      { type: 'choice', key: 'roofAccess', label: 'Accès au toit', options: [{ value: 'Libre', icon: DoorOpen }, { value: 'Accord syndic', icon: Handshake }, { value: 'Impossible', icon: ShieldOff }] },
       ROLE,
     ],
   },
@@ -242,7 +265,7 @@ const DETAIL_SCHEMA = {
     fields: [
       { type: 'number', key: 'area', label: 'Surface du local (m²)', placeholder: 'Ex : 60' },
       { type: 'stepper', key: 'levels', label: 'Nombre de niveaux', def: 1, min: 1, max: 8 },
-      { type: 'choice', key: 'hours', label: 'Horaires d’ouverture', options: [{ value: 'Jour', emoji: '🌞' }, { value: 'Jour & soir', emoji: '🌆' }, { value: '24h/24', emoji: '🌙' }] },
+      { type: 'choice', key: 'hours', label: 'Horaires d’ouverture', options: [{ value: 'Jour', icon: Sunrise }, { value: 'Jour & soir', icon: Sunset }, { value: '24h/24', icon: Moon }] },
       ROOF,
       { type: 'choice', key: 'generator', label: 'Groupe électrogène existant', options: YES_NO },
       ROLE,
@@ -261,7 +284,7 @@ const DETAIL_SCHEMA = {
 };
 const GRID_FIELD = {
   type: 'choice', key: 'grid', label: 'Électricité actuelle', options: [
-    { value: 'SNEL stable', emoji: '⚡' }, { value: 'Coupures fréquentes', emoji: '🔌' }, { value: 'Groupe électrogène', emoji: '⛽' }, { value: 'Pas de réseau', emoji: '🚫' },
+    { value: 'SNEL stable', icon: Cable }, { value: 'Coupures fréquentes', icon: Unplug }, { value: 'Groupe électrogène', icon: Fuel }, { value: 'Pas de réseau', icon: PlugZap },
   ],
 };
 
@@ -621,7 +644,7 @@ function AddressPicker({ site, onChange, theme }) {
   };
 
   const markerHandlers = useMemo(() => ({ dragend: (event) => { const ll = event.target.getLatLng(); placePin([ll.lat, ll.lng]); } }), [placePin]);
-  const tileUrl = theme === 'dark' ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png' : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+  const tileUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
 
   return (
     <div className="space-y-4">
@@ -706,7 +729,7 @@ function AddressPicker({ site, onChange, theme }) {
 }
 
 function MiniMap({ lat, lng, theme }) {
-  const tileUrl = theme === 'dark' ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png' : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+  const tileUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
   return (
     <div className="dv-map mt-3" style={{ height: 150 }}>
       <MapContainer center={[lat, lng]} zoom={16} dragging={false} zoomControl={false} scrollWheelZoom={false} doubleClickZoom={false} touchZoom={false} keyboard={false} style={{ height: 150, width: '100%' }}>
@@ -882,6 +905,7 @@ function ApplianceList({ appliances, onUpdate, onRemove, onAddClick }) {
 
 function AddModal({ onClose, onAdd, defaultCategory = 'Multimédia' }) {
   const [deviceName, setDeviceName] = useState('');
+  const [brandModel, setBrandModel] = useState('');
   const [nameError, setNameError] = useState('');
   const [category, setCategory] = useState(defaultCategory);
   const [quantity, setQuantity] = useState(1);
@@ -890,6 +914,7 @@ function AddModal({ onClose, onAdd, defaultCategory = 'Multimédia' }) {
   const [powerMode, setPowerMode] = useState('watts');
   const [voltage, setVoltage] = useState(220);
   const [amps, setAmps] = useState(0.45);
+  const [isSimulatingAI, setIsSimulatingAI] = useState(false);
   const nameInputRef = useRef(null);
   const SelectedIcon = CATEGORIES[category]?.icon || Wrench;
 
@@ -898,16 +923,54 @@ function AddModal({ onClose, onAdd, defaultCategory = 'Multimédia' }) {
   const period = dayShare >= 0.99 ? 'day' : dayShare <= 0.01 ? 'night' : 'both';
   const estimatedDaily = watts * hours * quantity;
 
+  // Fake image based on category and name to look like a real photo
+  const imageUrl = `https://images.unsplash.com/photo-${category === 'Climatisation' ? '1527344754160-5991823192bd' : category === 'Cuisine' ? '1584269600464-377fbfd40ec4' : category === 'Multimédia' ? '1593359677879-14aeb1f7a0bd' : category === 'Éclairage' ? '1513694203232-719a280e022f' : '1558383409-91ce695272a2'}?auto=format&fit=crop&w=400&q=80`;
+
   useEffect(() => { const handler = (e) => e.key === 'Escape' && onClose(); window.addEventListener('keydown', handler); return () => window.removeEventListener('keydown', handler); }, [onClose]);
 
   const applyPreset = (preset) => {
     setDeviceName(preset.name);
+    setBrandModel('');
     setNameError('');
     setCategory(preset.category);
     setWatts(preset.watts);
     setAmps(Number((preset.watts / voltage).toFixed(2)));
     setUsageWindows([createUsageWindow(preset.hours, preset.period === 'night' ? '19:00' : '08:00')]);
   };
+  
+  // Smart AI Fetch Simulation
+  const handleSmartFetch = async () => {
+    if (!deviceName && !brandModel) {
+      toast.error("Veuillez saisir un nom ou un modèle d'abord.");
+      return;
+    }
+    setIsSimulatingAI(true);
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    // Heuristics for demo
+    const query = `${deviceName} ${brandModel}`.toLowerCase();
+    let estimatedWatts = watts;
+    
+    if (query.includes('tv') || query.includes('télévision')) {
+      if (query.includes('32')) estimatedWatts = 45;
+      else if (query.includes('55')) estimatedWatts = 120;
+      else if (query.includes('65')) estimatedWatts = 160;
+      else estimatedWatts = 80;
+    } else if (query.includes('frigo') || query.includes('réfrigérateur')) {
+      estimatedWatts = query.includes('américain') ? 300 : 150;
+    } else if (query.includes('clim')) {
+      estimatedWatts = query.includes('12000') ? 1100 : query.includes('18000') ? 1600 : 900;
+    } else if (query.includes('ps5') || query.includes('playstation')) {
+      estimatedWatts = 200;
+    }
+    
+    setWatts(estimatedWatts);
+    setAmps(Number((estimatedWatts / voltage).toFixed(2)));
+    setIsSimulatingAI(false);
+    toast.success(`Puissance trouvée : ${estimatedWatts}W pour ce modèle.`);
+  };
+
   const setQuickHours = (h) => setUsageWindows([createUsageWindow(h, h >= 12 ? '00:00' : '08:00')]);
   const handleWatts = (v) => { const n = Math.max(1, Number(v) || 1); setWatts(n); setAmps(Number((n / voltage).toFixed(2))); };
   const handleVoltage = (v) => { const n = Math.max(1, Number(v) || 220); setVoltage(n); setWatts(Math.max(1, Math.round(n * amps))); };
@@ -919,19 +982,19 @@ function AddModal({ onClose, onAdd, defaultCategory = 'Multimédia' }) {
   const handleAdd = () => {
     const name = deviceName.trim();
     if (!name) { setNameError('Donnez un nom à l’appareil'); toast.error('Le nom de l’appareil est obligatoire.'); nameInputRef.current?.focus(); return; }
-    onAdd({ id: Date.now(), name, category, watts, hours, quantity, period, dayShare, diversity: 0.8 });
+    onAdd({ id: Date.now(), name: brandModel ? `${name} (${brandModel})` : name, category, watts, hours, quantity, period, dayShare, diversity: 0.8, imageUrl });
   };
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm sm:items-center sm:p-4" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ type: 'spring', stiffness: 320, damping: 30 }} className="dv-panel devis-shell flex max-h-[94vh] w-full max-w-[1000px] flex-col overflow-hidden" style={{ borderRadius: 20, background: 'var(--panel)' }}>
         <div className="flex items-center justify-between border-b px-5 py-4" style={{ borderColor: 'var(--line)' }}>
-          <div><h3 className="text-xl font-bold">Ajouter un appareil</h3><p className="dv-muted text-sm">Choisissez un modèle ou remplissez à la main.</p></div>
+          <div><h3 className="text-xl font-bold">Ajouter un équipement</h3><p className="dv-muted text-sm">Définissez manuellement ou utilisez notre IA pour trouver la puissance.</p></div>
           <button type="button" onClick={onClose} aria-label="Fermer" className="dv-step-btn"><X size={18} /></button>
         </div>
 
-        <div className="grid flex-1 gap-5 overflow-y-auto p-5 lg:grid-cols-[1.6fr_1fr]">
-          <div className="space-y-5">
+        <div className="flex flex-col lg:flex-row flex-1 overflow-hidden">
+          <div className="flex-1 overflow-y-auto p-5 space-y-5">
             <div>
               <span className="dv-label">Modèles courants</span>
               <div className="dv-scroll-x">
@@ -942,19 +1005,40 @@ function AddModal({ onClose, onAdd, defaultCategory = 'Multimédia' }) {
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Nom de l’appareil" required error={nameError}>
                 <div className={`dv-field ${nameError ? 'is-error' : ''}`}>
-                  <input ref={nameInputRef} value={deviceName} onChange={(e) => { setDeviceName(e.target.value); if (nameError) setNameError(''); }} placeholder="Ex : Machine à laver" />
+                  <input ref={nameInputRef} value={deviceName} onChange={(e) => { setDeviceName(e.target.value); if (nameError) setNameError(''); }} placeholder="Ex : Télévision" />
                 </div>
               </Field>
               <Field label="Catégorie">
                 <div className="dv-field"><SelectedIcon size={17} style={{ color: 'var(--or)' }} /><select value={category} onChange={(e) => setCategory(e.target.value)}>{Object.keys(CATEGORIES).map((n) => <option key={n} value={n}>{n}</option>)}</select></div>
               </Field>
             </div>
+            
+            <div className="dv-card space-y-4 p-4 border border-[#ff7900]/30 bg-gradient-to-br from-[#ff7900]/5 to-transparent">
+              <div className="flex items-center gap-2 mb-1">
+                <Sparkles size={16} className="text-[#ff7900]" />
+                <h4 className="text-sm font-bold text-[#ff7900]">Recherche intelligente (Marque / Modèle)</h4>
+              </div>
+              <p className="dv-muted text-xs">Entrez la marque ou le modèle (ex: "Sony 32 pouces") et nous trouverons sa vraie puissance.</p>
+              <div className="flex gap-2">
+                <div className="dv-field flex-1">
+                  <input value={brandModel} onChange={(e) => setBrandModel(e.target.value)} placeholder="Ex : LG OLED 55 pouces..." />
+                </div>
+                <button 
+                  type="button" 
+                  onClick={handleSmartFetch}
+                  disabled={isSimulatingAI}
+                  className="dv-btn bg-[#ff7900] text-black hover:brightness-110 disabled:opacity-50 min-w-[120px]"
+                >
+                  {isSimulatingAI ? <Loader2 size={16} className="animate-spin" /> : 'Rechercher'}
+                </button>
+              </div>
+            </div>
 
             <StepperRow label="Quantité" value={quantity} min={1} max={99} onChange={setQuantity} />
 
             <div className="dv-card space-y-4 p-4">
               <div className="flex items-center justify-between">
-                <div><h4 className="text-sm font-bold">Puissance</h4><p className="dv-muted text-xs">Écrite sur l’étiquette de l’appareil.</p></div>
+                <div><h4 className="text-sm font-bold">Puissance {brandModel ? 'trouvée' : 'manuelle'}</h4><p className="dv-muted text-xs">Ajustez si nécessaire.</p></div>
                 <div className="flex gap-1 rounded-lg p-1" style={{ background: 'var(--card2)' }}>
                   {[['watts', 'Watts'], ['volts', 'Volts × Ampères']].map(([id, label]) => (
                     <button key={id} type="button" onClick={() => setPowerMode(id)} className="rounded-md px-3 py-1.5 text-xs font-bold transition" style={powerMode === id ? { background: 'var(--or)', color: '#000' } : { color: 'var(--muted)' }}>{label}</button>
@@ -993,21 +1077,61 @@ function AddModal({ onClose, onAdd, defaultCategory = 'Multimédia' }) {
             </div>
           </div>
 
-          <aside className="dv-card h-fit p-5 lg:sticky lg:top-0">
-            <div className="grid h-20 w-20 place-items-center rounded-2xl" style={{ background: 'var(--or-soft)', border: '1px solid var(--or-line)' }}><SelectedIcon size={34} style={{ color: 'var(--or)' }} /></div>
-            <h4 className="mt-4 text-xl font-bold">{deviceName || 'Nouvel appareil'}</h4>
-            <p className="dv-muted mt-1 text-sm">{quantity} × {watts} W · {Number(hours.toFixed(1))} h/jour</p>
-            <div className="mt-5 rounded-xl p-4" style={{ background: 'var(--panel)', border: '1px solid var(--line)' }}>
-              <p className="dv-muted text-xs">Consommation estimée</p>
-              <p className="mt-1 text-3xl font-black tracking-tight" style={{ color: 'var(--or)' }}>{fmtEnergy(estimatedDaily)}</p>
-              <p className="dv-muted text-xs">par jour</p>
+          <aside className="w-full lg:w-[320px] bg-[var(--card)] lg:border-l border-t lg:border-t-0 border-[var(--line)] flex flex-col shrink-0 z-10 overflow-hidden shadow-[-10px_0_30px_rgba(0,0,0,0.2)]">
+            <div className="relative h-48 w-full bg-zinc-800 shrink-0">
+              {deviceName || brandModel ? (
+                <img 
+                  src={imageUrl} 
+                  alt={deviceName || 'Equipment'} 
+                  className="w-full h-full object-cover opacity-80 mix-blend-overlay"
+                />
+              ) : (
+                <div className="absolute inset-0 flex items-center justify-center bg-zinc-900">
+                  <ImagePlus size={48} className="text-zinc-700" />
+                </div>
+              )}
+              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent flex flex-col justify-end p-5">
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="p-1.5 rounded-lg bg-[#ff7900]/20 backdrop-blur-md border border-[#ff7900]/30 text-[#ff7900]">
+                    <SelectedIcon size={16} />
+                  </div>
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-[#ff7900]">
+                    {category}
+                  </span>
+                </div>
+                <h4 className="text-xl font-bold text-white drop-shadow-md">
+                  {brandModel ? `${deviceName} ${brandModel}` : (deviceName || 'Nouvel équipement')}
+                </h4>
+              </div>
+            </div>
+            
+            <div className="p-5 flex-1 flex flex-col justify-between">
+              <div>
+                <div className="grid grid-cols-2 gap-4 mb-5">
+                  <div>
+                    <p className="dv-muted text-[10px] uppercase font-bold tracking-wider">Puissance</p>
+                    <p className="text-lg font-semibold text-[var(--fg)]">{watts} W</p>
+                  </div>
+                  <div>
+                    <p className="dv-muted text-[10px] uppercase font-bold tracking-wider">Durée estimée</p>
+                    <p className="text-lg font-semibold text-[var(--fg)]">{Number(hours.toFixed(1))} h/j</p>
+                  </div>
+                </div>
+
+                <div className="rounded-xl p-4 bg-[var(--or-soft)] border border-[var(--or-line)]">
+                  <p className="text-[11px] font-bold text-[var(--or)] uppercase tracking-wider mb-1">Consommation journalière</p>
+                  <div className="flex items-end gap-2">
+                    <p className="text-3xl font-black tracking-tight text-[var(--or)] leading-none">{fmtEnergy(estimatedDaily)}</p>
+                  </div>
+                </div>
+              </div>
             </div>
           </aside>
         </div>
 
         <div className="flex items-center justify-end gap-3 border-t px-5 py-4" style={{ borderColor: 'var(--line)' }}>
           <button type="button" onClick={onClose} className="dv-btn dv-btn-ghost">Annuler</button>
-          <button type="button" onClick={handleAdd} className="dv-btn dv-btn-primary"><Plus size={17} />Ajouter au devis</button>
+          <button type="button" onClick={handleAdd} className="dv-btn dv-btn-primary bg-[#ff7900] text-black hover:brightness-110"><Plus size={17} />Ajouter au devis</button>
         </div>
       </motion.div>
     </motion.div>

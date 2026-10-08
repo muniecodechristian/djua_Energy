@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { MapContainer, TileLayer, Popup, Circle, CircleMarker, useMap } from 'react-leaflet';
+import { motion, AnimatePresence } from 'framer-motion';
 import 'leaflet/dist/leaflet.css';
 import {
   ArrowUpRight, RefreshCw, Sun, Radio, AlertTriangle, BrainCircuit,
-  MapPin, Activity, Wrench, CircleHelp, Zap, Shield, ChevronRight,
-  Search, FileText, Gauge, Plus, Minus, Crosshair, CheckCircle2, ExternalLink,
+  MapPin, Activity, Wrench, Zap, Shield, ChevronRight,
+  Search, FileText, CheckCircle2, ExternalLink, Navigation, Info
 } from 'lucide-react';
 import { useKitsQuery, useAlertsQuery, useTelemetryQuery } from '../hooks/tanstack/useKitQueries';
 import { useFleetLiveStatus } from '../hooks/tanstack/useFleetLiveStatus';
@@ -14,29 +15,35 @@ import {
   observedRecently, coordinates, detailUrl, formatDate, severityLabels,
 } from '../lib/operations';
 
-/* ---------- petits helpers de style ---------- */
+/* ---------- Helpers de style avancés ---------- */
 const STATUS = {
-  alert: { label: 'Alerte', badge: 'bg-amber-500/15 text-amber-400 border-amber-500/30', dot: '#f59e0b', hex: '#f59e0b' },
-  online: { label: 'Signal récent', badge: 'bg-cyan-500/15 text-cyan-400 border-cyan-500/30', dot: '#22d3ee', hex: '#22d3ee' },
-  offline: { label: 'À vérifier', badge: 'bg-zinc-500/15 text-zinc-400 border-zinc-500/30', dot: '#64748b', hex: '#64748b' },
+  alert: { label: 'Alerte', badge: 'bg-rose-500/10 text-rose-500 border-rose-500/20 dark:bg-rose-500/20 dark:text-rose-400 dark:border-rose-500/30', dot: '#f43f5e', hex: '#f43f5e' },
+  online: { label: 'Signal récent', badge: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:bg-emerald-500/20 dark:text-emerald-400 dark:border-emerald-500/30', dot: '#10b981', hex: '#10b981' },
+  offline: { label: 'À vérifier', badge: 'bg-zinc-500/10 text-zinc-600 border-zinc-500/20 dark:bg-zinc-500/20 dark:text-zinc-400 dark:border-zinc-500/30', dot: '#71717a', hex: '#71717a' },
 };
 
 const SEV = {
-  critical: 'bg-red-500/15 text-red-400 border-red-500/30',
-  high: 'bg-red-500/15 text-red-400 border-red-500/30',
-  medium: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
-  low: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
+  critical: 'bg-rose-500/10 text-rose-600 border-rose-500/20 dark:bg-rose-500/20 dark:text-rose-400',
+  high: 'bg-orange-500/10 text-orange-600 border-orange-500/20 dark:bg-orange-500/20 dark:text-orange-400',
+  medium: 'bg-amber-500/10 text-amber-600 border-amber-500/20 dark:bg-amber-500/20 dark:text-amber-400',
+  low: 'bg-sky-500/10 text-sky-600 border-sky-500/20 dark:bg-sky-500/20 dark:text-sky-400',
 };
 
-const panel = 'rounded-2xl border border-white/[0.06] bg-[#111113]';
-const chip = 'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] font-semibold tracking-wide';
+// Styles partagés (Glassmorphism & Bordures subtiles)
+const panel = 'relative overflow-hidden rounded-2xl border border-zinc-200/80 bg-white/60 backdrop-blur-xl shadow-sm dark:border-white/[0.08] dark:bg-[#111113]/60';
+const panelHover = 'transition-all duration-300 hover:shadow-md hover:border-zinc-300 dark:hover:border-white/20 dark:hover:bg-[#111113]/80';
+const chip = 'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider transition-colors';
+
+/* ---------- Animations Framer Motion ---------- */
+const containerAnim = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.05 } } };
+const itemAnim = { hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } } };
 
 /* ---------- Carte Leaflet avec Geofencing ---------- */
 function MapController({ selectedCoords }) {
   const map = useMap();
   useEffect(() => {
     if (selectedCoords) {
-      map.flyTo(selectedCoords, 16, { duration: 1.5 });
+      map.flyTo(selectedCoords, 16, { duration: 1.2, easeLinearity: 0.25 });
     }
   }, [selectedCoords, map]);
   return null;
@@ -47,61 +54,52 @@ function LeafletMap({ points, selectedId, onSelect }) {
   const selectedPoint = points.find(p => p.id === selectedId)?.coords;
 
   return (
-    <div className="absolute inset-0 h-full w-full z-0">
-      <MapContainer 
-        center={defaultCenter} 
-        zoom={5} 
-        className="h-full w-full"
-        zoomControl={false}
-      >
+    <div className="absolute inset-0 h-full w-full z-0" style={{ background: 'var(--background)' }}>
+      <MapContainer center={defaultCenter} zoom={5} className="h-full w-full outline-none" zoomControl={false}>
         <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          className="map-tiles grayscale-[20%] contrast-[110%] dark:invert dark:grayscale-[80%] dark:hue-rotate-180"
         />
-        
+
         <MapController selectedCoords={selectedPoint} />
 
         {points.map(p => {
           if (!p.coords) return null;
           const isSelected = p.id === selectedId;
-          const color = STATUS[p.status]?.hex || '#64748b';
-          
+          const color = STATUS[p.status]?.hex || '#71717a';
+
           return (
             <div key={p.id}>
-              {/* Cercle de Geofencing (90m de rayon) */}
-              <Circle 
-                center={p.coords} 
-                radius={90} 
-                pathOptions={{ 
-                  color: color, 
-                  fillColor: color, 
-                  fillOpacity: isSelected ? 0.25 : 0.1,
-                  weight: isSelected ? 2 : 1,
-                  dashArray: '4 4'
-                }} 
+              <Circle
+                center={p.coords}
+                radius={90}
+                pathOptions={{
+                  color: color,
+                  fillColor: color,
+                  fillOpacity: isSelected ? 0.15 : 0.05,
+                  weight: isSelected ? 1.5 : 0.5,
+                  dashArray: isSelected ? '4 4' : undefined
+                }}
               />
-              
-              {/* Marqueur principal avec un rayon constant en pixels */}
+
               <CircleMarker
                 center={p.coords}
-                radius={isSelected ? 8 : 5}
+                radius={isSelected ? 7 : 4}
                 pathOptions={{
-                  color: '#000',
+                  color: isSelected ? '#fff' : 'transparent',
                   fillColor: color,
                   fillOpacity: 1,
-                  weight: 1.5
+                  weight: isSelected ? 2 : 0
                 }}
                 eventHandlers={{ click: () => onSelect(p.kitId) }}
               >
-                <Popup className="text-zinc-900 rounded-xl overflow-hidden">
-                  <div className="font-sans">
-                    <strong className="block text-sm font-bold mb-1">{p.kitId}</strong>
-                    <span className={`inline-block px-2 py-0.5 rounded-md text-xs font-semibold text-white`} style={{ backgroundColor: color }}>
+                <Popup className="custom-popup rounded-2xl overflow-hidden shadow-xl border-0">
+                  <div className="font-sans px-1 py-0.5">
+                    <strong className="block text-sm font-bold text-zinc-900 mb-1">{p.kitId}</strong>
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider text-white shadow-sm" style={{ backgroundColor: color }}>
                       {STATUS[p.status].label}
                     </span>
-                    <div className="mt-2 text-[10px] text-zinc-500">
-                      Geofence: 90 mètres
-                    </div>
                   </div>
                 </Popup>
               </CircleMarker>
@@ -130,7 +128,7 @@ export default function Dashboard() {
     return () => clearInterval(interval);
   }, []);
 
-  /* ---------- données backend (logique inchangée) ---------- */
+  /* ---------- Données backend ---------- */
   const kits = asList(kitsQuery.data);
   const alerts = prioritize(activeAlerts(alertsQuery.data));
   const latest = latestByKit(telemetryQuery.data);
@@ -140,53 +138,29 @@ export default function Dashboard() {
   const located = kits.map(kit => ({ kit, point: coordinates(kit) })).filter(i => i.point);
   const refreshing = [kitsQuery, alertsQuery, telemetryQuery].some(q => q.isFetching);
   const refresh = () => { kitsQuery.refetch(); alertsQuery.refetch(); telemetryQuery.refetch(); };
+
   const failures = [
     kitsQuery.isError && 'parc',
     alertsQuery.isError && 'alertes',
     telemetryQuery.isError && 'télémétrie',
   ].filter(Boolean);
-  const cv = (q, n) => (q.isPending || q.isError ? '—' : n.toLocaleString('fr-FR'));
 
+  const cv = (q, n) => (q.isPending || q.isError ? '—' : n.toLocaleString('fr-FR'));
   const statusOf = kit => (affected.has(kit.kitId) ? 'alert' : recent(kit) ? 'online' : 'offline');
 
   const operational = kits.length - affected.size;
-  const pctOnline   = kits.length > 0 ? Math.round((online / kits.length) * 100) : 0;
+  const pctOnline = kits.length > 0 ? Math.round((online / kits.length) * 100) : 0;
   const pctCritical = kits.length > 0 ? Math.round((affected.size / kits.length) * 100) : 0;
-  const pctOps      = kits.length > 0 ? Math.round((operational / kits.length) * 100) : 0;
+  const pctOps = kits.length > 0 ? Math.round((operational / kits.length) * 100) : 0;
 
   const kpis = [
-    {
-      label: 'Kits installés',
-      value: cv(kitsQuery, kits.length),
-      hint: 'Parc total déployé',
-      icon: Sun, accent: '#f97316', to: '/parc',
-      pct: null, // pas de % pour le total
-    },
-    {
-      label: 'Kits en ligne',
-      value: kitsQuery.isError || kitsQuery.isPending ? '—' : cv(telemetryQuery, online),
-      hint: 'Signal actif — < 5 min',
-      icon: Radio, accent: '#22d3ee', to: '/parc',
-      pct: pctOnline, pctColor: 'text-emerald-400',
-      liveIndicator: true,
-    },
-    {
-      label: 'Kits en situation critique',
-      value: cv(alertsQuery, alerts.length),
-      hint: alertsQuery.isSuccess ? `${affected.size} kit(s) impacté(s)` : 'Source indisponible',
-      icon: AlertTriangle, accent: '#ef4444', to: '/notification',
-      pct: pctCritical, pctColor: alerts.length > 0 ? 'text-red-400' : 'text-zinc-500',
-    },
-    {
-      label: 'Kits opérationnels',
-      value: kitsQuery.isError || kitsQuery.isPending ? '—' : cv(kitsQuery, operational),
-      hint: 'Aucune alerte active',
-      icon: CheckCircle2, accent: '#a78bfa', to: '/parc',
-      pct: pctOps, pctColor: 'text-violet-400',
-    },
+    { label: 'Kits installés', value: cv(kitsQuery, kits.length), hint: 'Parc total déployé', icon: Sun, accent: '#f97316', to: '/parc', pct: null },
+    { label: 'Kits en ligne', value: kitsQuery.isError || kitsQuery.isPending ? '—' : cv(telemetryQuery, online), hint: 'Signal actif — < 5 min', icon: Radio, accent: '#10b981', to: '/parc', pct: pctOnline, pctColor: 'text-emerald-500 dark:text-emerald-400', liveIndicator: true },
+    { label: 'En situation critique', value: cv(alertsQuery, alerts.length), hint: alertsQuery.isSuccess ? `${affected.size} kit(s) impacté(s)` : 'Source indisponible', icon: AlertTriangle, accent: '#f43f5e', to: '/notification', pct: pctCritical, pctColor: alerts.length > 0 ? 'text-rose-500 dark:text-rose-400' : 'text-zinc-500' },
+    { label: 'Opérationnels', value: kitsQuery.isError || kitsQuery.isPending ? '—' : cv(kitsQuery, operational), hint: 'Aucune alerte active', icon: CheckCircle2, accent: '#8b5cf6', to: '/parc', pct: pctOps, pctColor: 'text-violet-500 dark:text-violet-400' },
   ];
 
-  /* ---------- liste filtrée (panneau gauche) ---------- */
+  /* ---------- Filtres & Liste ---------- */
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return kits.filter(kit => {
@@ -197,14 +171,13 @@ export default function Dashboard() {
       if (filter === 'offline') return s === 'offline';
       return true;
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [kits, search, filter, now, activeKitIds, alerts.length]);
 
   const filters = [
     { id: 'all', label: 'Tous', n: kits.length },
     { id: 'alert', label: 'Alertes', n: affected.size },
     { id: 'online', label: 'En ligne', n: online },
-    { id: 'offline', label: 'Sans signal', n: Math.max(kits.length - online, 0) },
+    { id: 'offline', label: 'Hors ligne', n: Math.max(kits.length - online, 0) },
   ];
 
   const selected = kits.find(k => k.kitId === selectedId) || kits[0];
@@ -215,381 +188,455 @@ export default function Dashboard() {
   const lastSeen = lastSample?.timestamp || lastSample?.createdAt || lastSample?.time;
 
   const tabs = [
-    { id: 'overview', label: 'Vue d’ensemble' },
-    { id: 'alerts', label: `Priorités (${cv(alertsQuery, alerts.length)})` },
-    { id: 'quality', label: 'Fiabilité' },
-    { id: 'links', label: 'Accès rapide' },
+    { id: 'overview', label: 'Vue d’ensemble', icon: Info },
+    { id: 'alerts', label: `Priorités (${cv(alertsQuery, alerts.length)})`, icon: Shield },
+    { id: 'quality', label: 'Fiabilité réseau', icon: Activity },
+    { id: 'links', label: 'Outils', icon: Navigation },
   ];
 
   return (
-    <div className="min-h-screen  p-3 text-zinc-300 sm:p-4">
-      {/* ================= HEADER ================= */}
-      <header className="mb-3 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-lg font-semibold text-white">Supervision du parc</h1>
-          <p className="text-xs text-zinc-500">Surveillez les équipements, identifiez les priorités, préparez les actions.</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className={`${chip} ${isSocketConnected ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400' : 'border-zinc-600/40 bg-zinc-500/10 text-zinc-400'}`}>
-            <span className={`h-1.5 w-1.5 rounded-full ${isSocketConnected ? 'animate-pulse bg-emerald-400' : 'bg-zinc-500'}`} />
-            {isSocketConnected ? 'Temps réel' : 'Hors ligne'}
-          </span>
-          <button
-            onClick={refresh}
-            disabled={refreshing}
-            className="inline-flex items-center gap-2 rounded-xl bg-sky-500 px-3.5 py-2 text-xs font-semibold text-white transition hover:bg-sky-400 disabled:opacity-60"
-          >
-            <RefreshCw size={13} className={refreshing ? 'animate-spin' : ''} />
-            {refreshing ? 'Actualisation…' : 'Actualiser'}
-          </button>
-        </div>
-      </header>
+    <div className="relative min-h-screen bg-background text-foreground font-sans selection:bg-sky-500/30">
 
-      {failures.length > 0 && (
-        <div role="alert" className="mb-3 flex items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-300">
-          <AlertTriangle size={14} />
-          <span>Chargement impossible : {failures.join(', ')}.</span>
-          <button onClick={refresh} className="ml-auto font-semibold underline underline-offset-2">Réessayer</button>
-        </div>
-      )}
+      <div className="relative z-10 p-3 sm:p-5 max-w-[1600px] mx-auto flex flex-col gap-5 h-screen">
 
-      <div className="grid gap-3 lg:grid-cols-[360px_minmax(0,1fr)]">
-        {/* ================= LISTE DES KITS ================= */}
-        <aside className={`${panel} flex flex-col p-4 lg:h-[calc(100vh-6.5rem)]`}>
-          <div className="mb-3 flex items-center gap-2">
-            <h2 className="text-sm font-semibold text-white">Liste des kits</h2>
-            <span className="rounded-md bg-white/5 px-2 py-0.5 text-[10px] text-zinc-400">
-              {cv(kitsQuery, filtered.length)} équipements
-            </span>
+        {/* ================= HEADER ================= */}
+        <header className="flex flex-wrap items-end justify-between gap-4 shrink-0">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-white">Supervision</h1>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">Vue d'ensemble de la flotte et télémétrie en temps réel.</p>
           </div>
-
-          <label className="mb-3 flex items-center gap-2 rounded-xl border border-white/[0.06] bg-black/30 px-3 py-2 focus-within:border-sky-500/50">
-            <Search size={14} className="text-zinc-500" />
-            <input
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Rechercher un kit…"
-              className="w-full bg-transparent text-xs text-zinc-200 placeholder:text-zinc-600 focus:outline-none"
-            />
-          </label>
-
-          <div className="mb-3 flex flex-wrap gap-1.5">
-            {filters.map(f => (
-              <button
-                key={f.id}
-                onClick={() => setFilter(f.id)}
-                className={`rounded-lg px-2.5 py-1 text-[11px] font-medium transition ${filter === f.id ? 'bg-white text-black' : 'bg-white/5 text-zinc-400 hover:bg-white/10'
-                  }`}
-              >
-                {f.label} <span className="opacity-60">{f.n}</span>
-              </button>
-            ))}
-          </div>
-
-          <div className="-mr-1 flex-1 space-y-2 overflow-y-auto pr-1 [scrollbar-width:thin] max-lg:max-h-[420px]">
-            {filtered.map(kit => {
-              const s = statusOf(kit);
-              const active = selected?.kitId === kit.kitId;
-              const pt = coordinates(kit);
-              const kitAlerts = alerts.filter(a => a.kitId === kit.kitId).length;
-              return (
-              <div
-                  key={kit.kitId || kit._id}
-                  onClick={() => {
-                    setSelectedId(kit.kitId);
-                    navigate(detailUrl(kit.kitId));
-                  }}
-                  className={`cursor-pointer w-full rounded-xl border p-3 text-left transition ${
-                    active ? 'border-white/15 bg-white/[0.06]' : 'border-white/[0.05] bg-white/[0.02] hover:bg-white/[0.04]'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-mono text-[13px] font-semibold tracking-wide text-white">{kit.kitId}</span>
-                    <span className={`${chip} ${STATUS[s].badge}`}>{STATUS[s].label}</span>
-                  </div>
-
-                  {/* ligne de progression façon "route" */}
-                  <div className="my-2.5 flex items-center gap-2 text-[10px] text-zinc-500">
-                    <span>{pt ? `${pt[0].toFixed(2)}°` : '—'}</span>
-                    <div className="relative h-px flex-1 bg-white/10">
-                      <span className="absolute -top-[3px] left-1/2 h-[7px] w-[7px] -translate-x-1/2 rounded-full" style={{ background: STATUS[s].dot }} />
-                    </div>
-                    <span>{pt ? `${pt[1].toFixed(2)}°` : '—'}</span>
-                  </div>
-
-                  <div className="flex items-center justify-between text-[11px]">
-                    <span className="text-zinc-400">
-                      {pt ? 'Géolocalisé' : 'Position non renseignée'}
-                    </span>
-                    <span className="inline-flex items-center gap-1 text-zinc-500 hover:text-sky-400">
-                      {kitAlerts > 0 ? `${kitAlerts} alerte(s)` : 'Voir le détail'}
-                      <ExternalLink size={10} />
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-
-            {filtered.length === 0 && (
-              <div className="flex flex-col items-center gap-2 py-10 text-center text-xs text-zinc-500">
-                <Activity size={20} />
-                <strong className="text-zinc-300">
-                  {kitsQuery.isPending ? 'Chargement…' : kitsQuery.isError ? 'Parc indisponible' : 'Aucun kit trouvé'}
-                </strong>
-                <span>Modifiez la recherche ou le filtre.</span>
-              </div>
-            )}
-          </div>
-        </aside>
-
-        {/* ================= COLONNE DROITE ================= */}
-        <div className="flex min-w-0 flex-col gap-3">
-          {/* -------- KPI -------- */}
-          <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-            {kpis.map(({ label, value, hint, icon: Icon, accent, to, pct, pctColor, liveIndicator }) => (
-              <Link key={label} to={to} className={`${panel} group p-3.5 transition hover:border-white/15`}>
-                <div className="flex items-center justify-between text-[11px] text-zinc-500">
-                  <span className="flex items-center gap-1.5">
-                    {liveIndicator && (
-                      <span className="relative flex h-2 w-2">
-                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                        <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-                      </span>
-                    )}
-                    {label}
-                  </span>
-                  <span className="rounded-lg p-1.5" style={{ background: `${accent}22`, color: accent }}>
-                    <Icon size={13} />
-                  </span>
-                </div>
-                <strong className="mt-1 block text-2xl font-semibold tabular-nums text-white">{value}</strong>
-                <div className="mt-1 flex items-end justify-between">
-                  <span className="text-[11px] text-zinc-500">{hint}</span>
-                  {pct !== null && pct !== undefined && (
-                    <span className={`text-xs font-bold tabular-nums ${pctColor || 'text-zinc-400'}`}>
-                      {pct}%
-                    </span>
-                  )}
-                </div>
-              </Link>
-            ))}
-          </div>
-
-          {/* -------- CARTE -------- */}
-          <section className={`${panel} relative h-[380px] overflow-hidden lg:h-auto lg:min-h-[360px] lg:flex-1`}>
-            <LeafletMap
-              points={located.map(({ kit, point }) => ({ id: kit.kitId || kit._id, kitId: kit.kitId, coords: point, status: statusOf(kit) }))}
-              selectedId={selected?.kitId}
-              onSelect={setSelectedId}
-            />
-
-            {/* voile dégradé + titre flottant */}
-            <div className="pointer-events-none absolute inset-x-0 top-0 z-[500] flex items-start justify-between gap-2 bg-gradient-to-b from-black/70 to-transparent p-4">
-              <div>
-                <p className="text-sm font-semibold text-white">Équipements sur le terrain</p>
-                <p className="text-[11px] text-zinc-400">{located.length} position(s) renseignée(s)</p>
-              </div>
-              <Link
-                to="/parc"
-                className="pointer-events-auto inline-flex items-center gap-1 rounded-lg border border-white/10 bg-black/50 px-2.5 py-1.5 text-[11px] font-medium text-white backdrop-blur hover:bg-black/70"
-              >
-                Voir le parc <ArrowUpRight size={12} />
-              </Link>
+          <div className="flex items-center gap-3">
+            <div className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold backdrop-blur-md border ${isSocketConnected ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'border-zinc-500/20 bg-zinc-500/10 text-zinc-600 dark:text-zinc-400'}`}>
+              <span className="relative flex h-2 w-2">
+                {isSocketConnected && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />}
+                <span className={`relative inline-flex h-2 w-2 rounded-full ${isSocketConnected ? 'bg-emerald-500' : 'bg-zinc-500'}`} />
+              </span>
+              {isSocketConnected ? 'WebSocket Actif' : 'Hors ligne'}
             </div>
 
-            {/* étiquette du kit sélectionné (façon "Dest / From") */}
-            {selected && (
-              <div className="absolute left-4 top-16 z-[500] hidden rounded-lg border border-white/10 bg-black/60 px-2.5 py-1.5 text-[11px] backdrop-blur sm:block">
-                <span className="text-zinc-500">Sélection </span>
-                <span className="font-mono font-semibold text-white">{selected.kitId}</span>
-              </div>
-            )}
+            <button
+              onClick={refresh}
+              disabled={refreshing}
+              className="group relative inline-flex items-center gap-2 overflow-hidden rounded-full bg-zinc-900 dark:bg-white px-4 py-2 text-xs font-semibold text-white dark:text-black transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100"
+            >
+              <RefreshCw size={14} className={refreshing ? 'animate-spin' : 'transition-transform group-hover:rotate-180'} />
+              {refreshing ? 'Synchronisation...' : 'Actualiser'}
+              <div className="absolute inset-0 rounded-full ring-1 ring-inset ring-black/10 dark:ring-white/10" />
+            </button>
+          </div>
+        </header>
 
-            {/* légende */}
-            <div className="absolute bottom-3 left-3 z-[500] flex flex-wrap items-center gap-3 rounded-lg border border-white/10 bg-black/60 px-3 py-1.5 text-[10px] text-zinc-300 backdrop-blur">
-              {Object.entries(STATUS).map(([k, v]) => (
-                <span key={k} className="inline-flex items-center gap-1.5">
-                  <i className="h-2 w-2 rounded-full" style={{ background: v.dot }} />
-                  {v.label}
+        {failures.length > 0 && (
+          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center gap-3 rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-600 dark:text-rose-400 shrink-0">
+            <AlertTriangle size={16} className="shrink-0" />
+            <p><strong>Erreur de synchronisation :</strong> Impossible de charger {failures.join(', ')}.</p>
+            <button onClick={refresh} className="ml-auto font-bold underline decoration-rose-500/50 underline-offset-4 hover:decoration-rose-500">Réessayer</button>
+          </motion.div>
+        )}
+
+        <div className="flex-1 min-h-0 grid gap-5 lg:grid-cols-[380px_minmax(0,1fr)]">
+
+          {/* ================= COLONNE GAUCHE : LISTE ================= */}
+          <aside className={`${panel} flex flex-col h-full`}>
+            <div className="p-4 border-b border-zinc-200/50 dark:border-white/[0.05] shrink-0">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-sm font-bold text-zinc-900 dark:text-white">Flotte Déployée</h2>
+                <span className="rounded-full bg-zinc-100 dark:bg-white/10 px-2.5 py-1 text-[10px] font-bold text-zinc-600 dark:text-zinc-300">
+                  {cv(kitsQuery, filtered.length)} KITS
                 </span>
-              ))}
+              </div>
+
+              <div className="relative group mb-4">
+                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-sky-500 transition-colors" />
+                <input
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  placeholder="Rechercher par ID (ex: KZI-...)"
+                  className="w-full rounded-xl border border-zinc-200 dark:border-white/10 bg-zinc-50/50 dark:bg-black/20 py-2.5 pl-10 pr-4 text-sm text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:border-sky-500/50 focus:outline-none focus:ring-4 focus:ring-sky-500/10 transition-all"
+                />
+              </div>
+
+              <div className="flex bg-zinc-100/50 dark:bg-black/20 p-1 rounded-xl">
+                {filters.map(f => {
+                  const isActive = filter === f.id;
+                  return (
+                    <button
+                      key={f.id}
+                      onClick={() => setFilter(f.id)}
+                      className="relative flex-1 rounded-lg py-1.5 text-[11px] font-semibold transition-colors"
+                    >
+                      {isActive && (
+                        <motion.div layoutId="filter-bg" className="absolute inset-0 rounded-lg bg-white dark:bg-zinc-800 shadow-sm border border-zinc-200/50 dark:border-white/5" />
+                      )}
+                      <span className={`relative z-10 flex items-center justify-center gap-1.5 ${isActive ? 'text-zinc-900 dark:text-white' : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'}`}>
+                        {f.label} <span className="opacity-50 font-normal">({f.n})</span>
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
-            {located.length === 0 && (
-              <div className="absolute inset-0 z-[600] flex flex-col items-center justify-center gap-1.5 bg-black/70 text-center text-xs text-zinc-400">
-                <MapPin size={20} />
-                <strong className="text-sm text-white">
-                  {kitsQuery.isPending ? 'Chargement…' : kitsQuery.isError ? 'Parc indisponible' : 'Aucun équipement géolocalisé'}
-                </strong>
-                <span>Les positions renseignées apparaîtront ici.</span>
-              </div>
-            )}
-          </section>
-
-          {/* -------- PANNEAU DÉTAIL À ONGLETS -------- */}
-          <section className={`${panel} p-4`}>
-            <nav className="mb-4 flex gap-5 overflow-x-auto border-b border-white/[0.06] text-xs">
-              {tabs.map(t => (
-                <button
-                  key={t.id}
-                  onClick={() => setTab(t.id)}
-                  className={`-mb-px whitespace-nowrap border-b-2 pb-2.5 font-medium transition ${tab === t.id ? 'border-white text-white' : 'border-transparent text-zinc-500 hover:text-zinc-300'
-                    }`}
-                >
-                  {t.label}
-                </button>
-              ))}
-            </nav>
-
-            {/* --- Vue d'ensemble --- */}
-            {tab === 'overview' && (
-              selected ? (
-                <div className="grid gap-4 md:grid-cols-[1.2fr_1fr_1fr]">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-mono text-base font-semibold text-white">{selected.kitId}</h3>
-                      <span className={`${chip} ${STATUS[selectedStatus].badge}`}>{STATUS[selectedStatus].label}</span>
-                    </div>
-                    <p className="mt-2 max-w-sm text-xs leading-relaxed text-zinc-500">
-                      Consultez les mesures du kit, les résultats du modèle et les recommandations à valider avant intervention.
-                    </p>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <Link to={detailUrl(selected.kitId, true)} className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-[11px] font-semibold text-black hover:bg-zinc-200">
-                        <BrainCircuit size={12} /> Diagnostic IA
-                      </Link>
-                      <Link to={detailUrl(selected.kitId)} className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-[11px] font-medium text-white hover:bg-white/5">
-                        <FileText size={12} /> Ouvrir la fiche
-                      </Link>
-                      <Link to="/InterventionWizard" className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-[11px] font-medium text-white hover:bg-white/5">
-                        <Wrench size={12} /> Préparer une intervention
-                      </Link>
-                    </div>
+            <div className="flex-1 overflow-y-auto p-2 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-zinc-200 dark:[&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full pr-1">
+              {filtered.length === 0 ? (
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center justify-center h-full gap-3 text-center px-4">
+                  <div className="p-4 rounded-full bg-zinc-100 dark:bg-white/5">
+                    <Activity size={24} className="text-zinc-400" />
                   </div>
-
-                  <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
-                    <p className="text-[11px] text-zinc-500">Position</p>
-                    <p className="mt-1 font-mono text-sm text-white">
-                      {selectedPoint ? `${selectedPoint[0].toFixed(4)}, ${selectedPoint[1].toFixed(4)}` : 'Non renseignée'}
-                    </p>
-                    <p className="mt-3 text-[11px] text-zinc-500">Dernière mesure</p>
-                    <p className="mt-1 text-sm text-white">{lastSeen ? formatDate(lastSeen) : 'Aucune reçue'}</p>
-                  </div>
-
-                  <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
-                    <p className="text-[11px] text-zinc-500">Alertes du kit</p>
-                    <p className="mt-1 text-2xl font-semibold tabular-nums text-white">{selectedAlerts.length}</p>
-                    {selectedAlerts[0] ? (
-                      <p className="mt-2 line-clamp-2 text-[11px] text-zinc-400">
-                        {selectedAlerts[0].label || selectedAlerts[0].type}
-                      </p>
-                    ) : (
-                      <p className="mt-2 text-[11px] text-zinc-500">Rien à signaler.</p>
-                    )}
-                  </div>
-                </div>
+                  <p className="text-sm font-semibold text-zinc-900 dark:text-white">Aucun équipement trouvé</p>
+                  <p className="text-xs text-zinc-500">Essayez de modifier vos filtres de recherche.</p>
+                </motion.div>
               ) : (
-                <p className="py-6 text-center text-xs text-zinc-500">
-                  {kitsQuery.isPending ? 'Chargement…' : 'Aucun kit à afficher.'}
-                </p>
-              )
-            )}
+                <div className="space-y-1.5 p-2">
+                  <AnimatePresence mode="popLayout">
+                    {filtered.map(kit => {
+                      const s = statusOf(kit);
+                      const active = selected?.kitId === kit.kitId;
+                      const pt = coordinates(kit);
+                      const kitAlerts = alerts.filter(a => a.kitId === kit.kitId).length;
 
-            {/* --- Priorités / alertes --- */}
-            {tab === 'alerts' && (
-              <div className="grid gap-2 md:grid-cols-2">
-                {alerts.slice(0, 6).map((alert, i) => (
-                  <Link
-                    key={alert._id || i}
-                    to={'/notification?alertId=' + encodeURIComponent(alert._id || '')}
-                    className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 transition hover:bg-white/[0.05]"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className={`${chip} ${SEV[alert.severity] || 'bg-zinc-500/15 text-zinc-400 border-zinc-500/30'}`}>
-                        {severityLabels[alert.severity] || 'Non classée'}
+                      return (
+                        <motion.div
+                          layout
+                          initial={{ opacity: 0, scale: 0.95 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.95 }}
+                          key={kit.kitId || kit._id}
+                          onClick={() => {
+                            setSelectedId(kit.kitId);
+                            navigate(detailUrl(kit.kitId));
+                          }}
+                          className={`group relative cursor-pointer overflow-hidden rounded-xl border p-4 text-left transition-all duration-200 ${active
+                              ? 'border-sky-500/30 bg-sky-50/50 dark:border-sky-500/30 dark:bg-sky-500/10 shadow-sm'
+                              : 'border-zinc-200/50 bg-white/50 hover:bg-zinc-50 dark:border-white/5 dark:bg-white/[0.02] dark:hover:bg-white/[0.04]'
+                            }`}
+                        >
+                          {active && <div className="absolute left-0 top-0 bottom-0 w-1 bg-sky-500" />}
+
+                          <div className="flex items-start justify-between mb-3">
+                            <div>
+                              <h3 className="font-mono text-sm font-bold text-zinc-900 dark:text-white tracking-tight">{kit.kitId}</h3>
+                              <div className="flex items-center gap-1.5 mt-1 text-[10px] text-zinc-500">
+                                <MapPin size={10} />
+                                {pt ? `${pt[0].toFixed(3)}°, ${pt[1].toFixed(3)}°` : 'Non localisé'}
+                              </div>
+                            </div>
+                            <span className={`${chip} ${STATUS[s].badge}`}>{STATUS[s].label}</span>
+                          </div>
+
+                          <div className="flex items-center justify-between mt-4">
+                            <div className="flex items-center gap-2 flex-1">
+                              <div className="h-[2px] flex-1 bg-zinc-200 dark:bg-white/10 rounded-full overflow-hidden">
+                                {active && <motion.div layoutId="progress" className="h-full bg-sky-500" style={{ width: '100%' }} />}
+                              </div>
+                            </div>
+
+                            <span className="ml-4 inline-flex items-center gap-1 text-[11px] font-semibold text-zinc-500 group-hover:text-sky-500 transition-colors">
+                              {kitAlerts > 0 ? <span className="text-rose-500 flex items-center gap-1"><AlertTriangle size={12} /> {kitAlerts} alertes</span> : 'Détails'}
+                              <ChevronRight size={12} className="opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
+                            </span>
+                          </div>
+                        </motion.div>
+                      );
+                    })}
+                  </AnimatePresence>
+                </div>
+              )}
+            </div>
+          </aside>
+
+          {/* ================= COLONNE DROITE ================= */}
+          <div className="flex flex-col gap-5 min-w-0 h-full">
+
+            {/* -------- KPI CARDS -------- */}
+            <motion.div variants={containerAnim} initial="hidden" animate="show" className="grid grid-cols-2 gap-4 xl:grid-cols-4 shrink-0">
+              {kpis.map(({ label, value, hint, icon: Icon, accent, to, pct, pctColor, liveIndicator }) => (
+                <motion.div variants={itemAnim} key={label}>
+                  <Link to={to} className={`${panel} ${panelHover} group block p-4 h-full relative`}>
+                    <div className="absolute top-0 right-0 p-4 opacity-10 transition-opacity group-hover:opacity-20" style={{ color: accent }}>
+                      <Icon size={64} className="-mt-4 -mr-4" />
+                    </div>
+
+                    <div className="flex items-center justify-between text-xs font-semibold text-zinc-500 dark:text-zinc-400 mb-3">
+                      <span className="flex items-center gap-2">
+                        {liveIndicator && (
+                          <span className="relative flex h-2 w-2">
+                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                            <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+                          </span>
+                        )}
+                        {label}
                       </span>
-                      <small className="text-[10px] text-zinc-500">{formatDate(alert.createdAt)}</small>
+                      <span className="rounded-lg p-2 transition-transform group-hover:scale-110" style={{ backgroundColor: `${accent}15`, color: accent }}>
+                        <Icon size={14} />
+                      </span>
                     </div>
-                    <h3 className="mt-2 text-[13px] font-medium text-white">{alert.label || alert.type}</h3>
-                    <div className="mt-2 flex items-center justify-between text-[11px]">
-                      <span className="font-mono text-zinc-400">{alert.kitId || 'Kit non identifié'}</span>
-                      <span className="inline-flex items-center text-sky-400">Examiner <ChevronRight size={12} /></span>
-                    </div>
-                  </Link>
-                ))}
-                {alerts.length === 0 && (
-                  <div className="col-span-full flex flex-col items-center gap-1.5 py-8 text-center text-xs text-zinc-500">
-                    <Activity size={20} />
-                    <strong className="text-zinc-300">
-                      {alertsQuery.isPending ? 'Chargement…' : alertsQuery.isError ? 'Alertes indisponibles' : 'Aucune alerte ouverte'}
-                    </strong>
-                    <span>
-                      {alertsQuery.isSuccess ? 'La liste se met à jour avec les remontées terrain.' : 'Réessayez pour connaître les priorités.'}
-                    </span>
-                  </div>
-                )}
-                {alerts.length > 0 && (
-                  <Link to="/notification" className="col-span-full text-right text-[11px] font-medium text-sky-400 hover:underline">
-                    Ouvrir le centre d’alertes →
-                  </Link>
-                )}
-              </div>
-            )}
 
-            {/* --- Fiabilité --- */}
-            {tab === 'quality' && (
-              <div className="grid gap-4 md:grid-cols-2">
+                    <strong className="block text-3xl font-bold tabular-nums text-zinc-900 dark:text-white tracking-tight">
+                      {value}
+                    </strong>
+
+                    <div className="mt-3 flex items-end justify-between border-t border-zinc-100 dark:border-white/5 pt-3">
+                      <span className="text-[11px] font-medium text-zinc-500">{hint}</span>
+                      {pct !== null && pct !== undefined && (
+                        <span className={`text-xs font-bold tabular-nums px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-white/5 ${pctColor || 'text-zinc-500'}`}>
+                          {pct}%
+                        </span>
+                      )}
+                    </div>
+                  </Link>
+                </motion.div>
+              ))}
+            </motion.div>
+
+            {/* -------- CARTE GEOGRAPHIQUE -------- */}
+            <section className={`${panel} relative flex-1 min-h-[300px] overflow-hidden group`}>
+              <LeafletMap
+                points={located.map(({ kit, point }) => ({ id: kit.kitId || kit._id, kitId: kit.kitId, coords: point, status: statusOf(kit) }))}
+                selectedId={selected?.kitId}
+                onSelect={setSelectedId}
+              />
+
+              {/* Header flottant Map */}
+              <div className="pointer-events-none absolute inset-x-0 top-0 z-[1000] flex items-start justify-between gap-4 p-5 bg-gradient-to-b from-zinc-900/60 dark:from-[#09090b]/80 to-transparent">
                 <div>
-                  <div className="flex items-center gap-2">
-                    <span className={`h-2 w-2 rounded-full ${isSocketConnected ? 'bg-cyan-400' : 'bg-zinc-500'}`} />
-                    <strong className="text-sm text-white">
-                      {isSocketConnected ? 'Flux temps réel connecté' : 'Flux temps réel indisponible'}
-                    </strong>
-                  </div>
-                  <p className="mt-2 max-w-md text-xs leading-relaxed text-zinc-500">
-                    Les compteurs utilisent les données reçues, dont les 100 dernières mesures. Un signal absent n’est pas un diagnostic de panne.
-                  </p>
-                  <p className="mt-2 text-[11px] text-zinc-600">
-                    Dernière lecture : {formatDate(telemetryQuery.dataUpdatedAt)}
-                  </p>
+                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                    <Navigation size={14} className="text-sky-400" />
+                    Topologie du Parc
+                  </h3>
+                  <p className="text-xs text-zinc-300/80 font-medium mt-1">{located.length} positions synchronisées</p>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
-                    <Zap size={14} className="text-cyan-400" />
-                    <p className="mt-2 text-xl font-semibold tabular-nums text-white">{cv(kitsQuery, online)}</p>
-                    <span className="text-[11px] text-zinc-500">en ligne</span>
-                  </div>
-                  <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
-                    <Shield size={14} className="text-amber-400" />
-                    <p className="mt-2 text-xl font-semibold tabular-nums text-white">{cv(alertsQuery, alerts.length)}</p>
-                    <span className="text-[11px] text-zinc-500">alertes</span>
-                  </div>
-                </div>
+                <Link
+                  to="/parc"
+                  className="pointer-events-auto inline-flex items-center gap-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/10 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur-md transition-all shadow-lg"
+                >
+                  Vue globale <ArrowUpRight size={14} />
+                </Link>
               </div>
-            )}
 
-            {/* --- Accès rapide --- */}
-            {tab === 'links' && (
-              <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
-                {[
-                  { label: 'Parc solaire', desc: 'Fiche équipements', to: '/parc', icon: Sun, accent: '#f97316' },
-                  { label: 'Alertes', desc: 'Anomalies & pannes', to: '/notification', icon: AlertTriangle, accent: '#f59e0b' },
-                  { label: 'Devis', desc: 'Dimensionnement offres', to: '/devis', icon: ArrowUpRight, accent: '#a78bfa' },
-                  { label: 'Maintenance', desc: 'Interventions', to: '/InterventionWizard', icon: Wrench, accent: '#22d3ee' },
-                ].map(({ label, desc, to, icon: Icon, accent }) => (
-                  <Link key={to} to={to} className="group flex items-center gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 transition hover:bg-white/[0.05]">
-                    <span className="rounded-lg p-2" style={{ background: `${accent}22`, color: accent }}>
-                      <Icon size={15} />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <strong className="block truncate text-xs text-white">{label}</strong>
-                      <small className="block truncate text-[10px] text-zinc-500">{desc}</small>
-                    </div>
-                    <ChevronRight size={13} className="text-zinc-600 transition group-hover:translate-x-0.5 group-hover:text-zinc-300" />
-                  </Link>
+              {/* Tag Selection */}
+              <AnimatePresence>
+                {selected && (
+                  <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="absolute left-5 top-20 z-[1000] rounded-xl border border-white/20 bg-black/40 px-3 py-2 backdrop-blur-md shadow-2xl">
+                    <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-0.5">Focus Actuel</p>
+                    <p className="font-mono text-sm font-bold text-white">{selected.kitId}</p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Légende */}
+              <div className="absolute bottom-5 left-5 z-[1000] flex items-center gap-1 rounded-xl border border-white/10 bg-black/30 p-1 backdrop-blur-md shadow-xl">
+                {Object.entries(STATUS).map(([k, v]) => (
+                  <span key={k} className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[10px] font-bold tracking-wide text-zinc-200 hover:bg-white/10 transition-colors cursor-default">
+                    <span className="h-2 w-2 rounded-full shadow-[0_0_8px_currentColor]" style={{ backgroundColor: v.dot, color: v.dot }} />
+                    {v.label}
+                  </span>
                 ))}
               </div>
-            )}
-          </section>
+
+              {located.length === 0 && (
+                <div className="absolute inset-0 z-[1100] flex flex-col items-center justify-center gap-3 bg-zinc-900/40 backdrop-blur-sm text-center">
+                  <div className="p-4 rounded-full bg-black/40 border border-white/10">
+                    <MapPin size={24} className="text-zinc-400" />
+                  </div>
+                  <div>
+                    <strong className="block text-base text-white font-bold tracking-wide">
+                      {kitsQuery.isPending ? 'Cartographie en cours...' : kitsQuery.isError ? 'Service cartographique indisponible' : 'Aucune donnée spatiale'}
+                    </strong>
+                    <span className="text-sm text-zinc-300 mt-1 block">Les coordonnées des kits s'afficheront ici.</span>
+                  </div>
+                </div>
+              )}
+            </section>
+
+            {/* -------- PANNEAU DETAIL (TABS) -------- */}
+            <section className={`${panel} shrink-0`}>
+              <div className="flex overflow-x-auto border-b border-zinc-200/50 dark:border-white/[0.05] [&::-webkit-scrollbar]:hidden">
+                {tabs.map(t => {
+                  const isActive = tab === t.id;
+                  const Icon = t.icon;
+                  return (
+                    <button
+                      key={t.id}
+                      onClick={() => setTab(t.id)}
+                      className="relative flex items-center gap-2 px-5 py-4 text-sm font-semibold transition-colors"
+                    >
+                      <Icon size={14} className={isActive ? 'text-sky-500' : 'text-zinc-400'} />
+                      <span className={isActive ? 'text-zinc-900 dark:text-white' : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'}>
+                        {t.label}
+                      </span>
+                      {isActive && (
+                        <motion.div layoutId="tab-indicator" className="absolute bottom-0 left-0 right-0 h-0.5 bg-sky-500" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="p-5">
+                <AnimatePresence mode="wait">
+                  <motion.div key={tab} initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }} transition={{ duration: 0.15 }}>
+
+                    {/* --- Vue d'ensemble --- */}
+                    {tab === 'overview' && (
+                      selected ? (
+                        <div className="grid gap-6 md:grid-cols-[1.5fr_1fr_1fr]">
+                          <div>
+                            <div className="flex flex-wrap items-center gap-3">
+                              <h3 className="font-mono text-xl font-bold tracking-tight text-zinc-900 dark:text-white">{selected.kitId}</h3>
+                              <span className={`${chip} ${STATUS[selectedStatus].badge}`}>{STATUS[selectedStatus].label}</span>
+                            </div>
+                            <p className="mt-2 text-sm leading-relaxed text-zinc-500 dark:text-zinc-400 max-w-md">
+                              Consultez l'historique, les anomalies détectées et les actions préventives recommandées par l'IA.
+                            </p>
+                            <div className="mt-5 flex flex-wrap gap-2.5">
+                              <Link to={detailUrl(selected.kitId, true)} className="group inline-flex items-center gap-2 rounded-xl bg-zinc-900 dark:bg-white px-4 py-2 text-xs font-bold text-white dark:text-black hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors shadow-sm">
+                                <BrainCircuit size={14} className="group-hover:text-sky-400 dark:group-hover:text-sky-600 transition-colors" /> Diagnostic IA
+                              </Link>
+                              <Link to={detailUrl(selected.kitId)} className="inline-flex items-center gap-2 rounded-xl border border-zinc-200 dark:border-white/10 bg-white dark:bg-white/5 px-4 py-2 text-xs font-bold text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-white/10 transition-colors">
+                                <FileText size={14} /> Fiche technique
+                              </Link>
+                              <Link to="/InterventionWizard" className="inline-flex items-center gap-2 rounded-xl border border-zinc-200 dark:border-white/10 bg-white dark:bg-white/5 px-4 py-2 text-xs font-bold text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-white/10 transition-colors">
+                                <Wrench size={14} /> Intervention
+                              </Link>
+                            </div>
+                          </div>
+
+                          <div className="rounded-2xl border border-zinc-100 dark:border-white/[0.04] bg-zinc-50/50 dark:bg-black/20 p-4">
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-1">Dernières données</p>
+                            <p className="font-mono text-base font-semibold text-zinc-900 dark:text-white">
+                              {selectedPoint ? `${selectedPoint[0].toFixed(4)}, ${selectedPoint[1].toFixed(4)}` : 'Non renseignée'}
+                            </p>
+                            <div className="mt-4 pt-4 border-t border-zinc-200/50 dark:border-white/5">
+                              <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-1">Horodatage</p>
+                              <p className="text-sm font-semibold text-zinc-900 dark:text-white">{lastSeen ? formatDate(lastSeen) : 'Aucun signal'}</p>
+                            </div>
+                          </div>
+
+                          <div className="rounded-2xl border border-zinc-100 dark:border-white/[0.04] bg-zinc-50/50 dark:bg-black/20 p-4 relative overflow-hidden">
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-1">Alertes Actives</p>
+                            <div className="flex items-baseline gap-2">
+                              <p className="text-4xl font-bold tabular-nums text-zinc-900 dark:text-white tracking-tighter">{selectedAlerts.length}</p>
+                              <span className="text-sm font-medium text-zinc-500">incidents</span>
+                            </div>
+
+                            {selectedAlerts[0] ? (
+                              <div className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-rose-500/10 px-2.5 py-1.5 text-xs font-medium text-rose-600 dark:text-rose-400">
+                                <AlertTriangle size={12} />
+                                <span className="truncate">{selectedAlerts[0].label || selectedAlerts[0].type}</span>
+                              </div>
+                            ) : (
+                              <div className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-emerald-500/10 px-2.5 py-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                                <CheckCircle2 size={12} /> RAS
+                              </div>
+                            )}
+                            <Shield size={80} className="absolute -bottom-4 -right-4 text-zinc-900/[0.03] dark:text-white/[0.02]" />
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="py-10 text-center flex flex-col items-center">
+                          <Activity size={32} className="text-zinc-300 dark:text-zinc-700 mb-3" />
+                          <p className="text-sm font-medium text-zinc-500">{kitsQuery.isPending ? 'Chargement des données du kit...' : 'Sélectionnez un équipement pour voir les détails.'}</p>
+                        </div>
+                      )
+                    )}
+
+                    {/* --- Alertes --- */}
+                    {tab === 'alerts' && (
+                      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                        {alerts.slice(0, 6).map((alert, i) => (
+                          <Link
+                            key={alert._id || i}
+                            to={'/notification?alertId=' + encodeURIComponent(alert._id || '')}
+                            className="group flex flex-col rounded-2xl border border-zinc-200/50 dark:border-white/[0.05] bg-white dark:bg-white/[0.02] p-4 transition-all hover:border-zinc-300 dark:hover:border-white/10 hover:shadow-md"
+                          >
+                            <div className="flex items-center justify-between mb-3">
+                              <span className={`${chip} ${SEV[alert.severity] || 'bg-zinc-100 text-zinc-600 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:border-zinc-700'}`}>
+                                {severityLabels[alert.severity] || 'Non classée'}
+                              </span>
+                              <small className="text-[10px] font-semibold text-zinc-400">{formatDate(alert.createdAt)}</small>
+                            </div>
+                            <h3 className="text-sm font-bold text-zinc-900 dark:text-white line-clamp-1 group-hover:text-sky-500 transition-colors">{alert.label || alert.type}</h3>
+                            <div className="mt-auto pt-3 flex items-center justify-between text-xs">
+                              <span className="font-mono text-zinc-500">{alert.kitId || 'Kit inconnu'}</span>
+                              <span className="inline-flex items-center gap-1 font-bold text-sky-500 opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all">Examiner <ArrowUpRight size={14} /></span>
+                            </div>
+                          </Link>
+                        ))}
+                        {alerts.length === 0 && (
+                          <div className="col-span-full py-8 text-center text-zinc-500 flex flex-col items-center gap-2">
+                            <CheckCircle2 size={32} className="text-emerald-500/50" />
+                            <p className="text-sm font-medium">Aucune alerte critique en cours.</p>
+                          </div>
+                        )}
+                        {alerts.length > 6 && (
+                          <Link to="/notification" className="col-span-full mt-2 text-center text-sm font-bold text-sky-500 hover:text-sky-600 dark:hover:text-sky-400 transition-colors">
+                            Voir toutes les alertes ({alerts.length}) →
+                          </Link>
+                        )}
+                      </div>
+                    )}
+
+                    {/* --- Fiabilité --- */}
+                    {tab === 'quality' && (
+                      <div className="grid gap-6 md:grid-cols-[1fr_auto]">
+                        <div>
+                          <div className="flex items-center gap-3">
+                            <span className="relative flex h-3 w-3">
+                              {isSocketConnected && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />}
+                              <span className={`relative inline-flex h-3 w-3 rounded-full ${isSocketConnected ? 'bg-emerald-500' : 'bg-zinc-500'}`} />
+                            </span>
+                            <strong className="text-base font-bold text-zinc-900 dark:text-white">
+                              {isSocketConnected ? 'Flux de données nominal' : 'Télémétrie en attente'}
+                            </strong>
+                          </div>
+                          <p className="mt-3 max-w-xl text-sm leading-relaxed text-zinc-500 dark:text-zinc-400">
+                            L'état du réseau repose sur l'analyse des dernières requêtes (WebSocket & REST). Un kit marqué hors ligne nécessite une investigation technique, mais pas obligatoirement un déplacement.
+                          </p>
+                          <p className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-zinc-100 dark:bg-white/5 px-3 py-1.5 text-xs font-semibold text-zinc-600 dark:text-zinc-400">
+                            <RefreshCw size={12} /> Sync: {formatDate(telemetryQuery.dataUpdatedAt)}
+                          </p>
+                        </div>
+                        <div className="flex gap-4 max-md:grid max-md:grid-cols-2">
+                          <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-5 min-w-[140px]">
+                            <Zap size={20} className="text-emerald-500 mb-3" />
+                            <p className="text-3xl font-bold tabular-nums text-zinc-900 dark:text-white">{cv(kitsQuery, online)}</p>
+                            <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-500 mt-1 uppercase tracking-wider">Actifs</p>
+                          </div>
+                          <div className="rounded-2xl border border-rose-500/20 bg-rose-500/5 p-5 min-w-[140px]">
+                            <AlertTriangle size={20} className="text-rose-500 mb-3" />
+                            <p className="text-3xl font-bold tabular-nums text-zinc-900 dark:text-white">{cv(alertsQuery, alerts.length)}</p>
+                            <p className="text-xs font-semibold text-rose-600 dark:text-rose-500 mt-1 uppercase tracking-wider">Anomalies</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* --- Outils --- */}
+                    {tab === 'links' && (
+                      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+                        {[
+                          { label: 'Parc', desc: 'Gestion matérielle', to: '/parc', icon: Sun, color: 'text-amber-500', bg: 'bg-amber-500/10' },
+                          { label: 'Incidents', desc: 'Alertes & logs', to: '/notification', icon: Shield, color: 'text-rose-500', bg: 'bg-rose-500/10' },
+                          { label: 'Devis', desc: 'Propositions clients', to: '/devis', icon: FileText, color: 'text-sky-500', bg: 'bg-sky-500/10' },
+                          { label: 'Maintenance', desc: 'Planification', to: '/InterventionWizard', icon: Wrench, color: 'text-violet-500', bg: 'bg-violet-500/10' },
+                        ].map(({ label, desc, to, icon: Icon, color, bg }) => (
+                          <Link key={to} to={to} className="group flex flex-col rounded-2xl border border-zinc-200/50 dark:border-white/[0.05] bg-white dark:bg-white/[0.02] p-5 transition-all hover:border-zinc-300 dark:hover:border-white/10 hover:shadow-md hover:-translate-y-1">
+                            <div className={`mb-4 inline-flex self-start rounded-xl p-3 ${bg} ${color}`}>
+                              <Icon size={20} />
+                            </div>
+                            <strong className="text-sm font-bold text-zinc-900 dark:text-white">{label}</strong>
+                            <span className="text-xs text-zinc-500 mt-1">{desc}</span>
+                            <ArrowUpRight size={16} className="absolute right-4 top-4 text-zinc-300 dark:text-zinc-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+                  </motion.div>
+                </AnimatePresence>
+              </div>
+            </section>
+          </div>
         </div>
       </div>
     </div>
