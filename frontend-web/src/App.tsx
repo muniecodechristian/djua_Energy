@@ -88,7 +88,7 @@ export default function App() {
       );
       case 11: return (
         <Step11Error
-          onRetry={() => goTo(errorType === 'submit' ? 10 : 8)}
+          onRetry={() => goTo(errorType === 'submit' ? 9 : 8)}
           onForceContinue={() => goTo(9)}
           errorType={errorType}
           errorMessage={errorMsg}

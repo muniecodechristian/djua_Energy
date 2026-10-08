@@ -5,6 +5,15 @@
 
 import Kit from '../models/kit.model.js';
 
+function normalizePhone(phone) {
+  return String(phone).replace(/\D/g, '').replace(/^00/, '');
+}
+
+function phoneLookupPattern(phone) {
+  const digits = normalizePhone(phone);
+  return new RegExp(`^\\+?\\s*${[...digits].join('[\\s()./-]*')}\\s*$`);
+}
+
 // ─── GET /api/kits/:kitId ──────────────────────────────────────────────────────
 /**
  * Recherche un Kit par son identifiant (matricule scanné / saisi manuellement).
@@ -70,12 +79,26 @@ export async function createKit(req, res) {
   }
 
   try {
-    // ── Vérification doublon ─────────────────────────────────────────────────
+    // Une nouvelle tentative du même kit après une réponse perdue est un succès.
     const existing = await Kit.findOne({ kitId }).lean();
     if (existing) {
+      if (normalizePhone(existing.clientPhone) === normalizePhone(clientPhone)) {
+        return res.status(200).json({ success: true, data: existing, alreadyRegistered: true });
+      }
+
       return res.status(409).json({
         success: false,
+        code: 'KIT_ALREADY_EXISTS',
         message: `Le kit ${kitId} existe déjà dans le système`,
+      });
+    }
+
+    const phoneAlreadyUsed = await Kit.findOne({ clientPhone: phoneLookupPattern(clientPhone) }).lean();
+    if (phoneAlreadyUsed) {
+      return res.status(409).json({
+        success: false,
+        code: 'CLIENT_PHONE_ALREADY_USED',
+        message: 'Ce numéro de téléphone est déjà utilisé.',
       });
     }
 
@@ -101,8 +124,17 @@ export async function createKit(req, res) {
     });
 
     if (err.code === 11000) {
+      if (err.keyPattern?.clientPhone || err.keyValue?.clientPhone) {
+        return res.status(409).json({
+          success: false,
+          code: 'CLIENT_PHONE_ALREADY_USED',
+          message: 'Ce numéro de téléphone est déjà utilisé.',
+        });
+      }
+
       return res.status(409).json({
         success: false,
+        code: 'KIT_ALREADY_EXISTS',
         message: `Le kit ${kitId} existe déjà dans le système`,
       });
     }

@@ -58,24 +58,28 @@ export default function Step11Error({ onRetry, onForceContinue, errorType = 'dia
           </div>
         )}
 
-        <div className="alert alert-warning">
-          <AlertTriangle size={20} color="var(--warning)" style={{ flexShrink: 0, marginTop: 2 }} />
-          <div>
-            <p className="alert-title">Vous pouvez forcer l'enregistrement</p>
-            <p>Si vous êtes certain que l'installation est correcte, vous pouvez enregistrer maintenant. Les données remonteront plus tard.</p>
+        {!isSubmitError && (
+          <div className="alert alert-warning">
+            <AlertTriangle size={20} color="var(--warning)" style={{ flexShrink: 0, marginTop: 2 }} />
+            <div>
+              <p className="alert-title">Vous pouvez forcer l'enregistrement</p>
+              <p>Si vous êtes certain que l'installation est correcte, vous pouvez enregistrer maintenant. Les données remonteront plus tard.</p>
+            </div>
           </div>
-        </div>
+        )}
         
         <div className="pb-safe" />
       </div>
 
       <div className="screen-footer">
-        <Button title="Réessayer" onClick={onRetry} />
-        <Button 
-          title="Forcer l'enregistrement" 
-          variant="secondary"
-          onClick={onForceContinue} 
-        />
+        <Button title={isSubmitError ? 'Modifier les informations' : 'Réessayer'} onClick={onRetry} />
+        {!isSubmitError && (
+          <Button
+            title="Forcer l'enregistrement"
+            variant="secondary"
+            onClick={onForceContinue}
+          />
+        )}
       </div>
     </div>
   );
