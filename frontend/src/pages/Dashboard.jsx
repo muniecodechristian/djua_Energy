@@ -307,8 +307,8 @@ export default function Dashboard() {
                             navigate(detailUrl(kit.kitId));
                           }}
                           className={`group relative cursor-pointer overflow-hidden rounded-xl border p-4 text-left transition-all duration-200 ${active
-                              ? 'border-sky-500/30 bg-sky-50/50 dark:border-sky-500/30 dark:bg-sky-500/10 shadow-sm'
-                              : 'border-zinc-200/50 bg-white/50 hover:bg-zinc-50 dark:border-white/5 dark:bg-white/[0.02] dark:hover:bg-white/[0.04]'
+                            ? 'border-sky-500/30 bg-sky-50/50 dark:border-sky-500/30 dark:bg-sky-500/10 shadow-sm'
+                            : 'border-zinc-200/50 bg-white/50 hover:bg-zinc-50 dark:border-white/5 dark:bg-white/[0.02] dark:hover:bg-white/[0.04]'
                             }`}
                         >
                           {active && <div className="absolute left-0 top-0 bottom-0 w-1 bg-sky-500" />}

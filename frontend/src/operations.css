@@ -813,3 +813,15 @@
   .db-kpi-value { font-size: 28px; }
   .db-ai-card { flex-direction: column; }
 }
+
+.ops-tabs button.active {background:#FF7900;color:#000;font-weight:650}
+.ops-tabs button {transition:background .16s,color .16s}
+.ops-badge.contract-active {color:#166534;background:#dcfce7}
+.dark .ops-badge.contract-active {color:#86efac;background:#163526}
+.ops-badge.contract-inactive,.dark .ops-badge.contract-inactive {color:#000;background:#FF7900}
+.ops-shell :is(.ops-button,.ops-icon-button) {transition:background .16s,border-color .16s,transform .16s}
+.ops-shell :is(.ops-button,.ops-icon-button):active:not(:disabled) {transform:scale(.98)}
+.ops-table tbody tr {transition:background .16s}
+.ops-table tbody tr:hover {background:var(--ops-canvas)}
+.dv-reorder {display:flex;gap:6px;padding:6px;border:1px dashed var(--line);border-radius:10px;margin-bottom:6px}
+@media(prefers-reduced-motion:reduce) {*,*::before,*::after {animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}

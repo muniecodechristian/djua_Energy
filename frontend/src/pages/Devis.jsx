@@ -82,13 +82,13 @@ const CSS = `
   --fg:#fafafa;--muted:#9c9ca6;--or:#ff7900;--or-soft:rgba(255,121,0,.13);--or-line:rgba(255,121,0,.55);
   --ok:#3ccf62;--ok-soft:rgba(60,207,98,.12);--err:#ff6161;--err-soft:rgba(255,97,97,.12);
   --shadow:0 24px 60px rgba(0,0,0,.45);
-  background:radial-gradient(900px 420px at 92% -8%,rgba(255,121,0,.12),transparent 62%),var(--bg);
+  background:var(--bg);
   color:var(--fg);font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;
 }
 :root[data-theme='light'] .devis-shell{
   --bg:#f2f2f3;--panel:#ffffff;--card:#f8f8f9;--card2:#ededef;--field:#ffffff;--line:#dcdce0;
   --fg:#111114;--muted:#686873;--or-soft:rgba(255,121,0,.11);--shadow:0 24px 60px rgba(20,20,30,.09);
-  background:radial-gradient(900px 420px at 92% -8%,rgba(255,121,0,.14),transparent 62%),var(--bg);
+  background:var(--bg);
 }
 .devis-shell *{-webkit-tap-highlight-color:transparent}
 .dv-panel{background:var(--panel);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow)}
@@ -867,7 +867,8 @@ function QuickAdd({ appliances, onQuickAdd }) {
   );
 }
 
-function ApplianceList({ appliances, onUpdate, onRemove, onAddClick }) {
+function ApplianceList({ appliances, onUpdate, onRemove, onAddClick, onReorder }) {
+ const [dragged,setDragged]=useState(null);
   const [search, setSearch] = useState('');
   const categories = Object.keys(CATEGORIES);
   const filtered = appliances.filter((item) => item.name.toLowerCase().includes(search.trim().toLowerCase()));
@@ -893,7 +894,12 @@ function ApplianceList({ appliances, onUpdate, onRemove, onAddClick }) {
                 <div className="flex items-center gap-2"><CategoryIcon size={16} style={{ color: 'var(--or)' }} /><span className="text-sm font-bold">{category}</span></div>
                 <span className="dv-muted text-xs">{fmtEnergy(totalEnergy)}/jour</span>
               </div>
-              <div className="space-y-2"><AnimatePresence initial={false}>{group.map((item) => <ApplianceRow key={item.id} item={item} onUpdate={onUpdate} onRemove={onRemove} />)}</AnimatePresence></div>
+              <div className="space-y-2"><AnimatePresence initial={false}>{group.map((item) => <div key={item.id} onDragOver={e=>{if(dragged && dragged!==item.id)e.preventDefault();}} onDrop={e=>{e.preventDefault();if(dragged && dragged!==item.id)onReorder(dragged,item.id);setDragged(null);}}>
+<div className="dv-reorder">
+<button type="button" draggable className="dv-btn dv-btn-ghost dv-btn-sm" aria-label={'Déplacer '+item.name} onDragStart={e=>{setDragged(item.id);e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',String(item.id));}} onDragEnd={()=>setDragged(null)}>↕ Déplacer</button>
+<button type="button" className="dv-btn dv-btn-ghost dv-btn-sm" disabled={group.indexOf(item)===0} aria-label={'Monter '+item.name} onClick={()=>onReorder(item.id,group[group.indexOf(item)-1].id)}>↑</button>
+<button type="button" className="dv-btn dv-btn-ghost dv-btn-sm" disabled={group.indexOf(item)===group.length-1} aria-label={'Descendre '+item.name} onClick={()=>onReorder(item.id,group[group.indexOf(item)+1].id)}>↓</button>
+</div><ApplianceRow item={item} onUpdate={onUpdate} onRemove={onRemove}/></div>)}</AnimatePresence></div>
             </div>
           );
         })}
@@ -1380,7 +1386,12 @@ export default function Devis() {
       return [...prev, { ...preset, id: Date.now() + Math.random(), quantity: 1, dayShare: preset.period === 'night' ? 0 : preset.period === 'both' ? 0.5 : 1 }];
     });
   };
-  const handleUpdateAppliance = (next) => setAppliances((prev) => prev.map((item) => (item.id === next.id ? next : item)));
+  const handleReorderAppliance=(source,target)=>setAppliances(previous=>{
+ const next=[...previous],from=next.findIndex(i=>i.id===source),to=next.findIndex(i=>i.id===target);
+ if(from<0||to<0||next[from].category!==next[to].category)return previous;
+ const [item]=next.splice(from,1);next.splice(to,0,item);return next;
+ });
+ const handleUpdateAppliance = (next) => setAppliances((prev) => prev.map((item) => (item.id === next.id ? next : item)));
   const handleRemoveAppliance = (id) => setAppliances((prev) => prev.filter((item) => item.id !== id));
 
   const resetDraft = () => {
@@ -1599,7 +1610,7 @@ export default function Devis() {
                         <button type="button" onClick={() => { setDefaultApplianceCategory('Multimédia'); setIsAdding(true); }} className="dv-btn dv-btn-primary mt-5"><Plus size={16} />Ajouter un appareil</button>
                       </div>
                     ) : (
-                      <ApplianceList appliances={appliances} onUpdate={handleUpdateAppliance} onRemove={handleRemoveAppliance} onAddClick={(category) => { setDefaultApplianceCategory(category || 'Multimédia'); setIsAdding(true); }} />
+                      <ApplianceList onReorder={handleReorderAppliance} appliances={appliances} onUpdate={handleUpdateAppliance} onRemove={handleRemoveAppliance} onAddClick={(category) => { setDefaultApplianceCategory(category || 'Multimédia'); setIsAdding(true); }} />
                     )}
                     <div className="mt-6 flex flex-col gap-4 rounded-xl p-4 sm:flex-row sm:items-center sm:justify-between" style={{ background: 'var(--or-soft)', border: '1px solid var(--or-line)' }}>
                       <div><p className="dv-muted text-xs">Consommation totale</p><p className="text-2xl font-black"><AnimatedNumber value={calc.dailyWh / 1000} decimals={2} /> <span className="text-base font-bold">kWh / jour</span></p></div>
