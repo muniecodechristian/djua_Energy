@@ -9,10 +9,10 @@ import {
 } from 'lucide-react';
 import { useKitLiveTelemetry } from '../hooks/tanstack/useKitLiveTelemetry.js';
 import { useAlertsQuery, useKitsQuery } from '../hooks/tanstack/useKitQueries.js';
-import { MapContainer, TileLayer, Marker, Circle, useMap } from 'react-leaflet';
 import { io } from 'socket.io-client';
 import api from '../api/axios';
 import { predictionMatchesKit } from '../lib/operations';
+import { useCreateIntervention } from '../hooks/tanstack/useInterventions.js';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -466,10 +466,15 @@ export default function SmartKitDetails() {
   const [toast, setToast] = useState(null);
   const [isChecking, setIsChecking] = useState(true);
   const [liveGeofenceAlert, setLiveGeofenceAlert] = useState(null);
+  
+  // Modal State
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [interventionForm, setInterventionForm] = useState({ title: '', description: '', priority: 'Moyenne' });
 
   const { telemetryRecords, latestTelemetry, isLive, dataSource, isLoading } = useKitLiveTelemetry(kitId);
   const { data: kits = [] } = useKitsQuery();
   const { data: alerts = [] } = useAlertsQuery();
+  const createIntervention = useCreateIntervention();
   const kitReference = kits.find((kit) => kit.kitId === kitId);
 
   const T = latestTelemetry;
@@ -547,6 +552,23 @@ export default function SmartKitDetails() {
   const duration = (sec) => (sec == null ? '—' : `${Math.floor(sec / 3600)} h ${String(Math.floor((sec % 3600) / 60)).padStart(2, '0')}`);
   const rssi = T?.signal_strength_dbm;
 
+  const handleCreateIntervention = (e) => {
+    e.preventDefault();
+    createIntervention.mutate({
+      kitId,
+      ...interventionForm
+    }, {
+      onSuccess: () => {
+        showToast('Intervention créée et stockée en BD pour 2 semaines');
+        setIsModalOpen(false);
+        setInterventionForm({ title: '', description: '', priority: 'Moyenne' });
+      },
+      onError: () => {
+        showToast('Erreur lors de la création de l\'intervention');
+      }
+    });
+  };
+
   return (
     <div className="min-h-screen bg-[var(--app-surface)] font-sans text-[var(--app-foreground)] selection:bg-[#FF7900]/30">
       <style>{`
@@ -603,7 +625,7 @@ export default function SmartKitDetails() {
                 Lancer un diagnostic
               </button>
               <button
-                type="button" onClick={() => showToast('Intervention terrain créée')}
+                type="button" onClick={() => setIsModalOpen(true)}
                 className={`rounded-md bg-[#FF7900] px-4 py-2 text-sm font-semibold text-black transition-colors hover:bg-[#FF8F2E] ${FOCUS}`}
               >
                 Créer une intervention
@@ -838,6 +860,83 @@ export default function SmartKitDetails() {
           </motion.div>
         </AnimatePresence>
       </main>
+
+      {/* MODAL CRÉATION INTERVENTION */}
+      <AnimatePresence>
+        {isModalOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-md overflow-hidden rounded-xl bg-[var(--panel)] shadow-2xl border border-[var(--panel-border)]"
+            >
+              <div className="px-6 py-4 border-b border-[var(--panel-border)] flex items-center justify-between">
+                <h3 className={`text-lg font-semibold ${FG}`}>Créer une intervention</h3>
+                <button
+                  onClick={() => setIsModalOpen(false)}
+                  className={`p-1 rounded-md text-[var(--muted-foreground)] hover:text-[var(--app-foreground)] hover:bg-[var(--panel-alt)] transition-colors`}
+                >
+                  ✕
+                </button>
+              </div>
+              <form onSubmit={handleCreateIntervention} className="p-6 space-y-4">
+                <div>
+                  <label className={`block text-sm font-medium ${FG} mb-1.5`}>Titre de l'intervention</label>
+                  <input
+                    type="text"
+                    required
+                    value={interventionForm.title}
+                    onChange={(e) => setInterventionForm(f => ({ ...f, title: e.target.value }))}
+                    className="w-full rounded-md border border-[var(--panel-border)] bg-[var(--app-surface)] px-3 py-2 text-sm text-[var(--app-foreground)] placeholder-[var(--muted-foreground)] focus:border-[#FF7900] focus:outline-none focus:ring-1 focus:ring-[#FF7900]"
+                    placeholder="Ex: Remplacement du contrôleur"
+                  />
+                </div>
+                <div>
+                  <label className={`block text-sm font-medium ${FG} mb-1.5`}>Description</label>
+                  <textarea
+                    required
+                    rows={3}
+                    value={interventionForm.description}
+                    onChange={(e) => setInterventionForm(f => ({ ...f, description: e.target.value }))}
+                    className="w-full rounded-md border border-[var(--panel-border)] bg-[var(--app-surface)] px-3 py-2 text-sm text-[var(--app-foreground)] placeholder-[var(--muted-foreground)] focus:border-[#FF7900] focus:outline-none focus:ring-1 focus:ring-[#FF7900] resize-none"
+                    placeholder="Détails de l'anomalie et du matériel nécessaire..."
+                  />
+                </div>
+                <div>
+                  <label className={`block text-sm font-medium ${FG} mb-1.5`}>Priorité</label>
+                  <select
+                    value={interventionForm.priority}
+                    onChange={(e) => setInterventionForm(f => ({ ...f, priority: e.target.value }))}
+                    className="w-full rounded-md border border-[var(--panel-border)] bg-[var(--app-surface)] px-3 py-2 text-sm text-[var(--app-foreground)] focus:border-[#FF7900] focus:outline-none focus:ring-1 focus:ring-[#FF7900]"
+                  >
+                    <option value="Basse">Basse</option>
+                    <option value="Moyenne">Moyenne</option>
+                    <option value="Haute">Haute</option>
+                    <option value="Critique">Critique</option>
+                  </select>
+                </div>
+                <div className="pt-4 flex justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setIsModalOpen(false)}
+                    className="px-4 py-2 text-sm font-medium rounded-md border border-[var(--panel-border)] hover:bg-[var(--panel-alt)] transition-colors"
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={createIntervention.isLoading}
+                    className="px-4 py-2 text-sm font-semibold rounded-md bg-[#FF7900] text-black hover:bg-[#FF8F2E] transition-colors disabled:opacity-50"
+                  >
+                    {createIntervention.isLoading ? 'Création...' : 'Créer l\'intervention'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

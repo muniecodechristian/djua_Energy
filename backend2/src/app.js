@@ -16,6 +16,8 @@ import iaRoutes from "./routes/ia.routes.js";
 import mlRoutes from "./routes/ml.routes.js";
 import iotRoutes from "./routes/iot.routes.js";
 import solarRoutes from "./routes/solar.routes.js";
+import kitRoutes from "./routes/kit.routes.js";
+import interventionRoutes from "./routes/intervention.routes.js";
 import { swaggerSpec, swaggerUiOptions } from "./docs/swagger.config.js";
 
 const app = express();
@@ -111,6 +113,8 @@ if (swaggerEnabled) {
 app.use("/auth", authRoutes);
 
 app.use("/api", deviceRoutes);
+app.use("/api", kitRoutes);
+app.use("/api/interventions", interventionRoutes);
 
 app.use("/api/ml", mlRoutes);
 app.use("/api/iot", iotRoutes);

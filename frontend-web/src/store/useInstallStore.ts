@@ -6,6 +6,7 @@ import type {
   DiagnosticCheck,
   DiagnosticStatus,
   InstallPayload,
+  KitRecord,
 } from '../types/install.types';
 
 interface InstallState {
@@ -21,6 +22,8 @@ interface InstallState {
   // ── Champs du modèle Kit backend ──────────────────────────────────────
   clientPhone: string | null;   // N° Orange du client (clientPhone dans Kit)
   installedBy: string | null;   // Identifiant du technicien installateur
+  // ── Kit existant trouvé lors du scan ──────────────────────────────────
+  kitRecord: KitRecord | null;  // Rempli si le kit existe déjà en BDD
 
   // ─── Actions ──────────────────────────────────────────────────────────
   setBoxId: (id: string) => void;
@@ -31,6 +34,7 @@ interface InstallState {
   setDiagnostic: (status: DiagnosticStatus, checks: DiagnosticCheck[]) => void;
   setClientPhone: (phone: string) => void;
   setInstalledBy: (tech: string) => void;
+  setKitRecord: (kit: KitRecord | null) => void;
 
   // ─── Construct payload prêt à envoyer au backend ──────────────────────
   buildPayload: () => InstallPayload | null;
@@ -50,6 +54,7 @@ const initialState = {
   diagnosticChecks: [],
   clientPhone: null,
   installedBy: null,
+  kitRecord: null,
 };
 
 export const useInstallStore = create<InstallState>((set, get) => ({
@@ -64,6 +69,7 @@ export const useInstallStore = create<InstallState>((set, get) => ({
     set({ diagnosticStatus: status, diagnosticChecks: checks }),
   setClientPhone: (phone) => set({ clientPhone: phone }),
   setInstalledBy: (tech) => set({ installedBy: tech }),
+  setKitRecord: (kit) => set({ kitRecord: kit }),
 
   /**
    * Construit le payload complet prêt à POST /api/installations

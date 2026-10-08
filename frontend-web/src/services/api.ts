@@ -4,6 +4,8 @@ import type {
   InstallResponse,
   DeviceState,
   OrangeQuote,
+  KitRecord,
+  CreateKitPayload,
 } from '../types/install.types';
 
 // ─── Client axios de base ────────────────────────────────────────────────────
@@ -173,3 +175,44 @@ export const orangeApi = {
     }
   },
 };
+
+// ─── Kits API (modèle Kit MongoDB) ───────────────────────────────────────────
+
+export const kitsApi = {
+  /**
+   * Vérifie l'existence d'un kit dans la base de données MongoDB.
+   * Appelé immédiatement après le scan QR ou la saisie manuelle.
+   *
+   * GET /api/kits/:kitId
+   * Retourne { exists: true, data: KitRecord } ou { exists: false }
+   */
+  getKit: async (kitId: string): Promise<{ exists: boolean; data?: KitRecord }> => {
+    try {
+      const { data } = await api.get<{ success: boolean; exists: boolean; data?: KitRecord }>(
+        `/kits/${kitId}`
+      );
+      return { exists: data.exists, data: data.data };
+    } catch (err: any) {
+      // En cas d'erreur réseau on laisse passer — le wizard continue
+      console.warn('[KitsAPI] getKit erreur réseau, on suppose kit inexistant:', err.message);
+      return { exists: false };
+    }
+  },
+
+  /**
+   * Crée un nouveau Kit dans MongoDB à la fin de l'onboarding technicien.
+   *
+   * POST /api/kits
+   */
+  createKit: async (payload: CreateKitPayload): Promise<{ success: boolean; data?: KitRecord; error?: string }> => {
+    try {
+      const { data } = await api.post<{ success: boolean; data: KitRecord }>('/kits', payload);
+      return { success: true, data: data.data };
+    } catch (err: any) {
+      const message = err.response?.data?.message ?? err.message;
+      console.error('[KitsAPI] createKit erreur:', message);
+      return { success: false, error: message };
+    }
+  },
+};
+

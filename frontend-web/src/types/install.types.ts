@@ -77,3 +77,37 @@ export interface OrangeQuote {
   system: SystemData;
   createdAt?: string;
 }
+
+// ─── Modèle Kit tel que retourné par le backend ───────────────────────────────
+
+export interface KitRecord {
+  _id: string;
+  kitId: string;
+  clientPhone: string;
+  offerName: string;
+  installationDate?: string;
+  subscriptionFeePaid: boolean;
+  periodicAmountUSD?: number;
+  status: 'active' | 'suspended' | 'terminated';
+  paidMonthsCount: number;
+  gpsCoordinates?: { latitude: number; longitude: number };
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ─── Payload de création d'un Kit (POST /api/kits) ───────────────────────────
+
+export interface CreateKitPayload {
+  kitId: string;
+  clientPhone: string;
+  offerName: string;
+  installationDate?: string;
+  periodicAmountUSD?: number;
+  gpsCoordinates?: { latitude: number; longitude: number };
+  // Champs wizard supplémentaires
+  source?: 'quote' | 'manual';
+  quoteId?: string;
+  clientName?: string;
+  diagnosticStatus?: DiagnosticStatus;
+  system?: SystemData;
+}

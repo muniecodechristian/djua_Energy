@@ -19,7 +19,7 @@
 .ops-nav-item { display:flex; align-items:center; gap:11px; min-height:41px; padding:10px 12px; margin:3px 0; color:var(--ops-muted); border-radius:8px; font-size:12px; font-weight:550; transition:background .16s,color .16s,transform .16s; white-space:nowrap; }
 .ops-nav-item svg { flex-shrink:0; }
 .ops-nav-item:hover { background:var(--ops-canvas); color:var(--ops-ink); transform:translateX(2px); }
-.ops-nav-item.is-active { color:var(--ops-accent); background:var(--ops-accent-soft); box-shadow:inset 3px 0 var(--ops-accent); }
+.ops-nav-item.is-active { background: #ff7900; color: #000; transform: translateX(2px); box-shadow: 0 4px 12px rgba(255, 121, 0, 0.25); }
 .ops-sidebar-bottom { padding:12px; border-top:1px solid var(--ops-line); }
 .ops-workspace { display:flex; align-items:center; gap:9px; padding:10px; font-size:12px; }
 .ops-workspace small,.ops-account small { display:block; margin-top:3px; font-size:11px; color:var(--ops-muted); }
