@@ -19,27 +19,51 @@ const api = axios.create({
   baseURL: `${apiOrigin.replace(/\/$/, '')}/api`,
   timeout: 15_000,
   headers: { 'Content-Type': 'application/json' },
+  withCredentials: true,
 });
 
-// Injecter le token JWT si disponible (partagé avec le frontend principal)
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('djua_token');
-  if (token) config.headers.Authorization = `Bearer ${token}`;
-  return config;
+const authClient = axios.create({
+  baseURL: apiOrigin,
+  timeout: 15_000,
+  headers: { 'Content-Type': 'application/json' },
+  withCredentials: true,
 });
 
 // ─── Auth API ────────────────────────────────────────────────────────────────
 
+export interface TechnicianProfile {
+  _id: string;
+  prenom: string;
+  nom: string;
+  identifier: string;
+  role: string;
+  zone?: string;
+  mustChangePassword?: boolean;
+}
+
 export const authApi = {
-  login: async (email: string, password: string) => {
-    const { data } = await axios.post('/auth/login', { email, password });
-    if (data.token) localStorage.setItem('djua_token', data.token);
-    return data;
+  login: async (identifier: string, password: string): Promise<TechnicianProfile> => {
+    const { data } = await authClient.post('/auth/login', { identifier, password });
+    const user = data?.data as TechnicianProfile | undefined;
+    if (user?.role !== 'technician') {
+      await authClient.post('/auth/logout');
+      throw new Error('Cette application est réservée aux techniciens.');
+    }
+    return user;
   },
 
-  getMe: async () => {
-    const { data } = await api.get('/auth/me');
-    return data;
+  getMe: async (): Promise<TechnicianProfile> => {
+    const { data } = await authClient.get('/auth/me');
+    return data.data as TechnicianProfile;
+  },
+
+  changePassword: async (currentPassword: string, newPassword: string) => {
+    const { data } = await authClient.patch('/auth/password', { currentPassword, newPassword });
+    return data.data;
+  },
+
+  logout: async () => {
+    await authClient.post('/auth/logout');
   },
 };
 

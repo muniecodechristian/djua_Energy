@@ -85,8 +85,9 @@ export default function LoginDjuaEnergy() {
     loginMutation.mutate(
       { identifier, password },
       {
-        onSuccess: () => {
-          navigate('/dashboard');
+        onSuccess: (response) => {
+          const role = response?.data?.role;
+          navigate(role === 'admin' || role === 'administration' ? '/AdministrationSettings' : role === 'shop_manager' ? '/equipe' : role === 'commercial' ? '/devis' : '/dashboard');
         },
       }
     );

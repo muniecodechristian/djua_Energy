@@ -16,6 +16,7 @@ const OperationsOverview = lazy(() => import('./pages/OperationsOverview'));
 const AdministrationSettings = lazy(() => import('./pages/AdministrationSettings'));
 const OrangeKitsRegistry = lazy(() => import('./pages/OrangeKitsRegistry'));
 const Devis = lazy(() => import('./pages/Devis'));
+const TeamManagement = lazy(() => import('./pages/TeamManagement'));
 
 function App() {
   useCheckAuth();
@@ -53,6 +54,7 @@ function App() {
           <Route path="/CustomerProfile"      element={<CustomerProfile />} />
           <Route path="/OperationsOverview"   element={<OperationsOverview />} />
           <Route path="/AdministrationSettings" element={<AdministrationSettings />} />
+          <Route path="/equipe"                element={<TeamManagement />} />
           <Route path="/parc"                 element={<OrangeKitsRegistry />} />
           <Route path="/orange-kits"          element={<Navigate to="/parc" replace />} />
           <Route path="/telemetry"            element={<Navigate to="/parc" replace />} />

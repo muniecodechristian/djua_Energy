@@ -27,6 +27,9 @@ export const protect = async (req, res, next) => {
     if (!user) {
       return sendError(res, 'User no longer exists', [], 401);
     }
+    if (user.status === 'suspended') {
+      return sendError(res, 'This account is suspended. Contact your shop manager.', [], 403);
+    }
 
     // Attach user to request object
     req.user = user;
@@ -34,4 +37,12 @@ export const protect = async (req, res, next) => {
   } catch (error) {
     return sendError(res, 'Not authorized, token validation failed', [], 401);
   }
+};
+
+export const authorizeRoles = (...allowedRoles) => (req, res, next) => {
+  const role = req.user?.role === 'administration' ? 'admin' : req.user?.role;
+  if (!allowedRoles.includes(role)) {
+    return sendError(res, 'You do not have permission to perform this action', [], 403);
+  }
+  next();
 };

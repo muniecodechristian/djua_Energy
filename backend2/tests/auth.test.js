@@ -25,6 +25,13 @@ describe('Authentication API - Integration Tests', () => {
     password: 'Password123!',
   };
 
+  const createSession = async (role, zone = '') => {
+    const identifier = `${role}-${Math.random().toString(36).slice(2)}@example.com`;
+    await User.create({ nom: 'Test', prenom: 'Role', identifier, password: 'Password123!', role, zone });
+    const response = await request(app).post('/auth/login').send({ identifier, password: 'Password123!' });
+    return { cookie: response.headers['set-cookie'], identifier };
+  };
+
   describe('POST /auth/register', () => {
     it('should register a new user successfully with valid inputs', async () => {
       const res = await request(app)
@@ -38,6 +45,15 @@ describe('Authentication API - Integration Tests', () => {
       expect(res.body.data).toHaveProperty('_id');
       expect(res.body.data.identifier).toBe(userData.identifier.toLowerCase());
       expect(res.body.data).not.toHaveProperty('password');
+    });
+
+    it('should not allow public registration to assign an internal role', async () => {
+      const res = await request(app)
+        .post('/auth/register')
+        .send({ ...userData, identifier: 'self-admin@example.com', role: 'admin', zone: 'Kinshasa' });
+
+      expect(res.status).toBe(201);
+      expect(res.body.data.role).toBe('kitireceveur');
     });
 
     it('should fail registration with duplicate identifier', async () => {
@@ -80,6 +96,102 @@ describe('Authentication API - Integration Tests', () => {
     });
   });
 
+  describe('POST /auth/team-users', () => {
+    const newTeamUser = (role, identifier, zone) => ({
+      nom: 'Equipe',
+      prenom: 'Djua',
+      identifier,
+      password: 'Password123!',
+      role,
+      zone,
+    });
+
+    it('should allow an admin to create a shop manager with a zone', async () => {
+      const { cookie } = await createSession('admin');
+      const res = await request(app)
+        .post('/auth/team-users')
+        .set('Cookie', cookie)
+        .send(newTeamUser('shop_manager', 'manager@example.com', 'Kinshasa'));
+
+      expect(res.status).toBe(201);
+      expect(res.body.data.role).toBe('shop_manager');
+      expect(res.body.data.zone).toBe('Kinshasa');
+      expect(res.body.data).not.toHaveProperty('password');
+    });
+
+    it('should assign a manager zone to technicians and commercial users', async () => {
+      const { cookie } = await createSession('shop_manager', 'Goma');
+
+      for (const role of ['technician', 'commercial']) {
+        const res = await request(app)
+          .post('/auth/team-users')
+          .set('Cookie', cookie)
+          .send(newTeamUser(role, `${role}@example.com`, 'Autre zone'));
+
+        expect(res.status).toBe(201);
+        expect(res.body.data.role).toBe(role);
+        expect(res.body.data.zone).toBe('Goma');
+        expect(res.body.data.mustChangePassword).toBe(role === 'technician');
+      }
+    });
+
+    it('should list, suspend, and delete only the manager team members', async () => {
+      const { cookie } = await createSession('shop_manager', 'Goma');
+      const created = await request(app)
+        .post('/auth/team-users')
+        .set('Cookie', cookie)
+        .send(newTeamUser('technician', 'managed-tech@example.com', 'Goma'));
+      const memberId = created.body.data._id;
+      const memberSession = await request(app)
+        .post('/auth/login')
+        .send({ identifier: 'managed-tech@example.com', password: 'Password123!' });
+
+      expect(created.status).toBe(201);
+      expect(created.body.data.mustChangePassword).toBe(true);
+      expect(memberSession.body.data.mustChangePassword).toBe(true);
+
+      const list = await request(app).get('/auth/team-users').set('Cookie', cookie);
+      expect(list.status).toBe(200);
+      expect(list.body.data.map(member => member._id)).toContain(memberId);
+
+      const suspended = await request(app)
+        .patch(`/auth/team-users/${memberId}/status`)
+        .set('Cookie', cookie)
+        .send({ status: 'suspended' });
+      expect(suspended.status).toBe(200);
+
+      const activeSession = await request(app).get('/auth/me').set('Cookie', memberSession.headers['set-cookie']);
+      const newLogin = await request(app)
+        .post('/auth/login')
+        .send({ identifier: 'managed-tech@example.com', password: 'Password123!' });
+      expect(activeSession.status).toBe(403);
+      expect(newLogin.status).toBe(403);
+
+      const deleted = await request(app).delete(`/auth/team-users/${memberId}`).set('Cookie', cookie);
+      const afterDelete = await request(app).get('/auth/team-users').set('Cookie', cookie);
+      expect(deleted.status).toBe(200);
+      expect(afterDelete.body.data).toHaveLength(0);
+    });
+
+    it('should reject a manager trying to create another manager', async () => {
+      const { cookie } = await createSession('shop_manager', 'Goma');
+      const res = await request(app)
+        .post('/auth/team-users')
+        .set('Cookie', cookie)
+        .send(newTeamUser('shop_manager', 'second-manager@example.com', 'Goma'));
+
+      expect(res.status).toBe(403);
+    });
+
+    it('should reject team account creation without authentication', async () => {
+      const res = await request(app)
+        .post('/auth/team-users')
+        .send(newTeamUser('shop_manager', 'anonymous-manager@example.com', 'Kinshasa'));
+
+      expect(res.status).toBe(401);
+    });
+  });
+
   describe('POST /auth/login', () => {
     it('should log in successfully and set the HttpOnly cookie', async () => {
       const res = await request(app)
@@ -110,6 +222,31 @@ describe('Authentication API - Integration Tests', () => {
 
       expect(res.status).toBe(401);
       expect(res.body.success).toBe(false);
+    });
+
+    it('should allow a technician to change the initial password without losing the session', async () => {
+      const identifier = 'first-login-tech@example.com';
+      await User.create({
+        nom: 'Technicien',
+        prenom: 'Test',
+        identifier,
+        password: 'Password123!',
+        role: 'technician',
+        zone: 'Goma',
+        mustChangePassword: true,
+      });
+      const login = await request(app).post('/auth/login').send({ identifier, password: 'Password123!' });
+      const changed = await request(app)
+        .patch('/auth/password')
+        .set('Cookie', login.headers['set-cookie'])
+        .send({ currentPassword: 'Password123!', newPassword: 'NewPassword456!' });
+      const nextLogin = await request(app).post('/auth/login').send({ identifier, password: 'NewPassword456!' });
+
+      expect(login.body.data.mustChangePassword).toBe(true);
+      expect(changed.status).toBe(200);
+      expect(changed.body.data.mustChangePassword).toBe(false);
+      expect(nextLogin.status).toBe(200);
+      expect(nextLogin.body.data.mustChangePassword).toBe(false);
     });
   });
 

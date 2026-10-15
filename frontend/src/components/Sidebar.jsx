@@ -3,7 +3,7 @@ import { quickSpring } from '../lib/motion';
 import { useEffect, useRef, useState } from 'react';
 import { NavLink, Link } from 'react-router-dom';
 import { Sun, PanelLeftClose, PanelLeftOpen, X, LogOut, LogIn } from 'lucide-react';
-import { navigation } from '../lib/navigation';
+import { navigationForRole } from '../lib/navigation';
 import useAuthStore from '../hooks/Zustand/useAuthStore';
 import { useLogoutMutation } from '../hooks/tanstack/useAuthMutations';
 export default function Sidebar({ isSidebarOpen, setIsSidebarOpen }) {
@@ -34,6 +34,9 @@ export default function Sidebar({ isSidebarOpen, setIsSidebarOpen }) {
     return () => { element.removeEventListener('keydown', trap); previous?.focus(); };
   }, [mobile, isSidebarOpen]);
   const user = useAuthStore(state => state.user);
+  const role = user?.role === 'administration' ? 'admin' : user?.role;
+  const visibleNavigation = navigationForRole(role);
+  const sections = [...new Set(visibleNavigation.map(item => item.section))];
   const logout = useLogoutMutation();
   useEffect(() => {
     const close = event => { if (event.key === 'Escape') setIsSidebarOpen(false); };
@@ -43,12 +46,12 @@ export default function Sidebar({ isSidebarOpen, setIsSidebarOpen }) {
   return <>
     <AnimatePresence>{isSidebarOpen && <motion.button initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: reduced ? 0 : 0.15 }} className="ops-backdrop" aria-label="Fermer la navigation" onClick={() => setIsSidebarOpen(false)} />}</AnimatePresence>
     <aside ref={panel} inert={mobile && !isSidebarOpen ? true : undefined} id="primary-navigation" className={'ops-sidebar ' + (collapsed ? 'is-collapsed ' : '') + (isSidebarOpen ? 'is-open' : '')}>
-      <Link to="/dashboard" className="ops-brand" onClick={() => setIsSidebarOpen(false)}><span className="ops-brand-icon"><Sun size={23}/></span><span className="ops-nav-label"><strong>djua<span className="ops-brand-light"> energy</span></strong><small>SOLAR OPERATIONS</small></span></Link>
+      <Link to={role === 'admin' ? '/AdministrationSettings' : role === 'commercial' ? '/devis' : '/dashboard'} className="ops-brand" onClick={() => setIsSidebarOpen(false)}><span className="ops-brand-icon"><Sun size={23}/></span><span className="ops-nav-label"><strong>djua<span className="ops-brand-light"> energy</span></strong><small>SOLAR OPERATIONS</small></span></Link>
       <button className="ops-mobile-close ops-icon-button" aria-label="Fermer le menu" onClick={() => setIsSidebarOpen(false)}><X size={18}/></button>
       <LayoutGroup id="primary-nav"><nav aria-label="Navigation principale">
-        {['Supervision', 'Exploitation', 'Gestion'].map(section => <div className="ops-nav-group" key={section}>
+        {sections.map(section => <div className="ops-nav-group" key={section}>
           <p className="ops-nav-section">{section}</p>
-          {navigation.filter(item => item.section === section).map(({path, label, icon: Icon}) => <NavLink key={path} to={path} title={label} onClick={() => setIsSidebarOpen(false)} className={({isActive}) => 'ops-nav-item' + (isActive ? ' is-active' : '')}>{({isActive}) => <>{isActive && <motion.span className="ops-nav-indicator" layoutId="active-nav" transition={reduced ? { duration: 0 } : quickSpring}/>}<Icon size={18}/><span className="ops-nav-label">{label}</span></>}</NavLink>)}
+          {visibleNavigation.filter(item => item.section === section).map(({path, label, icon: Icon}) => <NavLink key={path} to={path} title={label} onClick={() => setIsSidebarOpen(false)} className={({isActive}) => 'ops-nav-item' + (isActive ? ' is-active' : '')}>{({isActive}) => <>{isActive && <motion.span className="ops-nav-indicator" layoutId="active-nav" transition={reduced ? { duration: 0 } : quickSpring}/>}<Icon size={18}/><span className="ops-nav-label">{label}</span></>}</NavLink>)}
         </div>)}
       </nav></LayoutGroup>
       <div className="ops-sidebar-bottom">

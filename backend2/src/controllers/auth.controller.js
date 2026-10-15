@@ -56,12 +56,138 @@ export const register = async (req, res) => {
       prenom: user.prenom,
       postNom: user.postNom,
       identifier: user.identifier,
+      role: user.role,
       createdAt: user.createdAt,
     };
 
     return sendSuccess(res, 'User registered successfully', userWithoutPassword, 201);
   } catch (error) {
     return sendError(res, `Registration failed: ${error.message}`, [], 500);
+  }
+};
+
+export const createTeamUser = async (req, res) => {
+  const { nom, prenom, postNom = '', identifier, password, role, zone } = req.body;
+  const actorRole = req.user.role === 'administration' ? 'admin' : req.user.role;
+
+  if (actorRole === 'admin' && role !== 'shop_manager') {
+    return sendError(res, 'An admin can create only shop managers', [], 403);
+  }
+  if (actorRole === 'shop_manager' && !['technician', 'commercial'].includes(role)) {
+    return sendError(res, 'A shop manager can create only technicians or commercial users', [], 403);
+  }
+
+  const assignedZone = actorRole === 'admin' ? zone?.trim() : req.user.zone?.trim();
+  if (!assignedZone) {
+    return sendError(res, 'A zone is required for this account', [], 400);
+  }
+
+  try {
+    const normalizedIdentifier = identifier.toLowerCase();
+    const existingUser = await User.findOne({ identifier: normalizedIdentifier });
+    if (existingUser) {
+      return sendError(res, 'User with this email or phone number already exists', [], 400);
+    }
+
+    const user = await User.create({
+      nom,
+      prenom,
+      postNom,
+      identifier: normalizedIdentifier,
+      password,
+      role,
+      zone: assignedZone,
+      status: 'active',
+      mustChangePassword: role === 'technician',
+      createdBy: req.user._id,
+    });
+
+    return sendSuccess(res, 'Team account created successfully', {
+      _id: user._id,
+      nom: user.nom,
+      prenom: user.prenom,
+      postNom: user.postNom,
+      identifier: user.identifier,
+      role: user.role,
+      zone: user.zone,
+      status: user.status,
+      mustChangePassword: user.mustChangePassword,
+      createdBy: user.createdBy,
+      createdAt: user.createdAt,
+    }, 201);
+  } catch (error) {
+    return sendError(res, `Team account creation failed: ${error.message}`, [], 500);
+  }
+};
+
+export const getTeamUsers = async (req, res) => {
+  try {
+    const users = await User.find({
+      createdBy: req.user._id,
+      role: { $in: ['technician', 'commercial'] },
+    })
+      .select('nom prenom postNom identifier role zone status mustChangePassword createdAt')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return sendSuccess(res, 'Team members retrieved successfully', users.map(user => ({
+      ...user,
+      status: user.status || 'active',
+    })));
+  } catch (error) {
+    return sendError(res, `Could not load team members: ${error.message}`, [], 500);
+  }
+};
+
+export const updateTeamUserStatus = async (req, res) => {
+  try {
+    const user = await User.findOne({
+      _id: req.params.userId,
+      createdBy: req.user._id,
+      role: { $in: ['technician', 'commercial'] },
+    });
+    if (!user) return sendError(res, 'Team member not found', [], 404);
+
+    user.status = req.body.status;
+    await user.save();
+    return sendSuccess(res, 'Team member status updated', {
+      _id: user._id,
+      role: user.role,
+      status: user.status,
+    });
+  } catch (error) {
+    return sendError(res, `Could not update team member: ${error.message}`, [], 500);
+  }
+};
+
+export const deleteTeamUser = async (req, res) => {
+  try {
+    const user = await User.findOneAndDelete({
+      _id: req.params.userId,
+      createdBy: req.user._id,
+      role: { $in: ['technician', 'commercial'] },
+    });
+    if (!user) return sendError(res, 'Team member not found', [], 404);
+    return sendSuccess(res, 'Team member deleted successfully', { _id: user._id });
+  } catch (error) {
+    return sendError(res, `Could not delete team member: ${error.message}`, [], 500);
+  }
+};
+
+export const changePassword = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).select('+password');
+    if (!user) return sendError(res, 'User no longer exists', [], 401);
+
+    const isMatch = await user.comparePassword(req.body.currentPassword);
+    if (!isMatch) return sendError(res, 'Current password is incorrect', [], 400);
+
+    user.password = req.body.newPassword;
+    user.mustChangePassword = false;
+    await user.save();
+    return sendSuccess(res, 'Password updated successfully', { mustChangePassword: false });
+  } catch (error) {
+    return sendError(res, `Could not update password: ${error.message}`, [], 500);
   }
 };
 
@@ -83,6 +209,9 @@ export const login = async (req, res) => {
     if (!isMatch) {
       return sendError(res, 'Invalid credentials', [], 401);
     }
+    if (user.status === 'suspended') {
+      return sendError(res, 'This account is suspended. Contact your shop manager.', [], 403);
+    }
 
     // Generate JWT & set HttpOnly cookie
     generateTokenAndSetCookie(res, user._id);
@@ -94,6 +223,8 @@ export const login = async (req, res) => {
       postNom: user.postNom,
       identifier: user.identifier,
       role: user.role,
+      zone: user.zone,
+      mustChangePassword: user.mustChangePassword,
     };
 
     return sendSuccess(res, 'Login successful', userProfile);
@@ -133,6 +264,8 @@ export const getMe = async (req, res) => {
       postNom: req.user.postNom,
       identifier: req.user.identifier,
       role: req.user.role,
+      zone: req.user.zone,
+      mustChangePassword: req.user.mustChangePassword,
       createdAt: req.user.createdAt,
     };
 

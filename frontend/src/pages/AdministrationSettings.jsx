@@ -1,5 +1,5 @@
 import PageEntrance from '../components/PageEntrance';
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import {
     Palette,
     ShieldCheck,
@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import ThemeToggle from '../components/ThemeToggle';
 import useAuthStore from '../hooks/Zustand/useAuthStore';
+import TeamAccountForm from '../components/TeamAccountForm';
 
 const PREVIEW_BARS = [38, 55, 47, 62, 58, 74, 66, 52, 70, 68, 84, 76, 92, 80, 88, 96, 72, 82];
 
@@ -67,6 +68,8 @@ function StatCard({ icon, label, value, status, tone }) {
 
 export default function AdministrationSettings() {
     const user = useAuthStore((state) => state.user);
+    const isAdmin = user?.role === 'admin' || user?.role === 'administration';
+    if (!isAdmin) return <Navigate to={user?.role === 'shop_manager' ? '/equipe' : '/dashboard'} replace/>;
     const userName = user
         ? user.identifier || [user.prenom, user.nom].filter(Boolean).join(' ')
         : '';
@@ -189,15 +192,12 @@ export default function AdministrationSettings() {
 
                 {/* Administration avancée */}
                 <section className={`${card} lg:col-span-2`}>
-                    <CardHead icon={Info} label="Administration avancée" />
-                    <div className={`${cardBody} flex flex-wrap items-center justify-between gap-4`}>
-                        <p className={bodyText}>
-                            La gestion des rôles, l’affectation des techniciens et l’audit nécessitent des
-                            services dédiés. Ces fonctions ne sont pas encore disponibles dans cet espace.
+                    <CardHead icon={Info} label="Créer un responsable shop" />
+                    <div className={cardBody}>
+                        <p className={`${bodyText} mb-4`}>
+                            Le responsable pourra ensuite créer les comptes technicien et commercial de sa zone.
                         </p>
-                        <span className="inline-flex items-center gap-2 whitespace-nowrap rounded-full border border-black/10 bg-zinc-100 px-3 py-1.5 text-xs dark:border-white/10 dark:bg-[#17171a]">
-                            <i className={`inline-block size-2 rounded-full ${DOT.info}`} />À connecter
-                        </span>
+                        <TeamAccountForm/>
                     </div>
                 </section>
             </div>

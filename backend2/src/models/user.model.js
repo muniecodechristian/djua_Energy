@@ -32,9 +32,28 @@ const UserSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['administration', 'kitireceveur'],
+    enum: ['admin', 'administration', 'shop_manager', 'technician', 'commercial', 'kitireceveur'],
     default: 'kitireceveur',
     required: [true, 'Role is required'],
+  },
+  zone: {
+    type: String,
+    trim: true,
+    default: '',
+  },
+  status: {
+    type: String,
+    enum: ['active', 'suspended'],
+    default: 'active',
+  },
+  mustChangePassword: {
+    type: Boolean,
+    default: false,
+  },
+  createdBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null,
   },
 }, {
   timestamps: true,

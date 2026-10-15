@@ -5,6 +5,7 @@ import { Wrench, Save, Check, ArrowUpRight, ClipboardList, Clock, CheckCircle2 }
 import { useKitsQuery } from '../hooks/tanstack/useKitQueries';
 import { useCreateIntervention, useGetInterventions, useUpdateInterventionStatus } from '../hooks/tanstack/useInterventions';
 import { asList, detailUrl, formatDate } from '../lib/operations';
+import { ListSkeleton } from '../components/PageSkeleton';
 
 const localDay = () => { const date = new Date(); return [date.getFullYear(),String(date.getMonth()+1).padStart(2,'0'),String(date.getDate()).padStart(2,'0')].join('-'); };
 
@@ -163,9 +164,7 @@ export default function InterventionWizard() {
 
           <div className="flex-1 overflow-y-auto pr-1" style={{ maxHeight: 'calc(100vh - 250px)' }}>
             {interventionsQuery.isLoading ? (
-              <div className="ops-empty">
-                <h3>Chargement...</h3>
-              </div>
+              <ListSkeleton/>
             ) : displayedList.length === 0 ? (
               <div className="ops-empty">
                 <span className="ops-empty-icon"><ClipboardList size={26}/></span>

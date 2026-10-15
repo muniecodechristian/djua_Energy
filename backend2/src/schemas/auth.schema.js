@@ -33,6 +33,34 @@ export const registerSchema = z.object({
   }),
 });
 
+export const teamUserSchema = z.object({
+  body: z.object({
+    nom: z.string().trim().min(2),
+    prenom: z.string().trim().min(2),
+    postNom: z.string().trim().optional(),
+    identifier: identifierSchema,
+    password: passwordStrengthSchema,
+    role: z.enum(['shop_manager', 'technician', 'commercial']),
+    zone: z.string().trim().optional(),
+  }),
+});
+
+export const teamMemberStatusSchema = z.object({
+  params: z.object({ userId: z.string().regex(/^[a-f\d]{24}$/i) }),
+  body: z.object({ status: z.enum(['active', 'suspended']) }),
+});
+
+export const teamMemberParamsSchema = z.object({
+  params: z.object({ userId: z.string().regex(/^[a-f\d]{24}$/i) }),
+});
+
+export const changePasswordSchema = z.object({
+  body: z.object({
+    currentPassword: z.string().min(1),
+    newPassword: passwordStrengthSchema,
+  }),
+});
+
 export const loginSchema = z.object({
   body: z.object({
     identifier: z.string().trim(), // <-- 'identifier'
