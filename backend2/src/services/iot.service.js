@@ -93,7 +93,7 @@ export async function processTelemetry(deviceId, payload) {
       sequence_number:  cleanPayload.sequence_number ?? 1,
       interval_seconds: cleanPayload.interval_seconds ?? null,
     },
-    extraData: {},
+    extraData: cleanPayload,
   });
 
   // ── 3. Sauvegarde des données enrichies (collection EnrichedTelemetry ML) ─

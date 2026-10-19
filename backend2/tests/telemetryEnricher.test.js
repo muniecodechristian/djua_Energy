@@ -49,6 +49,30 @@ describe('Telemetry Enricher Service Tests', () => {
     expect(normalized.ac_apparent_power_va).toBe(145.8);
   });
 
+  it('should preserve future IoT fields in normalized and enriched telemetry', async () => {
+    const payload = {
+      protocol: 'D2T2',
+      kit_id: 'DJUA-KIN-000001',
+      timestamp: '2026-10-19T13:00:00Z',
+      battery: { voltage_v: 12.4 },
+      solar: { voltage_v: 18.2, energy_interval_wh: null },
+      validity: { solar_energy: false },
+      inverter: { heatsink_temperature_c: 47.5 },
+      sensor_extension: { particulate_count: 0 },
+    };
+
+    const normalized = normalizeTelemetryPayload(payload);
+    const enriched = await enrichTelemetry(normalized);
+    const record = enriched.records[enriched.records.length - 1];
+
+    expect(normalized.inverter).toEqual({ heatsink_temperature_c: 47.5 });
+    expect(normalized.sensor_extension).toEqual({ particulate_count: 0 });
+    expect(record.inverter).toEqual({ heatsink_temperature_c: 47.5 });
+    expect(record.sensor_extension).toEqual({ particulate_count: 0 });
+    expect(record.solar.energy_interval_wh).toBeNull();
+    expect(record.validity.solar_energy).toBe(false);
+  });
+
   it('should enrich raw telemetry data without retired fields', async () => {
     const iotPayload = {
       message_id: "msg-maint-001",

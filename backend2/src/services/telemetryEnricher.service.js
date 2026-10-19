@@ -76,6 +76,7 @@ function buildRecord(iotPayload, { kitId, deviceId, kitInfo }) {
   const currentHour = new Date().getHours();
   const day_period = (currentHour >= 6 && currentHour < 18) ? 'day' : 'night';
   return {
+    ...iotPayload,
     message_id: iotPayload.message_id || `msg-${Date.now()}`,
     schema_version: String(iotPayload.schema_version || '1.0'),
     message_type: iotPayload.message_type || 'telemetry',

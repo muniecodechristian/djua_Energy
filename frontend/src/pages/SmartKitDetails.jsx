@@ -14,6 +14,7 @@ import { useAlertsQuery, useKitsQuery } from '../hooks/tanstack/useKitQueries.js
 import { io } from 'socket.io-client';
 import api from '../api/axios';
 import { predictionMatchesKit } from '../lib/operations';
+import { formatTelemetryValue, getTelemetryMetrics, groupTelemetryMetrics } from '../lib/telemetryMetrics';
 import { useCreateIntervention } from '../hooks/tanstack/useInterventions.js';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -186,8 +187,9 @@ const RowList = ({ children }) => <div className="divide-y divide-[var(--panel-b
 
 /* Un seul graphique, une seule unité, un choix de mesure */
 const TrendChart = ({ data, options, height = 256 }) => {
-  const [key, setKey] = useState(options[0].key);
-  const cur = options.find((o) => o.key === key) || options[0];
+  const availableOptions = options.length ? options : [{ key: 'unavailable', label: 'Mesure indisponible', unit: '' }];
+  const [key, setKey] = useState(availableOptions[0].key);
+  const cur = availableOptions.find((o) => o.key === key) || availableOptions[0];
   const hasData = data.some((d) => d[cur.key] != null);
   return (
     <div>
@@ -510,21 +512,26 @@ export default function SmartKitDetails() {
   const currentDistance = hasReferenceGps && hasTelemetryGps ? distanceInMeters(refLat, refLng, lat, lng) : null;
   const isOutsideGeofence = Boolean(liveGeofenceAlert) || (currentDistance != null && currentDistance > 90);
 
-  const chartData = telemetryRecords.slice(-24).map((r, i) => {
-    const d = parseDateString(r.event_time);
-    return {
-      time: d ? d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : `#${i + 1}`,
-      tension_bat: r.battery_voltage_v ?? null,
-      courant_bat: r.battery_current_a ?? null,
-      tension_pv: r.solar_voltage_v ?? null,
-      courant_pv: r.solar_current_a ?? null,
-      puissance_pv: r.solar_power_w ?? null,
-      soc: r.state_of_charge_pct ?? null,
-      temp_boitier: r.device_temperature_c ?? null,
-      temp_ambiante: r.ambient_temperature_c ?? null,
-      humidite: r.humidity_pct ?? null,
+  const recentRecords = telemetryRecords.slice(-24);
+  const chartOptionsByPath = new Map();
+  const chartData = recentRecords.map((record, index) => {
+    const date = parseDateString(record.event_time || record.timestamp || record.gateway_received_at);
+    const row = {
+      time: date ? date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : `#${index + 1}`,
     };
+    for (const metric of getTelemetryMetrics(record)) {
+      if (typeof metric.value !== 'number' || !Number.isFinite(metric.value)) continue;
+      chartOptionsByPath.set(metric.path, metric);
+      row[metric.chartKey] = metric.value;
+    }
+    return row;
   });
+  const chartOptions = [...chartOptionsByPath.values()].map((metric) => ({
+    key: metric.chartKey,
+    label: `${metric.group} · ${metric.label}`,
+    unit: metric.unit,
+  }));
+  const currentMetrics = groupTelemetryMetrics(getTelemetryMetrics(T));
 
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 3000); };
 
@@ -673,22 +680,34 @@ export default function SmartKitDetails() {
                     prev={P?.battery_power_w} curr={T?.battery_power_w} />
                 </div>
 
+                <Card title="Mesures reçues de l’IoT" subtitle="Les champs présents dans les messages du boîtier s’affichent automatiquement.">
+                  {currentMetrics.size > 0 ? (
+                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                      {[...currentMetrics].map(([group, metrics]) => (
+                        <section key={group} className="rounded-md border border-[var(--panel-border)] bg-[var(--app-surface)] px-4">
+                          <h3 className={`border-b border-[var(--panel-border)] py-3 text-sm font-semibold ${FG}`}>{group}</h3>
+                          <dl className="divide-y divide-[var(--panel-border)]">
+                            {metrics.map((metric) => (
+                              <div key={metric.path} className="flex items-start justify-between gap-3 py-2.5">
+                                <dt className={`text-sm ${MUTED}`}>{metric.label}</dt>
+                                <dd className={`text-right text-sm font-medium tabular-nums ${FG}`}>{formatTelemetryValue(metric.value, metric.unit)}</dd>
+                              </div>
+                            ))}
+                          </dl>
+                        </section>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className={`py-2 text-sm ${MUTED}`}>Aucune mesure exploitable n’a encore été reçue.</p>
+                  )}
+                </Card>
+
                 <Suspense fallback={<div className="kit-card p-6 text-sm" role="status">Chargement de la vue du kit…</div>}>
                   <KitExplorer telemetry={T} />
                 </Suspense>
 
-                <Card title="Évolution" subtitle="24 derniers relevés">
-                  <TrendChart
-                    data={chartData}
-                    options={[
-                      { key: 'soc', label: 'Batterie (%)', unit: '%' },
-                      { key: 'puissance_pv', label: 'Production solaire (W)', unit: 'W' },
-                      { key: 'tension_bat', label: 'Tension batterie (V)', unit: 'V' },
-                      { key: 'courant_bat', label: 'Courant batterie (A)', unit: 'A' },
-                      { key: 'tension_pv', label: 'Tension panneau (V)', unit: 'V' },
-                      { key: 'courant_pv', label: 'Courant panneau (A)', unit: 'A' },
-                    ]}
-                  />
+                <Card title="Évolution des mesures" subtitle="Les courbes disponibles sont détectées dans les 24 derniers relevés.">
+                  <TrendChart data={chartData} options={chartOptions} />
                 </Card>
 
                 <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
