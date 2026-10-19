@@ -34,9 +34,14 @@ export function navigationForRole(role) {
   
   // Le commercial est uniquement là pour la partie devis, rien d'autre
   if (normalizedRole === 'commercial') {
-    return navigation
-      .filter(item => ['/devis', '/catalogue'].includes(item.path))
-      .map(item => ({ ...item, label: item.path === '/devis' ? 'Devis' : item.label, section: 'Gestion' }));
+    const commercialPaths = ['/dashboard', '/devis', '/parc', '/rapports', '/catalogue'];
+    return navigation.filter(item => commercialPaths.includes(item.path))
+      .sort((left, right) => commercialPaths.indexOf(left.path) - commercialPaths.indexOf(right.path))
+      .map(item => ({
+        ...item,
+        label: item.path === '/dashboard' ? 'Tableau de bord' : item.path === '/devis' ? 'Devis' : item.path === '/parc' ? 'Parc solaire' : item.path === '/rapports' ? 'Rapports' : item.label,
+        section: 'Espace commercial',
+      }));
   }
 
   // Le technicien n'a pas accès à la plateforme du responsable de shop : son app est sur /technicien

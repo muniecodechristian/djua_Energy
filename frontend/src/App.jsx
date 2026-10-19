@@ -7,6 +7,7 @@ import useAuthStore from './hooks/Zustand/useAuthStore.js';
 
 
 const Dashboard = lazy(() => import('./pages/Dashboard'));
+const CommercialDashboard = lazy(() => import('./pages/CommercialDashboard'));
 import LoginTeak from './pages/LoginTeak';
 import MainLayout from './pages/MainLayout';
 const FleetStatusFeed = lazy(() => import('./pages/FleetStatusFeed'));
@@ -27,6 +28,11 @@ function QuotesHome() {
   const user = useAuthStore(state => state.user);
   const isAdmin = user?.role === 'admin' || user?.role === 'administration';
   return isAdmin ? <AdminQuotes /> : <Devis />;
+}
+
+function DashboardHome() {
+  const user = useAuthStore(state => state.user);
+  return user?.role === 'commercial' ? <CommercialDashboard /> : <Dashboard />;
 }
 
 function App() {
@@ -59,7 +65,7 @@ function App() {
         {/* Pages plateforme */}
         <Route element={<MainLayout />}>
           <Route path="/diagnostics"          element={<Navigate to="/parc" replace />} />
-          <Route path="/dashboard"            element={<Dashboard />} />
+          <Route path="/dashboard"            element={<DashboardHome />} />
           <Route path="/devis"                element={<QuotesHome />} />
           <Route path="/devis/nouveau"        element={<Devis />} />
           <Route path="/notification"         element={<FleetStatusFeed />} />

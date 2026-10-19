@@ -12,7 +12,7 @@ import { toast } from 'sonner';
  * Récupère tous les kits depuis le backend (GET /users/orange/kits).
  * Chaque kit est lié à un abonné via clientPhone.
  */
-export const useKitsQuery = () => {
+export const useKitsQuery = (options = {}) => {
   return useQuery({
     queryKey: ['kits'],
     queryFn: async () => {
@@ -24,6 +24,7 @@ export const useKitsQuery = () => {
     },
     staleTime: 1000 * 60 * 2, // 2 minutes de fraîcheur
     retry: 1,
+    enabled: options.enabled ?? true,
     onError: (error) => {
       console.error('[useKitsQuery] Erreur:', error.message);
     },
@@ -54,7 +55,7 @@ export const useClientsQuery = () => {
  * Récupère l'historique des alertes IoT (GET /api/alerts).
  * Données en mémoire du backend — se réinitialise au redémarrage.
  */
-export const useAlertsQuery = () => {
+export const useAlertsQuery = (options = {}) => {
   return useQuery({
     queryKey: ['alerts'],
     queryFn: async () => {
@@ -76,6 +77,7 @@ export const useAlertsQuery = () => {
     staleTime: 1000 * 30, // 30 secondes — les alertes sont volatiles
     refetchInterval: 1000 * 30, // Repolling toutes les 30 secondes
     retry: 1,
+    enabled: options.enabled ?? true,
   });
 };
 
@@ -103,7 +105,7 @@ export const useDevicesQuery = () => {
 /**
  * Récupère l'historique de télémétrie (GET /api/telemetry).
  */
-export const useTelemetryQuery = () => {
+export const useTelemetryQuery = (options = {}) => {
   return useQuery({
     queryKey: ['telemetry'],
     queryFn: async () => {
@@ -116,6 +118,7 @@ export const useTelemetryQuery = () => {
     staleTime: 1000 * 30,
     refetchInterval: 1000 * 30,
     retry: 1,
+    enabled: options.enabled ?? true,
   });
 };
 
@@ -225,4 +228,3 @@ export const useKitScanHistoryQuery = (kitId) => {
     retry: 1,
   });
 };
-

@@ -29,7 +29,9 @@ export default function MainLayout() {
   const hasRestrictedNavigation = isAdmin || isCommercial || isTechnician;
   const visibleNavigation = navigationForRole(role);
   const isTeamPage = location.pathname.toLowerCase() === '/equipe';
-  const info = pageInfo(location.pathname);
+  const info = isCommercial && location.pathname.toLowerCase() === '/dashboard'
+    ? { label: 'Tableau de bord', description: 'Votre activité commerciale et les installations à suivre.' }
+    : pageInfo(location.pathname);
   const skeletonVariant = ({
     '/dashboard': 'dashboard',
     '/parc': 'table',
@@ -51,8 +53,8 @@ export default function MainLayout() {
   const isCatalogPage = location.pathname.toLowerCase() === '/catalogue';
   const restrictedPageFallback = isCommercial ? '/devis' : isTechnician ? '/technicien' : '/dashboard';
   const backFallback = location.pathname.toLowerCase() === '/devis/nouveau' ? '/devis' : /smartkit|customerprofile/i.test(location.pathname) ? '/parc' : '/dashboard';
-  const kits = useKitsQuery();
-  const alerts = useAlertsQuery();
+  const kits = useKitsQuery({ enabled: !hasRestrictedNavigation });
+  const alerts = useAlertsQuery({ enabled: !hasRestrictedNavigation });
   const count = activeAlerts(alerts.data).length;
   useEffect(() => { document.title = info.label + ' · Djua Energy'; content.current?.scrollTo(0, 0); }, [location.pathname, info.label]);
   useEffect(() => {
@@ -62,9 +64,9 @@ export default function MainLayout() {
   }, []);
   const results = [...visibleNavigation.map(item => ({label:item.label, description:item.description, path:item.path})), ...(!hasRestrictedNavigation ? asList(kits.data).filter(kit => kit.kitId).map(kit => ({label:kit.kitId || 'Équipement', description:kit.province || kit.region || 'Fiche équipement', path:detailUrl(kit.kitId)})) : [])].filter(item => (item.label + ' ' + item.description).toLowerCase().includes(search.toLowerCase())).slice(0, 10);
   if (isAdmin && location.pathname.toLowerCase() !== '/devis/nouveau' && !visibleNavigation.some(item => item.path.toLowerCase() === location.pathname.toLowerCase())) return <Navigate to="/AdministrationSettings" replace/>;
-  if (isAdminOnlyPage && !isAdmin) return <Navigate to={restrictedPageFallback} replace/>;
+  if (isAdminOnlyPage && !isAdmin && !isCommercial) return <Navigate to={restrictedPageFallback} replace/>;
   if (isCatalogPage && !isAdmin && !isCommercial) return <Navigate to={restrictedPageFallback} replace/>;
-  if (isCommercial && !['/devis', '/catalogue'].includes(location.pathname.toLowerCase())) return <Navigate to="/devis" replace/>;
+  if (isCommercial && !['/dashboard', '/devis', '/parc', '/rapports', '/catalogue'].includes(location.pathname.toLowerCase())) return <Navigate to="/dashboard" replace/>;
   if (isTechnician && location.pathname.toLowerCase() !== '/technicien') return <Navigate to="/technicien" replace/>;
   if (!isAdmin && location.pathname.toLowerCase() === '/administrationsettings') return <Navigate to={role === 'shop_manager' ? '/equipe' : '/dashboard'} replace/>;
   if (isTeamPage && role !== 'shop_manager') return <Navigate to={isAdmin ? '/AdministrationSettings' : isTechnician ? '/technicien' : '/dashboard'} replace/>;

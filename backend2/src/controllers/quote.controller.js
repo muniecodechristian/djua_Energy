@@ -46,19 +46,28 @@ export async function listQuotes(req, res) {
     const scope = quoteScope(req.user);
     const search = String(req.query.search || '').trim().slice(0, 100);
     const filter = { ...scope };
+    const followUpBefore = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
     if(search) {
       const phone = normalizeSalesPhone(search);
       const clients = await Client.find({ $or: [{ searchName: new RegExp(escapeRegex(foldName(search)), 'i') }, ...(phone ? [{ phone: new RegExp(escapeRegex(phone)) }] : [])] }).select('_id').limit(1000).lean();
       filter.$or = [{ client: { $in: clients.map(client => client._id) } }, { number: new RegExp(escapeRegex(search), 'i') }, { 'customer.name': new RegExp(escapeRegex(search), 'i') }, ...(phone ? [{ 'customer.phone': new RegExp(escapeRegex(phone)) }] : [])];
     }
     const page = Math.max(1, Math.min(10000, Number.parseInt(req.query.page, 10) || 1));
-    const [quotes, total, stats, notices] = await Promise.all([
+    const [quotes, total, stats, notices, kitIds, followUps] = await Promise.all([
       Quote.find(filter).sort({ createdAt: -1, _id: -1 }).skip((page-1)*30).limit(30).lean(),
       Quote.countDocuments(filter),
-      Quote.aggregate([{ $match: scope }, { $group: { _id: '$status', count: { $sum: 1 } } }]),
+      Quote.aggregate([{ $match: scope }, { $group: {
+        _id: '$status',
+        count: { $sum: 1 },
+        draftsToFollowUp: { $sum: { $cond: [{ $and: [{ $eq: ['$status', 'draft'] }, { $lt: ['$createdAt', followUpBefore] }] }, 1, 0] } },
+      } }]),
       Notice.find({ ...scope, expiresAt: { $gt: new Date() } }).sort({ createdAt: -1 }).limit(100).lean(),
+      Quote.distinct('kitId', { ...scope, kitId: { $type: 'string' } }),
+      Quote.find({ ...scope, status: 'draft', createdAt: { $lt: followUpBefore } }).sort({ createdAt: -1 }).limit(5).lean(),
     ]);
-    res.json({ success: true, data: { quotes, total, page, pageSize: 30, stats: Object.fromEntries(stats.map(item => [item._id, item.count])), notices, timezone: QUOTE_TIMEZONE } });
+    const statusCounts = Object.fromEntries(stats.map(item => [item._id, item.count]));
+    statusCounts.draftsToFollowUp = stats.reduce((sum, item) => sum + item.draftsToFollowUp, 0);
+    res.json({ success: true, data: { quotes, total, page, pageSize: 30, stats: statusCounts, notices, kitIds, followUps, timezone: QUOTE_TIMEZONE } });
   } catch { return fail(res, 500, 'Impossible de charger les devis.'); }
 }
 export async function getQuote(req, res) {

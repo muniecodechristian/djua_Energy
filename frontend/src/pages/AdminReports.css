@@ -36,6 +36,7 @@
 .reports-kpi-copy strong { color:var(--ops-ink); font-size:24px; font-weight:650; letter-spacing:-.7px; line-height:1.1; font-variant-numeric:tabular-nums; }
 .reports-kpi-copy small { color:var(--ops-muted); font-size:9px; }
 .reports-main-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:11px; margin-bottom:11px; }
+.reports-main-grid.commercial-only { grid-template-columns:minmax(0,1fr); }
 .reports-card { min-width:0; overflow:hidden; border:1px solid var(--ops-line); border-radius:9px; background:var(--ops-surface); box-shadow:var(--ops-shadow); }
 .reports-chart-card { min-height:290px; }
 .reports-card-title { display:flex; min-height:61px; align-items:center; justify-content:space-between; gap:12px; padding:13px 15px 8px; }
@@ -51,6 +52,7 @@
 .reports-empty-chart { display:flex; min-height:190px; flex-direction:column; align-items:center; justify-content:center; gap:9px; padding:22px; color:var(--ops-muted); font-size:10px; line-height:1.5; text-align:center; }
 .reports-empty-chart svg { color:#a4adba; }
 .reports-bottom-grid { display:grid; grid-template-columns:1.05fr 1fr 1.2fr; gap:10px; }
+.reports-bottom-grid.commercial-only { grid-template-columns:repeat(2,minmax(0,1fr)); }
 .reports-status-card,.reports-list-card { min-height:215px; }
 .reports-status-content { display:flex; min-height:145px; align-items:center; justify-content:center; gap:17px; padding:4px 16px 17px; }
 .reports-donut { position:relative; width:136px; height:136px; flex:none; }

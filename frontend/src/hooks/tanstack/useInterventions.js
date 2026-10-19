@@ -15,7 +15,7 @@ export const useCreateIntervention = () => {
   });
 };
 
-export const useGetInterventions = (kitId = null) => {
+export const useGetInterventions = (kitId = null, options = {}) => {
   return useQuery({
     queryKey: ['interventions', kitId],
     queryFn: async () => {
@@ -24,6 +24,7 @@ export const useGetInterventions = (kitId = null) => {
       return response.data.data;
     },
     staleTime: 1000 * 30,
+    enabled: options.enabled ?? true,
   });
 };
 

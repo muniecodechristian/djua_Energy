@@ -15,6 +15,7 @@ import { ListSkeleton } from '../components/PageSkeleton';
 import { useGetInterventions } from '../hooks/tanstack/useInterventions';
 import { useAlertsQuery, useKitsQuery, useTelemetryQuery } from '../hooks/tanstack/useKitQueries';
 import { activeAlerts, asList, formatDate } from '../lib/operations';
+import useAuthStore from '../hooks/Zustand/useAuthStore';
 import './AdminReports.css';
 
 const tabs = [
@@ -147,6 +148,8 @@ function KpiCard({ label, value, note, icon: Icon, tone = 'orange' }) {
 }
 
 export default function AdminReports() {
+  const user = useAuthStore(state => state.user);
+  const isCommercial = user?.role === 'commercial';
   const [tab, setTab] = useState('overview');
   const [period, setPeriod] = useState('30');
   const [today] = useState(() => localDate(new Date()));
@@ -156,7 +159,7 @@ export default function AdminReports() {
   const [search, setSearch] = useState('');
 
   const quotesQuery = useQuery({
-    queryKey: ['sales-quotes', 'reports'],
+    queryKey: ['sales-quotes', user?._id, 'reports'],
     queryFn: async () => {
       const firstPage = (await api.get('/api/quotes', { params: { page: 1 } })).data?.data;
       if (!firstPage || !Array.isArray(firstPage.quotes)) throw new Error('Format de réponse des devis inattendu.');
@@ -177,16 +180,16 @@ export default function AdminReports() {
     },
     staleTime: 60_000,
   });
-  const kitsQuery = useKitsQuery();
-  const alertsQuery = useAlertsQuery();
-  const telemetryQuery = useTelemetryQuery();
-  const interventionsQuery = useGetInterventions();
+  const kitsQuery = useKitsQuery({ enabled: !isCommercial });
+  const alertsQuery = useAlertsQuery({ enabled: !isCommercial });
+  const telemetryQuery = useTelemetryQuery({ enabled: !isCommercial });
+  const interventionsQuery = useGetInterventions(null, { enabled: !isCommercial });
 
   const allQuotes = asList(quotesQuery.data);
-  const kits = asList(kitsQuery.data);
-  const alerts = activeAlerts(alertsQuery.data);
-  const telemetry = asList(telemetryQuery.data);
-  const interventions = asList(interventionsQuery.data);
+  const kits = useMemo(() => isCommercial ? [] : asList(kitsQuery.data), [isCommercial, kitsQuery.data]);
+  const alerts = useMemo(() => isCommercial ? [] : activeAlerts(alertsQuery.data), [isCommercial, alertsQuery.data]);
+  const telemetry = useMemo(() => isCommercial ? [] : asList(telemetryQuery.data), [isCommercial, telemetryQuery.data]);
+  const interventions = useMemo(() => isCommercial ? [] : asList(interventionsQuery.data), [isCommercial, interventionsQuery.data]);
   const range = period === 'custom' ? customRange : initialRange(period);
   const provinces = useMemo(() => [...new Set([
     ...allQuotes.map(getProvince),
@@ -218,12 +221,13 @@ export default function AdminReports() {
   const trend = useMemo(() => createTrend(quotes, filteredTelemetry, range), [quotes, filteredTelemetry, range]);
 
   const validatedCount = quotes.filter(quote => ['approved', 'installing', 'installed'].includes(quote.status)).length;
-  const kpis = [
+  const allKpis = [
     { label: 'Devis créés', value: quotesQuery.isSuccess ? numberFormat.format(quotes.length) : '—', note: 'Sur la période sélectionnée', icon: FileText, tone: 'orange' },
     { label: 'Devis validés', value: quotesQuery.isSuccess ? numberFormat.format(validatedCount) : '—', note: 'Validés ou en cours d’installation', icon: CheckCircle2, tone: 'green' },
     { label: 'Installations suivies', value: kitsQuery.isSuccess ? numberFormat.format(filteredKits.length) : '—', note: province === 'all' ? 'Parc enregistré' : province, icon: Users, tone: 'purple' },
     { label: 'Alertes ouvertes', value: alertsQuery.isSuccess ? numberFormat.format(filteredAlerts.length) : '—', note: 'Actives ou prises en charge', icon: AlertTriangle, tone: 'red' },
   ];
+  const kpis = isCommercial ? allKpis.slice(0, 2) : allKpis;
 
   const quoteStatus = useMemo(() => Object.entries(statusLabels).map(([status, label]) => ({
     name: label,
@@ -251,19 +255,22 @@ export default function AdminReports() {
 
   const refresh = () => {
     quotesQuery.refetch();
-    kitsQuery.refetch();
-    alertsQuery.refetch();
-    telemetryQuery.refetch();
-    interventionsQuery.refetch();
+    if (!isCommercial) {
+      kitsQuery.refetch();
+      alertsQuery.refetch();
+      telemetryQuery.refetch();
+      interventionsQuery.refetch();
+    }
   };
-  const refreshing = [quotesQuery, kitsQuery, alertsQuery, telemetryQuery, interventionsQuery].some(query => query.isFetching);
+  const refreshing = isCommercial ? quotesQuery.isFetching : [quotesQuery, kitsQuery, alertsQuery, telemetryQuery, interventionsQuery].some(query => query.isFetching);
   const errors = [
     quotesQuery.isError && 'devis',
-    kitsQuery.isError && 'installations',
-    alertsQuery.isError && 'alertes',
-    telemetryQuery.isError && 'télémétrie',
-    interventionsQuery.isError && 'comptes-rendus',
+    !isCommercial && kitsQuery.isError && 'installations',
+    !isCommercial && alertsQuery.isError && 'alertes',
+    !isCommercial && telemetryQuery.isError && 'télémétrie',
+    !isCommercial && interventionsQuery.isError && 'comptes-rendus',
   ].filter(Boolean);
+  const visibleTabs = isCommercial ? tabs.filter(item => ['overview', 'sales'].includes(item.id)) : tabs;
 
   const exportQuotes = () => downloadCsv('devis', ['Numéro', 'Client', 'Province', 'Statut', 'Date', 'Montant', 'Devise'], quotes.map(quote => [
     quote.number, quote.customer?.name, getProvince(quote), statusLabels[quote.status] || quote.status,
@@ -308,8 +315,8 @@ export default function AdminReports() {
             <button className="reports-export-button" aria-expanded={exportOpen} onClick={() => setExportOpen(open => !open)}><ArrowDownToLine size={15} />Exporter<ChevronDown size={14} /></button>
             {exportOpen && <div className="reports-export-menu" role="menu">
               <button role="menuitem" onClick={() => { exportQuotes(); setExportOpen(false); }}>Devis de la période</button>
-              <button role="menuitem" onClick={() => { exportFleet(); setExportOpen(false); }}>Installations filtrées</button>
-              <button role="menuitem" onClick={() => { exportInterventions(); setExportOpen(false); }}>Comptes-rendus filtrés</button>
+              {!isCommercial && <button role="menuitem" onClick={() => { exportFleet(); setExportOpen(false); }}>Installations filtrées</button>}
+              {!isCommercial && <button role="menuitem" onClick={() => { exportInterventions(); setExportOpen(false); }}>Comptes-rendus filtrés</button>}
             </div>}
           </div>
           <button className="reports-refresh-button" aria-label="Actualiser les rapports" title="Actualiser les données" disabled={refreshing} onClick={refresh}><RefreshCw size={15} className={refreshing ? 'ops-spin' : ''} /></button>
@@ -322,30 +329,30 @@ export default function AdminReports() {
       </div>}
 
       <nav className="reports-tabs" aria-label="Sections des rapports" role="tablist">
-        {tabs.map(item => <button key={item.id} id={`reports-tab-${item.id}`} role="tab" aria-controls={`reports-panel-${item.id}`} aria-selected={tab === item.id} tabIndex={tab === item.id ? 0 : -1} className={tab === item.id ? 'is-active' : ''} onClick={() => setTab(item.id)}>{item.label}</button>)}
+        {visibleTabs.map(item => <button key={item.id} id={`reports-tab-${item.id}`} role="tab" aria-controls={`reports-panel-${item.id}`} aria-selected={tab === item.id} tabIndex={tab === item.id ? 0 : -1} className={tab === item.id ? 'is-active' : ''} onClick={() => setTab(item.id)}>{item.label}</button>)}
       </nav>
 
       {tab === 'overview' && <div id="reports-panel-overview" role="tabpanel" aria-labelledby="reports-tab-overview" tabIndex={0}>
-        <section className="reports-kpis" aria-label="Indicateurs clés">
+        <section className={`reports-kpis${isCommercial ? ' commercial-only' : ''}`} aria-label="Indicateurs clés">
           {kpis.map(item => <KpiCard key={item.label} {...item} />)}
         </section>
-        <div className="reports-main-grid">
+        <div className={`reports-main-grid${isCommercial ? ' commercial-only' : ''}`}>
           <ChartCard title="Activité commerciale" description="Devis créés, validés et installés sur la période.">
             {quotesQuery.isPending ? <EmptyChart>Chargement des devis…</EmptyChart> : quotes.length === 0 ? <EmptyChart /> : <div className="reports-chart"><ResponsiveContainer width="100%" height="100%"><LineChart data={trend} margin={{ top: 10, right: 10, bottom: 0, left: -18 }}><CartesianGrid stroke="#edf0f4" vertical={false} /><XAxis dataKey="day" tickLine={false} axisLine={false} minTickGap={24} /><YAxis allowDecimals={false} tickLine={false} axisLine={false} /><Tooltip content={<ChartTooltip />} /><Legend verticalAlign="bottom" height={32} iconType="circle" /><Line name="Devis créés" dataKey="created" stroke="#ff6a00" strokeWidth={2.5} dot={false} activeDot={{ r: 4 }} /><Line name="Devis validés" dataKey="validated" stroke="#3984f7" strokeWidth={2.5} dot={false} activeDot={{ r: 4 }} /><Line name="Installés" dataKey="installed" stroke="#2eaa70" strokeWidth={2.5} dot={false} activeDot={{ r: 4 }} /></LineChart></ResponsiveContainer></div>}
           </ChartCard>
-          <ChartCard title="Production solaire et charge DC" description="Énergie mesurée par les dernières télémétries disponibles (Wh).">
+          {!isCommercial && <ChartCard title="Production solaire et charge DC" description="Énergie mesurée par les dernières télémétries disponibles (Wh).">
             {telemetryQuery.isPending ? <EmptyChart>Chargement de la télémétrie…</EmptyChart> : filteredTelemetry.length === 0 || !trend.some(row => row.produced || row.consumed) ? <EmptyChart>Aucune mesure d’énergie exploitable pour cette période.</EmptyChart> : <div className="reports-chart"><ResponsiveContainer width="100%" height="100%"><AreaChart data={trend} margin={{ top: 10, right: 10, bottom: 0, left: -12 }}><CartesianGrid stroke="#edf0f4" vertical={false} /><XAxis dataKey="day" tickLine={false} axisLine={false} minTickGap={24} /><YAxis tickLine={false} axisLine={false} /><Tooltip content={<ChartTooltip />} /><Legend verticalAlign="bottom" height={32} iconType="circle" /><Area name="Production solaire (Wh)" dataKey="produced" type="monotone" stroke="#ff6a00" fill="#ff6a00" fillOpacity={0.12} strokeWidth={2} /><Area name="Charge DC (Wh)" dataKey="consumed" type="monotone" stroke="#3984f7" fill="#3984f7" fillOpacity={0.10} strokeWidth={2} /></AreaChart></ResponsiveContainer></div>}
-          </ChartCard>
+          </ChartCard>}
         </div>
-        <div className="reports-bottom-grid">
+        <div className={`reports-bottom-grid${isCommercial ? ' commercial-only' : ''}`}>
           <section className="reports-card reports-status-card">
             <header className="reports-card-title"><div><h2>Statut des devis</h2><p>Répartition des devis créés dans la période.</p></div></header>
             {quotesQuery.isPending ? <EmptyChart>Chargement des devis…</EmptyChart> : quoteStatus.length === 0 ? <EmptyChart /> : <div className="reports-status-content"><div className="reports-donut"><ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={quoteStatus} dataKey="value" nameKey="name" innerRadius="66%" outerRadius="92%" paddingAngle={2} stroke="none">{quoteStatus.map((item, index) => <Cell key={item.name} fill={item.color || palette[index % palette.length]} />)}</Pie><Tooltip content={<ChartTooltip />} /></PieChart></ResponsiveContainer><span><strong>{numberFormat.format(quotes.length)}</strong><small>devis</small></span></div><ul className="reports-legend-list">{quoteStatus.map((item, index) => <li key={item.name}><i style={{ background: item.color || palette[index % palette.length] }} /><span>{item.name}</span><strong>{numberFormat.format(item.value)}</strong><small>{quotes.length ? `${Math.round(item.value / quotes.length * 100)} %` : '0 %'}</small></li>)}</ul></div>}
           </section>
-          <section className="reports-card reports-list-card">
+          {!isCommercial && <section className="reports-card reports-list-card">
             <header className="reports-card-title"><div><h2>Alertes les plus fréquentes</h2><p>Alertes ouvertes correspondant aux filtres.</p></div><button className="reports-inline-action" onClick={() => setTab('fleet')}>Voir le parc <ChevronRight size={14} /></button></header>
             {alertsQuery.isPending ? <EmptyChart>Chargement des alertes…</EmptyChart> : anomalies.length === 0 ? <EmptyChart>Aucune alerte ouverte sur cette période.</EmptyChart> : <ul className="reports-data-list">{anomalies.map((item, index) => <li key={item.name}><span className="reports-rank">{index + 1}</span><span>{item.name}</span><strong>{numberFormat.format(item.count)}</strong></li>)}</ul>}
-          </section>
+          </section>}
           <section className="reports-card reports-list-card">
             <header className="reports-card-title"><div><h2>Équipements les plus dimensionnés</h2><p>Quantités issues des devis de la période.</p></div><button className="reports-inline-action" onClick={() => setTab('sales')}>Voir les ventes <ChevronRight size={14} /></button></header>
             {quotesQuery.isPending ? <EmptyChart>Chargement des devis…</EmptyChart> : products.length === 0 ? <EmptyChart>Aucun équipement dans les devis de cette période.</EmptyChart> : <div className="reports-mini-table"><div><span>Équipement</span><span>Catégorie</span><span>Qté</span></div>{products.map(item => <div key={item.name}><strong title={item.name}>{item.name}</strong><span>{item.category}</span><b>{numberFormat.format(item.count)}</b></div>)}</div>}

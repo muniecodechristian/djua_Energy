@@ -37,7 +37,7 @@ export default function Sidebar({ isSidebarOpen, setIsSidebarOpen }) {
   const role = user?.role === 'administration' ? 'admin' : user?.role;
   const visibleNavigation = navigationForRole(role);
   const sections = [...new Set(visibleNavigation.map(item => item.section))];
-  const showSectionLabels = role !== 'admin';
+  const showSectionLabels = !['admin', 'commercial'].includes(role);
   const logout = useLogoutMutation();
   useEffect(() => {
     const close = event => { if (event.key === 'Escape') setIsSidebarOpen(false); };

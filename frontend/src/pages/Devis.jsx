@@ -1,6 +1,7 @@
 import SaveQuote from '../components/SaveQuote';
 import SalesQuotes, { SalesQuoteOverview } from '../components/SalesQuotes';
 import useAuthStore from '../hooks/Zustand/useAuthStore';
+import { useLocation } from 'react-router-dom';
 import QuoteChat, { QuoteChatButton } from '../components/QuoteChat';
 import './Devis.css';
 import EquipmentPhoto, { equipmentPhoto, WhatsAppIcon } from '../components/EquipmentPhoto';
@@ -1383,9 +1384,11 @@ function QuotePreview({ selectedProfile, selectedType, customType, companyForm, 
    PAGE PRINCIPALE
 ──────────────────────────────────────────────────────────────────────────── */
 export default function Devis() {
+  const location=useLocation();
+  const focusQuote=location.state?.focusQuote || '';
   const salesUser=useAuthStore(state=>state.user);
   const catalogQuery=useCatalogProducts({enabled:['commercial','admin','administration'].includes(salesUser?.role)});
-  const [showSales,setShowSales]=useState(false);
+  const [showSales,setShowSales]=useState(Boolean(focusQuote));
   const savedDraft = useMemo(() => readSavedDraft(), []);
   const [theme, setTheme] = useState(() => {
     if (typeof window === 'undefined') return 'dark';
@@ -1573,7 +1576,7 @@ export default function Devis() {
       <div className="mx-auto max-w-7xl">
         {['commercial','shop_manager','admin','administration'].includes(salesUser?.role) && <SalesQuoteOverview onOpen={()=>setShowSales(!showSales)}/>}
 
-        {showSales && ['commercial','shop_manager','admin','administration'].includes(salesUser?.role) && <SalesQuotes onNewClientQuote={quote=>{setSelectedProfile(quote.customer.profile||'personne');setClientForm({...initialClientForm,...quote.customer.details,fullName:quote.customer.name,phone:quote.customer.phone,email:quote.customer.email||''});setCompanyForm({...initialCompanyForm,...quote.customer.details,companyName:quote.customer.name,phone:quote.customer.phone,email:quote.customer.email||''});setSiteForm({...initialSiteForm,...quote.site});setAppliances([]);setIsValidated(false);setCurrentStep('details');setShowSales(false);}}/>}
+        {showSales && ['commercial','shop_manager','admin','administration'].includes(salesUser?.role) && <SalesQuotes focusQuote={focusQuote} onNewClientQuote={quote=>{setSelectedProfile(quote.customer.profile||'personne');setClientForm({...initialClientForm,...quote.customer.details,fullName:quote.customer.name,phone:quote.customer.phone,email:quote.customer.email||''});setCompanyForm({...initialCompanyForm,...quote.customer.details,companyName:quote.customer.name,phone:quote.customer.phone,email:quote.customer.email||''});setSiteForm({...initialSiteForm,...quote.site});setAppliances([]);setIsValidated(false);setCurrentStep('details');setShowSales(false);}}/>}
 
         {/* ── En-tête ── */}
         <header className="dv-main-heading mb-6 flex items-center justify-between gap-4">

@@ -40,6 +40,21 @@ describe('Customer quotations and installation lifecycle',()=>{
   }
   expect(second.customer.details.contactPref).toBe('WhatsApp');
  });
+ it('returns a role-scoped dashboard summary with follow-up quotes and installed kit ids',async()=>{
+  const quote=await save('dashboard-summary-001');
+  const createdAt=new Date(Date.now()-4*24*60*60*1000);
+  const storedQuote=await Quote.findOne({number:quote.number}).select('_id');
+  await Quote.collection.collection.updateOne({_id:storedQuote._id},{$set:{createdAt,kitId:'KIT-DASHBOARD-001'}});
+  expect((await Quote.findById(quote._id)).createdAt.getTime()).toBe(createdAt.getTime());
+  const response=await request(app).get('/api/quotes').set('Cookie',cookie(commercial));
+  expect(response.status).toBe(200);
+  expect(response.body.data.stats.draftsToFollowUp).toBe(1);
+  expect(response.body.data.followUps.map(item=>item.number)).toContain(quote.number);
+  expect(response.body.data.kitIds).toContain('KIT-DASHBOARD-001');
+  const otherResponse=await request(app).get('/api/quotes').set('Cookie',cookie(other));
+  expect(otherResponse.body.data.stats.draftsToFollowUp).toBe(0);
+  expect(otherResponse.body.data.kitIds).toEqual([]);
+ });
  it('is idempotent for retries, including parallel saves',async()=>{
   const results=await Promise.all([1,2].map(()=>request(app).post('/api/quotes').set('Cookie',cookie(commercial)).send(body())));
   expect(results.every(item=>[200,201].includes(item.status))).toBe(true);
