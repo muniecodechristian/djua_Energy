@@ -80,6 +80,7 @@ import {
 } from 'lucide-react';
 import { useSolarConversation, useSolarRecommend } from '../hooks/tanstack/useSolarAdvisor';
 import SolarAdvisorResult, { SolarAdvisorTrigger } from '../components/SolarAdvisorResult';
+import { useCatalogProducts } from '../hooks/tanstack/useCatalogProducts';
 
 /* ────────────────────────────────────────────────────────────────────────────
    DESIGN TOKENS — Orange RDC : noir, blanc, orange #FF7900, Helvetica Neue
@@ -883,13 +884,16 @@ function ApplianceRow({ item, onUpdate, onRemove }) {
   );
 }
 
-function QuickAdd({ appliances, onQuickAdd }) {
+function QuickAdd({ appliances, onQuickAdd, catalogProducts = [], catalogLoading = false, catalogError = false }) {
   const [over,setOver]=useState(false);
-  const drop=event=>{event.preventDefault();setOver(false);const name=event.dataTransfer.getData('application/x-djua-preset');const preset=PRESETS.find(item=>item.name===name);if(preset)onQuickAdd(preset);};
+  const products=[...new Map([...PRESETS,...catalogProducts.filter(product=>product.active).map(product=>({...product,imageUrl:product.imageData}))].map(item=>[item.name,item])).values()];
+  const drop=event=>{event.preventDefault();setOver(false);const name=event.dataTransfer.getData('application/x-djua-preset');const preset=products.find(item=>item.name===name);if(preset)onQuickAdd(preset);};
   return <section className="dv-catalogue">
-    <div className="dv-catalogue-heading"><div><h3>Le catalogue d'appareils</h3><p>Ajoutez les appareils du client, puis ajustez leur quantité et leur usage.</p></div><span>Photos illustratives</span></div>
-    <div className="dv-photo-grid">{PRESETS.map(preset=>{const count=appliances.filter(item=>item.name===preset.name).reduce((sum,item)=>sum+item.quantity,0);return <button type="button" key={preset.name} draggable onDragStart={event=>{event.dataTransfer.setData('application/x-djua-preset',preset.name);event.dataTransfer.effectAllowed='copy';}} onClick={()=>onQuickAdd(preset)} className="dv-product" aria-label={`Ajouter ${preset.name}`}>
-      <EquipmentPhoto name={preset.name}/><span className="dv-product-add"><Plus size={15}/></span>{count>0&&<span className="dv-product-count">{count}</span>}
+    <div className="dv-catalogue-heading"><div><h3>Le catalogue d'appareils</h3><p>Ajoutez les appareils du client, puis ajustez leur quantité et leur usage.</p></div><span>{catalogProducts.length ? 'Catalogue partagé' : 'Appareils courants'}</span></div>
+    {catalogError&&<p className="dv-hint" role="status">Le catalogue partagé est momentanément indisponible. Les appareils courants restent disponibles.</p>}
+    {catalogLoading&&<p className="dv-hint" role="status">Chargement des produits ajoutés par l’administration…</p>}
+    <div className="dv-photo-grid">{products.map(preset=>{const count=appliances.filter(item=>item.name===preset.name).reduce((sum,item)=>sum+item.quantity,0);return <button type="button" key={preset._id||preset.name} draggable onDragStart={event=>{event.dataTransfer.setData('application/x-djua-preset',preset.name);event.dataTransfer.effectAllowed='copy';}} onClick={()=>onQuickAdd(preset)} className="dv-product" aria-label={`Ajouter ${preset.name}`}>
+      <EquipmentPhoto name={preset.name} src={preset.imageUrl}/><span className="dv-product-add"><Plus size={15}/></span>{count>0&&<span className="dv-product-count">{count}</span>}
       <span className="dv-product-name">{preset.name}</span><span className="dv-product-power">{preset.watts} W <span>· Ajouter</span></span>
     </button>;})}</div>
     <div className={`dv-dropzone ${over?'is-over':''}`} onDragOver={event=>{if(event.dataTransfer.types.includes('application/x-djua-preset')){event.preventDefault();setOver(true);}}} onDragLeave={()=>setOver(false)} onDrop={drop}>
@@ -1380,6 +1384,7 @@ function QuotePreview({ selectedProfile, selectedType, customType, companyForm, 
 ──────────────────────────────────────────────────────────────────────────── */
 export default function Devis() {
   const salesUser=useAuthStore(state=>state.user);
+  const catalogQuery=useCatalogProducts({enabled:['commercial','admin','administration'].includes(salesUser?.role)});
   const [showSales,setShowSales]=useState(false);
   const savedDraft = useMemo(() => readSavedDraft(), []);
   const [theme, setTheme] = useState(() => {
@@ -1715,7 +1720,7 @@ export default function Devis() {
                 {currentStep === 'equipment' && (
                   <>
                     <StepHeader eyebrow="La consommation" title={titles.equipment} subtitle="Touchez les appareils du client. Plus la liste est complète, plus le devis sera juste." />
-                    <QuickAdd appliances={appliances} onQuickAdd={handleQuickAdd} />
+                    <QuickAdd appliances={appliances} onQuickAdd={handleQuickAdd} catalogProducts={catalogQuery.data||[]} catalogLoading={catalogQuery.isPending} catalogError={catalogQuery.isError} />
                     {appliances.length === 0 ? (
                       <div className="dv-card flex flex-col items-center px-6 py-10 text-center" style={{ borderStyle: 'dashed', borderColor: 'var(--or-line)' }}>
                         <span className="dv-ping mb-4 grid h-14 w-14 place-items-center rounded-full" style={{ background: 'var(--or-soft)', color: 'var(--or)' }}><Plus size={26} /></span>

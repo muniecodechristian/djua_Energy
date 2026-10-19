@@ -1,4 +1,5 @@
 import quoteRoutes from './routes/quote.routes.js';
+import catalogRoutes from './routes/catalog.routes.js';
 // src/app.js
 // Configuration Express : middlewares globaux + montage des routes.
 // N'écoute pas sur un port — responsabilité exclusive de server.js.
@@ -72,7 +73,7 @@ const globalLimiter = rateLimit({
 });
 app.use(globalLimiter);
 
-app.use(express.json());
+app.use(express.json({ limit: '2mb' }));
 app.use(cookieParser());
 
 // ─── Health check public ──────────────────────────────────────────────────────
@@ -115,6 +116,7 @@ if (swaggerEnabled) {
 app.use("/auth", authRoutes);
 
 app.use("/api/quotes", quoteRoutes);
+app.use("/api/catalog", catalogRoutes);
 app.use("/api/alerts", alertRoutes);
 app.use("/api/interventions", interventionRoutes);
 app.use("/api", deviceRoutes);

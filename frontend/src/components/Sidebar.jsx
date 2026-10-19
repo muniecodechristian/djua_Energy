@@ -37,6 +37,7 @@ export default function Sidebar({ isSidebarOpen, setIsSidebarOpen }) {
   const role = user?.role === 'administration' ? 'admin' : user?.role;
   const visibleNavigation = navigationForRole(role);
   const sections = [...new Set(visibleNavigation.map(item => item.section))];
+  const showSectionLabels = role !== 'admin';
   const logout = useLogoutMutation();
   useEffect(() => {
     const close = event => { if (event.key === 'Escape') setIsSidebarOpen(false); };
@@ -50,7 +51,7 @@ export default function Sidebar({ isSidebarOpen, setIsSidebarOpen }) {
       <button className="ops-mobile-close ops-icon-button" aria-label="Fermer le menu" onClick={() => setIsSidebarOpen(false)}><X size={18}/></button>
       <LayoutGroup id="primary-nav"><nav aria-label="Navigation principale">
         {sections.map(section => <div className="ops-nav-group" key={section}>
-          <p className="ops-nav-section">{section}</p>
+          {showSectionLabels && <p className="ops-nav-section">{section}</p>}
           {visibleNavigation.filter(item => item.section === section).map(({path, label, icon: Icon}) => <NavLink key={path} to={path} title={label} onClick={() => setIsSidebarOpen(false)} className={({isActive}) => 'ops-nav-item' + (isActive ? ' is-active' : '')}>{({isActive}) => <>{isActive && <motion.span className="ops-nav-indicator" layoutId="active-nav" transition={reduced ? { duration: 0 } : quickSpring}/>}<Icon size={18}/><span className="ops-nav-label">{label}</span></>}</NavLink>)}
         </div>)}
       </nav></LayoutGroup>

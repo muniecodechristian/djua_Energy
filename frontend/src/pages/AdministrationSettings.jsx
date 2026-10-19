@@ -1,208 +1,338 @@
-import SalesQuotes from '../components/SalesQuotes';
-import PageEntrance from '../components/PageEntrance';
+import { useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import {
-    Palette,
-    ShieldCheck,
-    Database,
-    ArrowUpRight,
-    Info,
-    Maximize2,
-    MoreHorizontal,
-    SlidersHorizontal,
-    UserCheck,
-    HardDrive,
+  Activity,
+  Bell,
+  Building2,
+  CalendarDays,
+  Check,
+  ChevronRight,
+  CircleHelp,
+  FileText,
+  Gauge,
+  Info,
+  Languages,
+  LockKeyhole,
+  Moon,
+  Settings2,
+  ShieldCheck,
+  Sun,
+  Users,
+  Wrench,
 } from 'lucide-react';
+import PageEntrance from '../components/PageEntrance';
 import ThemeToggle from '../components/ThemeToggle';
-import useAuthStore from '../hooks/Zustand/useAuthStore';
 import TeamAccountForm from '../components/TeamAccountForm';
+import useAuthStore from '../hooks/Zustand/useAuthStore';
+import './AdministrationSettings.css';
 
-const PREVIEW_BARS = [38, 55, 47, 62, 58, 74, 66, 52, 70, 68, 84, 76, 92, 80, 88, 96, 72, 82];
+const preferenceStorageKey = 'djua-admin-preferences';
 
-/* Classes Tailwind réutilisées (thème clair par défaut, variantes dark: pour le sombre) */
-const card =
-    'flex min-w-0 flex-col overflow-hidden rounded-2xl border border-black/10 bg-zinc-100 dark:border-white/10 dark:bg-[#17171a]';
-const cardHead =
-    'flex items-center justify-between px-3.5 py-2.5 text-xs text-zinc-500 dark:text-zinc-400';
-const cardBody =
-    '-mx-px -mb-px flex-1 rounded-2xl border-t border-black/10 p-[18px] ' +
-    'bg-[radial-gradient(120%_90%_at_0%_0%,#ffffff_0%,#f3f3f5_70%)] ' +
-    'dark:border-white/10 dark:bg-[radial-gradient(120%_90%_at_0%_0%,#1b1b1f_0%,#0f0f11_70%)]';
-const bodyText = 'max-w-[60ch] text-sm leading-relaxed text-zinc-500 dark:text-zinc-400';
-const linkBtn =
-    'mt-3.5 inline-flex items-center gap-1.5 rounded-[10px] border border-black/10 bg-zinc-100 px-3 py-1.5 text-[13px] text-zinc-900 no-underline transition-colors hover:border-zinc-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400 dark:border-white/10 dark:bg-[#17171a] dark:text-zinc-100 dark:hover:border-zinc-500';
-const chip =
-    'inline-flex items-center gap-2 rounded-[10px] border border-black/10 bg-zinc-100 px-3 py-1.5 text-[13px] dark:border-white/10 dark:bg-[#17171a]';
+const sections = [
+  { id: 'organisation', label: 'Organisation', icon: Building2 },
+  { id: 'acces', label: 'Utilisateurs & accès', icon: Users },
+  { id: 'equipes', label: 'Shops & équipes', icon: ShieldCheck },
+  { id: 'dimensionnement', label: 'Dimensionnement', icon: Gauge },
+  { id: 'monitoring', label: 'Monitoring & alertes', icon: Activity },
+  { id: 'notifications', label: 'Notifications', icon: Bell },
+  { id: 'devis', label: 'Devis', icon: FileText },
+  { id: 'compte', label: 'Mon compte', icon: LockKeyhole },
+];
 
-const DOT = {
-    ok: 'bg-emerald-500',
-    warn: 'bg-amber-400',
-    info: 'bg-blue-400',
+const sectionDescriptions = {
+  acces: 'Consultez votre session et les rôles disponibles dans l’espace.',
+  equipes: 'Créez les comptes responsables qui pourront gérer leurs équipes de terrain.',
+  dimensionnement: 'Retrouvez le parcours de dimensionnement et les recommandations solaires.',
+  monitoring: 'Accédez au parc connecté et aux alertes techniques.',
+  notifications: 'Consultez les alertes et événements remontés par la plateforme.',
+  devis: 'Suivez les propositions commerciales et les validations en cours.',
+  compte: 'Informations de session et préférences d’affichage de ce navigateur.',
 };
 
-function CardHead({ icon: Icon, label, expand }) {
-    return (
-        <div className={cardHead}>
-            <span className="inline-flex items-center gap-2">
-                <Icon size={13} />
-                {label}
-            </span>
-            {expand ? <Maximize2 size={13} /> : <MoreHorizontal size={15} />}
-        </div>
-    );
+function readPreferences() {
+  try {
+    const saved = JSON.parse(window.localStorage.getItem(preferenceStorageKey) || '{}') || {};
+    return {
+      language: 'fr',
+      dateFormat: saved.dateFormat === 'MM/dd/yyyy' ? 'MM/dd/yyyy' : 'dd/MM/yyyy',
+    };
+  } catch {
+    return { language: 'fr', dateFormat: 'dd/MM/yyyy' };
+  }
 }
 
-function StatCard({ icon, label, value, status, tone }) {
-    return (
-        <article className={card}>
-            <CardHead icon={icon} label={label} />
-            <div className={cardBody}>
-                <strong className="mb-2 block text-[22px] font-semibold tracking-tight">{value}</strong>
-                <span className="inline-flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
-                    <i className={`inline-block size-2 shrink-0 rounded-full ${DOT[tone]}`} />
-                    {status}
-                </span>
+function SettingsNotice({ children }) {
+  return (
+    <div className="admin-settings-notice" role="note">
+      <Info size={16} aria-hidden="true" />
+      <p>{children}</p>
+    </div>
+  );
+}
+
+function SectionLink({ to, children }) {
+  return (
+    <Link className="admin-settings-link" to={to}>
+      {children}<ChevronRight size={15} aria-hidden="true" />
+    </Link>
+  );
+}
+
+function OrganisationPanel({ preferences, onPreferenceChange }) {
+  return (
+    <div className="admin-settings-columns">
+      <div className="admin-settings-main-column">
+        <section className="admin-settings-card">
+          <header className="admin-settings-card-heading">
+            <div>
+              <h2><Building2 size={17} />Informations générales</h2>
+              <p>Identité de l’espace de travail Djua Energy.</p>
             </div>
-        </article>
+            <span className="admin-settings-readonly">Espace de travail</span>
+          </header>
+          <dl className="admin-settings-details">
+            <div><dt>Nom de l’organisation</dt><dd>Djua Energy</dd></div>
+            <div><dt>Activité</dt><dd>Solutions et supervision solaires</dd></div>
+            <div><dt>Zone de service</dt><dd>République démocratique du Congo</dd></div>
+            <div><dt>Adresse, site web et coordonnées légales</dt><dd className="is-muted">Non renseignés dans la plateforme</dd></div>
+          </dl>
+          <SettingsNotice>
+            Les informations d’identité et les coordonnées légales ne sont pas encore gérées par le serveur.
+            Elles ne sont pas modifiables depuis cet écran.
+          </SettingsNotice>
+        </section>
+
+        <section className="admin-settings-card">
+          <header className="admin-settings-card-heading">
+            <div>
+              <h2><Settings2 size={17} />Préférences d’affichage</h2>
+              <p>Préférences enregistrées dans ce navigateur.</p>
+            </div>
+          </header>
+          <div className="admin-settings-preferences">
+            <label htmlFor="admin-language"><span><Languages size={15} />Langue de l’interface</span>
+              <select id="admin-language" value={preferences.language} onChange={event => onPreferenceChange('language', event.target.value)}>
+                <option value="fr">Français</option>
+              </select>
+            </label>
+            <label htmlFor="admin-date-format"><span><CalendarDays size={15} />Format de date</span>
+              <select id="admin-date-format" value={preferences.dateFormat} onChange={event => onPreferenceChange('dateFormat', event.target.value)}>
+                <option value="dd/MM/yyyy">31/08/2026 — jour/mois/année</option>
+                <option value="MM/dd/yyyy">08/31/2026 — mois/jour/année</option>
+              </select>
+            </label>
+            <div className="admin-settings-theme">
+              <span><Sun size={15} />Thème de l’interface</span>
+              <ThemeToggle />
+              <Moon size={15} aria-hidden="true" />
+            </div>
+          </div>
+          <SettingsNotice>
+            La langue disponible est le français. Le format choisi est mémorisé sur cet appareil; il n’est pas
+            encore appliqué uniformément aux autres écrans faute de préférence globale côté serveur.
+          </SettingsNotice>
+        </section>
+      </div>
+
+      <aside className="admin-settings-side-column">
+        <section className="admin-settings-card admin-settings-legal">
+          <header className="admin-settings-card-heading">
+            <div><h2><Info size={17} />Informations légales</h2></div>
+          </header>
+          <dl className="admin-settings-details">
+            <div><dt>Raison sociale</dt><dd>À renseigner</dd></div>
+            <div><dt>N° d’enregistrement</dt><dd>À renseigner</dd></div>
+            <div><dt>N° d’identification fiscale</dt><dd>À renseigner</dd></div>
+          </dl>
+          <p className="admin-settings-legal-note">Ces données doivent être confirmées par l’organisation avant publication.</p>
+        </section>
+        <section className="admin-settings-card admin-settings-account-summary">
+          <header className="admin-settings-card-heading">
+            <div><h2><ShieldCheck size={17} />Espace sécurisé</h2></div>
+          </header>
+          <p>La gestion des comptes utilise les autorisations définies par le serveur. Les comptes d’équipe sont créés avec un rôle et une zone.</p>
+          <button className="admin-settings-link" type="button" onClick={() => onSelectSection('acces')}>Gérer les accès <ChevronRight size={15} aria-hidden="true" /></button>
+        </section>
+      </aside>
+    </div>
+  );
+}
+
+function SettingsSectionContent({ activeSection, user, onSelectSection }) {
+  if (activeSection === 'equipes') {
+    return (
+      <div className="admin-settings-single-column">
+        <section className="admin-settings-card">
+          <header className="admin-settings-card-heading">
+            <div><h2><Users size={17} />Créer un responsable shop</h2><p>Le responsable pourra créer les comptes technicien et commercial de sa zone.</p></div>
+          </header>
+          <div className="admin-settings-card-body"><TeamAccountForm /></div>
+        </section>
+        <SettingsNotice>
+          Le serveur permet la création de comptes responsables. Il ne propose pas encore à l’administrateur
+          une liste centralisée des shops et des équipes existants.
+        </SettingsNotice>
+      </div>
     );
+  }
+
+  if (activeSection === 'acces') {
+    return (
+      <div className="admin-settings-single-column">
+        <section className="admin-settings-card">
+          <header className="admin-settings-card-heading">
+            <div><h2><ShieldCheck size={17} />Votre accès administrateur</h2><p>Session et rôle associés au compte actuellement connecté.</p></div>
+          </header>
+          <dl className="admin-settings-details">
+            <div><dt>Compte</dt><dd>{user?.identifier || [user?.prenom, user?.nom].filter(Boolean).join(' ') || 'Administrateur'}</dd></div>
+            <div><dt>Rôle</dt><dd>Administrateur</dd></div>
+            <div><dt>Portée</dt><dd>Administration de la plateforme Djua Energy</dd></div>
+          </dl>
+        </section>
+        <section className="admin-settings-card admin-settings-action-card">
+          <div className="admin-settings-action-icon"><Users size={20} /></div>
+          <div><h2>Provisionner un accès</h2><p>Créez un responsable shop avec sa zone d’affectation.</p></div>
+          <button className="admin-settings-link" type="button" onClick={() => onSelectSection('equipes')}>Créer un responsable shop <ChevronRight size={15} aria-hidden="true" /></button>
+        </section>
+      </div>
+    );
+  }
+
+  if (activeSection === 'compte') {
+    return (
+      <div className="admin-settings-single-column">
+        <section className="admin-settings-card">
+          <header className="admin-settings-card-heading">
+            <div><h2><LockKeyhole size={17} />Mon compte</h2><p>Identité et rôle de la session administrateur active.</p></div>
+          </header>
+          <dl className="admin-settings-details">
+            <div><dt>Nom affiché</dt><dd>{[user?.prenom, user?.nom].filter(Boolean).join(' ') || 'Administrateur'}</dd></div>
+            <div><dt>Identifiant</dt><dd>{user?.identifier || 'Non renseigné'}</dd></div>
+            <div><dt>Rôle</dt><dd>Administrateur</dd></div>
+            <div><dt>Zone</dt><dd>{user?.zone || 'Non renseignée'}</dd></div>
+          </dl>
+        </section>
+        <SettingsNotice>
+          La modification du profil et du mot de passe n’est pas encore proposée par l’API de la plateforme.
+          Utilisez la commande de déconnexion dans le menu latéral pour fermer cette session.
+        </SettingsNotice>
+      </div>
+    );
+  }
+
+  const config = {
+    dimensionnement: {
+      icon: Gauge,
+      title: 'Dimensionnement solaire',
+      description: 'Le dimensionnement se fait dans le parcours de devis avec les appareils, le site et les besoins du client.',
+      link: '/devis/nouveau',
+      linkLabel: 'Ouvrir le dimensionnement',
+    },
+    monitoring: {
+      icon: Activity,
+      title: 'Monitoring du parc',
+      description: 'Consultez les installations, leurs informations disponibles et les fiches de télémétrie.',
+      link: '/parc',
+      linkLabel: 'Ouvrir le parc solaire',
+    },
+    notifications: {
+      icon: Bell,
+      title: 'Alertes et notifications',
+      description: 'Les alertes disponibles sont consultables dans le flux de supervision.',
+      link: '/notification',
+      linkLabel: 'Consulter les alertes',
+    },
+    devis: {
+      icon: FileText,
+      title: 'Gestion des devis',
+      description: 'Retrouvez les propositions enregistrées, les validations et les clients à suivre.',
+      link: '/devis',
+      linkLabel: 'Ouvrir les devis',
+    },
+  }[activeSection];
+  const Icon = config?.icon || Wrench;
+
+  return (
+    <div className="admin-settings-single-column">
+      <section className="admin-settings-card admin-settings-feature-card">
+        <div className="admin-settings-feature-icon"><Icon size={22} /></div>
+        <div>
+          <h2>{config?.title || 'Préférences du compte'}</h2>
+          <p>{config?.description || 'La session affichée est celle du compte administrateur actuellement connecté.'}</p>
+          {config ? <SectionLink to={config.link}>{config.linkLabel}</SectionLink> : <SectionLink to="/">Retour à la connexion</SectionLink>}
+        </div>
+      </section>
+      <SettingsNotice>
+        Les règles de fonctionnement détaillées ne sont pas encore configurables depuis les paramètres.
+        Cet écran vous conduit vers les fonctions actuellement disponibles dans la plateforme.
+      </SettingsNotice>
+    </div>
+  );
 }
 
 export default function AdministrationSettings() {
-    const user = useAuthStore((state) => state.user);
-    const isAdmin = user?.role === 'admin' || user?.role === 'administration';
-    if (!isAdmin) return <Navigate to={user?.role === 'shop_manager' ? '/equipe' : '/dashboard'} replace/>;
-    const userName = user
-        ? user.identifier || [user.prenom, user.nom].filter(Boolean).join(' ')
-        : '';
+  const user = useAuthStore(state => state.user);
+  const isAdmin = user?.role === 'admin' || user?.role === 'administration';
+  const [activeSection, setActiveSection] = useState('organisation');
+  const [preferences, setPreferences] = useState(readPreferences);
 
-    return (
-        <PageEntrance className="flex flex-col gap-5 p-4 text-zinc-900 dark:text-zinc-100 sm:p-6">
-            {/* En-tête */}
-            <header>
-                <h1 className="mb-1 text-[22px] font-semibold tracking-tight">Paramètres</h1>
-                <p className="max-w-[62ch] text-sm text-zinc-500 dark:text-zinc-400">
-                    Préférences d’affichage et informations sur les fonctions disponibles.
-                </p>
-            </header>
+  if (!isAdmin) return <Navigate to={user?.role === 'shop_manager' ? '/equipe' : '/dashboard'} replace />;
 
-            <SalesQuotes />
-            {/* Cartes de synthèse */}
-            <section aria-label="Résumé" className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
-                <StatCard
-                    icon={Palette}
-                    label="Affichage"
-                    value="Thème"
-                    status="Conservé dans ce navigateur"
-                    tone="ok"
-                />
-                <StatCard
-                    icon={UserCheck}
-                    label="Session"
-                    value={user ? 'Connecté' : 'Navigation libre'}
-                    status={user ? 'Compte actif' : 'Connexion facultative'}
-                    tone={user ? 'ok' : 'warn'}
-                />
-                <StatCard
-                    icon={Database}
-                    label="Supervision"
-                    value="Serveur"
-                    status="Inventaire, alertes, télémétrie"
-                    tone="ok"
-                />
-                <StatCard
-                    icon={HardDrive}
-                    label="Brouillons"
-                    value="Local"
-                    status="Maintenance enregistrée ici"
-                    tone="ok"
-                />
-            </section>
+  const selectedSection = sections.find(section => section.id === activeSection) || sections[0];
 
-            {/* Barre de section */}
-            <div className="mt-1.5 flex items-center justify-between gap-3">
-                <h2 className="text-lg font-semibold">Préférences</h2>
-                <div className="flex gap-2">
-                    <span className={chip}>
-                        <SlidersHorizontal size={13} />
-                        Personnaliser
-                    </span>
-                    <span className={`${chip} px-2.5`}>
-                        <MoreHorizontal size={15} />
-                    </span>
-                </div>
+  const updatePreference = (key, value) => {
+    const next = { ...preferences, [key]: value };
+    setPreferences(next);
+    try {
+      window.localStorage.setItem(preferenceStorageKey, JSON.stringify(next));
+    } catch (error) {
+      console.error('[AdministrationSettings] Impossible d’enregistrer les préférences.', error);
+    }
+  };
+
+  const selectSection = id => {
+    setActiveSection(id);
+    window.history.replaceState(null, '', `#${id}`);
+  };
+
+  return (
+    <PageEntrance className="admin-settings-page">
+      <header className="admin-settings-page-heading">
+        <h1>Paramètres</h1>
+        <p>Gérez votre organisation, les utilisateurs et les règles de fonctionnement de Djua.</p>
+      </header>
+
+      <div className="admin-settings-layout">
+        <nav className="admin-settings-nav" aria-label="Sections des paramètres">
+          <p className="admin-settings-nav-caption">ESPACE DE TRAVAIL</p>
+          <div className="admin-settings-workspace">
+            <span className="admin-settings-workspace-mark">D</span>
+            <span><strong>Djua Energy</strong><small>Organisation</small></span>
+          </div>
+          <div className="admin-settings-nav-items">
+            {sections.map(({ id, label, icon: Icon }) => (
+              <button key={id} type="button" className={activeSection === id ? 'is-active' : ''} aria-current={activeSection === id ? 'page' : undefined} onClick={() => selectSection(id)}>
+                <Icon size={16} /><span>{label}</span>
+              </button>
+            ))}
+          </div>
+          <div className="admin-settings-nav-help"><CircleHelp size={15} /><span><strong>Besoin d’aide ?</strong><small>Consultez les fonctions disponibles dans cet espace.</small></span></div>
+        </nav>
+
+        <main className="admin-settings-content">
+          <header className="admin-settings-section-heading">
+            <div>
+              <h2>{selectedSection.label}</h2>
+              <p>{activeSection === 'organisation' ? 'Informations générales et préférences de votre espace de travail.' : sectionDescriptions[activeSection]}</p>
             </div>
+            {activeSection === 'organisation' && <span className="admin-settings-saved"><Check size={14} />Préférences locales</span>}
+          </header>
 
-            {/* Grille principale */}
-            <div className="grid gap-3.5 lg:grid-cols-[1.6fr_1fr]">
-                {/* Apparence */}
-                <section className={`${card} lg:row-span-2`}>
-                    <CardHead icon={Palette} label="Apparence" expand />
-                    <div className={cardBody}>
-                        <h3 className="mb-2 text-xl font-semibold tracking-tight">Thème de l’interface</h3>
-                        <p className={bodyText}>
-                            Choisissez le thème clair ou sombre. Votre préférence est conservée dans ce
-                            navigateur.
-                        </p>
-                        <div className="mb-6 mt-4">
-                            <ThemeToggle />
-                        </div>
-                        <div aria-hidden="true" className="flex h-44 items-end gap-1.5 pt-2">
-                            {PREVIEW_BARS.map((h, i) => (
-                                <span
-                                    key={i}
-                                    style={{ height: `${h}%` }}
-                                    className="flex flex-1 items-end rounded-t bg-zinc-200 dark:bg-[#2c2c31]"
-                                >
-                                    <span
-                                        style={{ height: `${40 + (i % 5) * 6}%` }}
-                                        className="w-full rounded-t border-t border-white/40 bg-zinc-400 dark:bg-[#5a5a61]"
-                                    />
-                                </span>
-                            ))}
-                        </div>
-                    </div>
-                </section>
-
-                {/* Session */}
-                <section className={card}>
-                    <CardHead icon={ShieldCheck} label="Session" expand />
-                    <div className={cardBody}>
-                        <p className={bodyText}>
-                            {user
-                                ? 'Connecté avec le compte ' + userName + '.'
-                                : 'Vous consultez la plateforme en navigation libre. Certaines fonctions du serveur peuvent nécessiter une connexion.'}
-                        </p>
-                        <Link className={linkBtn} to="/">
-                            Page de connexion <ArrowUpRight size={15} />
-                        </Link>
-                    </div>
-                </section>
-
-                {/* Données de supervision */}
-                <section className={card}>
-                    <CardHead icon={Database} label="Données de supervision" expand />
-                    <div className={cardBody}>
-                        <p className={bodyText}>
-                            L’inventaire, les alertes et la télémétrie sont chargés depuis le serveur. Les
-                            brouillons de maintenance sont enregistrés localement.
-                        </p>
-                        <Link className={linkBtn} to="/parc">
-                            Consulter le parc <ArrowUpRight size={15} />
-                        </Link>
-                    </div>
-                </section>
-
-                {/* Administration avancée */}
-                <section className={`${card} lg:col-span-2`}>
-                    <CardHead icon={Info} label="Créer un responsable shop" />
-                    <div className={cardBody}>
-                        <p className={`${bodyText} mb-4`}>
-                            Le responsable pourra ensuite créer les comptes technicien et commercial de sa zone.
-                        </p>
-                        <TeamAccountForm/>
-                    </div>
-                </section>
-            </div>
-        </PageEntrance>
-    );
+          {activeSection === 'organisation'
+            ? <OrganisationPanel preferences={preferences} onPreferenceChange={updatePreference} />
+            : <SettingsSectionContent activeSection={activeSection} user={user} onSelectSection={selectSection} />}
+        </main>
+      </div>
+    </PageEntrance>
+  );
 }
