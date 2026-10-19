@@ -11,9 +11,12 @@ import {
   MapPin,
   Mic,
   MicOff,
+  Maximize2,
+  Minimize2,
 } from "lucide-react";
 import api from "../api/axios";
 import { useVoiceInput } from "../hooks/useVoiceInput";
+import "./AIAssistant.css";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -176,6 +179,7 @@ const InterimBadge = ({ text }) => {
 
 export default function AIAssistant() {
   const [isOpen, setIsOpen]           = useState(false);
+  const [isExpanded, setIsExpanded]   = useState(false);
   const [messages, setMessages]       = useState([
     {
       id: 1,
@@ -192,6 +196,15 @@ export default function AIAssistant() {
   const chatEndRef  = useRef(null);
   const inputRef    = useRef(null);
   const textareaRef = useRef(null);
+
+  useEffect(() => {
+    if (!isExpanded) return undefined;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isExpanded]);
 
   // ── Hook vocal ─────────────────────────────────────────────────────────────
   const {
@@ -303,6 +316,7 @@ export default function AIAssistant() {
       if (e.key === "Escape" && isOpen) {
         stopMic();
         setIsOpen(false);
+        setIsExpanded(false);
       }
     };
     window.addEventListener("keydown", handleKeyDown);
@@ -314,6 +328,7 @@ export default function AIAssistant() {
     const handleOpenAIChat = (e) => {
       const { message } = e.detail || {};
       setIsOpen(true);
+      setIsExpanded(false);
       if (message) {
         setTimeout(() => {
           if (sendMessageRef.current) sendMessageRef.current(message);
@@ -392,14 +407,14 @@ export default function AIAssistant() {
         }
       `}</style>
 
-      <div className="fixed bottom-5 right-5 sm:bottom-6 sm:right-6 z-50 font-sans antialiased">
+      <div className={`fixed bottom-5 right-5 sm:bottom-6 sm:right-6 z-50 font-sans antialiased ${isExpanded ? "djua-assistant-fullscreen" : ""}`}>
 
         {/* ─── FENÊTRE PRINCIPALE DU CHAT ─────────────────────────────── */}
         {isOpen && (
-          <div className="mb-4 w-[calc(100vw-2rem)] sm:w-[520px] h-[min(700px,calc(100vh-7rem))] max-h-[86vh] bg-[var(--panel)] text-[var(--app-foreground)] border border-[var(--panel-border)] rounded-[28px] shadow-2xl shadow-black/30 flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-200 ease-out">
+          <div className={`mb-4 w-[calc(100vw-2rem)] sm:w-[520px] h-[min(700px,calc(100vh-7rem))] max-h-[86vh] bg-[var(--panel)] text-[var(--app-foreground)] border border-[var(--panel-border)] rounded-[28px] shadow-2xl shadow-black/30 flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-200 ease-out ${isExpanded ? "djua-assistant-window" : ""}`}>
 
             {/* HEADER */}
-            <div className="px-5 py-4 bg-[var(--panel)] border-b border-[var(--panel-border)] flex items-center justify-between">
+            <div className="djua-assistant-header px-5 py-4 bg-[var(--panel)] border-b border-[var(--panel-border)] flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="relative">
                   <div className="w-10 h-10 rounded-full bg-[#e7edf0] border border-[#cbd5d8] overflow-hidden flex items-center justify-center shadow-inner">
@@ -425,6 +440,15 @@ export default function AIAssistant() {
 
               <div className="flex items-center gap-0.5 bg-[var(--panel-alt)] p-1 rounded-xl border border-[var(--panel-border)]">
                 <button
+                  onClick={() => setIsExpanded((expanded) => !expanded)}
+                  title={isExpanded ? "Réduire la fenêtre" : "Agrandir en plein écran"}
+                  aria-label={isExpanded ? "Réduire la fenêtre" : "Agrandir en plein écran"}
+                  aria-pressed={isExpanded}
+                  className="p-1.5 hover:bg-[var(--panel)] text-[var(--muted-foreground)] hover:text-[var(--app-foreground)] rounded-lg transition-colors duration-150"
+                >
+                  {isExpanded ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
+                </button>
+                <button
                   onClick={handleReset}
                   title="Réinitialiser la conversation"
                   className="p-1.5 hover:bg-[var(--panel)] text-[var(--muted-foreground)] hover:text-[var(--app-foreground)] rounded-lg transition-colors duration-150"
@@ -432,7 +456,7 @@ export default function AIAssistant() {
                   <RotateCcw size={14} />
                 </button>
                 <button
-                  onClick={() => { stopMic(); setIsOpen(false); }}
+                  onClick={() => { stopMic(); setIsOpen(false); setIsExpanded(false); }}
                   title="Fermer l'assistant"
                   aria-label="Fermer l'assistant"
                   className="p-1.5 hover:bg-[var(--panel)] text-[var(--muted-foreground)] hover:text-[var(--app-foreground)] rounded-lg transition-colors duration-150"
@@ -443,8 +467,24 @@ export default function AIAssistant() {
             </div>
 
             {/* ZONE DE MESSAGES */}
-            <div className="flex-1 p-4 overflow-y-auto space-y-4 bg-[var(--app-surface)]">
-              {messages.map((msg) => {
+            <div className="djua-assistant-messages flex-1 p-4 overflow-y-auto space-y-4 bg-[var(--app-surface)]">
+              {isExpanded && !messages.some((msg) => msg.sender === "user") ? (
+                <div className="djua-assistant-welcome">
+                  <div className="djua-assistant-welcome-robot">
+                    <img src="/bot.gif" alt="" aria-hidden="true" />
+                  </div>
+                  <p className="djua-assistant-eyebrow">VOTRE PARC, EN CLAIR</p>
+                  <h1>Et si on parlait de<br />votre activité ?</h1>
+                  <p>Suivi, alertes, interventions… Je vous aide à piloter votre parc, à votre rythme.</p>
+                  <div className="djua-assistant-welcome-prompts" aria-label="Suggestions de questions">
+                    {["Quel est le statut global du parc ?", "Quelles alertes demandent une intervention ?", "Prépare un rapport des hubs critiques à Goma", "Comment réduire les interruptions de service ?"].map((question) => (
+                      <button key={question} type="button" onClick={() => { setInput(question); inputRef.current?.focus(); }}>
+                        {question}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : messages.map((msg) => {
                 const isAi = msg.sender === "ai";
                 return (
                   <div key={msg.id} className={`flex gap-2.5 group ${isAi ? "items-start" : "items-end justify-end"}`}>
@@ -497,7 +537,7 @@ export default function AIAssistant() {
             </div>
 
             {/* CHIPS SUGGESTIONS */}
-            <div className="px-3.5 py-2 bg-[var(--panel)] border-t border-[var(--panel-border)] flex items-center gap-2 overflow-x-auto scrollbar-none">
+            {!isExpanded || messages.some((msg) => msg.sender === "user") ? <div className="djua-assistant-suggestions px-3.5 py-2 bg-[var(--panel)] border-t border-[var(--panel-border)] flex items-center gap-2 overflow-x-auto scrollbar-none">
               <button
                 onClick={() => sendMessage("Rapport des hubs critiques à Goma")}
                 className="text-xs font-medium text-[var(--app-foreground)] bg-[var(--panel-alt)] hover:bg-[var(--panel)] border border-[var(--panel-border)] rounded-full px-3.5 py-1.5 whitespace-nowrap flex items-center gap-1.5 transition-all duration-150 active:scale-95"
@@ -510,12 +550,12 @@ export default function AIAssistant() {
               >
                 Statut parc RDC
               </button>
-            </div>
+            </div> : null}
 
             {/* ─── ZONE D'INPUT AVEC BOUTON MICRO ─────────────────────── */}
             <form
               onSubmit={(e) => { e.preventDefault(); sendMessage(); }}
-              className="p-3 bg-[var(--panel)] border-t border-[var(--panel-border)] flex items-end gap-2"
+              className="djua-assistant-composer p-3 bg-[var(--panel)] border-t border-[var(--panel-border)] flex items-end gap-2"
             >
               {/* Champ texte avec badge de transcription live au-dessus */}
               <div className="flex-1 relative bg-[var(--panel-alt)] border border-[var(--panel-border)] focus-within:border-[#FF7900] rounded-2xl transition-colors duration-150">
@@ -574,7 +614,7 @@ export default function AIAssistant() {
         )}
 
         {/* ─── BOUTON FAB FLOTTANT ─────────────────────────────────────── */}
-        <button
+        {!isExpanded && <button
           onClick={() => setIsOpen(!isOpen)}
           aria-label="Toggle AI Assistant"
           className="group relative flex items-center gap-2.5 h-14 rounded-full bg-[var(--panel)] hover:bg-[var(--panel-alt)] border border-[var(--panel-border)] text-[var(--app-foreground)] shadow-xl shadow-black/30 active:scale-95 transition-all duration-200 px-2.5 pr-4"
@@ -596,7 +636,7 @@ export default function AIAssistant() {
           {!isOpen && (
             <span className="absolute top-0 right-0 w-3 h-3 bg-emerald-500 rounded-full ring-2 ring-[#141416]" />
           )}
-        </button>
+        </button>}
       </div>
     </>
   );

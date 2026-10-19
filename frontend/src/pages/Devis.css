@@ -1,0 +1,688 @@
+/* ==========================================================================
+   DEVIS REFINED — Style Ops / SaaS Professionnel (Inspiré de Djua Dashboard)
+   ================ ========================================================== */
+
+.devis-refined {
+  --dv-canvas: #f7f6f1;
+  --dv-surface: #fffefa;
+  --dv-card: #fffefa;
+  --dv-card-hover: #fcfbf7;
+  --dv-field: #ffffff;
+  --dv-line: #e4e4da;
+  --dv-ink: #20251f;
+  --dv-muted: #697168;
+  --dv-orange: #e87827;
+  --dv-orange-soft: rgba(232, 120, 39, 0.1);
+  --dv-green: #536e52;
+  --dv-green-soft: rgba(83, 110, 82, 0.1);
+  --dv-error: #b84032;
+  --dv-error-soft: rgba(184, 64, 50, 0.08);
+
+  min-height: 100vh;
+  background: transparent !important;
+  background-image: none !important;
+  color: var(--dv-ink);
+  font-family: "Geist Variable", "Segoe UI", sans-serif !important;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+:root[data-theme="dark"] .devis-refined {
+  --dv-canvas: #171a17;
+  --dv-surface: #20241f;
+  --dv-card: #20241f;
+  --dv-card-hover: #262b25;
+  --dv-field: #242923;
+  --dv-line: #353a33;
+  --dv-ink: #f0efe8;
+  --dv-muted: #a5a99e;
+  --dv-orange: #f28b43;
+  --dv-orange-soft: rgba(242, 139, 67, 0.14);
+  --dv-green: #9dbb91;
+  --dv-green-soft: rgba(157, 187, 145, 0.13);
+  --dv-error: #ff8678;
+  --dv-error-soft: rgba(255, 134, 120, 0.12);
+}
+
+.devis-refined * {
+  -webkit-tap-highlight-color: transparent;
+  box-sizing: border-box;
+}
+
+/* --- Panneaux & Cartes --- */
+.devis-refined .dv-panel {
+  background: var(--dv-surface);
+  border: 1px solid var(--dv-line);
+  border-radius: 12px;
+  box-shadow: none;
+}
+
+.devis-refined .dv-card {
+  background: var(--dv-card);
+  border: 1px solid var(--dv-line);
+  border-radius: 10px;
+  box-shadow: none;
+  transition: border-color 150ms ease, background-color 150ms ease;
+}
+
+.devis-refined .dv-card:hover {
+  background: var(--dv-card-hover);
+  border-color: var(--dv-muted);
+}
+
+/* --- Typographie & Titres --- */
+.devis-refined .dv-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--dv-ink);
+  margin-bottom: 6px;
+  letter-spacing: -0.01em;
+}
+
+.devis-refined .dv-hint {
+  font-size: 11px;
+  color: var(--dv-muted);
+  margin-top: 5px;
+  line-height: 1.5;
+}
+
+.devis-refined .dv-muted {
+  color: var(--dv-muted);
+}
+
+/* --- Champs de saisie --- */
+.devis-refined .dv-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--dv-field);
+  border: 1px solid var(--dv-line);
+  border-radius: 6px;
+  padding: 0 12px;
+  min-height: 44px;
+  transition: border-color 150ns ease, box-shadow 150ms ease;
+  color: var(--dv-muted);
+}
+
+.devis-refined .dv-field:focus-within {
+  border-color: var(--dv-orange);
+  outline: 1px solid var(--dv-orange);
+  box-shadow: none;
+  color: var(--dv-orange);
+}
+
+.devis-refined .dv-field.is-error {
+  border-color: var(--dv-error);
+  outline: 1px solid var(--dv-error);
+}
+
+.devis-refined .dv-field input,
+.devis-refined .dv-field select,
+.devis-refined .dv-field textarea {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  background: transparent;
+  border: 0;
+  outline: 0;
+  color: var(--dv-ink);
+  font: inherit;
+  font-size: 13px;
+  padding: 10px 0;
+}
+
+.devis-refined .dv-field textarea {
+  resize: none;
+  min-height: 70px;
+  line-height: 1.5;
+}
+
+.devis-refined .dv-field select option {
+  background: var(--dv-surface);
+  color: var(--dv-ink);
+}
+
+.devis-refined .dv-field input::placeholder,
+.devis-refined .dv-field textarea::placeholder {
+  color: var(--dv-muted);
+  opacity: 0.7;
+}
+
+.devis-refined .dv-affix {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--dv-ink);
+  white-space: nowrap;
+}
+
+/* --- Boutons --- */
+.devis-refined .dv-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 12px;
+  padding: 0 16px;
+  min-height: 40px;
+  cursor: pointer;
+  transition: opacity 150ms ease, background 150ms ease, border-color 150ms ease;
+  border: 1px solid transparent;
+  font-family: inherit;
+}
+
+.devis-refined .dv-btn:active {
+  transform: none;
+}
+
+.devis-refined .dv-btn-primary {
+  background: var(--dv-orange);
+  color: #17120e;
+}
+
+.devis-refined .dv-btn-primary:hover {
+  opacity: 0.88;
+  transform: none;
+}
+
+.devis-refined .dv-btn-primary:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.devis-refined .dv-btn-dark {
+  background: var(--dv-ink);
+  color: var(--dv-canvas);
+}
+
+.devis-refined .dv-btn-ghost {
+  background: transparent;
+  border-color: var(--dv-line);
+  color: var(--dv-ink);
+}
+
+.devis-refined .dv-btn-ghost:hover {
+  border-color: var(--dv-muted);
+  background: var(--dv-card-hover);
+}
+
+.devis-refined .dv-btn-sm {
+  min-height: 32px;
+  padding: 0 12px;
+  font-size: 11px;
+}
+
+/* --- Choix & Sélection --- */
+.devis-refined .dv-choice {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  min-height: 52px;
+  border: 1px solid var(--dv-line);
+  background: var(--dv-card);
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--dv-ink);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 150ms ease, background 150ms ease;
+  font-family: inherit;
+}
+
+.devis-refined .dv-choice:hover {
+  border-color: var(--dv-muted);
+  background: var(--dv-card-hover);
+}
+
+.devis-refined .dv-choice.is-on {
+  border-color: var(--dv-orange);
+  background: var(--dv-orange-soft);
+}
+
+.devis-refined .dv-ic {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+  background: var(--dv-canvas);
+  color: var(--dv-orange);
+  flex: none;
+  font-size: 16px;
+}
+
+.devis-refined .dv-choice.is-on .dv-ic {
+  background: var(--dv-orange);
+  color: #17120e;
+}
+
+.devis-refined .dv-tick {
+  margin-left: auto;
+  width: 18px;
+  height: 18px;
+  border-radius: 99px;
+  background: var(--dv-orange);
+  color: #17120e;
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+
+.devis-refined .dv-step-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  border: 1px solid var(--dv-line);
+  background: var(--dv-canvas);
+  color: var(--dv-ink);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: border-color 150ms ease, color 150ms ease;
+}
+
+.devis-refined .dv-step-btn:hover:not(:disabled) {
+  border-color: var(--dv-muted);
+  color: var(--dv-orange);
+}
+
+.devis-refined .dv-step-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.devis-refined .dv-num {
+  width: 24px;
+  height: 24px;
+  border-radius: 99px;
+  background: var(--dv-orange);
+  color: #17120e;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: 11px;
+  flex: none;
+}
+
+.devis-refined .dv-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 99px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid var(--dv-line);
+  background: var(--dv-card);
+  color: var(--dv-muted);
+}
+
+.devis-refined .dv-pill.ok {
+  background: var(--dv-green-soft);
+  border-color: var(--dv-green);
+  color: var(--dv-green);
+}
+
+.devis-refined .dv-pill.or {
+  background: var(--dv-orange-soft);
+  border-color: var(--dv-orange);
+  color: var(--dv-orange);
+}
+
+/* --- Dropdown & Map --- */
+.devis-refined .dv-dropdown {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 30;
+  background: var(--dv-surface);
+  border: 1px solid var(--dv-line);
+  border-radius: 8px;
+  overflow: hidden;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.devis-refined .dv-dropdown button {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--dv-line);
+  color: var(--dv-ink);
+  cursor: pointer;
+  font: inherit;
+  transition: background 100ms ease;
+}
+
+.devis-refined .dv-dropdown button:last-child {
+  border-bottom: 0;
+}
+
+.devis-refined .dv-dropdown button:hover {
+  background: var(--dv-card-hover);
+}
+
+.devis-refined .dv-map {
+  position: relative;
+  isolation: isolate;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--dv-line);
+}
+
+.devis-refined .dv-map.is-confirmed {
+  border-color: var(--dv-green);
+}
+
+.leaflet-container {
+  background: var(--dv-field);
+  font-family: inherit;
+}
+
+/* --- Catalogue & Produits (Équipements) --- */
+.dv-catalogue {
+  margin: 18px 0;
+  padding: 16px;
+  border: 1px solid var(--dv-line);
+  border-radius: 12px;
+  background: var(--dv-card);
+  background-image: none !important;
+}
+
+.dv-catalogue-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.dv-catalogue-heading h3 {
+  color: var(--dv-ink);
+  font-size: 14px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.dv-catalogue-heading p {
+  margin-top: 3px;
+  color: var(--dv-muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.dv-catalogue-heading > span {
+  flex: none;
+  padding: 4px 8px;
+  border: 1px solid var(--dv-line);
+  border-radius: 99px;
+  color: var(--dv-muted);
+  font-size: 10px;
+}
+
+.dv-photo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 10px;
+}
+
+.dv-product {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 0;
+  border: 1px solid var(--dv-line);
+  border-radius: 8px;
+  background: var(--dv-card);
+  color: var(--dv-ink);
+  cursor: grab;
+  text-align: left;
+  transition: border-color 150ms ease, background 150ms ease;
+}
+
+.dv-product:hover {
+  border-color: var(--dv-muted);
+  background: var(--dv-card-hover);
+}
+
+.dv-product:active {
+  cursor: grabbing;
+}
+
+.equipment-photo {
+  position: relative;
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  place-items: center;
+  background: var(--dv-canvas);
+  color: var(--dv-muted);
+  height: 100px;
+}
+
+.equipment-photo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.dv-product-name,
+.dv-product-power {
+  display: block;
+  padding-right: 10px;
+  padding-left: 10px;
+}
+
+.dv-product-name {
+  overflow: hidden;
+  margin-top: 8px;
+  font-size: 12px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dv-product-power {
+  padding-top: 2px;
+  padding-bottom: 10px;
+  color: var(--dv-muted);
+  font-size: 10px;
+}
+
+.dv-product-power span {
+  color: var(--dv-orange);
+  font-weight: 600;
+}
+
+.dv-product-add,
+.dv-product-count {
+  position: absolute;
+  z-index: 1;
+  top: 8px;
+  display: grid;
+  min-width: 24px;
+  height: 24px;
+  place-items: center;
+  border: 1px solid var(--dv-line);
+  border-radius: 99px;
+  background: var(--dv-surface);
+  color: var(--dv-ink);
+  font-size: 10px;
+}
+
+.dv-product-add {
+  right: 8px;
+}
+
+.dv-product-count {
+  left: 8px;
+  padding: 0 6px;
+  background: var(--dv-orange);
+  color: #17120e;
+  border-color: transparent;
+  font-weight: 700;
+}
+
+.dv-dropzone {
+  display: flex;
+  min-height: 64px;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 12px 14px;
+  border: 1px dashed var(--dv-line);
+  border-radius: 10px;
+  color: var(--dv-orange);
+  background: var(--dv-surface);
+  background-image: none !important;
+  transition: border-color 150ms ease, background 150ms ease;
+}
+
+.dv-dropzone.is-over {
+  border-color: var(--dv-orange);
+  background: var(--dv-orange-soft);
+}
+
+.dv-dropzone > div {
+  flex: 1;
+  color: var(--dv-ink);
+}
+
+.dv-dropzone strong {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.dv-dropzone p,
+.dv-dropzone > span {
+  margin-top: 2px;
+  color: var(--dv-muted);
+  font-size: 10px;
+}
+
+/* --- Focus Global --- */
+.devis-refined :is(button, a, input, select, textarea):focus-visible {
+  outline: 2px solid var(--dv-muted);
+  outline-offset: 2px;
+}
+
+@media (max-width: 640px) {
+  .dv-catalogue {
+    padding: 12px;
+    border-radius: 10px;
+  }
+  .dv-photo-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+}
+/* Align the quote workspace with the application; the page has no background. */
+.devis-shell.devis-refined,.devis-shell.dv-device-modal {
+ --dv-canvas:var(--ops-canvas);--dv-surface:var(--ops-surface);--dv-card:var(--ops-surface);--dv-card-hover:var(--ops-canvas);--dv-field:var(--ops-surface);--dv-line:var(--ops-line);--dv-ink:var(--ops-ink);--dv-muted:var(--ops-muted);
+ --bg:var(--ops-canvas)!important;--panel:var(--ops-surface)!important;--card:var(--ops-surface)!important;--card2:var(--ops-canvas)!important;--field:var(--ops-surface)!important;--line:var(--ops-line)!important;--fg:var(--ops-ink)!important;--muted:var(--ops-muted)!important;--shadow:none!important;
+ font-family:'Geist Variable',sans-serif!important;
+}
+.devis-shell.devis-refined { background:transparent!important; background-image:none!important; padding-top:30px; }
+.devis-refined > .max-w-7xl { max-width:1280px; }
+.devis-refined .dv-main-heading { margin-bottom:28px; }
+.devis-refined .dv-main-heading h1 { font-size:28px; font-weight:650; letter-spacing:-.9px; }
+.devis-refined .dv-main-heading .h-14 { width:42px; height:42px; border-radius:8px; background:var(--ops-surface)!important; color:var(--ops-ink)!important; border:1px solid var(--ops-line); }
+.devis-refined .dv-main-heading .h-14 svg { width:21px; height:21px; stroke-width:1.6; }
+.devis-refined .dv-main-heading p { margin-top:5px; font-size:12px; }
+.devis-refined .dv-panel { border-radius:10px; box-shadow:none; }
+.devis-refined h2 { font-weight:600; letter-spacing:-.6px; }
+.devis-refined h3 { font-weight:600; }
+.devis-refined .font-black { font-weight:650; }
+.devis-refined .dv-choice { background:var(--ops-surface); border-radius:7px; border-width:1px; min-height:62px; box-shadow:none; }
+.devis-refined .dv-choice.is-on { border-color:var(--ops-emphasis); background:var(--ops-canvas); box-shadow:inset 0 0 0 1px var(--ops-emphasis); }
+.devis-refined .dv-ic { background:var(--ops-canvas); color:var(--ops-ink); border-radius:6px; }
+.devis-refined .dv-choice.is-on .dv-ic { background:var(--ops-canvas); color:var(--ops-ink); }
+.devis-refined .dv-tick { background:var(--ops-emphasis); color:var(--ops-surface); }
+.devis-refined .dv-field { border-width:1px; border-radius:6px; }
+.devis-refined .dv-field:focus-within { border-color:var(--ops-muted); box-shadow:0 0 0 2px color-mix(in srgb,var(--ops-muted) 12%,transparent); }
+.devis-refined .dv-btn { border-radius:6px; font-weight:600; }
+.devis-refined .dv-btn-primary { background:var(--ops-emphasis); color:var(--ops-surface); }
+.devis-refined .dv-btn-primary:hover { transform:none; filter:none; opacity:.85; }
+.devis-refined nav[aria-label=Progression] { background:transparent; border:0; border-block:1px solid var(--ops-line); border-radius:0; padding:18px 0; }
+.devis-refined nav[aria-label=Progression] > .h-2 { height:3px; }
+.devis-refined .dv-catalogue { padding:0; background:transparent; border:0; margin-bottom:26px; }
+.devis-refined .dv-catalogue-heading { margin-bottom:18px; }
+.devis-refined .dv-catalogue-heading h3 { font-size:16px; }
+.devis-refined .dv-catalogue-heading > span { border-radius:4px; }
+.devis-refined .dv-photo-grid { grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; }
+.devis-refined .dv-product { border-radius:8px; background:var(--ops-surface); }
+.devis-refined .dv-product .equipment-photo { height:125px; background:#fff; }
+.equipment-photo img { object-fit:contain; padding:7px; }
+.equipment-photo-missing { display:flex; flex-direction:column; align-items:center; gap:6px; font-size:10px; color:var(--ops-muted); }
+.equipment-photo.dv-row-photo { width:62px; height:58px; flex:none; background:#fff; border-radius:5px; border:1px solid var(--ops-line); }
+.devis-refined .dv-product-name { font-size:12px; font-weight:600; padding-top:12px; }
+.devis-refined .dv-product-power { padding-bottom:12px; }
+.devis-refined .dv-product-power span { color:var(--ops-muted); }
+.devis-refined .dv-product-count { background:var(--ops-emphasis); color:var(--ops-surface); }
+.devis-refined .dv-dropzone { margin-top:16px; padding:16px; border-radius:7px; color:var(--ops-ink); }
+.devis-refined .dv-dropzone.is-over { background:var(--ops-canvas); border-color:var(--ops-ink); }
+.devis-refined .dv-reorder { background:transparent; border:0; margin:0; padding:3px 0; gap:4px; }
+.devis-refined .dv-reorder .dv-btn { min-height:28px; padding:3px 7px; font-size:10px; border-color:transparent; color:var(--ops-muted); }
+.dv-device-modal { border-radius:10px!important; box-shadow:0 20px 70px #0003; }
+.dv-device-modal aside { box-shadow:none; }
+.dv-device-preview { background:var(--ops-canvas); }
+.dv-device-preview-photo { width:100%; height:190px; object-fit:contain; padding:16px; background:#fff; }
+.dv-device-preview-caption { padding:18px; color:var(--ops-ink); }
+.dv-device-preview-caption .text-white { color:var(--ops-ink); }
+.dv-device-modal .bg-gradient-to-br { background-image:none; background:var(--ops-canvas); border-color:var(--ops-line); }
+.dv-device-modal .dv-card h4 { color:var(--ops-ink); }
+.quote-modal { backdrop-filter:none; background:rgb(8 12 18 / 55%); }
+.quote-modal > [role=dialog] { border-radius:10px; box-shadow:0 20px 90px #0004; max-height:94dvh; overflow-y:auto; }
+.quote-modal .quote-tabs { position:sticky; top:0; z-index:2; }
+.quote-modal .quote-tabs button { border-radius:0; font-size:12px; }
+.quote-modal .font-black { font-weight:650; }
+.quote-modal .quote-document h2 { font-size:30px; letter-spacing:-.8px; }
+.quote-modal .quote-actions { background:#fff; color:#171717; border-radius:5px; }
+@media(max-width:640px) {
+ .devis-shell.devis-refined { padding:20px 12px; }
+ .devis-refined .dv-main-heading h1 { font-size:22px; }
+ .devis-refined .dv-main-heading .h-14 { display:none; }
+ .devis-refined .dv-photo-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+ .devis-refined .dv-product .equipment-photo { height:105px; }
+ .devis-refined .dv-catalogue-heading { flex-direction:column; gap:8px; }
+ .devis-refined .dv-dropzone > span { display:none; }
+ .quote-modal .quote-document h2 { font-size:24px; }
+}
+@media print {
+ .quote-tabs,.quote-share-actions,.quote-chat { display:none!important; }
+ .quote-document { display:block!important; }
+ .quote-print-sheet { transform:none!important; max-height:none!important; overflow:visible!important; }
+ .devis-shell,.ops-content,.ops-main,.ops-shell,#root,body { height:auto!important; overflow:visible!important; transform:none!important; }
+ .ops-shell { display:block!important; }
+}.dv-photo-credits { display:inline-block; margin-top:10px; font-size:10px; color:var(--ops-muted); text-decoration:underline; text-underline-offset:3px; }.equipment-photo { display:block; }
+.equipment-photo img { width:100%; height:100%; max-height:100%; object-fit:contain; }
+.equipment-photo-missing { height:100%; justify-content:center; }.devis-shell.devis-refined { --dv-canvas:var(--ops-canvas)!important; --dv-surface:var(--ops-surface)!important; --dv-card:var(--ops-surface)!important; --dv-card-hover:var(--ops-canvas)!important; --dv-field:var(--ops-surface)!important; --dv-line:var(--ops-line)!important; --dv-ink:var(--ops-ink)!important; --dv-muted:var(--ops-muted)!important; }
+/* Quiet quote summary: measurements read as a list, without a tinted callout. */
+.devis-shell.devis-refined,.devis-shell.dv-device-modal {
+ --or-soft:var(--ops-canvas)!important;
+ --or-line:var(--ops-line)!important;
+ --dv-orange-soft:var(--ops-canvas)!important;
+}
+.dv-quote-summary .dv-summary-metrics { margin:0; padding:4px 0; border-block:1px solid var(--ops-line); background:transparent; }
+.dv-summary-metrics > div { display:flex; align-items:baseline; justify-content:space-between; gap:16px; padding:12px 0; border-bottom:1px solid var(--ops-line); }
+.dv-summary-metrics > div:last-child { border-bottom:0; }
+.dv-summary-metrics dt { color:var(--ops-muted); font-size:12px; }
+.dv-summary-metrics dd { margin:0; color:var(--ops-ink); font-size:14px; font-weight:600; font-variant-numeric:tabular-nums; text-align:right; }
+.dv-quote-summary .dv-pill.or { background:var(--ops-canvas); color:var(--ops-ink); border-color:var(--ops-line); }
+.dv-quote-summary .dv-card .font-black { color:var(--ops-ink)!important; }
+.dv-quote-summary li > span { background:transparent!important; color:var(--ops-ink)!important; border:1px solid var(--ops-line); }

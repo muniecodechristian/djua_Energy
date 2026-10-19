@@ -1,12 +1,13 @@
+import './SmartKitDetails.css';
 import PageEntrance from '../components/PageEntrance';
-import React, { useState, useEffect, useRef } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import React, { lazy, Suspense, useState, useEffect, useRef } from 'react';
+import { useSearchParams, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid
 } from 'recharts';
 import {
-  AlertTriangle, CheckCircle2, Minus, TrendingDown, TrendingUp, Sparkles
+  AlertTriangle, CheckCircle2, Minus, TrendingDown, TrendingUp
 } from 'lucide-react';
 import { useKitLiveTelemetry } from '../hooks/tanstack/useKitLiveTelemetry.js';
 import { useAlertsQuery, useKitsQuery } from '../hooks/tanstack/useKitQueries.js';
@@ -16,6 +17,9 @@ import { predictionMatchesKit } from '../lib/operations';
 import { useCreateIntervention } from '../hooks/tanstack/useInterventions.js';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { MapContainer, TileLayer, Marker, Circle, useMap } from 'react-leaflet';
+const KitExplorer = lazy(() => import('../components/KitExplorer'));
+
 
 /* ------------------------------------------------------------------
    Design tokens
@@ -35,7 +39,7 @@ const TONES = {
   warn: 'bg-amber-500/10 text-amber-700 dark:text-amber-400',
   bad: 'bg-red-500/10 text-red-600 dark:text-red-400',
   off: `${SUBTLE} ${MUTED}`,
-  brand: 'bg-[#FF7900]/10 text-[#C2410C] dark:text-[#FF9A3D]',
+  brand: 'bg-[var(--ops-canvas)] text-[#C2410C] dark:text-[#FF9A3D]',
 };
 
 /* ------------------------------ Utils ------------------------------ */
@@ -106,7 +110,7 @@ const MapUpdater = ({ center }) => {
 
 /* ---------------------------- Primitives ---------------------------- */
 const Card = ({ title, subtitle, action, children, className = '' }) => (
-  <section className={`${SURFACE} rounded-lg p-5 ${className}`}>
+  <section className={`kit-card ${SURFACE} rounded-lg p-5 ${className}`}>
     {(title || action) && (
       <header className="mb-4 flex items-start justify-between gap-3">
         <div>
@@ -156,7 +160,7 @@ const Trend = ({ prev, curr, unit = '' }) => {
 
 /* Grand indicateur : uniquement pour les 4 chiffres qui comptent */
 const Stat = ({ label, hint, value, unit, prev, curr, meter, primary = false }) => (
-  <div className={`${SURFACE} rounded-lg p-5 ${primary ? 'border-t-2 border-t-[#FF7900]' : ''}`}>
+  <div className={`kit-stat ${SURFACE} rounded-lg p-5 ${primary ? 'border-t-2 border-t-[#FF7900]' : ''}`}>
     <p className={`text-sm font-medium ${FG}`}>{label}</p>
     <p className={`text-xs ${MUTED}`}>{hint}</p>
     <p className={`mt-3 flex items-baseline gap-1.5 tabular-nums ${FG}`}>
@@ -195,7 +199,7 @@ const TrendChart = ({ data, options, height = 256 }) => {
             onClick={() => setKey(o.key)}
             aria-pressed={key === o.key}
             className={`rounded-md border px-3 py-1.5 text-xs font-medium transition-colors ${FOCUS} ${key === o.key
-              ? 'border-[#FF7900] bg-[#FF7900]/10 text-[var(--app-foreground)]'
+              ? 'border-[#FF7900] bg-[var(--ops-canvas)] text-[var(--app-foreground)]'
               : `border-[var(--panel-border)] ${MUTED} hover:text-[var(--app-foreground)]`}`}
           >
             {o.label}
@@ -230,15 +234,6 @@ const TrendChart = ({ data, options, height = 256 }) => {
       </div>
     </div>
   );
-};
-
-const Clock = () => {
-  const [now, setNow] = useState(new Date());
-  useEffect(() => {
-    const t = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(t);
-  }, []);
-  return <span className="tabular-nums">{now.toLocaleTimeString('fr-FR')}</span>;
 };
 
 const SignalBars = ({ dbm }) => {
@@ -472,7 +467,7 @@ export default function SmartKitDetails() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [interventionForm, setInterventionForm] = useState({ title: '', description: '', priority: 'Moyenne' });
 
-  const { telemetryRecords, latestTelemetry, isLive, dataSource, isLoading } = useKitLiveTelemetry(kitId);
+  const { telemetryRecords, latestTelemetry, isLive, isLoading } = useKitLiveTelemetry(kitId);
   const { data: kits = [] } = useKitsQuery();
   const { data: alerts = [] } = useAlertsQuery();
   const createIntervention = useCreateIntervention();
@@ -571,7 +566,7 @@ export default function SmartKitDetails() {
   };
 
   return (
-    <PageEntrance className="min-h-screen bg-[var(--app-surface)] font-sans text-[var(--app-foreground)] selection:bg-[#FF7900]/30">
+    <PageEntrance className="kit-detail-page font-sans">
       <style>{`
         .dark .map-tiles-dark { filter: invert(100%) hue-rotate(180deg) brightness(88%) contrast(92%) saturate(0.85); }
         .leaflet-container { background: var(--panel-alt) !important; }
@@ -598,39 +593,34 @@ export default function SmartKitDetails() {
       {/* En-tête */}
       <header className={`sticky top-0 z-40 ${SURFACE} border-x-0 border-t-0`}>
         <div className="mx-auto max-w-screen-2xl px-5 pt-4">
+          <Link to="/parc" className="kit-breadcrumb">← Retour au parc</Link>
           <div className="flex flex-col justify-between gap-3 md:flex-row md:items-start">
             <div>
               <div className="flex flex-wrap items-center gap-2.5">
                 <h1 className="text-xl font-semibold tracking-tight">{kitId || 'Équipement non sélectionné'}</h1>
-                <Pill tone={isLive ? 'ok' : 'warn'} dot pulse={isLive}>
-                  {isLive ? '● En ligne — données en direct' : '⚠ Hors ligne — données DB'}
+                <Pill tone={isLive ? 'ok' : 'off'} dot>
+                  {isLive ? 'Connexion en direct' : 'Sans connexion directe'}
                 </Pill>
-                {!isLive && T && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 border border-amber-500/30 px-2.5 py-1 text-[11px] font-semibold text-amber-400">
-                    Dernier relevé : {formatTime(T?.event_time)}
-                  </span>
-                )}
                 {isOutsideGeofence && <Pill tone="bad">Hors périmètre</Pill>}
               </div>
               <p className={`mt-1 text-sm ${MUTED}`}>
-                {isLive
-                  ? <>Mise à jour automatique · Il est <Clock /></>
-                  : <>ESP32 silencieux — dernières données enregistrées en DB · Il est <Clock /></>}
+                {isLive ? 'Mesures actualisées automatiquement'
+                  : T ? `Dernières mesures reçues : ${formatTime(T.event_time)}` : 'Aucune mesure reçue pour ce kit'}
               </p>
             </div>
             <div className="flex items-center gap-2">
               <button
-                type="button" onClick={() => showToast('Diagnostic lancé')}
-                className={`rounded-md border border-[var(--panel-border)] px-4 py-2 text-sm font-medium transition-colors hover:bg-[var(--panel-alt)] ${FOCUS}`}
+                type="button" onClick={() => setActiveTab('ia')}
+                className={`kit-secondary-action ${FOCUS}`}
               >
-                Lancer un diagnostic
+                Consulter le diagnostic
               </button>
-              <button
-                type="button" onClick={() => setIsModalOpen(true)}
-                className={`rounded-md bg-[#FF7900] px-4 py-2 text-sm font-semibold text-black transition-colors hover:bg-[#FF8F2E] ${FOCUS}`}
+              <Link
+                to={`/InterventionWizard?kitId=${encodeURIComponent(kitId)}`}
+                className={`kit-action ${FOCUS}`}
               >
                 Créer une intervention
-              </button>
+              </Link>
             </div>
           </div>
 
@@ -667,16 +657,12 @@ export default function SmartKitDetails() {
             {/* ============ Synthèse ============ */}
             {activeTab === 'synthese' && (
               <div className="space-y-5">
-                <div>
-                  <h2 className="text-2xl font-semibold tracking-tight">Comment va votre kit ?</h2>
-                  <p className={`mt-1 text-sm ${MUTED}`}>
-                    {isLive
-                      ? <><span className="text-emerald-400 font-medium">● Données en direct</span> — L'ESP32 transmet activement.</>  
-                      : <><span className="text-amber-400 font-medium">⚠ ESP32 silencieux</span> — Dernières mesures enregistrées en base de données affichées. Le kit peut être hors réseau.</>}
-                  </p>
+                <div className="kit-summary-title">
+                  <h2>Vue d'ensemble</h2>
+                  <p>{T ? `Dernier relevé : ${formatTime(T.event_time)}` : 'En attente des premières mesures'}</p>
                 </div>
 
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                <div className="kit-stats grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
                   <Stat primary label="Batterie disponible" hint="Énergie restante" value={T?.state_of_charge_pct} unit="%"
                     prev={P?.state_of_charge_pct} curr={T?.state_of_charge_pct} meter={{ value: T?.state_of_charge_pct, warnBelow: 20 }} />
                   <Stat label="Production solaire" hint="Puissance du panneau à cet instant" value={T?.solar_power_w} unit=" W"
@@ -686,6 +672,10 @@ export default function SmartKitDetails() {
                   <Stat label="Puissance batterie" hint="Mesurée aux bornes" value={T?.battery_power_w} unit=" W"
                     prev={P?.battery_power_w} curr={T?.battery_power_w} />
                 </div>
+
+                <Suspense fallback={<div className="kit-card p-6 text-sm" role="status">Chargement de la vue du kit…</div>}>
+                  <KitExplorer telemetry={T} />
+                </Suspense>
 
                 <Card title="Évolution" subtitle="24 derniers relevés">
                   <TrendChart
@@ -717,7 +707,7 @@ export default function SmartKitDetails() {
                   <Card title="Diagnostic" className="lg:col-span-1">
                     <RowList>
                       {errorRows.map((r) => (
-                        <Row key={r.label} label={r.label} status={<Pill tone={r.bad ? 'bad' : 'ok'}>{r.text}</Pill>} />
+                        <Row key={r.label} label={r.label} status={<Pill tone={!T ? 'off' : r.bad ? 'bad' : 'ok'}>{T ? r.text : 'Non disponible'}</Pill>} />
                       ))}
                     </RowList>
                   </Card>

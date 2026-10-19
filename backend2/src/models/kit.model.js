@@ -39,6 +39,25 @@ const KitSchema = new mongoose.Schema({
     latitude: { type: Number },
     longitude: { type: Number },
   },
+  quoteId: { type: String, index: true },
+  salesClient: { type: mongoose.Schema.Types.ObjectId, ref: 'SalesClient' },
+  clientName: String,
+  installedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  source: { type: String, enum: ['quote', 'manual'] },
+  system: mongoose.Schema.Types.Mixed,
+  appliances: [mongoose.Schema.Types.Mixed],
+  diagnosticStatus: String,
+  diagnosticChecks: [mongoose.Schema.Types.Mixed],
+  zone: {
+    type: String,
+    trim: true,
+    default: '',
+  },
+  shopManager: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null,
+  },
 }, {
   timestamps: true,
 });

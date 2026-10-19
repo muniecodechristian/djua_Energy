@@ -68,6 +68,7 @@ export default function Step09Preview({ onNext, onBack }: Props) {
           )}
         </div>
 
+        {hasQuote && quoteData && <section className="card-white" style={{marginBottom:16}}><h2 className="section-title">Appareils du devis</h2><ul style={{paddingLeft:18}}>{quoteData.appliances.map((item,index)=><li key={index}>{item.quantity} × {item.name} · {item.watts} W · {item.hours} h/j</li>)}</ul><p>Installation prévue : {quoteData.plannedDate} (heure de Kinshasa). La date d’enregistrement sera vérifiée par le serveur.</p></section>}
         {/* 3. Localisation */}
         <div className="card-white">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
@@ -109,6 +110,7 @@ export default function Step09Preview({ onNext, onBack }: Props) {
               value={clientPhone ?? ''}
               onChange={event => setClientPhone(event.target.value)}
               required
+              readOnly={hasQuote === true}
             />
           </div>
         </div>

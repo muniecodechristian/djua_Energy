@@ -10,7 +10,6 @@ export const useCreateIntervention = () => {
       return response.data;
     },
     onSuccess: () => {
-      // Invalider les requêtes pour rafraîchir la liste
       queryClient.invalidateQueries(['interventions']);
     },
   });
@@ -24,6 +23,7 @@ export const useGetInterventions = (kitId = null) => {
       const response = await api.get(url);
       return response.data.data;
     },
+    staleTime: 1000 * 30,
   });
 };
 
@@ -38,5 +38,45 @@ export const useUpdateInterventionStatus = () => {
     onSuccess: () => {
       queryClient.invalidateQueries(['interventions']);
     },
+  });
+};
+
+export const useAddInterventionReport = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ id, report }) => {
+      const response = await api.patch(`/api/interventions/${id}/report`, { report });
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['interventions']);
+    },
+  });
+};
+
+export const useReassignIntervention = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ id, assignedTo }) => {
+      const response = await api.patch(`/api/interventions/${id}/assign`, { assignedTo });
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['interventions']);
+    },
+  });
+};
+
+export const useTeamTechnicians = () => {
+  return useQuery({
+    queryKey: ['team-technicians'],
+    queryFn: async () => {
+      const response = await api.get('/auth/team-users');
+      const list = response.data?.data || [];
+      return list.filter(u => u.role === 'technician' && u.status !== 'suspended');
+    },
+    staleTime: 1000 * 60 * 3,
   });
 };

@@ -3,16 +3,16 @@ import { Search, CheckCircle2, Package, Battery, Zap, X } from 'lucide-react';
 import { StepIndicator } from '../components/ui/StepIndicator';
 import { Button } from '../components/ui/Button';
 import { useInstallStore } from '../store/useInstallStore';
-import { orangeApi } from '../services/api';
-import type { OrangeQuote } from '../types/install.types';
+import { quotesApi } from '../services/api';
+import type { StoredQuote } from '../types/install.types';
 
 interface Props { onNext: () => void; }
 
 export default function Step04Search({ onNext }: Props) {
   const setStoreQuoteData = useInstallStore(s => s.setQuoteData);
-  const [quoteId, setQuoteId] = useState('OE-2026-00847');
+  const [quoteId, setQuoteId] = useState('');
   const [isSearching, setIsSearching] = useState(false);
-  const [result, setResult] = useState<OrangeQuote | null>(null);
+  const [result, setResult] = useState<StoredQuote | null>(null);
   const [error, setError] = useState('');
 
   const handleSearch = async () => {
@@ -21,11 +21,11 @@ export default function Step04Search({ onNext }: Props) {
     setError('');
     setResult(null);
     try {
-      const data = await orangeApi.searchQuote(quoteId.trim());
+      const data = await quotesApi.searchQuote(quoteId.trim());
       if (data) setResult(data);
       else setError('Aucun devis trouvé pour cet identifiant.');
-    } catch {
-      setError('Erreur lors de la recherche. Réessayez.');
+    } catch(error: any) {
+      setError(error.message || 'Erreur lors de la recherche. Réessayez.');
     } finally {
       setIsSearching(false);
     }
@@ -37,6 +37,7 @@ export default function Step04Search({ onNext }: Props) {
       client: result.client,
       location: result.location,
       system: result.system,
+      phone: result.phone, plannedDate:result.plannedDate, appliances:result.appliances,
     });
     onNext();
   };
@@ -53,12 +54,13 @@ export default function Step04Search({ onNext }: Props) {
         <div className="input-wrap" style={{ marginBottom: 16 }}>
           <input
             value={quoteId}
-            onChange={e => setQuoteId(e.target.value)}
-            placeholder="Ex: OE-2026-00847"
+            onChange={e => {setQuoteId(e.target.value);setResult(null);setError('');}}
+            disabled={isSearching}
+            placeholder="Ex : DJ-2026-A1B2C3D4E5"
             onKeyDown={e => e.key === 'Enter' && handleSearch()}
           />
           {quoteId && (
-            <button style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }} onClick={() => setQuoteId('')}>
+            <button style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }} disabled={isSearching} onClick={() => {setQuoteId('');setResult(null);}}>
               <X size={14} color="var(--text-muted)" />
             </button>
           )}
@@ -83,6 +85,9 @@ export default function Step04Search({ onNext }: Props) {
               <p style={{ fontSize: 19, fontWeight: 700, color: 'var(--text)', marginBottom: 4 }}>{result.id}</p>
               <p style={{ fontSize: 14, color: 'var(--text-2)', marginBottom: 2 }}>{result.client}</p>
               <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 16 }}>{result.location}</p>
+              <p style={{fontSize:13,marginBottom:12}}>Téléphone : {result.phone}<br/>Installation prévue : {result.plannedDate} (Kinshasa)</p>
+              <h2 style={{fontSize:14,fontWeight:600}}>Appareils du client</h2>
+              <ul style={{paddingLeft:20,marginBottom:16}}>{result.appliances.map((item,index)=><li key={index} style={{fontSize:13,marginBottom:6}}>{item.quantity} × {item.name} · {item.watts} W · {item.hours} h/j</li>)}</ul>
               <div className="divider" />
               <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', margin: '12px 0' }}>Système prévu</p>
 

@@ -1,0 +1,10 @@
+import { Router } from 'express';
+import { protect, authorizeRoles } from '../middlewares/auth.middleware.js';
+import { saveQuote, listQuotes, getQuote, approveQuote } from '../controllers/quote.controller.js';
+const router = Router();
+router.use(protect);
+router.get('/', authorizeRoles('commercial', 'shop_manager', 'admin'), listQuotes);
+router.post('/', authorizeRoles('commercial', 'shop_manager', 'admin'), saveQuote);
+router.get('/:number', authorizeRoles('commercial', 'shop_manager', 'admin', 'technician'), getQuote);
+router.patch('/:number/approve', authorizeRoles('commercial', 'shop_manager', 'admin'), approveQuote);
+export default router;

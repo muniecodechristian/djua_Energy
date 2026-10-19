@@ -1,9 +1,14 @@
+import { createQuoteKit } from './quoteInstallation.controller.js';
 // src/controllers/kit.controller.js
 // CRUD minimal sur le modèle Kit :
 //   GET  /api/kits/:kitId  — chercher un kit existant (utilisé lors du scan QR)
 //   POST /api/kits          — créer un nouveau kit après l'onboarding technicien
 
 import Kit from '../models/kit.model.js';
+import { Intervention } from '../models/Intervention.model.js';
+import Alert from '../models/Alert.model.js';
+import Telemetry from '../models/Telemetry.js';
+import { sendSuccess, sendError } from '../utils/apiResponse.js';
 
 function normalizePhone(phone) {
   return String(phone).replace(/\D/g, '').replace(/^00/, '');
@@ -40,6 +45,76 @@ export async function getKitById(req, res) {
   }
 }
 
+// ─── GET /api/kits/:kitId/scan-history ──────────────────────────────────────────
+/**
+ * Vérification complète du kit scanné par un technicien (ou commercial/manager) :
+ * - Vérifie l'existence du kit en base
+ * - Détecte le signal live IoT (dernière télémétrie ESP32, tension, SoC, état réseau)
+ * - Historique de toutes les interventions passées et des comptes-rendus des techniciens
+ * - Alertes actives sur l'équipement
+ */
+export async function getKitScanHistory(req, res) {
+  const { kitId } = req.params;
+
+  try {
+    const kit = await Kit.findOne({ kitId }).lean();
+
+    if (!kit) {
+      return sendSuccess(res, 'Kit non trouvé dans le système', {
+        exists: false,
+        kitId,
+      });
+    }
+
+    // 1. Signal et dernière télémétrie IoT
+    const latestTelemetry = await Telemetry.findOne({ kitId })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const now = Date.now();
+    const lastSeenTime = latestTelemetry?.createdAt ? new Date(latestTelemetry.createdAt).getTime() : 0;
+    // Considéré actif/en ligne si un relevé date de moins de 30 minutes
+    const isOnline = lastSeenTime > 0 && (now - lastSeenTime) < 30 * 60 * 1000;
+
+    // 2. Historique complet des interventions et des comptes-rendus (knowledge sharing)
+    const interventions = await Intervention.find({ kitId })
+      .populate('assignedTo', 'nom prenom identifier seniority zone')
+      .populate('createdBy', 'nom prenom identifier')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    // 3. Alertes en cours non résolues
+    const activeAlerts = await Alert.find({
+      kitId,
+      status: { $in: ['active', 'acknowledged'] },
+    })
+      .populate('assignedTo', 'nom prenom identifier seniority zone')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return sendSuccess(res, 'Vérification et historique du kit récupérés avec succès', {
+      exists: true,
+      kit,
+      signal: {
+        isOnline,
+        lastSeen: latestTelemetry?.createdAt || null,
+        batteryVoltage: latestTelemetry?.battery_voltage_v ?? null,
+        batteryCurrent: latestTelemetry?.battery_current_a ?? null,
+        socPct: latestTelemetry?.state_of_charge_pct ?? null,
+        solarPowerW: latestTelemetry?.solar_power_w ?? null,
+        solarVoltage: latestTelemetry?.solar_voltage_v ?? null,
+        loadPowerW: latestTelemetry?.load_power_w ?? null,
+        deviceTemp: latestTelemetry?.device_temperature_c ?? null,
+      },
+      interventions,
+      activeAlerts,
+    });
+  } catch (err) {
+    console.error('[Kit Controller] getKitScanHistory error:', err);
+    return sendError(res, `Erreur lors de la vérification du kit: ${err.message}`, [], 500);
+  }
+}
+
 // ─── POST /api/kits ────────────────────────────────────────────────────────────
 /**
  * Crée un nouveau Kit à partir du payload complet collecté lors de l'onboarding.
@@ -60,6 +135,7 @@ export async function getKitById(req, res) {
  *   500  { success: false, message }   → erreur serveur
  */
 export async function createKit(req, res) {
+  if(req.body.quoteId || req.body.source === 'quote') return createQuoteKit(req, res);
   const {
     kitId,
     clientPhone,

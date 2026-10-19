@@ -25,7 +25,8 @@ export default function MainLayout() {
   const role = user?.role === 'administration' ? 'admin' : user?.role;
   const isAdmin = role === 'admin';
   const isCommercial = role === 'commercial';
-  const hasRestrictedNavigation = isAdmin || isCommercial;
+  const isTechnician = role === 'technician';
+  const hasRestrictedNavigation = isAdmin || isCommercial || isTechnician;
   const visibleNavigation = navigationForRole(role);
   const isTeamPage = location.pathname.toLowerCase() === '/equipe';
   const info = pageInfo(location.pathname);
@@ -40,6 +41,7 @@ export default function MainLayout() {
     '/customerprofile': 'profile',
     '/operationsoverview': 'overview',
     '/equipe': 'maintenance',
+    '/technicien': 'maintenance',
   })[location.pathname.toLowerCase()] || 'dashboard';
   const secondaryPage = !visibleNavigation.some(item => item.path.toLowerCase() === location.pathname.toLowerCase());
   const backFallback = /smartkit|customerprofile/i.test(location.pathname) ? '/parc' : '/dashboard';
@@ -55,8 +57,9 @@ export default function MainLayout() {
   const results = [...visibleNavigation.map(item => ({label:item.label, description:item.description, path:item.path})), ...(!hasRestrictedNavigation ? asList(kits.data).filter(kit => kit.kitId).map(kit => ({label:kit.kitId || 'Équipement', description:kit.province || kit.region || 'Fiche équipement', path:detailUrl(kit.kitId)})) : [])].filter(item => (item.label + ' ' + item.description).toLowerCase().includes(search.toLowerCase())).slice(0, 10);
   if (isAdmin && location.pathname.toLowerCase() !== '/administrationsettings') return <Navigate to="/AdministrationSettings" replace/>;
   if (isCommercial && location.pathname.toLowerCase() !== '/devis') return <Navigate to="/devis" replace/>;
+  if (isTechnician && location.pathname.toLowerCase() !== '/technicien') return <Navigate to="/technicien" replace/>;
   if (!isAdmin && location.pathname.toLowerCase() === '/administrationsettings') return <Navigate to={role === 'shop_manager' ? '/equipe' : '/dashboard'} replace/>;
-  if (isTeamPage && role !== 'shop_manager') return <Navigate to={isAdmin ? '/AdministrationSettings' : '/dashboard'} replace/>;
+  if (isTeamPage && role !== 'shop_manager') return <Navigate to={isAdmin ? '/AdministrationSettings' : isTechnician ? '/technicien' : '/dashboard'} replace/>;
   return <div className="ops-shell">
     <a className="ops-skip-link" href="#main-content">Aller au contenu</a>
     <Sidebar isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen}/>

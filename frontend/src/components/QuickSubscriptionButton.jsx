@@ -22,7 +22,7 @@ export default function QuickSubscriptionButton() {
       <button
         onClick={() => navigate('/subscription')}
         aria-label="Nouvelle souscription"
-        className="relative flex items-center justify-center w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#FF7900] to-amber-500 text-white shadow-[0_0_20px_rgba(255,121,0,0.4)] hover:shadow-[0_0_30px_rgba(255,121,0,0.7)] hover:scale-105 active:scale-95 transition-all duration-300 border border-orange-400/40 cursor-pointer"
+        className="relative flex items-center justify-center w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#FF7900] to-amber-500 text-white shadow-[0_0_20px_rgba(255,121,0,0.4)] hover:shadow-[0_0_30px_rgba(255,121,0,0.7)] hover:scale-105 active:scale-95 transition-all duration-300 border border-[var(--ops-line)] cursor-pointer"
       >
         <FilePlus size={20} className="stroke-[2.2]" />
 

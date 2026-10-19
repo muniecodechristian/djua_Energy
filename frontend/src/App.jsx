@@ -17,6 +17,7 @@ const AdministrationSettings = lazy(() => import('./pages/AdministrationSettings
 const OrangeKitsRegistry = lazy(() => import('./pages/OrangeKitsRegistry'));
 const Devis = lazy(() => import('./pages/Devis'));
 const TeamManagement = lazy(() => import('./pages/TeamManagement'));
+const TechnicianApp = lazy(() => import('./pages/TechnicianApp'));
 
 function App() {
   useCheckAuth();
@@ -42,7 +43,10 @@ function App() {
         {/* Route publique */}
         <Route path="/" element={<LoginTeak />} />
 
-        {/* Pages accessibles sans connexion */}
+        {/* Espace dédié application Technicien */}
+        <Route path="/technicien" element={<TechnicianApp />} />
+
+        {/* Pages plateforme */}
         <Route element={<MainLayout />}>
           <Route path="/diagnostics"          element={<Navigate to="/parc" replace />} />
           <Route path="/dashboard"            element={<Dashboard />} />
@@ -51,6 +55,7 @@ function App() {
           <Route path="/decision"             element={<Navigate to="/notification" replace />} />
           <Route path="/SmartKitdetails"      element={<SmartKitDetails />} />
           <Route path="/InterventionWizard"   element={<InterventionWizard />} />
+          <Route path="/scan-kit"             element={<Navigate to="/technicien" replace />} />
           <Route path="/CustomerProfile"      element={<CustomerProfile />} />
           <Route path="/OperationsOverview"   element={<OperationsOverview />} />
           <Route path="/AdministrationSettings" element={<AdministrationSettings />} />

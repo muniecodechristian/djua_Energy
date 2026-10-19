@@ -41,6 +41,11 @@ const UserSchema = new mongoose.Schema({
     trim: true,
     default: '',
   },
+  seniority: {
+    type: String,
+    enum: ['junior', 'intermediate', 'senior'],
+    default: 'junior',
+  },
   status: {
     type: String,
     enum: ['active', 'suspended'],

@@ -58,7 +58,7 @@ const Card = ({ children, className = "", title, action, badge }) => (
       <div className="px-5 py-3.5 border-b border-slate-800/60 flex justify-between items-center bg-[#161f32]/20 backdrop-blur-sm">
         <div className="flex items-center gap-2">
           {title && <h3 className="text-[11px] font-bold text-slate-400 tracking-wider uppercase">{title}</h3>}
-          {badge && <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-orange-500/10 text-orange-400 border border-orange-500/20">{badge}</span>}
+          {badge && <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[var(--ops-canvas)] text-orange-400 border border-[var(--ops-line)]">{badge}</span>}
         </div>
         {action && <div className="text-xs font-medium text-orange-400 hover:text-orange-300 transition-colors cursor-pointer flex items-center gap-1">{action}</div>}
       </div>
@@ -121,7 +121,7 @@ export default function Discussion() {
             <input 
               type="text" 
               placeholder="Rechercher..." 
-              className="bg-transparent border border-slate-800 rounded-full pl-9 pr-4 py-1.5 text-sm focus:outline-none focus:border-orange-500/50 transition-colors w-64 text-slate-200 placeholder-slate-500"
+              className="bg-transparent border border-slate-800 rounded-full pl-9 pr-4 py-1.5 text-sm focus:outline-none focus:border-[var(--ops-line)] transition-colors w-64 text-slate-200 placeholder-slate-500"
             />
           </div>
           <button className="relative p-2 rounded-full hover:bg-slate-800 text-slate-400 transition-colors">
@@ -148,7 +148,7 @@ export default function Discussion() {
       >
         <div>
           <div className="flex items-center gap-3 mb-2">
-            <div className="bg-orange-500/10 text-orange-400 border border-orange-500/30 px-3 py-1 rounded-md text-xs font-bold flex items-center gap-1.5 tracking-wider shadow-[0_0_15px_rgba(249,115,22,0.2)]">
+            <div className="bg-[var(--ops-canvas)] text-orange-400 border border-[var(--ops-line)] px-3 py-1 rounded-md text-xs font-bold flex items-center gap-1.5 tracking-wider shadow-[0_0_15px_rgba(249,115,22,0.2)]">
               <ShieldAlert size={14} className="animate-pulse" /> CRITIQUE
             </div>
             <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight">Risque de fraude élevé détecté</h1>
@@ -167,7 +167,7 @@ export default function Discussion() {
           <button className="px-4 py-2 bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/80 rounded-lg text-sm font-medium text-slate-200 transition-colors flex items-center gap-2">
             <User size={16} /> Assigner
           </button>
-          <div className="flex shadow-lg shadow-orange-600/20">
+          <div className="flex shadow-lg shadow-none">
             <button className="px-4 py-2 bg-orange-600 hover:bg-orange-500 rounded-l-lg text-sm font-medium text-white transition-colors flex items-center gap-2 border-r border-orange-700">
               <Phone size={16} /> Contacter le client
             </button>
@@ -215,7 +215,7 @@ export default function Discussion() {
             <motion.div variants={itemVariants} className="h-full">
               <Card title="Détails de l'incident" badge="Priorité Absolue">
                 <div className="flex items-center gap-5 my-2">
-                  <div className="relative w-16 h-16 shrink-0 rounded-full bg-orange-500/10 border-2 border-orange-500/30 flex items-center justify-center shadow-[0_0_20px_rgba(249,115,22,0.15)]">
+                  <div className="relative w-16 h-16 shrink-0 rounded-full bg-[var(--ops-canvas)] border-2 border-[var(--ops-line)] flex items-center justify-center shadow-[0_0_20px_rgba(249,115,22,0.15)]">
                     <svg className="absolute inset-0 w-full h-full transform -rotate-90">
                       <circle cx="30" cy="30" r="26" stroke="currentColor" strokeWidth="4" fill="transparent" className="text-orange-500/20" />
                       <circle cx="30" cy="30" r="26" stroke="currentColor" strokeWidth="4" fill="transparent" className="text-orange-500" strokeDasharray="163" strokeDashoffset="12" strokeLinecap="round" />
@@ -265,7 +265,7 @@ export default function Discussion() {
                     </p>
                   </div>
 
-                  <div className="bg-orange-950/20 border border-orange-500/20 rounded-lg p-3 mt-4">
+                  <div className="bg-[var(--ops-canvas)] border border-[var(--ops-line)] rounded-lg p-3 mt-4">
                     <p className="text-xs text-orange-200/90 flex items-start gap-2 leading-relaxed">
                       <Terminal size={14} className="mt-0.5 shrink-0 text-orange-400" />
                       Corrélation identifiée avec 3 autres hubs dans le secteur 4B sous 48h. Possible falsification coordonnée.
@@ -384,7 +384,7 @@ export default function Discussion() {
                 <div className="flex flex-col h-full justify-between space-y-3 py-1">
                   <div className="flex items-center justify-between border-b border-slate-800/60 pb-2.5">
                     <span className="text-xs text-slate-400 flex items-center gap-2"><ShieldAlert size={14} className="text-orange-400"/> Alerte de Contournement</span>
-                    <span className="text-xs font-bold text-orange-500 bg-orange-500/10 px-2 py-0.5 rounded border border-orange-500/20">Détecté</span>
+                    <span className="text-xs font-bold text-orange-500 bg-[var(--ops-canvas)] px-2 py-0.5 rounded border border-[var(--ops-line)]">Détecté</span>
                   </div>
                   <div className="flex items-center justify-between border-b border-slate-800/60 py-2.5">
                     <span className="text-xs text-slate-400 flex items-center gap-2"><Signal size={14} className="text-amber-400"/> Qualité du Signal</span>
@@ -405,7 +405,7 @@ export default function Discussion() {
                   <p className="text-xs text-slate-300 leading-relaxed bg-transparent p-3 rounded-lg border border-slate-800/60">
                     Suspendre le service immédiatement pour empêcher la consommation non autorisée. Envoyer un agent sur le terrain pour l'inspection des scellés.
                   </p>
-                  <button className="w-full mt-3 py-2.5 bg-orange-600 hover:bg-orange-500 text-white rounded-lg text-xs font-bold transition-all shadow-md shadow-orange-600/20 flex items-center justify-center gap-2">
+                  <button className="w-full mt-3 py-2.5 bg-orange-600 hover:bg-orange-500 text-white rounded-lg text-xs font-bold transition-all shadow-md shadow-none flex items-center justify-center gap-2">
                     <Zap size={14} /> Exécuter les Actions <ArrowRight size={14} />
                   </button>
                 </div>

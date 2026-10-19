@@ -1,13 +1,20 @@
-import React, { useState, useRef, useEffect } from 'react';
+import SaveQuote from './SaveQuote';
+import QuoteChat, { QuoteChatButton } from './QuoteChat';
+import './SolarAdvisorResult.css';
+import '../pages/SmartKitDetails.css';
+import useDialog from '../hooks/useDialog';
+import React, { lazy, Suspense, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Sun, Battery, Zap, Settings2, ChevronDown, ChevronUp,
-  Send, MessageSquare, TrendingUp, Package, CheckCircle2,
-  AlertCircle, Loader2, X, Copy, Check, Phone, ShieldCheck,
+  MessageSquare, TrendingUp, Package, CheckCircle2,
+  AlertCircle, Loader2, X, Phone,
   Clock, BarChart3, Info, AlertTriangle, FileText,
-  Cpu, Gauge, Layers, Printer, Calculator, Headset, ClipboardList
+  Cpu, Gauge, Layers, Printer, Calculator, ClipboardList
 } from 'lucide-react';
 import { useSolarAsk } from '../hooks/tanstack/useSolarAdvisor';
+
+const KitExplorer = lazy(() => import('./KitExplorer'));
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -62,7 +69,7 @@ function SectionTitle({ icon: Icon, title, badge }) {
 
 function KpiCard({ icon: Icon, label, value, sub, accent }) {
   const accentCls = accent
-    ? 'border-[#ff7900]/40 bg-gradient-to-br from-[#ff7900]/10 to-[#ff7900]/5 shadow-[0_0_20px_rgba(255,121,0,0.15)]'
+    ? 'border-[var(--ops-line)] bg-[var(--ops-canvas)]'
     : 'border-[var(--panel-border)] bg-[var(--panel-alt)]';
   return (
     <div className={`rounded-2xl border p-4 flex flex-col gap-1.5 transition-all ${accentCls}`}>
@@ -282,16 +289,11 @@ function AlternativeCard({ alt, currency }) {
 
 // ─── Solar Chat ──────────────────────────────────────────────────────────────
 
-function SolarChat({ recommendationId }) {
-  const [messages, setMessages] = useState([
-    { id: 1, role: 'assistant', text: "Avez-vous des questions sur cette étude ? Je peux vous expliquer les choix techniques ou les prix." },
-  ]);
+function SolarChat({ recommendationId, open, onClose }) {
+  const [messages, setMessages] = useState([]);
   const [input, setInput]     = useState('');
-  const [copiedId, setCopiedId] = useState(null);
-  const chatEndRef              = useRef(null);
   const { mutate: ask, isPending } = useSolarAsk(recommendationId);
 
-  useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
 
   const sendQuestion = () => {
     const q = input.trim();
@@ -312,97 +314,20 @@ function SolarChat({ recommendationId }) {
     });
   };
 
-  const SUGGESTIONS = [
-    'Pourquoi ce nombre de panneaux ?',
-    'Quelle autonomie sans soleil ?',
-    'Comment réduire le budget ?',
-    'Peut-on ajouter un climatiseur ?',
-  ];
-
-  return (
-    <div className="rounded-2xl border border-[var(--panel-border)] bg-[var(--panel-alt)] flex flex-col overflow-hidden">
-      <div className="px-4 py-3 border-b border-[var(--panel-border)] flex items-center gap-2.5 bg-[var(--panel)]">
-        <div className="w-7 h-7 rounded-full bg-[var(--panel-alt)] border border-[var(--panel-border)] flex items-center justify-center">
-          <Headset size={13} className="text-[var(--muted-foreground)]" />
-        </div>
-        <div>
-          <div className="text-sm font-bold text-[var(--app-foreground)]">Assistant d'étude</div>
-          <div className="text-[10px] text-[var(--muted-foreground)]">Posez vos questions sur le dimensionnement</div>
-        </div>
-      </div>
-
-      <div className="flex-1 max-h-52 overflow-y-auto p-3 space-y-3 bg-[var(--app-surface)]">
-        {messages.map((msg) => (
-          <div key={msg.id} className={`flex gap-2 ${msg.role === 'user' ? 'justify-end' : 'items-start'}`}>
-            {msg.role === 'assistant' && (
-              <div className="w-6 h-6 rounded-full bg-[var(--panel)] border border-[var(--panel-border)] flex items-center justify-center flex-shrink-0 mt-0.5">
-                <Headset size={11} className="text-[var(--muted-foreground)]" />
-              </div>
-            )}
-            <div className={`relative max-w-[82%] px-3 py-2 rounded-2xl text-[12px] leading-relaxed group ${
-              msg.role === 'user'
-                ? 'bg-zinc-800 text-zinc-100 rounded-tr-sm border border-zinc-700'
-                : msg.isError
-                  ? 'bg-red-950/40 border border-red-800/50 text-red-300 rounded-tl-sm'
-                  : 'bg-[var(--panel-alt)] border border-[var(--panel-border)] text-[var(--app-foreground)] rounded-tl-sm'
-            }`}>
-              {msg.text}
-              {msg.role === 'assistant' && !msg.isError && (
-                <button
-                  onClick={() => { navigator.clipboard.writeText(msg.text); setCopiedId(msg.id); setTimeout(() => setCopiedId(null), 2000); }}
-                  className="absolute -bottom-2.5 right-2 opacity-0 group-hover:opacity-100 bg-[var(--panel)] border border-[var(--panel-border)] p-1 rounded-md transition-all shadow-md"
-                >
-                  {copiedId === msg.id ? <Check size={9} className="text-emerald-400" /> : <Copy size={9} className="text-[var(--muted-foreground)]" />}
-                </button>
-              )}
-            </div>
-          </div>
-        ))}
-        {isPending && (
-          <div className="flex gap-2 items-start">
-            <div className="w-6 h-6 rounded-full bg-[var(--panel)] border border-[var(--panel-border)] flex items-center justify-center flex-shrink-0">
-              <Headset size={11} className="text-[var(--muted-foreground)]" />
-            </div>
-            <div className="bg-[var(--panel-alt)] border border-[var(--panel-border)] rounded-2xl rounded-tl-sm px-3 py-2.5 flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce [animation-delay:-0.3s]" />
-              <span className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce [animation-delay:-0.15s]" />
-              <span className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce" />
-            </div>
-          </div>
-        )}
-        <div ref={chatEndRef} />
-      </div>
-
-      <div className="px-3 py-2 border-t border-[var(--panel-border)] flex gap-1.5 overflow-x-auto scrollbar-none bg-[var(--panel)]">
-        {SUGGESTIONS.map((s) => (
-          <button key={s} onClick={() => setInput(s)}
-            className="text-[10px] font-medium whitespace-nowrap text-[var(--muted-foreground)] bg-[var(--panel-alt)] hover:bg-zinc-800 hover:text-zinc-300 border border-[var(--panel-border)] rounded-full px-2.5 py-1 transition-all">
-            {s}
-          </button>
-        ))}
-      </div>
-
-      <form onSubmit={(e) => { e.preventDefault(); sendQuestion(); }}
-        className="p-3 border-t border-[var(--panel-border)] flex items-center gap-2 bg-[var(--panel-alt)]">
-        <input value={input} onChange={(e) => setInput(e.target.value)}
-          placeholder="Poser une question..."
-          className="flex-1 bg-[var(--panel)] border border-[var(--panel-border)] focus:border-zinc-500 rounded-xl px-3 py-2 text-xs text-[var(--app-foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none transition" />
-        <button type="submit" disabled={!input.trim() || isPending}
-          className="w-8 h-8 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white flex items-center justify-center transition disabled:opacity-40 flex-shrink-0">
-          <Send size={13} className="translate-x-0.5" />
-        </button>
-      </form>
-    </div>
-  );
+  return <QuoteChat open={open} onClose={onClose} messages={messages} input={input} onInput={setInput} onSend={sendQuestion} pending={isPending} />;
 }
 
 // ─── Composant principal ─────────────────────────────────────────────────────
 
 export default function SolarAdvisorResult({ result, onClose, onContactRequest }) {
+  const [savedQuote,setSavedQuote]=useState(null);
   const [tab, setTab]               = useState('quote');   // 'quote' | 'sizing' | 'appliances' | 'components'
   const [showAlternatives, setShowAlternatives] = useState(false);
   const [showAssumptions, setShowAssumptions]   = useState(false);
   const [isChatModalOpen, setIsChatModalOpen]   = useState(false);
+
+  const [reportDate]=useState(()=>new Date().toLocaleDateString('fr-FR'));
+  const studyRef=useDialog(Boolean(result)&&!isChatModalOpen,onClose);
 
   if (!result) return null;
 
@@ -446,16 +371,17 @@ export default function SolarAdvisorResult({ result, onClose, onContactRequest }
     { id: 'sizing',     label: 'Dimensionnement',   icon: Gauge     },
     { id: 'appliances', label: 'Bilan de charge',   icon: Layers    },
     { id: 'components', label: 'Fiche technique',   icon: Cpu       },
+    { id: 'preview', label: 'Vue du kit', icon: Package },
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 sm:p-6" style={{ zIndex: 9999 }} onClick={(e) => { if (e.target === e.currentTarget && onClose) onClose(); }}>
+    <div className="solar-study-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 sm:p-6" style={{ zIndex: 9999 }} onClick={(e) => { if (e.target === e.currentTarget && onClose) onClose(); }}>
       <motion.div
         initial={{ opacity: 0, y: 40, scale: 0.95 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: 40, scale: 0.95 }}
         transition={{ type: 'spring', stiffness: 320, damping: 30 }}
-        className="w-full max-w-5xl max-h-[92vh] flex flex-col rounded-3xl border border-[var(--panel-border)] bg-[var(--app-surface)] shadow-[0_30px_80px_rgba(0,0,0,0.5)] overflow-hidden"
+        ref={studyRef} role="dialog" aria-modal="true" aria-label="Étude solaire et proposition" className="solar-study-dialog w-full max-w-5xl max-h-[92vh] flex flex-col rounded-3xl border border-[var(--panel-border)] bg-[var(--app-surface)] shadow-[0_30px_80px_rgba(0,0,0,0.5)] overflow-hidden"
       >
         {/* ── HEADER ────────────────────────────────────────────────────────── */}
         <div className="flex-none px-5 pt-5 pb-4 border-b border-[var(--panel-border)] bg-[var(--panel)]">
@@ -466,7 +392,7 @@ export default function SolarAdvisorResult({ result, onClose, onContactRequest }
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-base font-black text-[var(--app-foreground)]">Étude Technique & Commerciale</h2>
+                <h2 className="text-base font-black text-[var(--app-foreground)]">Votre étude solaire</h2>
                 {status === 'recommendation_with_assumptions' && (
                   <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border text-amber-500 bg-amber-500/10 border-amber-500/25">
                     Provisoire
@@ -474,24 +400,27 @@ export default function SolarAdvisorResult({ result, onClose, onContactRequest }
                 )}
                 {status === 'success' && (
                   <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border text-emerald-500 bg-emerald-500/10 border-emerald-500/25">
-                    Validé
+                    Calcul terminé
                   </span>
                 )}
               </div>
               <div className="text-[11px] text-[var(--muted-foreground)] mt-0.5">
-                Système de Dimensionnement Automatisé
+                Dimensionnement, budget et hypothèses
                 {recId && <span className="ml-2 font-mono opacity-60">{recId}</span>}
               </div>
             </div>
           </div>
           {onClose && (
-            <button onClick={onClose}
+            <button onClick={onClose} aria-label="Fermer l’étude"
               className="w-8 h-8 rounded-xl border border-[var(--panel-border)] flex items-center justify-center text-[var(--muted-foreground)] hover:text-[var(--app-foreground)] hover:bg-[var(--panel-alt)] transition flex-shrink-0">
               <X size={14} />
             </button>
           )}
         </div>
 
+        {recId && <div className="mt-4 flex items-center justify-between gap-3"><p className="text-xs text-[var(--muted-foreground)]">Une question sur les panneaux, le budget ou l’autonomie ?</p><QuoteChatButton onClick={() => setIsChatModalOpen(true)} /></div>}
+
+        <SaveQuote onSaved={setSavedQuote} payload={{ customer:{name:result.clientInfo?.fullName||result.clientInfo?.companyName||result.clientInfo?.contactName||'',phone:result.clientInfo?.phone||'',email:result.clientInfo?.email||'',address:result.site?.adresse||'',profile:result.profile||'personne',details:result.clientInfo||{}},site:{adresse:result.site?.adresse||'',ville:result.site?.ville||'',...(Number.isFinite(result.site?.lat)?{lat:result.site.lat}:{}),...(Number.isFinite(result.site?.lng)?{lng:result.site.lng}:{})},appliances:(result.sourceAppliances||[]).map(({name,quantity,watts,hours,period})=>({name,quantity:Number(quantity),watts:Number(watts),hours:Number(hours),period})),system:{panels:Number(panelCount),panelPower:Number(panelPowerW),batteryCapacity:Number(battUsableWh)/1000,inverterPower:Number(inverterW)/1000},amount:Number(totalPrice),currency:currency==='USD'?'USD':'CDF',recommendationId:recId||undefined,buildingType:result.buildingType||undefined}}/>
         {/* Alertes infos manquantes */}
         {missing.length > 0 && (
           <div className="mt-3 flex items-start gap-2 rounded-xl border border-amber-500/25 bg-amber-500/5 px-3 py-2.5">
@@ -506,7 +435,7 @@ export default function SolarAdvisorResult({ result, onClose, onContactRequest }
 
       <div className="flex-1 overflow-y-auto">
         {/* ── KPIs ──────────────────────────────────────────────────────────── */}
-        <div className="px-5 pt-5 grid grid-cols-2 md:grid-cols-4 xl:grid-cols-5 gap-3">
+        <div className="solar-study-kpis px-5 pt-5 grid grid-cols-2 md:grid-cols-4 xl:grid-cols-5 gap-3">
         <KpiCard icon={TrendingUp}  label="Budget estimé"    value={fmtCurrency(totalPrice, currency)} sub={`${quoteItems.length} références`} accent />
         <KpiCard icon={Sun}         label="Champ solaire"    value={totalPvKw ? `${totalPvKw.toFixed(1)} kWc` : '—'} sub={panelCount ? `${panelCount} modules × ${panelPowerW}W` : null} />
         <KpiCard icon={Battery}     label="Parc batterie"    value={battUsableWh ? fmtWh(battUsableWh) : '—'} sub={battCount ? `${battCount} unités · ${sysVoltage}V` : null} />
@@ -516,9 +445,9 @@ export default function SolarAdvisorResult({ result, onClose, onContactRequest }
 
       {/* ── TABS ──────────────────────────────────────────────────────────── */}
       <div className="px-5 pt-5 pb-2">
-        <div className="inline-flex items-center gap-1 p-1.5 rounded-2xl bg-zinc-100 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700/50">
+        <div className="solar-study-tabs inline-flex items-center gap-1 p-1.5 rounded-2xl bg-zinc-100 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700/50">
           {TABS.map(({ id, label, icon: Icon }) => (
-            <button key={id} onClick={() => setTab(id)}
+            <button key={id} aria-pressed={tab===id} onClick={() => setTab(id)}
               className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all duration-300 ${
                 tab === id
                   ? 'bg-white dark:bg-zinc-700 text-[#ff7900] shadow-sm ring-1 ring-zinc-900/5 dark:ring-white/10'
@@ -537,13 +466,13 @@ export default function SolarAdvisorResult({ result, onClose, onContactRequest }
         {tab === 'quote' && (
           <div className="space-y-6 max-w-4xl mx-auto pb-4">
             {/* Design Papier / Bureautique */}
-            <div className="bg-white border border-[#e4e4e7] shadow-md p-8 sm:p-12 text-[#111] mx-auto w-full relative selection:bg-[#ff7900]/20">
+            <div className="bg-white border border-[#e4e4e7] shadow-md p-8 sm:p-12 text-[#111] mx-auto w-full relative selection:bg-[var(--ops-canvas)]">
               {/* En-tête Devis */}
               <div className="flex flex-col sm:flex-row justify-between items-start border-b-2 border-[#111] pb-6 mb-8 gap-6">
                 <div>
                   <h1 className="text-3xl font-black uppercase tracking-tighter text-[#111]">DEVIS PROFORMA</h1>
                   <div className="text-sm font-bold text-[#777] mt-1">
-                    Réf : {recId?.split('-')[0].toUpperCase() || 'DJUA-2026-01'}
+                    Réf : {savedQuote?.number || recId || 'Étude non enregistrée'}
                   </div>
                 </div>
                 <div className="text-left sm:text-right">
@@ -566,7 +495,7 @@ export default function SolarAdvisorResult({ result, onClose, onContactRequest }
                 <div className="w-full sm:w-1/3 flex flex-col justify-end text-sm">
                   <div className="flex justify-between border-b border-[#e4e4e7] py-2">
                     <span className="font-bold text-[#555]">Date d'émission :</span>
-                    <span className="font-semibold text-[#111]">{new Date().toLocaleDateString('fr-CD')}</span>
+                    <span className="font-semibold text-[#111]">{reportDate}</span>
                   </div>
                   <div className="flex justify-between border-b border-[#e4e4e7] py-2">
                     <span className="font-bold text-[#555]">Validité :</span>
@@ -594,8 +523,8 @@ export default function SolarAdvisorResult({ result, onClose, onContactRequest }
                           <div className="text-xs text-[#777] mt-1">{ITEM_TYPE_LABELS[item.item_type]?.label || item.item_type}</div>
                         </td>
                         <td className="py-4 px-4 text-center font-semibold text-[#333]">{item.quantity}</td>
-                        <td className="py-4 px-4 text-right text-[#666]">{fmtCurrency(item.unit_price, item.currency)}</td>
-                        <td className="py-4 px-4 text-right font-black text-[#111]">{fmtCurrency(item.line_total, item.currency)}</td>
+                        <td className="py-4 px-4 text-right text-[#666]">{fmtCurrency(item.unit_price, item.currency||currency)}</td>
+                        <td className="py-4 px-4 text-right font-black text-[#111]">{fmtCurrency(item.line_total, item.currency||currency)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -820,55 +749,40 @@ export default function SolarAdvisorResult({ result, onClose, onContactRequest }
           </div>
         )}
 
-        {/* ── Chat contextuel ────────────────────────────────────────────── */}
-        {recId && (
-          <div className="px-5 pt-4 pb-1 flex justify-center">
-            <button 
-              onClick={() => setIsChatModalOpen(true)}
-              className="flex items-center gap-2 rounded-full bg-gradient-to-r from-[#ff7900] to-[#ff9100] text-white hover:shadow-lg hover:shadow-[#ff7900]/20 font-bold text-sm px-6 py-3 transition-all hover:-translate-y-0.5 active:scale-95"
-            >
-              <MessageSquare size={16} /> Poser une question à l'Assistant IA
-            </button>
-          </div>
-        )}
+        {tab === 'preview' && <section className="solar-design-section"><h3>Comprendre votre installation</h3><p>Sélectionnez un composant pour lire les caractéristiques retenues dans l'étude.</p><Suspense fallback={<p role="status">Chargement du schéma…</p>}><KitExplorer design={{
+          solar:[['Modules',panelCount],['Puissance unitaire',panelPowerW?`${panelPowerW} W`:null],['Champ solaire',totalPvKw?`${totalPvKw.toFixed(1)} kWc`:null]],
+          battery:[['Unités',battCount],['Capacité utile',battUsableWh?fmtWh(battUsableWh):null],['Tension système',sysVoltage?`${sysVoltage} V`:null]],
+          controller:[['Courant régulateur',ctrlA?`${ctrlA} A`:null],['Onduleur',inverterW?fmtW(inverterW):null]],
+        }}/></Suspense></section>}
 
-        <AnimatePresence>
-          {isChatModalOpen && recId && (
-            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                className="w-full max-w-lg relative"
-              >
-                <button 
-                  onClick={() => setIsChatModalOpen(false)}
-                  className="absolute -top-12 right-0 w-10 h-10 flex items-center justify-center rounded-full bg-zinc-800 text-zinc-300 hover:bg-zinc-700 hover:text-white transition shadow-lg"
-                >
-                  <X size={18} />
-                </button>
-                <div className="shadow-[0_30px_80px_rgba(0,0,0,0.5)] rounded-2xl">
-                  <SolarChat recommendationId={recId} />
-                </div>
-              </motion.div>
-            </div>
-          )}
-        </AnimatePresence>
+        {/* ── Chat contextuel ────────────────────────────────────────────── */}
+        {recId && <SolarChat recommendationId={recId} open={isChatModalOpen} onClose={() => setIsChatModalOpen(false)} />}
 
         {/* ── Actions commerciales ───────────────────────────────────────── */}
-        <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-[var(--panel-border)]">
+        <div className="solar-study-actions flex flex-col sm:flex-row gap-3 pt-4 border-t border-[var(--panel-border)]">
           <button onClick={() => onContactRequest?.(recId)}
             className="flex-1 flex items-center justify-center gap-2 rounded-2xl bg-zinc-900 text-zinc-100 hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 font-bold text-sm px-5 py-3.5 shadow-md transition active:scale-[0.98]">
-            <Phone size={15} />Transmettre au service commercial
+            <Phone size={15} />Contacter le service commercial
           </button>
           <button onClick={() => window.print()}
             className="flex items-center justify-center gap-2 rounded-2xl border border-[var(--panel-border)] bg-[var(--panel)] hover:bg-[var(--panel-alt)] text-[var(--app-foreground)] text-sm font-medium px-5 py-3.5 transition">
-            <Printer size={14} />Éditer le PDF
+            <Printer size={14} />Rapport PDF
           </button>
         </div>
       </div>
       </div>
       </motion.div>
+      <article className="quote-print-sheet solar-print-report">
+        <header><p>DJUA ENERGY</p><h1>Étude solaire et estimation</h1><p>Référence : {recId||'Non renseignée'} · {reportDate}</p></header>
+        <p>Client : {result.clientInfo?.fullName||result.clientInfo?.companyName||'Non renseigné'} · {result.site?.adresse||'Adresse à confirmer'}</p>
+        <h2>Dimensionnement</h2><dl>{[['Budget estimé',fmtCurrency(totalPrice,currency)],['Panneaux',panelCount?`${panelCount} × ${panelPowerW||'—'} W`:'Non renseigné'],['Batterie utile',fmtWh(battUsableWh)],['Onduleur',fmtW(inverterW)],['Autonomie',autonomyH?`${autonomyH} h`:'Non renseigné']].map(([label,value])=><div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
+        <h2>Proposition chiffrée</h2><table><thead><tr><th>Équipement</th><th>Qté</th><th>Prix unitaire</th><th>Montant</th></tr></thead><tbody>{quoteItems.map((item,index)=><tr key={index}><td>{item.label}{item.is_synthetic_price?' (prix indicatif)':''}</td><td>{item.quantity}</td><td>{fmtCurrency(item.unit_price,item.currency||currency)}</td><td>{fmtCurrency(item.line_total,item.currency||currency)}</td></tr>)}</tbody></table>
+        <p className="solar-print-total">Total estimé : {fmtCurrency(totalPrice,currency)}</p>
+        <h2>Analyse</h2>{explanation.map((text,index)=><p key={index}>{text}</p>)}
+        {assumptions.length>0&&<><h2>Hypothèses</h2><ul>{assumptions.map((text,index)=><li key={index}>{text}</li>)}</ul></>}
+        {limitations.length>0&&<><h2>Limites</h2><ul>{limitations.map((text,index)=><li key={index}>{text}</li>)}</ul></>}
+        <footer>Estimation soumise à validation technique et commerciale. Le schéma 3D est illustratif.</footer>
+      </article>
     </div>
   );
 }
@@ -878,13 +792,13 @@ export function SolarAdvisorTrigger({ isLoading, hasResult, onClick }) {
   return (
     <motion.button type="button" onClick={onClick} disabled={isLoading}
       whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-      className="w-full flex items-center justify-center gap-3 rounded-full bg-orange-500 px-6 py-4 text-sm font-semibold text-white shadow-[0_16px_30px_rgba(249,115,22,0.3)] transition hover:bg-orange-400 disabled:cursor-not-allowed disabled:bg-zinc-800 disabled:text-zinc-500 disabled:shadow-none">
+      className="solar-generate-trigger w-full flex items-center justify-center gap-3 rounded-full bg-orange-500 px-6 py-4 text-sm font-semibold text-white shadow-[0_16px_30px_rgba(249,115,22,0.3)] transition hover:bg-orange-400 disabled:cursor-not-allowed disabled:bg-zinc-800 disabled:text-zinc-500 disabled:shadow-none">
       {isLoading ? (
-        <><Loader2 size={16} className="animate-spin" />Génération du devis avec l'IA...</>
+        <><Loader2 size={16} className="animate-spin" />Calcul de votre solution…</>
       ) : hasResult ? (
         <><CheckCircle2 size={16} />Devis IA généré avec succès</>
       ) : (
-        <><Calculator size={16} />Générer le devis avec l'IA (Djua)</>
+        <><Calculator size={16} />Calculer la solution solaire</>
       )}
     </motion.button>
   );

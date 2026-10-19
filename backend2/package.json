@@ -12,12 +12,14 @@
     "test:coverage": "vitest run --coverage",
     "test:ui": "vitest --ui",
     "seed": "node src/scripts/seed.js",
+    "seed:team": "node src/scripts/seed-team.js",
     "simulate": "node src/scripts/simulate-iot.js"
   },
   "dependencies": {
     "aedes": "^1.1.1",
     "axios": "^1.19.0",
     "bcryptjs": "^3.0.3",
+    "cookie": "^2.0.1",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",

@@ -4,6 +4,7 @@
 
 import { Router }      from 'express';
 import * as controller from '../controllers/kit.controller.js';
+import { protect, authorizeRoles, optionalProtect } from '../middlewares/auth.middleware.js';
 
 const router = Router();
 
@@ -18,12 +19,24 @@ const router = Router();
 router.get('/kits/:kitId', controller.getKitById);
 
 /**
+ * GET /api/kits/:kitId/scan-history
+ * Scan et diagnostic d'un kit avec vérification existence, signal live,
+ * historique des maintenances passées et comptes-rendus des techniciens.
+ */
+router.get(
+  '/kits/:kitId/scan-history',
+  protect,
+  authorizeRoles('technician', 'shop_manager', 'admin'),
+  controller.getKitScanHistory,
+);
+
+/**
  * POST /api/kits
  * Crée un nouveau Kit après que le technicien a complété l'onboarding.
  *
  * 201 { data: Kit }
  * 409                → kit déjà existant (doublon de sécurité)
  */
-router.post('/kits', controller.createKit);
+router.post('/kits', optionalProtect, controller.createKit);
 
 export default router;

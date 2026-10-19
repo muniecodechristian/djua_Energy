@@ -17,7 +17,7 @@ import {
 const topKpis = [
   { title: 'Kits Actifs Totaux', value: '158,742', change: '+2.1%', isPos: true, icon: Zap, color: 'text-blue-400 border-blue-500/30', stroke: '#3b82f6', spark: [12,14,13,15,16,15,18,17,19] },
   { title: 'Énergie Totale Générée', value: '147,510 MWh', change: '+4.8%', isPos: true, icon: Activity, color: 'text-green-400 border-green-500/30', stroke: '#22c55e', spark: [100,110,105,120,125,130,147] },
-  { title: 'Incidents Critiques', value: '11', change: '-12.5%', isPos: true, icon: ShieldAlert, color: 'text-orange-400 border-orange-500/30', stroke: '#f97316', spark: [18,16,14,15,12,13,11] },
+  { title: 'Incidents Critiques', value: '11', change: '-12.5%', isPos: true, icon: ShieldAlert, color: 'text-orange-400 border-[var(--ops-line)]', stroke: '#f97316', spark: [18,16,14,15,12,13,11] },
   { title: 'Interventions Résolues', value: '712', change: '+8.5%', isPos: true, icon: CheckCircle2, color: 'text-purple-400 border-purple-500/30', stroke: '#a855f7', spark: [50,55,62,58,65,70,71.2] },
   { title: 'Revenu Total (FCFA)', value: '312.5M', change: '+5.2%', isPos: true, icon: DollarSign, color: 'text-emerald-400 border-emerald-500/30', stroke: '#10b981', spark: [280,290,285,300,305,312] },
   { title: 'CO2 Économisé', value: '127.4 t', change: '+10.1%', isPos: true, icon: Leaf, color: 'text-cyan-400 border-cyan-500/30', stroke: '#06b6d4', spark: [90,95,102,110,115,127] },
@@ -294,7 +294,7 @@ export default function OperationsOverview() {
                       <td className="py-2.5 text-slate-300 font-mono">{row.eff}</td>
                       <td className="py-2.5 text-right">
                         <span className={`px-2 py-0.5 rounded-full text-[9px] font-medium bg-transparent border ${
-                          row.status === 'Nominal' ? 'text-green-400 border-green-500/30' : 'text-orange-400 border-orange-500/30'
+                          row.status === 'Nominal' ? 'text-green-400 border-green-500/30' : 'text-orange-400 border-[var(--ops-line)]'
                         }`}>
                           {row.status}
                         </span>
@@ -354,9 +354,9 @@ export default function OperationsOverview() {
 
       {/* BOTTOM BANNER / ACTIONABLE INSIGHT BAR */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-        <div className="bg-gradient-to-r from-[#1b120a]/40 via-transparent to-transparent border border-[#FF7900]/30 rounded-xl p-3.5 flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="bg-[var(--ops-surface)] border border-[var(--ops-line)] rounded-xl p-3.5 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-transparent border border-[#FF7900]/30 text-[#FF7900] rounded-lg flex-shrink-0">
+            <div className="p-2 bg-transparent border border-[var(--ops-line)] text-[#FF7900] rounded-lg flex-shrink-0">
               <Sparkles size={18} />
             </div>
             <div>

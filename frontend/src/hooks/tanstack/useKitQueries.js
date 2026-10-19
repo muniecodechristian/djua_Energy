@@ -58,11 +58,20 @@ export const useAlertsQuery = () => {
   return useQuery({
     queryKey: ['alerts'],
     queryFn: async () => {
-      const response = await api.get('/api/alerts');
-      if (response.data?.success) {
-        return response.data.data;
+      try {
+        const response = await api.get('/api/alerts');
+        if (response.data?.success) {
+          return response.data.data;
+        }
+        return [];
+      } catch (error) {
+        // En cas de non-autorisation (ex. utilisateur non connecté ou rôle restreint),
+        // on retourne une liste vide pour éviter de bloquer l'affichage global du tableau de bord
+        if (error.response?.status === 401 || error.response?.status === 403) {
+          return [];
+        }
+        throw error;
       }
-      return [];
     },
     staleTime: 1000 * 30, // 30 secondes — les alertes sont volatiles
     refetchInterval: 1000 * 30, // Repolling toutes les 30 secondes
@@ -194,3 +203,26 @@ export const useSendCommandMutation = () => {
     },
   });
 };
+
+// ─── 8. Scan et historique d'intervention d'un kit ─────────────────────────────
+/**
+ * Vérifie l'existence du kit, son signal live et récupère tout l'historique
+ * des interventions passées avec les rapports des techniciens.
+ * (GET /api/kits/:kitId/scan-history)
+ */
+export const useKitScanHistoryQuery = (kitId) => {
+  return useQuery({
+    queryKey: ['kit-scan-history', kitId],
+    queryFn: async () => {
+      const response = await api.get(`/api/kits/${encodeURIComponent(kitId)}/scan-history`);
+      if (response.data?.success) {
+        return response.data.data;
+      }
+      return null;
+    },
+    enabled: Boolean(kitId && kitId.trim().length > 0),
+    staleTime: 1000 * 15, // 15 secondes
+    retry: 1,
+  });
+};
+

@@ -1,3 +1,10 @@
+import SaveQuote from '../components/SaveQuote';
+import SalesQuotes, { SalesQuoteOverview } from '../components/SalesQuotes';
+import useAuthStore from '../hooks/Zustand/useAuthStore';
+import QuoteChat, { QuoteChatButton } from '../components/QuoteChat';
+import './Devis.css';
+import EquipmentPhoto, { equipmentPhoto, WhatsAppIcon } from '../components/EquipmentPhoto';
+import useDialog from '../hooks/useDialog';
 import PageEntrance from '../components/PageEntrance';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, animate, motion } from 'framer-motion';
@@ -7,6 +14,8 @@ import 'leaflet/dist/leaflet.css';
 import 'leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css';
 import 'leaflet-defaulticon-compatibility';
 import {
+  GripVertical, ArrowUp, ArrowDown, Phone, MessageSquare, Upload,
+  Bot, Send,
   ArrowLeft,
   ArrowRight,
   BriefcaseBusiness,
@@ -69,7 +78,7 @@ import {
   PlugZap,      // Pas de réseau
   ImagePlus,    // For equipment images
 } from 'lucide-react';
-import { useSolarRecommend } from '../hooks/tanstack/useSolarAdvisor';
+import { useSolarConversation, useSolarRecommend } from '../hooks/tanstack/useSolarAdvisor';
 import SolarAdvisorResult, { SolarAdvisorTrigger } from '../components/SolarAdvisorResult';
 
 /* ────────────────────────────────────────────────────────────────────────────
@@ -79,16 +88,22 @@ import SolarAdvisorResult, { SolarAdvisorTrigger } from '../components/SolarAdvi
 ──────────────────────────────────────────────────────────────────────────── */
 const CSS = `
 .devis-shell{
-  --bg:#0a0a0b;--panel:var(--saas-panel);--card:var(--saas-card);--card2:var(--saas-card-raised);--field:#0e0e10;--line:var(--saas-card-border);
-  --fg:#fafafa;--muted:#9c9ca6;--or:#ff7900;--or-soft:rgba(255,121,0,.13);--or-line:rgba(255,121,0,.55);
-  --ok:#3ccf62;--ok-soft:rgba(60,207,98,.12);--err:#ff6161;--err-soft:rgba(255,97,97,.12);
+  --bg:#f7f6f1;--panel:#fffefa;--card:#fffefa;--card2:#f0efe8;--field:#ffffff;--line:#e4e4da;
+  --fg:#20251f;--muted:#697168;--or:#e87827;--or-soft:rgba(232,120,39,.12);--or-line:rgba(232,120,39,.38);
+  --ok:#536e52;--ok-soft:rgba(83,110,82,.12);--err:#b84032;--err-soft:rgba(184,64,50,.1);
   --shadow:var(--saas-panel-shadow);
   background:var(--bg);
-  color:var(--fg);font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;
+  color:var(--fg);font-family:'Geist Variable','Segoe UI',sans-serif;-webkit-font-smoothing:antialiased;
 }
 :root[data-theme='light'] .devis-shell{
-  --bg:#f2f2f3;--panel:var(--saas-panel);--card:var(--saas-card);--card2:var(--saas-card-raised);--field:#ffffff;--line:var(--saas-card-border);
-  --fg:#111114;--muted:#686873;--or-soft:rgba(255,121,0,.11);--shadow:var(--saas-panel-shadow);
+  --bg:#f7f6f1;--panel:#fffefa;--card:#fffefa;--card2:#f0efe8;--field:#ffffff;--line:#e4e4da;
+  --fg:#20251f;--muted:#697168;--or-soft:rgba(232,120,39,.12);--shadow:0 12px 34px rgba(37,42,34,.055);
+  background:var(--bg);
+}
+:root[data-theme='dark'] .devis-shell{
+  --bg:#171a17;--panel:#20241f;--card:#20241f;--card2:#2b3029;--field:#242923;--line:#353a33;
+  --fg:#f0efe8;--muted:#a5a99e;--or:#f28b43;--or-soft:rgba(242,139,67,.14);--or-line:rgba(242,139,67,.42);
+  --ok:#9dbb91;--ok-soft:rgba(157,187,145,.13);--err:#ff8678;--err-soft:rgba(255,134,120,.12);
   background:var(--bg);
 }
 .devis-shell *{-webkit-tap-highlight-color:transparent}
@@ -309,7 +324,7 @@ const summarizeDetails = (kind, details) => [...DETAIL_SCHEMA[kind].fields, GRID
 const STORAGE_KEY = 'djua-devis-onboarding-state';
 const KINSHASA = [-4.3217, 15.3126];
 
-const initialCompanyForm = { companyName: '', rccm: '', idNationale: '', tva: '', secteur: '', adresse: '', ville: '', province: '', contactName: '', phone: '', email: '' };
+const initialCompanyForm = { companyName: '', rccm: '', idNationale: '', tva: '', secteur: '', adresse: '', ville: '', province: '', contactName: '', phone: '', email: '', contactPref: '' };
 const initialClientForm = { fullName: '', phone: '', email: '', contactPref: '', adresse: '', ville: '', province: '' };
 const initialSiteForm = { adresse: '', quartier: '', commune: '', ville: 'Kinshasa', province: 'Kinshasa', lat: null, lng: null, confirmed: false, reference: '', details: {} };
 const initialProjectForm = { name: '', location: '', occupants: 4, targetConsumption: 0 };
@@ -454,10 +469,10 @@ function Input({ icon: Icon, prefix, suffix, invalid, ...props }) {
   );
 }
 
-function Choice({ on, onClick, icon: Icon, emoji, label, sub }) {
+function Choice({ on, onClick, icon: Icon, label, sub }) {
   return (
     <button type="button" onClick={onClick} aria-pressed={on} className={`dv-choice ${on ? 'is-on' : ''}`}>
-      <span className="dv-ic">{Icon ? <Icon size={18} /> : emoji}</span>
+      <span className="dv-ic">{Icon ? <Icon size={18} /> : <CheckCircle2 size={18}/>}</span>
       <span className="min-w-0 flex-1">
         <span className="block leading-tight">{label}</span>
         {sub && <span className="dv-muted mt-0.5 block text-xs font-normal">{sub}</span>}
@@ -466,6 +481,31 @@ function Choice({ on, onClick, icon: Icon, emoji, label, sub }) {
         {on && <motion.span key="tick" className="dv-tick" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }} transition={{ type: 'spring', stiffness: 500, damping: 22 }}><Check size={13} strokeWidth={3} /></motion.span>}
       </AnimatePresence>
     </button>
+  );
+}
+
+function ContactPreference({ value, onChange }) {
+  const options = [
+    ['WhatsApp', WhatsAppIcon],
+    ['Appel', Phone],
+    ['SMS', MessageSquare],
+  ];
+  return (
+    <div>
+      <span className="dv-label">Comment le client préfère être contacté</span>
+      <p className="dv-hint mb-2">Cette préférence sera reprise dans le récapitulatif du devis.</p>
+      <div className="grid grid-cols-3 gap-2">
+        {options.map(([label, Icon]) => (
+          <Choice
+            key={label}
+            on={value === label}
+            icon={Icon}
+            label={label}
+            onClick={() => onChange(value === label ? '' : label)}
+          />
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -493,7 +533,7 @@ function DetailField({ field, details, onChange }) {
         <span className="dv-label">{field.label}</span>
         <div className={`grid gap-2 ${field.options.length === 2 ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-3'}`}>
           {field.options.map((option) => (
-            <Choice key={option.value} on={stored === option.value} emoji={option.emoji} label={option.value} onClick={() => onChange(field.key, stored === option.value ? undefined : option.value)} />
+            <Choice key={option.value} on={stored === option.value} icon={option.icon} label={option.value} onClick={() => onChange(field.key, stored === option.value ? undefined : option.value)} />
           ))}
         </div>
       </div>
@@ -822,11 +862,10 @@ function Quantity({ value, onChange, min = 1, max = 99 }) {
 
 function ApplianceRow({ item, onUpdate, onRemove }) {
   const energy = item.watts * item.hours * item.quantity;
-  const Icon = resolveCategoryIcon(item.category);
   return (
     <motion.div layout initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, x: 40 }} transition={{ duration: 0.2 }} className="dv-card flex flex-col gap-3 p-3 sm:flex-row sm:items-center" style={{ background: 'var(--panel)' }}>
       <div className="flex min-w-0 flex-1 items-center gap-3">
-        <span className="dv-ic"><Icon size={19} /></span>
+        <EquipmentPhoto name={item.name} src={item.imageUrl} className="dv-row-photo"/>
         <div className="min-w-0">
           <p className="truncate text-sm font-bold">{item.name}</p>
           <p className="dv-muted text-xs">{fmtPower(item.watts)} · {Number(item.hours.toFixed(1))} h/jour · {periodLabel(item.period)}</p>
@@ -845,27 +884,19 @@ function ApplianceRow({ item, onUpdate, onRemove }) {
 }
 
 function QuickAdd({ appliances, onQuickAdd }) {
-  return (
-    <div className="mb-5">
-      <div className="mb-2 flex items-center justify-between">
-        <p className="text-sm font-bold">Ajout rapide</p>
-        <span className="dv-muted text-xs">Touchez pour ajouter, retouchez pour en ajouter un de plus</span>
-      </div>
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
-        {PRESETS.map((preset) => {
-          const Icon = resolveCategoryIcon(preset.category);
-          const count = appliances.filter((a) => a.name === preset.name).reduce((s, a) => s + a.quantity, 0);
-          return (
-            <button type="button" key={preset.name} onClick={() => onQuickAdd(preset)} className={`dv-choice ${count ? 'is-on' : ''}`} style={{ minHeight: 60 }}>
-              <span className="dv-ic" style={{ width: 34, height: 34 }}><Icon size={16} /></span>
-              <span className="min-w-0 flex-1"><span className="block truncate text-[13px] leading-tight">{preset.name}</span><span className="dv-muted text-[11px] font-normal">{preset.watts} W</span></span>
-              <AnimatePresence>{count > 0 && <motion.span key={count} initial={{ scale: 0.4 }} animate={{ scale: 1 }} className="dv-tick" style={{ width: 22, height: 22, fontSize: 11, fontWeight: 800 }}>{count}</motion.span>}</AnimatePresence>
-            </button>
-          );
-        })}
-      </div>
+  const [over,setOver]=useState(false);
+  const drop=event=>{event.preventDefault();setOver(false);const name=event.dataTransfer.getData('application/x-djua-preset');const preset=PRESETS.find(item=>item.name===name);if(preset)onQuickAdd(preset);};
+  return <section className="dv-catalogue">
+    <div className="dv-catalogue-heading"><div><h3>Le catalogue d'appareils</h3><p>Ajoutez les appareils du client, puis ajustez leur quantité et leur usage.</p></div><span>Photos illustratives</span></div>
+    <div className="dv-photo-grid">{PRESETS.map(preset=>{const count=appliances.filter(item=>item.name===preset.name).reduce((sum,item)=>sum+item.quantity,0);return <button type="button" key={preset.name} draggable onDragStart={event=>{event.dataTransfer.setData('application/x-djua-preset',preset.name);event.dataTransfer.effectAllowed='copy';}} onClick={()=>onQuickAdd(preset)} className="dv-product" aria-label={`Ajouter ${preset.name}`}>
+      <EquipmentPhoto name={preset.name}/><span className="dv-product-add"><Plus size={15}/></span>{count>0&&<span className="dv-product-count">{count}</span>}
+      <span className="dv-product-name">{preset.name}</span><span className="dv-product-power">{preset.watts} W <span>· Ajouter</span></span>
+    </button>;})}</div>
+    <div className={`dv-dropzone ${over?'is-over':''}`} onDragOver={event=>{if(event.dataTransfer.types.includes('application/x-djua-preset')){event.preventDefault();setOver(true);}}} onDragLeave={()=>setOver(false)} onDrop={drop}>
+      <Upload size={19}/><div><strong>Déposez un appareil ici</strong><p>Glissez une photo du catalogue, ou cliquez sur l'appareil pour l'ajouter.</p></div><span>{appliances.reduce((sum,item)=>sum+item.quantity,0)} ajouté(s)</span>
     </div>
-  );
+    <a className="dv-photo-credits" href={import.meta.env.BASE_URL+'equipment/credits.json'} target="_blank" rel="noreferrer">Crédits des photos</a>
+  </section>;
 }
 
 function ApplianceList({ appliances, onUpdate, onRemove, onAddClick, onReorder }) {
@@ -897,9 +928,9 @@ function ApplianceList({ appliances, onUpdate, onRemove, onAddClick, onReorder }
               </div>
               <div className="space-y-2"><AnimatePresence initial={false}>{group.map((item) => <div key={item.id} onDragOver={e=>{if(dragged && dragged!==item.id)e.preventDefault();}} onDrop={e=>{e.preventDefault();if(dragged && dragged!==item.id)onReorder(dragged,item.id);setDragged(null);}}>
 <div className="dv-reorder">
-<button type="button" draggable className="dv-btn dv-btn-ghost dv-btn-sm" aria-label={'Déplacer '+item.name} onDragStart={e=>{setDragged(item.id);e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',String(item.id));}} onDragEnd={()=>setDragged(null)}>↕ Déplacer</button>
-<button type="button" className="dv-btn dv-btn-ghost dv-btn-sm" disabled={group.indexOf(item)===0} aria-label={'Monter '+item.name} onClick={()=>onReorder(item.id,group[group.indexOf(item)-1].id)}>↑</button>
-<button type="button" className="dv-btn dv-btn-ghost dv-btn-sm" disabled={group.indexOf(item)===group.length-1} aria-label={'Descendre '+item.name} onClick={()=>onReorder(item.id,group[group.indexOf(item)+1].id)}>↓</button>
+<button type="button" draggable className="dv-btn dv-btn-ghost dv-btn-sm" aria-label={'Déplacer '+item.name} onDragStart={e=>{setDragged(item.id);e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',String(item.id));}} onDragEnd={()=>setDragged(null)}><GripVertical size={14}/> Déplacer</button>
+<button type="button" className="dv-btn dv-btn-ghost dv-btn-sm" disabled={group.indexOf(item)===0} aria-label={'Monter '+item.name} onClick={()=>onReorder(item.id,group[group.indexOf(item)-1].id)}><ArrowUp size={14}/></button>
+<button type="button" className="dv-btn dv-btn-ghost dv-btn-sm" disabled={group.indexOf(item)===group.length-1} aria-label={'Descendre '+item.name} onClick={()=>onReorder(item.id,group[group.indexOf(item)+1].id)}><ArrowDown size={14}/></button>
 </div><ApplianceRow item={item} onUpdate={onUpdate} onRemove={onRemove}/></div>)}</AnimatePresence></div>
             </div>
           );
@@ -911,6 +942,7 @@ function ApplianceList({ appliances, onUpdate, onRemove, onAddClick, onReorder }
 }
 
 function AddModal({ onClose, onAdd, defaultCategory = 'Multimédia' }) {
+  const dialogRef=useDialog(true,onClose);
   const [deviceName, setDeviceName] = useState('');
   const [brandModel, setBrandModel] = useState('');
   const [nameError, setNameError] = useState('');
@@ -930,10 +962,9 @@ function AddModal({ onClose, onAdd, defaultCategory = 'Multimédia' }) {
   const period = dayShare >= 0.99 ? 'day' : dayShare <= 0.01 ? 'night' : 'both';
   const estimatedDaily = watts * hours * quantity;
 
-  // Fake image based on category and name to look like a real photo
-  const imageUrl = `https://images.unsplash.com/photo-${category === 'Climatisation' ? '1527344754160-5991823192bd' : category === 'Cuisine' ? '1584269600464-377fbfd40ec4' : category === 'Multimédia' ? '1593359677879-14aeb1f7a0bd' : category === 'Éclairage' ? '1513694203232-719a280e022f' : '1558383409-91ce695272a2'}?auto=format&fit=crop&w=400&q=80`;
+  const imageUrl = equipmentPhoto(deviceName);
 
-  useEffect(() => { const handler = (e) => e.key === 'Escape' && onClose(); window.addEventListener('keydown', handler); return () => window.removeEventListener('keydown', handler); }, [onClose]);
+
 
   const applyPreset = (preset) => {
     setDeviceName(preset.name);
@@ -945,15 +976,14 @@ function AddModal({ onClose, onAdd, defaultCategory = 'Multimédia' }) {
     setUsageWindows([createUsageWindow(preset.hours, preset.period === 'night' ? '19:00' : '08:00')]);
   };
   
-  // Smart AI Fetch Simulation
+  // Local indicative estimate; this does not query a manufacturer database.
   const handleSmartFetch = async () => {
     if (!deviceName && !brandModel) {
       toast.error("Veuillez saisir un nom ou un modèle d'abord.");
       return;
     }
     setIsSimulatingAI(true);
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1500));
+
     
     // Heuristics for demo
     const query = `${deviceName} ${brandModel}`.toLowerCase();
@@ -975,7 +1005,7 @@ function AddModal({ onClose, onAdd, defaultCategory = 'Multimédia' }) {
     setWatts(estimatedWatts);
     setAmps(Number((estimatedWatts / voltage).toFixed(2)));
     setIsSimulatingAI(false);
-    toast.success(`Puissance trouvée : ${estimatedWatts}W pour ce modèle.`);
+    toast.success(`Estimation indicative : ${estimatedWatts} W. Vérifiez la plaque signalétique.`);
   };
 
   const setQuickHours = (h) => setUsageWindows([createUsageWindow(h, h >= 12 ? '00:00' : '08:00')]);
@@ -994,9 +1024,9 @@ function AddModal({ onClose, onAdd, defaultCategory = 'Multimédia' }) {
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm sm:items-center sm:p-4" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ type: 'spring', stiffness: 320, damping: 30 }} className="dv-panel devis-shell flex max-h-[94vh] w-full max-w-[1000px] flex-col overflow-hidden" style={{ borderRadius: 20, background: 'var(--panel)' }}>
+      <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ type: 'spring', stiffness: 320, damping: 30 }} ref={dialogRef} role="dialog" aria-modal="true" aria-label="Ajouter un équipement" className="dv-device-modal dv-panel devis-shell flex max-h-[94vh] w-full max-w-[1000px] flex-col overflow-hidden" style={{ borderRadius: 20, background: 'var(--panel)' }}>
         <div className="flex items-center justify-between border-b px-5 py-4" style={{ borderColor: 'var(--line)' }}>
-          <div><h3 className="text-xl font-bold">Ajouter un équipement</h3><p className="dv-muted text-sm">Définissez manuellement ou utilisez notre IA pour trouver la puissance.</p></div>
+          <div><h3 className="text-xl font-bold">Ajouter un équipement</h3><p className="dv-muted text-sm">Renseignez la puissance et les horaires d'utilisation.</p></div>
           <button type="button" onClick={onClose} aria-label="Fermer" className="dv-step-btn"><X size={18} /></button>
         </div>
 
@@ -1020,12 +1050,12 @@ function AddModal({ onClose, onAdd, defaultCategory = 'Multimédia' }) {
               </Field>
             </div>
             
-            <div className="dv-card space-y-4 p-4 border border-[#ff7900]/30 bg-gradient-to-br from-[#ff7900]/5 to-transparent">
+            <div className="dv-card space-y-4 p-4 border border-[var(--ops-line)]">
               <div className="flex items-center gap-2 mb-1">
                 <Sparkles size={16} className="text-[#ff7900]" />
-                <h4 className="text-sm font-bold text-[#ff7900]">Recherche intelligente (Marque / Modèle)</h4>
+                <h4 className="text-sm font-bold text-[#ff7900]">Estimation de puissance</h4>
               </div>
-              <p className="dv-muted text-xs">Entrez la marque ou le modèle (ex: "Sony 32 pouces") et nous trouverons sa vraie puissance.</p>
+              <p className="dv-muted text-xs">Estimation locale indicative. La plaque signalétique ou la fiche du fabricant reste la référence.</p>
               <div className="flex gap-2">
                 <div className="dv-field flex-1">
                   <input value={brandModel} onChange={(e) => setBrandModel(e.target.value)} placeholder="Ex : LG OLED 55 pouces..." />
@@ -1036,7 +1066,7 @@ function AddModal({ onClose, onAdd, defaultCategory = 'Multimédia' }) {
                   disabled={isSimulatingAI}
                   className="dv-btn bg-[#ff7900] text-black hover:brightness-110 disabled:opacity-50 min-w-[120px]"
                 >
-                  {isSimulatingAI ? <Loader2 size={16} className="animate-spin" /> : 'Rechercher'}
+                  {isSimulatingAI ? <Loader2 size={16} className="animate-spin" /> : 'Estimer'}
                 </button>
               </div>
             </div>
@@ -1045,7 +1075,7 @@ function AddModal({ onClose, onAdd, defaultCategory = 'Multimédia' }) {
 
             <div className="dv-card space-y-4 p-4">
               <div className="flex items-center justify-between">
-                <div><h4 className="text-sm font-bold">Puissance {brandModel ? 'trouvée' : 'manuelle'}</h4><p className="dv-muted text-xs">Ajustez si nécessaire.</p></div>
+                <div><h4 className="text-sm font-bold">Puissance {brandModel ? 'estimée' : 'manuelle'}</h4><p className="dv-muted text-xs">Ajustez si nécessaire.</p></div>
                 <div className="flex gap-1 rounded-lg p-1" style={{ background: 'var(--card2)' }}>
                   {[['watts', 'Watts'], ['volts', 'Volts × Ampères']].map(([id, label]) => (
                     <button key={id} type="button" onClick={() => setPowerMode(id)} className="rounded-md px-3 py-1.5 text-xs font-bold transition" style={powerMode === id ? { background: 'var(--or)', color: '#000' } : { color: 'var(--muted)' }}>{label}</button>
@@ -1085,28 +1115,28 @@ function AddModal({ onClose, onAdd, defaultCategory = 'Multimédia' }) {
           </div>
 
           <aside className="w-full lg:w-[320px] bg-[var(--card)] lg:border-l border-t lg:border-t-0 border-[var(--line)] flex flex-col shrink-0 z-10 overflow-hidden shadow-[-10px_0_30px_rgba(0,0,0,0.2)]">
-            <div className="relative h-48 w-full bg-zinc-800 shrink-0">
+            <div className="dv-device-preview relative w-full shrink-0">
               {deviceName || brandModel ? (
                 <img 
                   src={imageUrl} 
                   alt={deviceName || 'Equipment'} 
-                  className="w-full h-full object-cover opacity-80 mix-blend-overlay"
+                  className="dv-device-preview-photo"
                 />
               ) : (
                 <div className="absolute inset-0 flex items-center justify-center bg-zinc-900">
                   <ImagePlus size={48} className="text-zinc-700" />
                 </div>
               )}
-              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent flex flex-col justify-end p-5">
+              <div className="dv-device-preview-caption">
                 <div className="flex items-center gap-2 mb-1">
-                  <div className="p-1.5 rounded-lg bg-[#ff7900]/20 backdrop-blur-md border border-[#ff7900]/30 text-[#ff7900]">
+                  <div className="p-1.5 rounded-lg bg-[var(--ops-canvas)] backdrop-blur-md border border-[var(--ops-line)] text-[#ff7900]">
                     <SelectedIcon size={16} />
                   </div>
                   <span className="text-[10px] font-bold uppercase tracking-widest text-[#ff7900]">
                     {category}
                   </span>
                 </div>
-                <h4 className="text-xl font-bold text-white drop-shadow-md">
+                <h4 className="text-xl font-semibold">
                   {brandModel ? `${deviceName} ${brandModel}` : (deviceName || 'Nouvel équipement')}
                 </h4>
               </div>
@@ -1161,7 +1191,7 @@ function SummaryCard({ selectedProfile, selectedType, customType, projectForm, s
   const done = checks.filter((c) => c.ok).length;
 
   return (
-    <aside className="dv-panel p-5 xl:sticky xl:top-5 xl:self-start">
+    <aside className="dv-quote-summary dv-panel p-5 xl:sticky xl:top-5 xl:self-start">
       <div className="mb-4 flex items-center justify-between">
         <h3 className="text-lg font-bold">Votre devis</h3>
         <span className="dv-pill or">{done}/{checks.length}</span>
@@ -1176,11 +1206,11 @@ function SummaryCard({ selectedProfile, selectedType, customType, projectForm, s
         ))}
       </ul>
 
-      <div className="space-y-3 rounded-xl p-4" style={{ background: 'var(--or-soft)', border: '1px solid var(--or-line)' }}>
-        <div className="flex items-center justify-between text-sm"><span className="dv-muted">Appareils</span><strong><AnimatedNumber value={totalDevices} /></strong></div>
-        <div className="flex items-center justify-between text-sm"><span className="dv-muted">Consommation</span><strong><AnimatedNumber value={calc.dailyWh / 1000} decimals={2} suffix=" kWh/j" /></strong></div>
-        <div className="flex items-center justify-between text-sm"><span className="dv-muted">Puissance max.</span><strong><AnimatedNumber value={calc.simultaneousWatts / 1000} decimals={2} suffix=" kW" /></strong></div>
-      </div>
+      <dl className="dv-summary-metrics" aria-label="Bilan des appareils du devis">
+        <div><dt>Appareils</dt><dd><AnimatedNumber value={totalDevices} /></dd></div>
+        <div><dt>Consommation</dt><dd><AnimatedNumber value={calc.dailyWh / 1000} decimals={2} suffix=" kWh/j" /></dd></div>
+        <div><dt>Puissance max.</dt><dd><AnimatedNumber value={calc.simultaneousWatts / 1000} decimals={2} suffix=" kW" /></dd></div>
+      </dl>
 
       <AnimatePresence>
         {totalDevices > 0 && (
@@ -1205,16 +1235,82 @@ function SummaryCard({ selectedProfile, selectedType, customType, projectForm, s
 /* ────────────────────────────────────────────────────────────────────────────
    DEVIS IMPRIMABLE
 ──────────────────────────────────────────────────────────────────────────── */
+function internationalPhone(phone) {
+  const digits = String(phone || '').replace(/\D/g, '');
+  if (!digits) return '';
+  if (digits.startsWith('00')) return digits.slice(2);
+  if (digits.startsWith('243')) return digits;
+  return `243${digits.startsWith('0') ? digits.slice(1) : digits}`;
+}
+
+function QuoteAdvisor({ calc, appliances, buildingType, site, open, onClose }) {
+  const [messages, setMessages] = useState([]);
+  const [draft, setDraft] = useState('');
+  const conversation = useSolarConversation();
+  const sendMessage = async (event) => {
+    event?.preventDefault();
+    const message = draft.trim();
+    if (!message || conversation.isPending) return;
+
+    const previousMessages = messages.slice(-8).map(({ role, text }) => ({ role, content: text }));
+    setMessages((previous) => [...previous, { role: 'user', text: message }]);
+    setDraft('');
+
+    try {
+      const result = await conversation.mutateAsync({
+        message,
+        context: {
+          conversation: previousMessages,
+          project: {
+            buildingType,
+            site: [site.quartier, site.commune, site.ville].filter(Boolean).join(', '),
+            dailyConsumptionKwh: Number((calc.dailyWh / 1000).toFixed(2)),
+            recommended: {
+              solarPanels: calc.panelCount,
+              solarPowerKwc: Number(calc.solarKw.toFixed(1)),
+              batteryKwh: Number(calc.batteryKwh.toFixed(1)),
+              inverterKva: Number(calc.inverterKva.toFixed(1)),
+            },
+            appliances: appliances.map(({ name, quantity, watts, hours }) => ({ name, quantity, watts, hours })),
+          },
+        },
+      });
+      const answer = typeof result === 'string'
+        ? result
+        : result?.answer || result?.response || result?.reply || result?.message || result?.text
+          || result?.assistant_message || result?.content;
+      if (typeof answer !== 'string' || !answer.trim()) {
+        throw new Error('La réponse du service de conseil est vide ou dans un format inattendu.');
+      }
+      setMessages((previous) => [...previous, { role: 'assistant', text: answer.trim() }]);
+    } catch (error) {
+      setMessages((previous) => [...previous, {
+        role: 'assistant',
+        text: error?.response?.data?.error?.message || error?.message || 'Le conseiller est momentanément indisponible. Réessayez dans un instant.',
+        isError: true,
+      }]);
+    }
+  };
+
+  return <QuoteChat open={open} onClose={onClose} messages={messages} input={draft} onInput={setDraft} onSend={sendMessage} pending={conversation.isPending} />;
+}
+
 function QuotePreview({ selectedProfile, selectedType, customType, companyForm, clientForm, site, appliances, calc, onClose }) {
+  const [activePanel, setActivePanel] = useState('document');
+  const dialogRef=useDialog(activePanel !== 'chat',onClose);
+  const contact = selectedProfile === 'entreprise' ? companyForm : clientForm;
+  const sharePhone = internationalPhone(contact.phone);
   const customerName = selectedProfile === 'entreprise' ? (companyForm.companyName || companyForm.contactName || 'Client professionnel') : (clientForm.fullName || 'Client particulier');
   const typeLabel = selectedType === 'Autre' ? (customType || 'Autre') : selectedType;
-  const quoteNumber = useMemo(() => `DJ-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`, []);
+  const [savedQuote,setSavedQuote] = useState(null);
+  const temporaryQuoteNumber = useMemo(() => `DJ-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`, []);
+  const quoteNumber = savedQuote?.number || temporaryQuoteNumber;
   const address = [site.adresse, site.quartier, site.commune, site.ville].filter(Boolean).join(', ');
   const lineItems = [
-    { label: `Dimensionnement solaire (${calc.panelCount} panneaux)`, detail: `${calc.solarKw.toFixed(1)} kWc · étude IA`, amount: calc.panelCount * 485000 },
-    { label: 'Stockage lithium', detail: `${calc.batteryKwh.toFixed(1)} kWh · autonomie optimisée`, amount: calc.batteryKwh * 720000 },
-    { label: 'Onduleur hybride', detail: `${calc.inverterKva.toFixed(1)} kVA · protection intégrée`, amount: calc.inverterKva * 390000 },
-    { label: 'Installation & mise en service', detail: 'Pose, configuration et formation', amount: 350000 },
+    { label: `Panneaux solaires (${calc.panelCount})`, detail: `${calc.solarKw.toFixed(1)} kWc · base de dimensionnement indicative`, amount: calc.panelCount * 485000 },
+    { label: 'Batterie de stockage', detail: `${calc.batteryKwh.toFixed(1)} kWh · capacité estimée`, amount: calc.batteryKwh * 720000 },
+    { label: 'Onduleur hybride', detail: `${calc.inverterKva.toFixed(1)} kVA · puissance indicative`, amount: calc.inverterKva * 390000 },
+    { label: 'Installation et mise en service', detail: 'À confirmer après visite technique', amount: 350000 },
   ];
   const subtotal = lineItems.reduce((s, i) => s + i.amount, 0);
   const tax = subtotal * 0.16;
@@ -1223,28 +1319,39 @@ function QuotePreview({ selectedProfile, selectedType, customType, companyForm, 
 
   return (
     <div className="quote-modal fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-950/80 p-3 backdrop-blur-md sm:p-6">
-      <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="quote-print-sheet relative my-auto w-full max-w-5xl overflow-hidden rounded-2xl bg-white text-slate-950 shadow-2xl">
+      <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} ref={dialogRef} role="dialog" aria-modal="true" aria-label="Proposition et suivi du devis" className="quote-print-sheet relative my-auto w-full max-w-5xl overflow-hidden rounded-2xl bg-white text-slate-950 shadow-2xl">
         <div className="flex items-center justify-between bg-black px-5 py-4 text-white sm:px-8">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center bg-[#ff7900] text-black"><FileText size={20} /></div>
-            <div><p className="text-sm font-bold">Proposition commerciale</p><p className="text-xs text-slate-300">Générée par Djua Energy IA</p></div>
+            <div><p className="text-sm font-bold">Votre proposition solaire</p><p className="text-xs text-slate-300">Dimensionnement et estimation · Djua Energy</p></div>
           </div>
           <div className="flex items-center gap-2 print:hidden">
-            <button type="button" onClick={() => window.print()} className="inline-flex items-center gap-2 rounded-lg bg-[#ff7900] px-4 py-2 text-sm font-bold text-black transition hover:brightness-110"><Printer size={15} />Imprimer / PDF</button>
+            <button type="button" onClick={() => window.print()} className="quote-actions inline-flex items-center gap-2 rounded-lg bg-[#ff7900] px-4 py-2 text-sm font-bold text-black transition hover:brightness-110"><Printer size={15} />Enregistrer en PDF</button>
             <button type="button" onClick={onClose} aria-label="Fermer le devis" className="rounded-lg p-2 text-slate-300 transition hover:bg-white/10 hover:text-white"><X size={18} /></button>
           </div>
         </div>
-        <div className="p-5 sm:p-10">
+        <div className="flex items-center justify-between gap-3 px-5 py-4 sm:px-8"><p className="text-sm text-[var(--ops-muted)]">Parlons de votre proposition solaire.</p><QuoteChatButton onClick={() => setActivePanel('chat')} /></div>
+        <div className="quote-share-actions flex flex-wrap items-center gap-2 border-b border-[#e8e6de] bg-[#fbfaf6] px-5 py-3 sm:px-8 print:hidden">
+          <span className="mr-1 text-xs font-semibold text-[#697168]">
+            {contact.contactPref ? `Canal préféré : ${contact.contactPref}` : 'Contacter le client'}
+          </span>
+          <a className={`inline-flex items-center gap-2 rounded-lg border border-[#d8e6d8] bg-white px-3 py-2 text-xs font-semibold text-[#315a3a] hover:bg-[#f3f8f2] ${sharePhone ? '' : 'pointer-events-none opacity-50'}`} href={sharePhone ? `https://wa.me/${sharePhone}?text=${encodeURIComponent(`Bonjour ${customerName}, voici votre proposition solaire ${quoteNumber}. Estimation indicative : ${formatAmount(total)}. Elle reste à confirmer après étude technique.`)}` : undefined} target="_blank" rel="noreferrer" aria-disabled={!sharePhone}><WhatsAppIcon size={16} />WhatsApp</a>
+          <a className={`inline-flex items-center gap-2 rounded-lg border border-[#e4e4da] bg-white px-3 py-2 text-xs font-semibold text-[#343a32] hover:bg-[#f5f4ef] ${sharePhone ? '' : 'pointer-events-none opacity-50'}`} href={sharePhone ? `sms:+${sharePhone}?body=${encodeURIComponent(`Bonjour ${customerName}, votre proposition solaire ${quoteNumber} est prête. Estimation indicative : ${formatAmount(total)}, à confirmer après étude technique.`)}` : undefined} aria-disabled={!sharePhone}><MessageSquare size={15} />SMS</a>
+          <a className={`inline-flex items-center gap-2 rounded-lg border border-[#e4e4da] bg-white px-3 py-2 text-xs font-semibold text-[#343a32] hover:bg-[#f5f4ef] ${sharePhone ? '' : 'pointer-events-none opacity-50'}`} href={sharePhone ? `tel:+${sharePhone}` : undefined} aria-disabled={!sharePhone}><Phone size={15} />Appeler</a>
+          {!sharePhone && <span className="text-xs text-[#8a6552]">Ajoutez un numéro pour activer le partage.</span>}
+        </div>
+        <div className="px-5 sm:px-8"><SaveQuote payload={{ customer:{name:customerName,phone:contact.phone,email:contact.email||'',address,profile:selectedProfile,details:contact},site:{adresse:site.adresse||'',ville:site.ville||'',...(Number.isFinite(site.lat)?{lat:site.lat}:{}),...(Number.isFinite(site.lng)?{lng:site.lng}:{})},appliances:appliances.map(({name,quantity,watts,hours,period})=>({name,quantity:Number(quantity),watts:Number(watts),hours:Number(hours),period})),system:{panels:calc.panelCount,panelPower:600,batteryCapacity:calc.batteryKwh,inverterPower:calc.inverterKva,expectedLoad:calc.simultaneousWatts/1000},amount:total,currency:'CDF',buildingType:typeLabel}} onSaved={setSavedQuote}/></div>
+        <div className="quote-document p-5 sm:p-10" >
           <div className="flex flex-col justify-between gap-8 border-b border-slate-200 pb-8 sm:flex-row">
             <div>
               <div className="mb-4 flex items-center gap-2"><span className="h-3 w-3 bg-[#ff7900]" /><span className="text-sm font-bold">Djua Energy × Orange RDC</span></div>
-              <h2 className="text-3xl font-black tracking-tight sm:text-4xl">Votre solution énergétique</h2>
+              <h2 className="text-3xl font-black tracking-tight sm:text-4xl">Une solution pensée pour vos usages</h2>
               <p className="mt-2 max-w-lg text-sm leading-relaxed text-slate-600">Une proposition dimensionnée selon vos usages, votre bâtiment et la charge estimée de votre site.</p>
             </div>
             <div className="min-w-[220px] bg-slate-50 p-4 text-sm">
               <div className="mb-3 flex items-center justify-between"><span className="font-semibold text-slate-500">N° devis</span><strong>{quoteNumber}</strong></div>
               <div className="mb-3 flex items-center justify-between"><span className="font-semibold text-slate-500">Date</span><strong>{new Date().toLocaleDateString('fr-FR')}</strong></div>
-              <div className="flex items-center justify-between"><span className="font-semibold text-slate-500">Validité</span><strong>30 jours</strong></div>
+              <div className="flex items-center justify-between"><span className="font-semibold text-slate-500">Statut</span><strong>Estimation indicative</strong></div>
             </div>
           </div>
           <div className="grid gap-4 border-b border-slate-200 py-7 sm:grid-cols-2">
@@ -1256,12 +1363,13 @@ function QuotePreview({ selectedProfile, selectedType, customType, companyForm, 
             {lineItems.map((item) => <div key={item.label} className="grid gap-2 border-b border-slate-200 px-5 py-4 last:border-0 sm:grid-cols-[1fr_220px] sm:gap-4"><div><p className="font-bold">{item.label}</p><p className="mt-1 text-xs text-slate-500">{item.detail}</p></div><strong className="text-left text-[#c25a00] sm:text-right">{formatAmount(item.amount)}</strong></div>)}
           </div>
           <div className="mt-8 flex flex-col gap-8 sm:flex-row sm:justify-between">
-            <div className="max-w-md border border-orange-200 bg-orange-50 p-4"><div className="mb-2 flex items-center gap-2 text-[#c25a00]"><Sparkles size={15} /><span className="text-sm font-bold">Recommandation IA</span></div><p className="text-sm leading-relaxed text-slate-700">Dimensionnement basé sur {fmtEnergy(calc.dailyWh)}/jour, {appliances.length} équipement(s) et une puissance simultanée de {fmtPower(calc.simultaneousWatts)}.</p></div>
+            <div className="max-w-md border border-orange-200 bg-orange-50 p-4"><div className="mb-2 flex items-center gap-2 text-[#c25a00]"><Zap size={15} /><span className="text-sm font-bold">Base de dimensionnement</span></div><p className="text-sm leading-relaxed text-slate-700">Estimation basée sur {fmtEnergy(calc.dailyWh)}/jour, {appliances.length} équipement(s) et une puissance simultanée de {fmtPower(calc.simultaneousWatts)}. Les prix et caractéristiques seront confirmés après visite technique.</p></div>
             <div className="w-full max-w-sm space-y-3 text-sm"><div className="flex justify-between"><span className="text-slate-500">Sous-total HT</span><strong>{formatAmount(subtotal)}</strong></div><div className="flex justify-between"><span className="text-slate-500">TVA (16%)</span><strong>{formatAmount(tax)}</strong></div><div className="mt-3 flex items-end justify-between border-t-2 border-black pt-4"><span className="font-black">Total TTC</span><strong className="text-2xl font-black text-[#ff7900]">{formatAmount(total)}</strong></div></div>
           </div>
-          <div className="mt-10 grid gap-5 border-t border-slate-200 pt-6 text-xs text-slate-600 sm:grid-cols-3"><div><p className="mb-1 font-bold text-slate-950">Conditions</p><p>50% à la commande, solde à la mise en service.</p></div><div><p className="mb-1 font-bold text-slate-950">Délai indicatif</p><p>Livraison et installation sous 15 à 20 jours ouvrés.</p></div><div><p className="mb-1 font-bold text-slate-950">Note</p><p>Montants estimatifs soumis à validation technique finale.</p></div></div>
+          <div className="mt-10 grid gap-5 border-t border-slate-200 pt-6 text-xs text-slate-600 sm:grid-cols-3"><div><p className="mb-1 font-bold text-slate-950">Conditions de paiement</p><p>À définir avec l’équipe commerciale au moment de l’offre finale.</p></div><div><p className="mb-1 font-bold text-slate-950">Installation</p><p>Le calendrier sera confirmé après vérification du site.</p></div><div><p className="mb-1 font-bold text-slate-950">À retenir</p><p>Cette estimation n’est pas un engagement contractuel. Les prix et caractéristiques seront validés après étude technique.</p></div></div>
           <div className="mt-8 flex items-center justify-between text-xs font-semibold text-slate-400"><span>Merci pour votre confiance</span><span>Djua Energy · Énergie intelligente</span></div>
         </div>
+        <QuoteAdvisor calc={calc} appliances={appliances} buildingType={typeLabel} site={site} open={activePanel === 'chat'} onClose={() => setActivePanel('document')} />
       </motion.div>
     </div>
   );
@@ -1271,6 +1379,8 @@ function QuotePreview({ selectedProfile, selectedType, customType, companyForm, 
    PAGE PRINCIPALE
 ──────────────────────────────────────────────────────────────────────────── */
 export default function Devis() {
+  const salesUser=useAuthStore(state=>state.user);
+  const [showSales,setShowSales]=useState(false);
   const savedDraft = useMemo(() => readSavedDraft(), []);
   const [theme, setTheme] = useState(() => {
     if (typeof window === 'undefined') return 'dark';
@@ -1430,7 +1540,7 @@ export default function Devis() {
     recommendSolar(
       { appliances, clientInfo: selectedProfile === 'entreprise' ? companyForm : clientForm, projectForm, site: siteForm, buildingType: selectedType === 'Autre' ? customType : selectedType },
       {
-        onSuccess: (data) => { setMlResult(data); toast.success('Recommandation générée par l’IA Djua.'); },
+        onSuccess: (data) => { setMlResult({...data,sourceAppliances:appliances,profile:selectedProfile,buildingType:selectedType==='Autre'?customType:selectedType,clientInfo:data.clientInfo||(selectedProfile==='entreprise'?companyForm:clientForm),site:data.site||siteForm}); toast.success('Recommandation générée par l’IA Djua.'); },
         onError: () => toast.error('L’IA n’est pas disponible. Utilisez le devis standard.'),
       },
     );
@@ -1451,18 +1561,21 @@ export default function Devis() {
   const setClient = (key) => (e) => setClientForm((prev) => ({ ...prev, [key]: e.target.value }));
 
   return (
-    <PageEntrance className="devis-shell min-h-screen px-3 py-5 sm:px-4 md:px-8 lg:px-10">
+    <PageEntrance className="devis-shell devis-refined min-h-screen px-3 py-5 sm:px-4 md:px-8 lg:px-10">
       <style>{CSS}</style>
       {isQuoteOpen && <QuotePreview selectedProfile={selectedProfile} selectedType={selectedType} customType={customType} companyForm={companyForm} clientForm={clientForm} site={siteForm} appliances={appliances} calc={calc} onClose={() => setIsQuoteOpen(false)} />}
 
       <div className="mx-auto max-w-7xl">
+        {['commercial','shop_manager','admin','administration'].includes(salesUser?.role) && <SalesQuoteOverview onOpen={()=>setShowSales(!showSales)}/>}
+
+        {showSales && ['commercial','shop_manager','admin','administration'].includes(salesUser?.role) && <SalesQuotes onNewClientQuote={quote=>{setSelectedProfile(quote.customer.profile||'personne');setClientForm({...initialClientForm,...quote.customer.details,fullName:quote.customer.name,phone:quote.customer.phone,email:quote.customer.email||''});setCompanyForm({...initialCompanyForm,...quote.customer.details,companyName:quote.customer.name,phone:quote.customer.phone,email:quote.customer.email||''});setSiteForm({...initialSiteForm,...quote.site});setAppliances([]);setIsValidated(false);setCurrentStep('details');setShowSales(false);}}/>}
+
         {/* ── En-tête ── */}
-        <header className="mb-6 flex items-center justify-between gap-4">
+        <header className="dv-main-heading mb-6 flex items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="grid h-14 w-14 flex-none place-items-center" style={{ background: 'var(--or)', color: '#000' }}><Zap size={28} strokeWidth={2.6} /></div>
             <div>
               <h1 className="text-2xl font-black tracking-tight md:text-3xl">Créer un devis solaire</h1>
-              <p className="dv-muted text-sm">Point de vente Orange RDC</p>
+              <p className="dv-muted text-sm">Conseil solaire · Djua Energy</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -1550,6 +1663,10 @@ export default function Devis() {
                           <Field label="Téléphone" error={phoneInvalid ? 'Numéro trop court' : undefined}><Input prefix="+243" inputMode="tel" invalid={phoneInvalid} value={companyForm.phone} onChange={setCompany('phone')} placeholder="850 000 000" /></Field>
                           <Field label="Email" className="md:col-span-2"><Input type="email" value={companyForm.email} onChange={setCompany('email')} placeholder="contact@entreprise.com" /></Field>
                         </div>
+                        <ContactPreference
+                          value={companyForm.contactPref}
+                          onChange={(contactPref) => setCompanyForm((previous) => ({ ...previous, contactPref }))}
+                        />
                         <div className="dv-card overflow-hidden">
                           <button type="button" onClick={() => setShowLegal((v) => !v)} className="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-bold" aria-expanded={showLegal}>
                             <span>Informations légales <span className="dv-muted font-medium">· facultatif</span></span>
@@ -1575,14 +1692,10 @@ export default function Devis() {
                           <Field label="Téléphone" error={phoneInvalid ? 'Numéro trop court' : undefined}><Input prefix="+243" inputMode="tel" invalid={phoneInvalid} value={clientForm.phone} onChange={setClient('phone')} placeholder="850 000 000" /></Field>
                           <Field label="Email"><Input type="email" value={clientForm.email} onChange={setClient('email')} placeholder="client@email.com" /></Field>
                         </div>
-                        <div>
-                          <span className="dv-label">Comment le client préfère être contacté</span>
-                          <div className="grid grid-cols-3 gap-2">
-                            {[['WhatsApp', '💬'], ['Appel', '📞'], ['SMS', '✉️']].map(([label, emoji]) => (
-                              <Choice key={label} on={clientForm.contactPref === label} emoji={emoji} label={label} onClick={() => setClientForm((prev) => ({ ...prev, contactPref: prev.contactPref === label ? '' : label }))} />
-                            ))}
-                          </div>
-                        </div>
+                        <ContactPreference
+                          value={clientForm.contactPref}
+                          onChange={(contactPref) => setClientForm((previous) => ({ ...previous, contactPref }))}
+                        />
                       </div>
                     )}
                     <NavBar onBack={goBack} onNext={goToNext} nextDisabled={!stepValidity.details} onDisabledClick={blocked} />
@@ -1635,8 +1748,8 @@ export default function Devis() {
                           <div className="dv-muted mt-3 space-y-1 text-sm">
                             {(selectedProfile === 'entreprise' ? companyForm.phone : clientForm.phone) && <p>+243 {selectedProfile === 'entreprise' ? companyForm.phone : clientForm.phone}</p>}
                             {(selectedProfile === 'entreprise' ? companyForm.email : clientForm.email) && <p>{selectedProfile === 'entreprise' ? companyForm.email : clientForm.email}</p>}
-                            {clientForm.contactPref && selectedProfile === 'personne' && <p>Préfère : {clientForm.contactPref}</p>}
-                            {selectedProfile === 'entreprise' && (companyForm.rccm || companyForm.tva) && <p>{[companyForm.rccm && `RCCM ${companyForm.rccm}`, companyForm.tva && companyForm.tva].filter(Boolean).join(' · ')}</p>}
+                            {(selectedProfile === 'entreprise' ? companyForm.contactPref : clientForm.contactPref) && <p>Contact préféré : {selectedProfile === 'entreprise' ? companyForm.contactPref : clientForm.contactPref}</p>}
+                            {selectedProfile === 'entreprise' && (companyForm.rccm || companyForm.tva) && <p>{[companyForm.rccm && `RCCM ${companyForm.rccm}`, companyForm.tva].filter(Boolean).join(' · ')}</p>}
                           </div>
                         </div>
                         <div className="dv-card p-4">
@@ -1674,7 +1787,7 @@ export default function Devis() {
 
                     {mlResult && (
                       <div className="mt-6">
-                        <SolarAdvisorResult result={mlResult} onClose={() => setMlResult(null)} onContactRequest={(id) => toast.success(`Demande de contact envoyée pour la recommandation ${id}`)} />
+                        <SolarAdvisorResult result={mlResult} onClose={() => setMlResult(null)} onContactRequest={() => toast('Contactez votre responsable commercial pour transmettre cette étude.')} />
                       </div>
                     )}
 

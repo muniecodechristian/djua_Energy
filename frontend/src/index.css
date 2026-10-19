@@ -182,10 +182,10 @@
     color-scheme: dark;
   }
   body {
-    background-image: radial-gradient(circle at top, rgba(249, 115, 22, 0.08), transparent 33%), var(--background);
+    background-image: none;
   }
   .dark body {
-    background-image: radial-gradient(circle at top, rgba(249, 115, 22, 0.12), transparent 28%), var(--background);
+    background-image: none;
   }
 
   .devis-shell {
@@ -268,7 +268,7 @@
   .devis-shell .bg-orange-500\/10,
   .devis-shell .bg-orange-500\/15,
   .devis-shell .bg-orange-500\/20 {
-    background-color: rgba(249, 115, 22, 0.08) !important;
+    background-color: var(--ops-canvas) !important;
   }
 
   .devis-shell .text-orange-200,
@@ -285,9 +285,8 @@
     background: #ffffff !important;
   }
 
-  body > #root > *:not(.devis-shell),
-  .devis-shell > *:not(.quote-modal),
-  .quote-modal > *:not(.quote-print-sheet),
+  .ops-sidebar,
+  .ops-topbar,
   .print\:hidden {
     display: none !important;
   }

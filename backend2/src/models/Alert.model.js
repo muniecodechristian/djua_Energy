@@ -10,13 +10,13 @@ const AlertSchema = new mongoose.Schema({
 
     source: {
         type: String,
-        enum: ['iot_esp32', 'geofencing', 'system'],
+        enum: ['iot_esp32', 'geofencing', 'system', 'manual'],
         required: true,
     },
 
     type: {
         type: String,
-        required: true, // ex: 'low_voltage', 'geofence_exit', 'offline'
+        required: true, // ex: 'low_voltage', 'geofence_exit', 'offline', 'manual_alert'
     },
 
     severity: {
@@ -35,10 +35,34 @@ const AlertSchema = new mongoose.Schema({
         required: true,
     },
 
+    // Notes additionnelles du shop_manager
+    notes: {
+        type: String,
+        trim: true,
+        default: '',
+    },
+
     // Données brutes envoyées par l'ESP32 (tension, température, etc.)
     metadata: {
         type: mongoose.Schema.Types.Mixed,
         default: {},
+    },
+
+    // ── Assignation & traçabilité ──────────────────────────────────────────────
+    // Technicien assigné à cette alerte (null pour les alertes IoT automatiques)
+    assignedTo: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        default: null,
+        index: true,
+    },
+
+    // Shop Manager qui a créé/assigné l'alerte (null pour les alertes IoT automatiques)
+    createdBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        default: null,
+        index: true,
     },
 
     status: {
@@ -71,5 +95,7 @@ AlertSchema.set('toJSON', { virtuals: true });
 
 
 AlertSchema.index({ status: 1, createdAt: -1 });
+AlertSchema.index({ assignedTo: 1, status: 1, createdAt: -1 });
+AlertSchema.index({ createdBy: 1, createdAt: -1 });
 
 export default mongoose.model('Alert', AlertSchema);

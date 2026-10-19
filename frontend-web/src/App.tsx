@@ -130,6 +130,7 @@ export default function App() {
   };
 
   const back = () => {
+    if(step === 7 && useInstallStore.getState().hasQuote) return goTo(5);
     if (typeof step === 'number') goTo(Math.max(1, step - 1));
   };
 

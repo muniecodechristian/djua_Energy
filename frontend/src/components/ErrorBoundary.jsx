@@ -137,7 +137,7 @@ export default class ErrorBoundary extends React.Component {
           isEmbedded
             ? 'h-full min-h-[550px] w-full py-8'
             : 'min-h-screen w-full bg-[#08090a]'
-        } text-zinc-100 flex flex-col items-center justify-center p-4 sm:p-6 font-sans relative selection:bg-[#FF7900]/30 select-text`}
+        } text-zinc-100 flex flex-col items-center justify-center p-4 sm:p-6 font-sans relative selection:bg-[var(--ops-canvas)] select-text`}
       >
         {/* Grille industrielle d'arrière-plan */}
         <div
@@ -153,7 +153,7 @@ export default class ErrorBoundary extends React.Component {
           {/* En-tête statut industriel */}
           <div className="flex items-start justify-between gap-4 pb-6 border-b border-zinc-900">
             <div className="flex items-center gap-3.5">
-              <div className="w-12 h-12 rounded-xl bg-orange-500/10 border border-orange-500/30 flex items-center justify-center text-[#FF7900] shrink-0">
+              <div className="w-12 h-12 rounded-xl bg-[var(--ops-canvas)] border border-[var(--ops-line)] flex items-center justify-center text-[#FF7900] shrink-0">
                 <ShieldAlert size={24} />
               </div>
               <div>
@@ -212,7 +212,7 @@ export default class ErrorBoundary extends React.Component {
                 type="button"
                 onClick={this.handleSoftReset}
                 disabled={isRecovering}
-                className="group inline-flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl bg-[#FF7900] hover:bg-[#e06c00] active:scale-[0.98] text-white text-xs font-bold transition-all shadow-lg shadow-orange-500/20 disabled:opacity-50 cursor-pointer"
+                className="group inline-flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl bg-[#FF7900] hover:bg-[#e06c00] active:scale-[0.98] text-white text-xs font-bold transition-all shadow-lg shadow-none disabled:opacity-50 cursor-pointer"
               >
                 <RotateCcw
                   size={15}

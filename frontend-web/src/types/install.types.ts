@@ -15,7 +15,13 @@ export interface GeoLocation {
   accuracy: number; // mètres
 }
 
+export interface QuoteAppliance {
+  name: string; quantity: number; watts: number; hours: number; period?: string;
+}
 export interface QuoteData {
+  phone: string;
+  plannedDate: string;
+  appliances: QuoteAppliance[];
   client: string;
   location: string;
   system: SystemData;
@@ -70,7 +76,7 @@ export interface DeviceState {
 
 // ─── Réponse Orange Energy API ────────────────────────────────────────────────
 
-export interface OrangeQuote {
+export interface StoredQuote extends QuoteData {
   id: string;
   client: string;
   location: string;

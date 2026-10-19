@@ -87,7 +87,15 @@ export default function LoginDjuaEnergy() {
       {
         onSuccess: (response) => {
           const role = response?.data?.role;
-          navigate(role === 'admin' || role === 'administration' ? '/AdministrationSettings' : role === 'shop_manager' ? '/equipe' : role === 'commercial' ? '/devis' : '/dashboard');
+          navigate(
+            role === 'admin' || role === 'administration'
+              ? '/AdministrationSettings'
+              : role === 'commercial'
+              ? '/devis'
+              : role === 'technician'
+              ? '/technicien'
+              : '/dashboard'
+          );
         },
       }
     );
@@ -104,7 +112,7 @@ export default function LoginDjuaEnergy() {
         {/* 1. Noyau Solaire Flouté (Solar Flare Core) */}
         <motion.div 
           className={`absolute -top-[10%] -right-[10%] w-[450px] h-[450px] rounded-full blur-[100px] pointer-events-none transition-colors duration-700 ${
-            isDark ? 'bg-orange-600/10' : 'bg-amber-500/20'
+            isDark ? 'bg-[var(--ops-canvas)]' : 'bg-amber-500/20'
           }`}
           animate={{
             scale: [1, 1.15, 0.95, 1],
@@ -253,8 +261,8 @@ export default function LoginDjuaEnergy() {
               required
               className={`w-full rounded-lg px-3.5 py-3 text-xs focus:outline-none focus:ring-1 transition-all ${
                 isDark 
-                  ? 'bg-[#141414] border border-neutral-900 focus:border-orange-500/40 focus:ring-orange-500/20 text-neutral-100 placeholder:text-neutral-700' 
-                  : 'bg-white border border-neutral-200 focus:border-orange-500/50 focus:ring-orange-500/10 text-neutral-900 placeholder:text-neutral-400'
+                  ? 'bg-[#141414] border border-neutral-900 focus:border-[var(--ops-line)] focus:ring-orange-500/20 text-neutral-100 placeholder:text-neutral-700' 
+                  : 'bg-white border border-neutral-200 focus:border-[var(--ops-line)] focus:ring-orange-500/10 text-neutral-900 placeholder:text-neutral-400'
               }`}
             />
           </motion.div>
@@ -270,8 +278,8 @@ export default function LoginDjuaEnergy() {
               required
               className={`w-full rounded-lg px-3.5 py-3 text-xs tracking-widest focus:outline-none focus:ring-1 transition-all ${
                 isDark 
-                  ? 'bg-[#141414] border border-neutral-900 focus:border-orange-500/40 focus:ring-orange-500/20 text-neutral-100 placeholder:text-neutral-700' 
-                  : 'bg-white border border-neutral-200 focus:border-orange-500/50 focus:ring-orange-500/10 text-neutral-900 placeholder:text-neutral-400'
+                  ? 'bg-[#141414] border border-neutral-900 focus:border-[var(--ops-line)] focus:ring-orange-500/20 text-neutral-100 placeholder:text-neutral-700' 
+                  : 'bg-white border border-neutral-200 focus:border-[var(--ops-line)] focus:ring-orange-500/10 text-neutral-900 placeholder:text-neutral-400'
               }`}
             />
           </motion.div>
@@ -283,7 +291,7 @@ export default function LoginDjuaEnergy() {
               whileHover={{ scale: 1.01 }}
               whileTap={{ scale: 0.99 }}
               disabled={loginMutation.isPending}
-              className={`w-full bg-[#ea580c] hover:bg-[#f97316] text-white font-bold py-3.5 rounded-lg flex items-center justify-center gap-1.5 shadow-md shadow-orange-500/15 text-xs transition-all ${
+              className={`w-full bg-[#ea580c] hover:bg-[#f97316] text-white font-bold py-3.5 rounded-lg flex items-center justify-center gap-1.5 shadow-md shadow-none text-xs transition-all ${
                 loginMutation.isPending ? 'opacity-70 cursor-not-allowed' : ''
               }`}
             >

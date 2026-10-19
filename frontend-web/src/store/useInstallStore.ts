@@ -61,8 +61,8 @@ export const useInstallStore = create<InstallState>((set, get) => ({
   ...initialState,
 
   setBoxId: (id) => set({ boxId: id }),
-  setHasQuote: (has) => set({ hasQuote: has }),
-  setQuoteData: (id, data) => set({ quoteId: id, quoteData: data }),
+  setHasQuote: (has) => set({ hasQuote: has, quoteId:null, quoteData:null, clientPhone:null }),
+  setQuoteData: (id, data) => set({ hasQuote:true, quoteId: id, quoteData: data, clientPhone:data.phone, manualData:null }),
   setManualData: (data) => set({ manualData: data }),
   setLocation: (loc) => set({ location: loc }),
   setDiagnostic: (status, checks) =>

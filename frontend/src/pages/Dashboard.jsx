@@ -1,13 +1,14 @@
+import './Dashboard.css';
 import PageEntrance from '../components/PageEntrance';
-import { quickSpring, revealGroup, revealItem } from '../lib/motion';
-import { useEffect, useState } from 'react';
+import { revealGroup, revealItem } from '../lib/motion';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { MapContainer, TileLayer, Popup, Circle, CircleMarker } from 'react-leaflet';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import 'leaflet/dist/leaflet.css';
 import {
   ArrowUpRight, RefreshCw, Sun, Radio, AlertTriangle,
-  MapPin, Activity, Wrench, Zap, Shield, ChevronRight,
+  MapPin, Activity, Wrench, Zap, Shield,
   Search, FileText, CheckCircle2, Navigation, Info
 } from 'lucide-react';
 import { useKitsQuery, useAlertsQuery, useTelemetryQuery } from '../hooks/tanstack/useKitQueries';
@@ -16,6 +17,8 @@ import {
   asList, activeAlerts, prioritize, latestByKit,
   observedRecently, coordinates, detailUrl, formatDate, severityLabels,
 } from '../lib/operations';
+
+const GeofenceSiteCard = lazy(() => import('../components/GeofenceSiteCard'));
 
 /* ---------- Helpers de style avancés ---------- */
 const STATUS = {
@@ -26,15 +29,14 @@ const STATUS = {
 
 const SEV = {
   critical: 'bg-rose-500/10 text-rose-600 border-rose-500/20 dark:bg-rose-500/20 dark:text-rose-400',
-  high: 'bg-orange-500/10 text-orange-600 border-orange-500/20 dark:bg-orange-500/20 dark:text-orange-400',
+  high: 'bg-[var(--ops-canvas)] text-orange-600 border-[var(--ops-line)] dark:bg-[var(--ops-canvas)] dark:text-orange-400',
   medium: 'bg-amber-500/10 text-amber-600 border-amber-500/20 dark:bg-amber-500/20 dark:text-amber-400',
   low: 'bg-sky-500/10 text-sky-600 border-sky-500/20 dark:bg-sky-500/20 dark:text-sky-400',
 };
 
 // Styles partagés (Glassmorphism & Bordures subtiles)
-const panel = 'dashboard-panel relative overflow-hidden rounded-2xl border';
-const panelHover = 'dashboard-panel-interactive';
-const chip = 'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider transition-colors';
+const panel = 'dashboard-panel relative overflow-hidden rounded-lg border';
+const chip = 'dashboard-status inline-flex items-center gap-1.5 rounded border px-2 py-0.5 text-[10px] font-medium';
 
 /* ---------- Animations Framer Motion ---------- */
 const containerAnim = revealGroup;
@@ -181,29 +183,29 @@ export default function Dashboard() {
   ];
 
   return (
-    <PageEntrance className="dashboard-home relative bg-background text-foreground font-sans selection:bg-sky-500/30">
+    <PageEntrance className="dashboard-home dashboard-refined relative font-sans">
 
       <div className="dashboard-layout relative z-10 p-3 sm:p-5 mx-auto flex flex-col gap-5">
 
         {/* ================= HEADER ================= */}
-        <header className="flex flex-wrap items-end justify-between gap-4 shrink-0">
+        <header className="dashboard-heading flex flex-wrap items-end justify-between gap-4 shrink-0">
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-white">Supervision</h1>
             <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">Vue d'ensemble de la flotte et télémétrie en temps réel.</p>
           </div>
           <div className="flex items-center gap-3">
-            <div className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold backdrop-blur-md border ${isSocketConnected ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'border-zinc-500/20 bg-zinc-500/10 text-zinc-600 dark:text-zinc-400'}`}>
+            <div className={`dashboard-connection flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold backdrop-blur-md border ${isSocketConnected ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'border-zinc-500/20 bg-zinc-500/10 text-zinc-600 dark:text-zinc-400'}`}>
               <span className="relative flex h-2 w-2">
                 {isSocketConnected && <span className="absolute inline-flex h-full w-full app-status-ping rounded-full bg-emerald-400 opacity-75" />}
                 <span className={`relative inline-flex h-2 w-2 rounded-full ${isSocketConnected ? 'bg-emerald-500' : 'bg-zinc-500'}`} />
               </span>
-              {isSocketConnected ? 'WebSocket Actif' : 'Hors ligne'}
+              {isSocketConnected ? 'Suivi en direct' : 'Connexion en attente'}
             </div>
 
             <button
               onClick={refresh}
               disabled={refreshing}
-              className="group relative inline-flex items-center gap-2 overflow-hidden rounded-full bg-zinc-900 dark:bg-white px-4 py-2 text-xs font-semibold text-white dark:text-black transition-all hover:scale-[1.01] active:scale-[0.98] disabled:opacity-50 disabled:hover:scale-100"
+              className="dashboard-refresh group relative inline-flex items-center gap-2 overflow-hidden rounded-full bg-zinc-900 dark:bg-white px-4 py-2 text-xs font-semibold text-white dark:text-black transition-all hover:scale-[1.01] active:scale-[0.98] disabled:opacity-50 disabled:hover:scale-100"
             >
               <RefreshCw size={14} className={refreshing ? 'animate-spin' : 'transition-transform group-hover:rotate-12'} />
               {refreshing ? 'Synchronisation...' : 'Actualiser'}
@@ -226,28 +228,30 @@ export default function Dashboard() {
           <aside className={`${panel} dashboard-fleet flex flex-col self-start w-full`}>
             <div className="p-4 border-b border-zinc-200/50 dark:border-white/[0.05] shrink-0">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-sm font-bold text-zinc-900 dark:text-white">Flotte Déployée</h2>
+                <h2 className="text-sm font-bold text-zinc-900 dark:text-white">Équipements</h2>
                 <span className="rounded-full bg-zinc-100 dark:bg-white/10 px-2.5 py-1 text-[10px] font-bold text-zinc-600 dark:text-zinc-300">
                   {cv(kitsQuery, filtered.length)} KITS
                 </span>
               </div>
 
-              <div className="relative group mb-4">
-                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-sky-500 transition-colors" />
+              <div className="dashboard-fleet-search relative group mb-4">
+                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[var(--ops-ink)] transition-colors" />
                 <input
                   value={search}
                   onChange={e => { setSearch(e.target.value); }}
-                  placeholder="Rechercher par ID (ex: KZI-...)"
+                  aria-label="Rechercher un kit par identifiant"
+                  placeholder="Rechercher un kit…"
                   className="w-full rounded-xl border border-zinc-200 dark:border-white/10 bg-zinc-50/50 dark:bg-black/20 py-2.5 pl-10 pr-4 text-sm text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:border-sky-500/50 focus:outline-none focus:ring-4 focus:ring-sky-500/10 transition-all"
                 />
               </div>
 
-              <div className="flex bg-zinc-100/50 dark:bg-black/20 p-1 rounded-xl">
+              <div className="dashboard-fleet-filters flex">
                 {filters.map(f => {
                   const isActive = filter === f.id;
                   return (
                     <button
                       key={f.id}
+                      aria-pressed={isActive}
                       onClick={() => { setFilter(f.id); }}
                       className="relative flex-1 rounded-lg py-1.5 text-[11px] font-semibold transition-colors"
                     >
@@ -292,12 +296,12 @@ export default function Dashboard() {
                           onClick={() => {
                             navigate(detailUrl(kit.kitId));
                           }}
-                          className={`group w-full relative cursor-pointer overflow-hidden rounded-xl border p-4 text-left transition-all duration-200 ${active
+                          className={`dashboard-kit-row group w-full relative cursor-pointer overflow-hidden rounded-xl border p-4 text-left transition-all duration-200 ${active
                             ? 'border-sky-500/30 bg-sky-50/50 dark:border-sky-500/30 dark:bg-sky-500/10 shadow-sm'
                             : 'border-zinc-200/50 bg-white/50 hover:bg-zinc-50 dark:border-white/5 dark:bg-white/[0.02] dark:hover:bg-white/[0.04]'
                             }`}
                         >
-                          {active && <div className="absolute left-0 top-0 bottom-0 w-1 bg-sky-500" />}
+                          {active && <div className="absolute left-0 top-0 bottom-0 w-1 bg-[var(--ops-ink)]" />}
 
                           <div className="flex items-start justify-between mb-3">
                             <div>
@@ -310,17 +314,9 @@ export default function Dashboard() {
                             <span className={`${chip} ${STATUS[s].badge}`}>{STATUS[s].label}</span>
                           </div>
 
-                          <div className="flex items-center justify-between mt-4">
-                            <div className="flex items-center gap-2 flex-1">
-                              <div className="h-[2px] flex-1 bg-zinc-200 dark:bg-white/10 rounded-full overflow-hidden">
-                                {active && <motion.div layoutId="progress" className="h-full bg-sky-500" style={{ width: '100%' }} />}
-                              </div>
-                            </div>
-
-                            <span className="ml-4 inline-flex items-center gap-1 text-[11px] font-semibold text-zinc-500 group-hover:text-sky-500 transition-colors">
-                              {kitAlerts > 0 ? <span className="text-rose-500 flex items-center gap-1"><AlertTriangle size={12} /> {kitAlerts} alertes</span> : 'Détails'}
-                              <ChevronRight size={12} className="opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
-                            </span>
+                          <div className="dashboard-kit-row-foot">
+                            <span>{kitAlerts > 0 ? <><AlertTriangle size={12} /> {kitAlerts} alerte{kitAlerts > 1 ? 's' : ''}</> : 'Consulter les mesures'}</span>
+                            <ArrowUpRight size={14} />
                           </div>
                         </motion.button>
                       );
@@ -338,115 +334,68 @@ export default function Dashboard() {
           <div className="dashboard-map-column flex flex-col gap-5 min-w-0 h-full">
 
             {/* -------- KPI CARDS -------- */}
-            <motion.div variants={containerAnim} initial={reduced ? false : "hidden"} animate="show" className="dashboard-kpis grid grid-cols-2 gap-4 xl:grid-cols-4 shrink-0">
-              {kpis.map(({ label, value, hint, icon: Icon, accent, to, pct, pctColor, liveIndicator }) => (
-                <motion.div variants={itemAnim} key={label}>
-                  <MotionLink to={to} whileHover={reduced ? undefined : { y: -3 }} whileTap={reduced ? undefined : { scale: 0.985, y: 0 }} transition={quickSpring} className={`${panel} ${panelHover} group block p-4 h-full relative`}>
-                    <div className="absolute top-0 right-0 p-4 opacity-10 transition-opacity group-hover:opacity-20" style={{ color: accent }}>
-                      <Icon size={64} className="-mt-4 -mr-4" />
-                    </div>
-
-                    <div className="flex items-center justify-between text-xs font-semibold text-zinc-500 dark:text-zinc-400 mb-3">
-                      <span className="flex items-center gap-2">
-                        {liveIndicator && (
-                          <span className="relative flex h-2 w-2">
-                            <span className="absolute inline-flex h-full w-full app-status-ping rounded-full bg-emerald-400 opacity-75" />
-                            <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-                          </span>
-                        )}
-                        {label}
-                      </span>
-                      <span className="rounded-lg p-2 transition-transform group-hover:scale-105" style={{ backgroundColor: `${accent}15`, color: accent }}>
-                        <Icon size={14} />
-                      </span>
-                    </div>
-
-                    <strong className="block text-3xl font-bold tabular-nums text-zinc-900 dark:text-white tracking-tight">
-                      {value}
-                    </strong>
-
-                    <div className="mt-3 flex items-end justify-between border-t border-zinc-100 dark:border-white/5 pt-3">
-                      <span className="text-[11px] font-medium text-zinc-500">{hint}</span>
-                      {pct !== null && pct !== undefined && (
-                        <span className={`text-xs font-bold tabular-nums px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-white/5 ${pctColor || 'text-zinc-500'}`}>
-                          {pct}%
-                        </span>
-                      )}
-                    </div>
-                  </MotionLink>
-                </motion.div>
-              ))}
+        <motion.div variants={containerAnim} initial={reduced ? false : 'hidden'} animate="show" className="dashboard-kpis dashboard-metrics" aria-label="Indicateurs du parc">
+          {kpis.map(({ label, value, hint, icon: Icon, to, pct }) => (
+            <motion.div variants={itemAnim} key={label}>
+              <MotionLink to={to} className="dashboard-metric">
+                <div className="dashboard-metric-label"><span>{label}</span><Icon size={15} strokeWidth={1.6} /></div>
+                <strong>{value}</strong>
+                <div className="dashboard-metric-foot"><span>{hint}</span>{pct != null && <span className="dashboard-metric-percent">{pct}%</span>}</div>
+              </MotionLink>
             </motion.div>
+          ))}
+        </motion.div>
+
 
             {/* -------- CARTE GEOGRAPHIQUE -------- */}
-            <section className={`${panel} dashboard-map relative h-[300px] sm:h-[350px] lg:h-[380px] shrink-0 overflow-hidden group`}>
-              <LeafletMap
-                points={located.map(({ kit, point }) => ({ id: kit.kitId || kit._id, kitId: kit.kitId, coords: point, status: statusOf(kit) }))}
-              />
-
-              {/* Header flottant Map */}
-              <div className="pointer-events-none absolute inset-x-0 top-0 z-[1000] flex items-start justify-between gap-4 p-5 bg-gradient-to-b from-zinc-900/60 dark:from-[#09090b]/80 to-transparent">
-                <div>
-                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                    <Navigation size={14} className="text-sky-400" />
-                    Topologie du Parc
-                  </h3>
-                  <p className="text-xs text-zinc-300/80 font-medium mt-1">{located.length} positions synchronisées</p>
-                </div>
-                <Link
-                  to="/parc"
-                  className="pointer-events-auto inline-flex items-center gap-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/10 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur-md transition-all shadow-lg"
-                >
-                  Vue globale <ArrowUpRight size={14} />
-                </Link>
-              </div>
-
-              {/* Légende */}
-              <div className="absolute bottom-5 left-5 z-[1000] flex items-center gap-1 rounded-xl border border-white/10 bg-black/30 p-1 backdrop-blur-md shadow-xl">
-                {Object.entries(STATUS).map(([k, v]) => (
-                  <span key={k} className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[10px] font-bold tracking-wide text-zinc-200 hover:bg-white/10 transition-colors cursor-default">
-                    <span className="h-2 w-2 rounded-full shadow-[0_0_8px_currentColor]" style={{ backgroundColor: v.dot, color: v.dot }} />
-                    {v.label}
-                  </span>
-                ))}
-              </div>
-
-              {located.length === 0 && (
-                <div className="absolute inset-0 z-[1100] flex flex-col items-center justify-center gap-3 bg-zinc-900/40 backdrop-blur-sm text-center">
-                  <div className="p-4 rounded-full bg-black/40 border border-white/10">
-                    <MapPin size={24} className="text-zinc-400" />
+            <div className="dashboard-geographic-pair">
+            <section className={`${panel} dashboard-map`} aria-label="Carte du parc solaire">
+              <header className="dashboard-map-heading">
+                <div><h2>Répartition du parc</h2><p>{cv(kitsQuery, located.length)} kits avec une position GPS</p></div>
+                <Link to="/parc">Ouvrir le parc <ArrowUpRight size={14}/></Link>
+              </header>
+              <div className="dashboard-map-viewport">
+                <LeafletMap points={located.map(({ kit, point }) => ({ id: kit.kitId || kit._id, kitId: kit.kitId, coords: point, status: statusOf(kit) }))} />
+                {located.length === 0 && (
+                  <div className="dashboard-map-empty">
+                    <MapPin size={24} strokeWidth={1.5} />
+                    <strong>{kitsQuery.isPending ? 'Chargement des positions…' : kitsQuery.isError ? 'Positions indisponibles' : 'Aucune position renseignée'}</strong>
+                    <p>Les kits localisés apparaîtront sur cette carte.</p>
                   </div>
-                  <div>
-                    <strong className="block text-base text-white font-bold tracking-wide">
-                      {kitsQuery.isPending ? 'Cartographie en cours...' : kitsQuery.isError ? 'Service cartographique indisponible' : 'Aucune donnée spatiale'}
-                    </strong>
-                    <span className="text-sm text-zinc-300 mt-1 block">Les coordonnées des kits s'afficheront ici.</span>
-                  </div>
-                </div>
-              )}
+                )}
+              </div>
+              <footer className="dashboard-map-legend">
+                {Object.entries(STATUS).map(([key, status]) => <span key={key}><i style={{ backgroundColor: status.dot }} />{status.label}</span>)}
+                <small>Zone de référence : 90 m</small>
+              </footer>
             </section>
+              <Suspense fallback={<section className="dashboard-panel geofence-site-card"><p className="geofence-empty" role="status">Chargement du site 3D…</p></section>}>
+                <GeofenceSiteCard kits={kits} alerts={alerts} records={asList(telemetryQuery.data)} />
+              </Suspense>
+            </div>
 
           </div>
         </div>
 
             {/* -------- PANNEAU DETAIL (TABS) -------- */}
             <section className={`${panel} dashboard-summary shrink-0`}>
-              <div className="flex overflow-x-auto border-b border-zinc-200/50 dark:border-white/[0.05] [&::-webkit-scrollbar]:hidden">
+              <div className="dashboard-summary-tabs flex overflow-x-auto border-b border-zinc-200/50 dark:border-white/[0.05] [&::-webkit-scrollbar]:hidden">
                 {tabs.map(t => {
                   const isActive = tab === t.id;
                   const Icon = t.icon;
                   return (
                     <button
                       key={t.id}
+                      aria-pressed={isActive}
                       onClick={() => setTab(t.id)}
                       className="relative flex items-center gap-2 px-5 py-4 text-sm font-semibold transition-colors"
                     >
-                      <Icon size={14} className={isActive ? 'text-sky-500' : 'text-zinc-400'} />
+                      <Icon size={14} className={isActive ? 'text-[var(--ops-ink)]' : 'text-zinc-400'} />
                       <span className={isActive ? 'text-zinc-900 dark:text-white' : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'}>
                         {t.label}
                       </span>
                       {isActive && (
-                        <motion.div layoutId="tab-indicator" className="absolute bottom-0 left-0 right-0 h-0.5 bg-sky-500" />
+                        <motion.div layoutId="tab-indicator" className="absolute bottom-0 left-0 right-0 h-0.5 bg-[var(--ops-ink)]" />
                       )}
                     </button>
                   );
@@ -459,7 +408,7 @@ export default function Dashboard() {
 
                     {/* --- Vue d'ensemble --- */}
                     {tab === 'overview' && (
-                      <motion.div variants={containerAnim} initial={reduced ? false : 'hidden'} animate="show" className="grid gap-4 md:grid-cols-3">
+                      <motion.div variants={containerAnim} initial={reduced ? false : 'hidden'} animate="show" className="dashboard-overview grid gap-4 md:grid-cols-3">
                         <motion.section variants={itemAnim} className="rounded-2xl border border-zinc-200 dark:border-white/10 p-4">
                           <p className="text-xs font-semibold text-zinc-500">Priorités du parc</p>
                           <h3 className="mt-2 text-2xl font-bold">{cv(alertsQuery, urgentAlerts.length)} <span className="text-sm font-medium text-zinc-500">alertes prioritaires</span></h3>
@@ -491,7 +440,7 @@ export default function Dashboard() {
                           <Link
                             key={alert._id || i}
                             to={'/notification?alertId=' + encodeURIComponent(alert._id || '')}
-                            className="group flex flex-col rounded-2xl border border-zinc-200/50 dark:border-white/[0.05] bg-white dark:bg-white/[0.02] p-4 transition-all hover:border-zinc-300 dark:hover:border-white/10 hover:shadow-md"
+                            className="dashboard-tool group relative flex flex-col rounded-2xl border border-zinc-200/50 dark:border-white/[0.05] bg-white dark:bg-white/[0.02] p-4 transition-all hover:border-zinc-300 dark:hover:border-white/10 hover:shadow-md"
                           >
                             <div className="flex items-center justify-between mb-3">
                               <span className={`${chip} ${SEV[alert.severity] || 'bg-zinc-100 text-zinc-600 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:border-zinc-700'}`}>
@@ -499,21 +448,21 @@ export default function Dashboard() {
                               </span>
                               <small className="text-[10px] font-semibold text-zinc-400">{formatDate(alert.createdAt)}</small>
                             </div>
-                            <h3 className="text-sm font-bold text-zinc-900 dark:text-white line-clamp-1 group-hover:text-sky-500 transition-colors">{alert.label || alert.type}</h3>
+                            <h3 className="text-sm font-bold text-zinc-900 dark:text-white line-clamp-1 group-hover:text-[var(--ops-ink)] transition-colors">{alert.label || alert.type}</h3>
                             <div className="mt-auto pt-3 flex items-center justify-between text-xs">
                               <span className="font-mono text-zinc-500">{alert.kitId || 'Kit inconnu'}</span>
-                              <span className="inline-flex items-center gap-1 font-bold text-sky-500 opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all">Examiner <ArrowUpRight size={14} /></span>
+                              <span className="inline-flex items-center gap-1 font-bold text-[var(--ops-ink)] opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all">Examiner <ArrowUpRight size={14} /></span>
                             </div>
                           </Link>
                         ))}
                         {alerts.length === 0 && (
                           <div className="col-span-full py-8 text-center text-zinc-500 flex flex-col items-center gap-2">
                             <CheckCircle2 size={32} className="text-emerald-500/50" />
-                            <p className="text-sm font-medium">Aucune alerte critique en cours.</p>
+                            <p className="text-sm font-medium">Aucune alerte ouverte.</p>
                           </div>
                         )}
                         {alerts.length > 6 && (
-                          <Link to="/notification" className="col-span-full mt-2 text-center text-sm font-bold text-sky-500 hover:text-sky-600 dark:hover:text-sky-400 transition-colors">
+                          <Link to="/notification" className="col-span-full mt-2 text-center text-sm font-bold text-[var(--ops-ink)] hover:text-sky-600 dark:hover:text-sky-400 transition-colors">
                             Voir toutes les alertes ({alerts.length}) →
                           </Link>
                         )}
@@ -557,14 +506,14 @@ export default function Dashboard() {
 
                     {/* --- Outils --- */}
                     {tab === 'links' && (
-                      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+                      <div className="dashboard-tools grid grid-cols-2 gap-4 lg:grid-cols-4">
                         {[
                           { label: 'Parc', desc: 'Gestion matérielle', to: '/parc', icon: Sun, color: 'text-amber-500', bg: 'bg-amber-500/10' },
                           { label: 'Incidents', desc: 'Alertes & logs', to: '/notification', icon: Shield, color: 'text-rose-500', bg: 'bg-rose-500/10' },
-                          { label: 'Devis', desc: 'Propositions clients', to: '/devis', icon: FileText, color: 'text-sky-500', bg: 'bg-sky-500/10' },
+                          { label: 'Devis', desc: 'Propositions clients', to: '/devis', icon: FileText, color: 'text-[var(--ops-ink)]', bg: 'bg-sky-500/10' },
                           { label: 'Maintenance', desc: 'Planification', to: '/InterventionWizard', icon: Wrench, color: 'text-violet-500', bg: 'bg-violet-500/10' },
                         ].map(({ label, desc, to, icon: Icon, color, bg }) => (
-                          <Link key={to} to={to} className="group flex flex-col rounded-2xl border border-zinc-200/50 dark:border-white/[0.05] bg-white dark:bg-white/[0.02] p-5 transition-all hover:border-zinc-300 dark:hover:border-white/10 hover:shadow-md hover:-translate-y-1">
+                          <Link key={to} to={to} className="dashboard-tool group relative flex flex-col rounded-2xl border border-zinc-200/50 dark:border-white/[0.05] bg-white dark:bg-white/[0.02] p-5 transition-all hover:border-zinc-300 dark:hover:border-white/10 hover:shadow-md hover:-translate-y-1">
                             <div className={`mb-4 inline-flex self-start rounded-xl p-3 ${bg} ${color}`}>
                               <Icon size={20} />
                             </div>

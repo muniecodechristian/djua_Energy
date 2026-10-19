@@ -1,3 +1,4 @@
+import quoteRoutes from './routes/quote.routes.js';
 // src/app.js
 // Configuration Express : middlewares globaux + montage des routes.
 // N'écoute pas sur un port — responsabilité exclusive de server.js.
@@ -18,6 +19,7 @@ import iotRoutes from "./routes/iot.routes.js";
 import solarRoutes from "./routes/solar.routes.js";
 import kitRoutes from "./routes/kit.routes.js";
 import interventionRoutes from "./routes/intervention.routes.js";
+import alertRoutes from "./routes/alert.routes.js";
 import { swaggerSpec, swaggerUiOptions } from "./docs/swagger.config.js";
 
 const app = express();
@@ -112,9 +114,11 @@ if (swaggerEnabled) {
 // Routes applicatives ──────────────────────────────────────────────────────
 app.use("/auth", authRoutes);
 
+app.use("/api/quotes", quoteRoutes);
+app.use("/api/alerts", alertRoutes);
+app.use("/api/interventions", interventionRoutes);
 app.use("/api", deviceRoutes);
 app.use("/api", kitRoutes);
-app.use("/api/interventions", interventionRoutes);
 
 app.use("/api/ml", mlRoutes);
 app.use("/api/iot", iotRoutes);

@@ -3,7 +3,7 @@ import type {
   InstallPayload,
   InstallResponse,
   DeviceState,
-  OrangeQuote,
+  StoredQuote,
   KitRecord,
   CreateKitPayload,
 } from '../types/install.types';
@@ -171,41 +171,21 @@ export const devicesApi = {
 
 // ─── Orange Energy API (Devis) ────────────────────────────────────────────────
 
-const ORANGE_API_URL = import.meta.env.VITE_ORANGE_API_URL ?? 'https://orange-energy-test-api.vercel.app';
-
-export const orangeApi = {
-  /**
-   * Recherche un devis Orange Energy par son ID.
-   * GET /api/devis/:id  (endpoint Orange Energy)
-   */
-  searchQuote: async (quoteId: string): Promise<OrangeQuote | null> => {
+// Only persisted, approved Djua quotes can populate an installation.
+export const quotesApi = {
+  searchQuote: async (number: string): Promise<StoredQuote | null> => {
     try {
-      const { data } = await axios.get(`${ORANGE_API_URL}/api/devis/${quoteId}`, {
-        timeout: 8_000,
-      });
-      return data;
-    } catch (err: any) {
-      // Mock si l'API Orange est indisponible ou 404
-      console.warn('[OrangeAPI] Indisponible — données mock retournées');
-      if (quoteId.trim()) {
-        return {
-          id: quoteId,
-          client: 'Jean Kabeya',
-          location: 'Maison individuelle — Gombe, Kinshasa',
-          system: {
-            panels: 4,
-            panelPower: 600,
-            batteryCapacity: 5,
-            inverterPower: 3,
-          },
-        };
-      }
-      return null;
+      const { data } = await api.get(`/quotes/${encodeURIComponent(number.trim().toUpperCase())}`);
+      const quote = data.data;
+      return { id:quote.number, client:quote.customer.name, phone:quote.customer.phone,
+        location:[quote.site.adresse,quote.site.ville].filter(Boolean).join(', '),
+        plannedDate:quote.plannedDate, appliances:quote.appliances, system:quote.system };
+    } catch(error: any) {
+      if(error.response?.status === 404) return null;
+      throw new Error(error.response?.data?.message || 'Impossible de joindre le serveur. Réessayez.');
     }
   },
 };
-
-// ─── Kits API (modèle Kit MongoDB) ───────────────────────────────────────────
 
 export const kitsApi = {
   /**

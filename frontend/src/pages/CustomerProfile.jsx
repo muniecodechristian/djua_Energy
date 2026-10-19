@@ -43,9 +43,9 @@ const riskFactorsList = [
 ];
 
 const interactionsList = [
-  { date: '19 Mai 2026', title: 'Intervention créée', desc: 'Maintenance corrective pour KIT-K-87391', author: 'Vous', badgeColor: 'bg-orange-500/10 text-orange-400 border border-orange-500/20' },
+  { date: '19 Mai 2026', title: 'Intervention créée', desc: 'Maintenance corrective pour KIT-K-87391', author: 'Vous', badgeColor: 'bg-[var(--ops-canvas)] text-orange-400 border border-[var(--ops-line)]' },
   { date: '02 Mai 2026', title: 'Paiement reçu', desc: '25 000 FCFA via Mobile Money', author: 'Système', badgeColor: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' },
-  { date: '12 Avr 2026', title: 'Appel client', desc: 'Demande de renseignement sur la date de facturation', author: 'Agent 0451', badgeColor: 'bg-orange-500/10 text-orange-400 border border-orange-500/20' },
+  { date: '12 Avr 2026', title: 'Appel client', desc: 'Demande de renseignement sur la date de facturation', author: 'Agent 0451', badgeColor: 'bg-[var(--ops-canvas)] text-orange-400 border border-[var(--ops-line)]' },
   { date: '05 Avr 2026', title: 'Rappel envoyé', desc: 'Rappel de paiement pour l\'échéance d\'avril', author: 'Système', badgeColor: 'bg-slate-800 text-slate-400 border border-slate-700' },
 ];
 
@@ -109,7 +109,7 @@ export default function CustomerProfile() {
               <select
                 value={selectedClientId || (selectedClient?._id || '')}
                 onChange={(e) => setSelectedClientId(e.target.value)}
-                className="bg-zinc-950 border border-zinc-800 rounded-lg text-xs px-3 py-1 text-zinc-300 focus:outline-none focus:border-orange-500/50"
+                className="bg-zinc-950 border border-zinc-800 rounded-lg text-xs px-3 py-1 text-zinc-300 focus:outline-none focus:border-[var(--ops-line)]"
               >
                 {clients.map(c => (
                   <option key={c._id} value={c._id}>
@@ -190,7 +190,7 @@ export default function CustomerProfile() {
             <Card className="p-0 h-full">
               <div className="p-4 flex items-start gap-4 border-b border-slate-800/50">
                 <div className="relative">
-                  <div className="w-14 h-14 rounded-full bg-slate-800/80 border-2 border-orange-500/30 flex items-center justify-center text-lg font-bold text-white shadow-[inset_0_2px_4px_rgba(0,0,0,0.6)]">
+                  <div className="w-14 h-14 rounded-full bg-slate-800/80 border-2 border-[var(--ops-line)] flex items-center justify-center text-lg font-bold text-white shadow-[inset_0_2px_4px_rgba(0,0,0,0.6)]">
                     {selectedClient ? selectedClient.kitId.substring(selectedClient.kitId.lastIndexOf('-') + 1).substring(0,2) : 'JK'}
                   </div>
                 </div>
@@ -241,7 +241,7 @@ export default function CustomerProfile() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-1.5 mt-2 bg-orange-500/10 border border-orange-500/20 px-2 py-0.5 rounded text-[10px] text-orange-400">
+                <div className="flex items-center gap-1.5 mt-2 bg-[var(--ops-canvas)] border border-[var(--ops-line)] px-2 py-0.5 rounded text-[10px] text-orange-400">
                   <TrendingUp size={12} />
                   <span>Tendance du risque : <strong>+12 pts</strong> <span className="text-slate-500">(30 derniers jours)</span></span>
                 </div>
@@ -262,7 +262,7 @@ export default function CustomerProfile() {
               <div className="grid grid-cols-2 gap-3 h-full">
                 
                 <motion.div whileHover={{ scale: 1.02 }} className="bg-transparent p-3 rounded-xl border border-slate-800/80 flex items-start gap-3 shadow-[0_4px_16px_rgba(0,0,0,0.3)]">
-                  <div className="p-2 bg-orange-500/10 border border-orange-500/20 rounded-lg text-orange-400">
+                  <div className="p-2 bg-[var(--ops-canvas)] border border-[var(--ops-line)] rounded-lg text-orange-400">
                     <Box size={16} />
                   </div>
                   <div>
@@ -542,7 +542,7 @@ export default function CustomerProfile() {
                       <p className="text-[9px] text-slate-400 leading-tight">Faible consommation détectée. Partager des astuces pour optimiser l'usage.</p>
                     </div>
                   </div>
-                  <span className="text-[8px] px-2 py-0.5 rounded bg-orange-500/10 border border-orange-500/20 text-orange-400 font-medium flex-shrink-0">Recommandé</span>
+                  <span className="text-[8px] px-2 py-0.5 rounded bg-[var(--ops-canvas)] border border-[var(--ops-line)] text-orange-400 font-medium flex-shrink-0">Recommandé</span>
                 </motion.div>
 
                 <motion.div whileHover={{ scale: 1.01 }} className="bg-transparent p-2.5 rounded-xl border border-slate-800/80 flex items-start justify-between gap-2 shadow-[0_4px_16px_rgba(0,0,0,0.3)]">
@@ -553,7 +553,7 @@ export default function CustomerProfile() {
                       <p className="text-[9px] text-slate-400 leading-tight">Le client a 2 paiements en retard. Proposer des options de paiement flexibles.</p>
                     </div>
                   </div>
-                  <span className="text-[8px] px-2 py-0.5 rounded bg-orange-500/10 border border-orange-500/20 text-orange-400 font-medium flex-shrink-0">Recommandé</span>
+                  <span className="text-[8px] px-2 py-0.5 rounded bg-[var(--ops-canvas)] border border-[var(--ops-line)] text-orange-400 font-medium flex-shrink-0">Recommandé</span>
                 </motion.div>
 
                 <motion.div whileHover={{ scale: 1.01 }} className="bg-transparent p-2.5 rounded-xl border border-slate-800/80 flex items-start justify-between gap-2 shadow-[0_4px_16px_rgba(0,0,0,0.3)]">

@@ -50,11 +50,11 @@ const mapMarkers = [
 ];
 
 const initialLiveFeedEvents = [
-  { id: 'static-1', type: 'alert', text: 'KIT-K-87391 Alerte Surchauffe (Kinshasa)', time: '14:08', badge: 'Avertissement', color: 'text-orange-400 border-orange-500/20', isGeofence: false },
-  { id: 'static-2', type: 'connect', text: 'KIT-K-10293 Télémétrie rétablie (Goma)', time: '14:05', badge: 'En ligne', color: 'text-orange-400 border-orange-500/20', isGeofence: false },
-  { id: 'static-3', type: 'maint', text: 'KIT-K-99210 Maintenance terminée (Lubumbashi)', time: '13:58', badge: 'Résolu', color: 'text-orange-400 border-orange-500/20', isGeofence: false },
-  { id: 'static-4', type: 'install', text: 'KIT-K-33410 Nouveau kit activé (Matadi)', time: '13:45', badge: 'Actif', color: 'text-orange-400 border-orange-500/20', isGeofence: false },
-  { id: 'static-5', type: 'alert', text: 'KIT-K-00129 Batterie Critique <15% (Mbuji-Mayi)', time: '13:30', badge: 'Critique', color: 'text-orange-400 border-orange-500/20', isGeofence: false },
+  { id: 'static-1', type: 'alert', text: 'KIT-K-87391 Alerte Surchauffe (Kinshasa)', time: '14:08', badge: 'Avertissement', color: 'text-orange-400 border-[var(--ops-line)]', isGeofence: false },
+  { id: 'static-2', type: 'connect', text: 'KIT-K-10293 Télémétrie rétablie (Goma)', time: '14:05', badge: 'En ligne', color: 'text-orange-400 border-[var(--ops-line)]', isGeofence: false },
+  { id: 'static-3', type: 'maint', text: 'KIT-K-99210 Maintenance terminée (Lubumbashi)', time: '13:58', badge: 'Résolu', color: 'text-orange-400 border-[var(--ops-line)]', isGeofence: false },
+  { id: 'static-4', type: 'install', text: 'KIT-K-33410 Nouveau kit activé (Matadi)', time: '13:45', badge: 'Actif', color: 'text-orange-400 border-[var(--ops-line)]', isGeofence: false },
+  { id: 'static-5', type: 'alert', text: 'KIT-K-00129 Batterie Critique <15% (Mbuji-Mayi)', time: '13:30', badge: 'Critique', color: 'text-orange-400 border-[var(--ops-line)]', isGeofence: false },
 ];
 
 const MiniSparkline = ({ data, stroke }) => (
@@ -182,7 +182,7 @@ export default function FleetMonitoring() {
           <button className="px-3 py-1.5 bg-transparent border border-slate-700 rounded-lg text-xs text-slate-300 hover:border-slate-500 flex items-center gap-2 cursor-pointer">
             <Calendar size={14} /> 21 Avr 2026 - 19 Mai 2026
           </button>
-          <button className="px-3 py-1.5 border border-orange-600 text-orange-500 hover:bg-orange-600/10 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer">
+          <button className="px-3 py-1.5 border border-orange-600 text-orange-500 hover:bg-[var(--ops-canvas)] rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer">
             <Filter size={14} /> FILTRER
           </button>
         </div>
@@ -305,7 +305,7 @@ export default function FleetMonitoring() {
               </div>
             </div>
 
-            <button className="w-full py-2 border border-orange-600 text-orange-500 hover:bg-orange-600/10 rounded-lg text-xs font-semibold uppercase tracking-wider transition-colors mt-auto cursor-pointer">
+            <button className="w-full py-2 border border-orange-600 text-orange-500 hover:bg-[var(--ops-canvas)] rounded-lg text-xs font-semibold uppercase tracking-wider transition-colors mt-auto cursor-pointer">
               APPLIQUER LES FILTRES
             </button>
           </div>
@@ -442,7 +442,7 @@ export default function FleetMonitoring() {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between">
                     <h4 className="text-xs font-bold text-white truncate">{selectedKit}</h4>
-                    <span className="px-1.5 py-0.2 text-orange-400 border border-orange-500/50 text-[9px] rounded font-semibold uppercase tracking-wide">● En ligne</span>
+                    <span className="px-1.5 py-0.2 text-orange-400 border border-[var(--ops-line)] text-[9px] rounded font-semibold uppercase tracking-wide">● En ligne</span>
                   </div>
                   <p className="text-[9px] text-slate-400 truncate mt-0.5">SN: RN87391V22K41</p>
                   <p className="text-[9px] text-slate-400 truncate">Modèle: Djua Home 200X</p>
@@ -485,7 +485,7 @@ export default function FleetMonitoring() {
               </div>
             </div>
 
-            <button className="w-full py-2 border border-orange-600 text-orange-500 hover:bg-orange-600/10 rounded-lg text-xs font-semibold uppercase tracking-wider transition-colors mt-auto flex items-center justify-center gap-1.5 cursor-pointer">
+            <button className="w-full py-2 border border-orange-600 text-orange-500 hover:bg-[var(--ops-canvas)] rounded-lg text-xs font-semibold uppercase tracking-wider transition-colors mt-auto flex items-center justify-center gap-1.5 cursor-pointer">
               INSPECTER LE KIT <ArrowRight size={14} />
             </button>
           </div>

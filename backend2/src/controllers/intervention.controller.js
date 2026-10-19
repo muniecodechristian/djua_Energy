@@ -1,62 +1,219 @@
+// src/controllers/intervention.controller.js
+// CRUD interventions/maintenances du shop_manager.
+// Sécurisé par : protect → authorizeRoles → ownership → validate.
+// Les notifications Socket.io sont déléguées au notification.service.
+
 import { Intervention } from '../models/Intervention.model.js';
+import { sendSuccess, sendError } from '../utils/apiResponse.js';
+import {
+  notifyNewIntervention,
+  notifyInterventionReassigned,
+  notifyInterventionStatusUpdate,
+  notifyReportSubmitted,
+} from '../services/notification.service.js';
 
+// ── POST /api/interventions ───────────────────────────────────────────────────
+/**
+ * Crée une intervention et l'assigne à un technicien.
+ * Le middleware verifyTechnicianOwnership a déjà validé la propriété.
+ */
 export const createIntervention = async (req, res) => {
+  const { kitId, title, description, type, priority, scheduledDate, assignedTo } = req.body;
+
   try {
-    const { kitId, title, description, priority, scheduledDate } = req.body;
-
-    if (!kitId || !title || !description) {
-      return res.status(400).json({ success: false, message: 'kitId, title, et description sont requis' });
-    }
-
-    const newIntervention = await Intervention.create({
+    const intervention = await Intervention.create({
       kitId,
       title,
       description,
+      type: type || 'maintenance',
       priority: priority || 'Moyenne',
-      scheduledDate: scheduledDate ? new Date(scheduledDate) : new Date()
+      scheduledDate: scheduledDate ? new Date(scheduledDate) : new Date(),
+      assignedTo,
+      createdBy: req.user._id,
     });
 
-    res.status(201).json({ success: true, data: newIntervention });
+    const populated = await Intervention.findById(intervention._id)
+      .populate('assignedTo', 'nom prenom identifier zone')
+      .populate('createdBy', 'nom prenom identifier')
+      .lean();
+
+    // ── Notification temps réel au technicien ────────────────────────────────
+    notifyNewIntervention(assignedTo, populated);
+
+    return sendSuccess(res, 'Intervention créée et technicien notifié', populated, 201);
   } catch (error) {
-    console.error('Erreur lors de la création de l\'intervention:', error);
-    res.status(500).json({ success: false, message: 'Erreur serveur' });
+    console.error('[Intervention Controller] createIntervention error:', error.message);
+    return sendError(res, `Erreur lors de la création: ${error.message}`, [], 500);
   }
 };
 
+// ── GET /api/interventions ────────────────────────────────────────────────────
+/**
+ * Récupère les interventions selon le rôle :
+ * - shop_manager : voit toutes les interventions qu'il a créées
+ * - technician : voit uniquement les interventions qui lui sont assignées
+ */
 export const getInterventions = async (req, res) => {
   try {
-    // Permet de filtrer par kitId si fourni en query params
-    const filter = {};
-    if (req.query.kitId) {
-      filter.kitId = req.query.kitId;
+    const { role, _id: userId } = req.user;
+    const { kitId, status } = req.query || {};
+
+    let filter = {};
+
+    if (role === 'shop_manager') {
+      filter.createdBy = userId;
+    } else if (role === 'technician') {
+      // Si kitId est spécifié (scan du kit), le technicien consulte l'historique de ce kit
+      // incluant les rapports précédents des autres techniciens
+      if (kitId) {
+        filter.kitId = kitId;
+      } else {
+        filter.assignedTo = userId;
+      }
     }
 
-    const interventions = await Intervention.find(filter).sort({ createdAt: -1 });
-    res.status(200).json({ success: true, data: interventions });
+    // Filtres optionnels
+    if (kitId && role !== 'technician') filter.kitId = kitId;
+    if (status) filter.status = status;
+
+    const interventions = await Intervention.find(filter)
+      .populate('assignedTo', 'nom prenom identifier seniority zone')
+      .populate('createdBy', 'nom prenom identifier')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return sendSuccess(res, 'Interventions récupérées', interventions);
   } catch (error) {
-    console.error('Erreur lors de la récupération des interventions:', error);
-    res.status(500).json({ success: false, message: 'Erreur serveur' });
+    console.error('[Intervention Controller] getInterventions error:', error.message);
+    return sendError(res, `Erreur lors de la récupération: ${error.message}`, [], 500);
   }
 };
 
+// ── PATCH /api/interventions/:id/status ───────────────────────────────────────
+/**
+ * Met à jour le statut d'une intervention.
+ * - shop_manager : peut modifier le statut des interventions qu'il a créées
+ * - technician : peut passer "En cours" / "Terminée" les interventions qui lui sont assignées
+ */
 export const updateInterventionStatus = async (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+  const { role, _id: userId } = req.user;
+
   try {
-    const { id } = req.params;
-    const { status } = req.body;
-    
-    if (!status) {
-      return res.status(400).json({ success: false, message: 'Le statut est requis' });
+    let filter = { _id: id };
+
+    if (role === 'shop_manager') {
+      filter.createdBy = userId;
+    } else if (role === 'technician') {
+      filter.assignedTo = userId;
+      // Technicien ne peut qu'avancer le statut : "En cours" ou "Terminée"
+      if (!['En cours', 'Terminée'].includes(status)) {
+        return sendError(res, 'Un technicien ne peut que passer en "En cours" ou "Terminée"', [], 403);
+      }
     }
 
-    const updated = await Intervention.findByIdAndUpdate(id, { status }, { new: true });
-    
-    if (!updated) {
-      return res.status(404).json({ success: false, message: 'Intervention non trouvée' });
+    const intervention = await Intervention.findOne(filter);
+
+    if (!intervention) {
+      return sendError(res, 'Intervention introuvable ou accès non autorisé', [], 404);
     }
 
-    res.status(200).json({ success: true, data: updated });
+    intervention.status = status;
+    if (status === 'Terminée') {
+      intervention.completedAt = new Date();
+    }
+    await intervention.save();
+
+    const populated = await Intervention.findById(intervention._id)
+      .populate('assignedTo', 'nom prenom identifier zone')
+      .populate('createdBy', 'nom prenom identifier')
+      .lean();
+
+    // Notifier le shop_manager quand un technicien met à jour le statut
+    if (role === 'technician' && populated.createdBy?._id) {
+      notifyInterventionStatusUpdate(populated.createdBy._id.toString(), populated);
+    }
+
+    return sendSuccess(res, `Statut mis à jour: ${status}`, populated);
   } catch (error) {
-    console.error('Erreur lors de la mise à jour du statut:', error);
-    res.status(500).json({ success: false, message: 'Erreur serveur' });
+    console.error('[Intervention Controller] updateInterventionStatus error:', error.message);
+    return sendError(res, `Erreur lors de la mise à jour: ${error.message}`, [], 500);
+  }
+};
+
+// ── PATCH /api/interventions/:id/report ───────────────────────────────────────
+/**
+ * Le technicien ajoute un rapport après avoir terminé l'intervention.
+ * Seul le technicien assigné peut ajouter un rapport.
+ */
+export const addReport = async (req, res) => {
+  const { id } = req.params;
+  const { report } = req.body;
+
+  try {
+    const intervention = await Intervention.findOne({
+      _id: id,
+      assignedTo: req.user._id, // Seul le technicien assigné
+    });
+
+    if (!intervention) {
+      return sendError(res, 'Intervention introuvable ou vous n\'êtes pas le technicien assigné', [], 404);
+    }
+
+    intervention.report = report;
+    await intervention.save();
+
+    const populated = await Intervention.findById(intervention._id)
+      .populate('assignedTo', 'nom prenom identifier zone')
+      .populate('createdBy', 'nom prenom identifier')
+      .lean();
+
+    // Notifier le shop_manager du rapport soumis
+    if (populated.createdBy?._id) {
+      notifyReportSubmitted(populated.createdBy._id.toString(), populated);
+    }
+
+    return sendSuccess(res, 'Rapport soumis avec succès', populated);
+  } catch (error) {
+    console.error('[Intervention Controller] addReport error:', error.message);
+    return sendError(res, `Erreur lors de la soumission du rapport: ${error.message}`, [], 500);
+  }
+};
+
+// ── PATCH /api/interventions/:id/assign ───────────────────────────────────────
+/**
+ * Réassigne une intervention à un autre technicien.
+ * Seul le shop_manager créateur peut réassigner.
+ */
+export const reassignIntervention = async (req, res) => {
+  const { id } = req.params;
+  const { assignedTo: newTechnicianId } = req.body;
+
+  try {
+    const intervention = await Intervention.findOne({
+      _id: id,
+      createdBy: req.user._id, // Seul le créateur peut réassigner
+    });
+
+    if (!intervention) {
+      return sendError(res, 'Intervention introuvable ou vous n\'êtes pas le créateur', [], 404);
+    }
+
+    intervention.assignedTo = newTechnicianId;
+    await intervention.save();
+
+    const populated = await Intervention.findById(intervention._id)
+      .populate('assignedTo', 'nom prenom identifier zone')
+      .populate('createdBy', 'nom prenom identifier')
+      .lean();
+
+    // Notification au nouveau technicien
+    notifyInterventionReassigned(newTechnicianId, populated);
+
+    return sendSuccess(res, 'Intervention réassignée avec succès', populated);
+  } catch (error) {
+    console.error('[Intervention Controller] reassignIntervention error:', error.message);
+    return sendError(res, `Erreur lors de la réassignation: ${error.message}`, [], 500);
   }
 };

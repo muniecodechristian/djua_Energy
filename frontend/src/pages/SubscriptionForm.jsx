@@ -259,7 +259,7 @@ const BillingSection = () => {
         <div>
           <label className="block text-[11px] font-semibold text-[#FF7900] mb-1">Total Calculé ($)</label>
           {/* Input ReadOnly pur affichage */}
-          <input type="text" readOnly value={computedTotal.toFixed(2)} className="w-full bg-zinc-900/80 border border-[#FF7900]/40 rounded px-2.5 py-1.5 text-sm font-bold font-mono text-[#FF7900] cursor-not-allowed focus:outline-none" />
+          <input type="text" readOnly value={computedTotal.toFixed(2)} className="w-full bg-zinc-900/80 border border-[var(--ops-line)] rounded px-2.5 py-1.5 text-sm font-bold font-mono text-[#FF7900] cursor-not-allowed focus:outline-none" />
         </div>
       </div>
     </div>

@@ -51,16 +51,17 @@ export default function Step05Verify({ onNext, onBack }: Props) {
                   <p key={j} style={{ fontSize: 14, color: 'var(--text-3)', marginBottom: 2 }}>{d}</p>
                 ))}
               </div>
-              <button className="edit-btn"><Edit2 size={12} />Modifier</button>
+              <button className="edit-btn" onClick={onBack}><Edit2 size={12} />Changer de devis</button>
             </div>
           </div>
         ))}
 
+        <div className="card-white" style={{marginBottom:14}}><h2 style={{fontSize:15,fontWeight:600}}>Appareils préremplis depuis le devis</h2><ul style={{paddingLeft:18}}>{quoteData.appliances.map((item,index)=><li key={index}>{item.quantity} × {item.name} · {item.watts} W · {item.hours} h/j</li>)}</ul><p>Installation prévue : {quoteData.plannedDate} (Kinshasa)</p></div>
         <div className="alert alert-info">
           <Info size={20} color="var(--info)" style={{ flexShrink: 0, marginTop: 2 }} />
           <div>
             <p className="alert-title">Le système installé est différent du devis ?</p>
-            <p>Vous pourrez ajuster les informations à l'étape suivante.</p>
+            <p>Contactez le commercial pour établir un devis conforme avant d’enregistrer le kit.</p>
           </div>
         </div>
         <div className="pb-safe" />

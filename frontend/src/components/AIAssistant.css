@@ -1,0 +1,223 @@
+.djua-assistant-fullscreen.fixed {
+  position: fixed;
+  inset: 0;
+  z-index: 10050;
+  width: 100%;
+  height: 100dvh;
+  padding: 0;
+  background: var(--app-surface);
+}
+
+.djua-assistant-window {
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  animation: none;
+}
+
+.djua-assistant-fullscreen .djua-assistant-header {
+  flex: none;
+  padding: 16px 28px;
+}
+
+.djua-assistant-fullscreen .djua-assistant-messages {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 24px max(24px, calc((100% - 900px) / 2));
+  overscroll-behavior: contain;
+}
+
+.djua-assistant-welcome {
+  width: min(100%, 570px);
+  margin: auto;
+  padding: 24px 0;
+  text-align: center;
+}
+
+.djua-assistant-welcome-robot {
+  width: 96px;
+  height: 96px;
+  overflow: hidden;
+  margin: 0 auto 20px;
+  border: 1px solid var(--panel-border);
+  border-radius: 50%;
+  background: var(--panel);
+}
+
+.djua-assistant-welcome-robot img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.djua-assistant-eyebrow {
+  margin: 0 0 12px;
+  color: var(--muted-foreground);
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.16em;
+}
+
+.djua-assistant-welcome h1 {
+  margin: 0 0 14px;
+  font-size: clamp(28px, 3.2vw, 46px);
+  font-weight: 500;
+  letter-spacing: -0.045em;
+  line-height: 1.16;
+}
+
+.djua-assistant-welcome > p:last-of-type {
+  max-width: 440px;
+  margin: 0 auto;
+  color: var(--muted-foreground);
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.djua-assistant-welcome-prompts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 24px;
+  text-align: left;
+}
+
+.djua-assistant-welcome-prompts button {
+  display: flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--app-foreground);
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1.45;
+  transition: background-color 150ms ease;
+}
+
+.djua-assistant-welcome-prompts button:hover {
+  background: var(--panel-alt);
+}
+
+.djua-assistant-fullscreen .djua-assistant-suggestions,
+.djua-assistant-fullscreen .djua-assistant-composer {
+  flex: none;
+  padding-right: max(24px, calc((100% - 900px) / 2));
+  padding-left: max(24px, calc((100% - 900px) / 2));
+}
+
+.djua-assistant-fullscreen .djua-assistant-composer {
+  padding-top: 16px;
+  padding-bottom: max(18px, env(safe-area-inset-bottom));
+}
+
+.djua-assistant-fullscreen .djua-assistant-composer > div:first-child {
+  border-radius: 18px;
+}
+
+.djua-assistant-fullscreen .djua-assistant-composer textarea {
+  min-height: 52px;
+  padding-top: 14px;
+  font-size: 15px;
+}
+
+.djua-assistant-fullscreen .djua-assistant-composer button[type="submit"] {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+}
+
+@media (max-width: 600px) {
+  .djua-assistant-fullscreen .djua-assistant-header {
+    padding: 12px;
+  }
+
+  .djua-assistant-fullscreen .djua-assistant-messages {
+    padding: 16px;
+  }
+
+  .djua-assistant-welcome {
+    padding: 16px 0;
+  }
+
+  .djua-assistant-welcome-robot {
+    width: 76px;
+    height: 76px;
+    margin-bottom: 14px;
+  }
+
+  .djua-assistant-welcome > p:last-of-type {
+    font-size: 12px;
+  }
+
+  .djua-assistant-welcome-prompts {
+    gap: 6px;
+    margin-top: 18px;
+  }
+
+  .djua-assistant-welcome-prompts button {
+    padding: 10px;
+    font-size: 11px;
+  }
+
+  .djua-assistant-fullscreen .djua-assistant-suggestions,
+  .djua-assistant-fullscreen .djua-assistant-composer {
+    padding-right: 12px;
+    padding-left: 12px;
+  }
+}
+
+@media (max-height: 700px) {
+  .djua-assistant-fullscreen .djua-assistant-header {
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+
+  .djua-assistant-welcome {
+    padding: 10px 0;
+  }
+
+  .djua-assistant-welcome-robot {
+    width: 64px;
+    height: 64px;
+    margin-bottom: 8px;
+  }
+
+  .djua-assistant-eyebrow {
+    margin-bottom: 6px;
+  }
+
+  .djua-assistant-welcome h1 {
+    margin-bottom: 8px;
+    font-size: clamp(26px, 3vw, 34px);
+  }
+
+  .djua-assistant-welcome-prompts {
+    gap: 6px;
+    margin-top: 12px;
+  }
+
+  .djua-assistant-welcome-prompts button {
+    min-height: 40px;
+    padding: 8px 10px;
+  }
+
+  .djua-assistant-fullscreen .djua-assistant-composer textarea {
+    min-height: 42px;
+    padding-top: 10px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .djua-assistant-welcome-prompts button {
+    transition: none;
+  }
+}

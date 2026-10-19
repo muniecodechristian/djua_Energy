@@ -159,7 +159,7 @@ export default function AddressAutocomplete({
                 onMouseEnter={() => setSelectedIndex(index)}
                 className={`px-3.5 py-2.5 text-xs cursor-pointer transition-colors flex items-center gap-2 ${
                   selectedIndex === index
-                    ? 'bg-[#FF7900]/15 text-[#FF7900] font-medium'
+                    ? 'bg-[var(--ops-canvas)] text-[#FF7900] font-medium'
                     : 'text-zinc-300 hover:bg-zinc-800/80'
                 }`}
               >

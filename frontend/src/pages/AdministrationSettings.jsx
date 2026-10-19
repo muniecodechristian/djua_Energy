@@ -1,3 +1,4 @@
+import SalesQuotes from '../components/SalesQuotes';
 import PageEntrance from '../components/PageEntrance';
 import { Link, Navigate } from 'react-router-dom';
 import {
@@ -84,6 +85,7 @@ export default function AdministrationSettings() {
                 </p>
             </header>
 
+            <SalesQuotes />
             {/* Cartes de synthèse */}
             <section aria-label="Résumé" className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
                 <StatCard

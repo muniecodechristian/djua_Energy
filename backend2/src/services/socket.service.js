@@ -1,14 +1,41 @@
 // src/services/socket.service.js
-// Gestion de Socket.io : connexions clients, rooms par kit, émissions temps réel.
+// Gestion de Socket.io : authentification JWT, rooms personnelles, rooms par kit,
+// et émissions temps réel sécurisées.
 
 import { Server } from 'socket.io';
+import jwt from 'jsonwebtoken';
+import config from '../config/env.config.js';
+import User from '../models/user.model.js';
+import { parseCookie } from 'cookie';
 
 /** @type {Server | null} */
 let io = null;
 
 /**
+ * Parse un cookie token depuis les headers du handshake Socket.io.
+ * Supporte : cookie HttpOnly (prioritaire) et auth.token du handshake.
+ * @param {import('socket.io').Socket} socket
+ * @returns {string|null}
+ */
+function extractToken(socket) {
+  // 1. Cookie HttpOnly (même mécanisme que le middleware protect)
+  const cookieHeader = socket.handshake.headers?.cookie;
+  if (cookieHeader) {
+    const cookies = parseCookie(cookieHeader);
+    if (cookies.token) return cookies.token;
+  }
+
+  // 2. Fallback: token passé dans auth du handshake (utile pour React Native)
+  if (socket.handshake.auth?.token) {
+    return socket.handshake.auth.token;
+  }
+
+  return null;
+}
+
+/**
  * Initialise Socket.io avec le serveur HTTP.
- * Gère les rooms par kit pour les émissions ciblées de télémétrie live.
+ * Authentifie chaque connexion via JWT et auto-join les rooms personnelles.
  * @param {import('http').Server} httpServer
  */
 export function initSocket(httpServer) {
@@ -23,8 +50,61 @@ export function initSocket(httpServer) {
     }
   });
 
+  // ── Middleware d'authentification Socket.io ──────────────────────────────────
+  io.use(async (socket, next) => {
+    const token = extractToken(socket);
+
+    if (!token) {
+      // Connexion anonyme autorisée (pour la page publique / dashboard sans login)
+      // mais sans accès aux rooms privées
+      socket.data.authenticated = false;
+      socket.data.user = null;
+      return next();
+    }
+
+    try {
+      const decoded = jwt.verify(token, config.jwtSecret);
+      const user = await User.findById(decoded.id).select('_id nom prenom role zone status').lean();
+
+      if (!user || user.status === 'suspended') {
+        return next(new Error('Authentification refusée : compte invalide ou suspendu'));
+      }
+
+      socket.data.authenticated = true;
+      socket.data.user = user;
+      next();
+    } catch (err) {
+      // Token invalide/expiré — on refuse la connexion
+      return next(new Error('Authentification refusée : token invalide'));
+    }
+  });
+
   io.on('connection', (socket) => {
-    console.log(`[Socket.io] Client connecté : ${socket.id}`);
+    const user = socket.data.user;
+    const isAuth = socket.data.authenticated;
+
+    if (isAuth && user) {
+      // ── Auto-join room personnelle ────────────────────────────────────────────
+      const userRoom = `user:${user._id}`;
+      socket.join(userRoom);
+      console.log(`[Socket.io] ${user.prenom} ${user.nom} (${user.role}) → room ${userRoom}`);
+
+      // ── Auto-join room de zone ────────────────────────────────────────────────
+      if (user.zone) {
+        const zoneRoom = `zone:${user.zone}`;
+        socket.join(zoneRoom);
+        console.log(`[Socket.io] ${user.prenom} ${user.nom} → room ${zoneRoom}`);
+      }
+
+      // Confirmation au client
+      socket.emit('authenticated', {
+        userId: user._id,
+        role: user.role,
+        zone: user.zone,
+      });
+    } else {
+      console.log(`[Socket.io] Connexion anonyme : ${socket.id}`);
+    }
 
     // ── Abonnement à un room de kit ────────────────────────────────────────────
     // Le frontend envoie 'subscribe:kit' avec { kitId } pour recevoir
@@ -47,7 +127,11 @@ export function initSocket(httpServer) {
     });
 
     socket.on('disconnect', () => {
-      console.log(`[Socket.io] Client déconnecté : ${socket.id}`);
+      if (isAuth && user) {
+        console.log(`[Socket.io] ${user.prenom} ${user.nom} déconnecté`);
+      } else {
+        console.log(`[Socket.io] Client anonyme déconnecté : ${socket.id}`);
+      }
     });
   });
 
@@ -102,3 +186,4 @@ export function emitLiveTelemetry(kitId, payload, rawPayload = null) {
   io.to(room).emit('telemetry:live', event);
   console.log(`[Socket.io] Télémétrie live émise → room ${room}`);
 }
+

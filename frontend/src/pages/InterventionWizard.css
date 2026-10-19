@@ -1,0 +1,69 @@
+/* Maintenance: restrained typography, shared theme surfaces, clear work list. */
+.maintenance-page { max-width:1440px; padding-top:36px; }
+.maintenance-header { display:flex; align-items:center; justify-content:space-between; gap:28px; margin-bottom:32px; }
+.maintenance-eyebrow { margin:0 0 12px; color:var(--ops-muted); font-size:12px; font-weight:550; }
+.maintenance-page h1 { font-size:clamp(25px,2.3vw,32px); font-weight:650; letter-spacing:-1px; margin:0 0 12px; }
+.maintenance-intro { margin:0; max-width:590px; font-size:13px; color:var(--ops-muted); line-height:1.7; }
+.maintenance-page .maintenance-primary { color:var(--ops-surface); background:var(--ops-emphasis); border-color:var(--ops-emphasis); box-shadow:none; min-height:40px; border-radius:6px; }
+.maintenance-page .maintenance-primary:hover { opacity:.85; transform:none; }
+.maintenance-summary { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); margin:0 0 36px; border-block:1px solid var(--ops-line); padding:24px 0; }
+.maintenance-summary > div { padding:0 26px; border-left:1px solid var(--ops-line); }
+.maintenance-summary > div:first-child { padding-left:0; border-left:0; }
+.maintenance-summary dt { font-size:12px; color:var(--ops-muted); margin-bottom:12px; }
+.maintenance-summary dd { margin:0; font-size:30px; font-weight:600; letter-spacing:-1px; color:var(--ops-emphasis); font-variant-numeric:tabular-nums; line-height:1.1; }
+.maintenance-register { border:1px solid var(--ops-line); border-radius:9px; background:var(--ops-surface); overflow:hidden; }
+.maintenance-register-heading { display:flex; align-items:center; justify-content:space-between; gap:24px; padding:24px 24px 16px; }
+.maintenance-register-heading h2 { font-size:16px; font-weight:650; }
+.maintenance-register-heading p { margin:5px 0 0; color:var(--ops-muted); font-size:12px; line-height:1.6; }
+.maintenance-search { display:flex; align-items:center; gap:9px; width:280px; min-height:38px; padding:0 11px; border:1px solid var(--ops-line); border-radius:6px; color:var(--ops-muted); flex-shrink:0; }
+.maintenance-search:focus-within { outline:2px solid var(--ops-muted); outline-offset:2px; }
+.maintenance-search input { width:100%; min-width:0; background:transparent; border:0; outline:none!important; color:var(--ops-ink); font-size:12px; padding:9px 0; }
+.maintenance-search input::placeholder { color:var(--ops-muted); }
+.maintenance-search button { display:grid; place-items:center; padding:4px; }
+.maintenance-filters { display:flex; gap:26px; padding:0 24px; border-bottom:1px solid var(--ops-line); overflow-x:auto; }
+.maintenance-filters button { display:flex; align-items:center; gap:8px; flex-shrink:0; padding:16px 0 14px; font-size:12px; font-weight:550; color:var(--ops-muted); border-bottom:2px solid transparent; }
+.maintenance-filters button[aria-pressed="true"] { color:var(--ops-emphasis); border-bottom-color:var(--ops-emphasis); font-weight:650; }
+.maintenance-filters button span { background:var(--ops-canvas); padding:2px 6px; border-radius:4px; font-size:10px; font-variant-numeric:tabular-nums; }
+.maintenance-page .maintenance-empty { min-height:330px; padding:56px 24px; justify-content:center; gap:12px; }
+.maintenance-empty-icon { display:grid; place-items:center; color:var(--ops-muted); margin-bottom:6px; }
+.maintenance-page .maintenance-empty h3 { font-size:15px; font-weight:600; color:var(--ops-emphasis); }
+.maintenance-page .maintenance-empty p { max-width:360px; font-size:12px; line-height:1.8; margin:0; }
+.maintenance-list { display:flex; flex-direction:column; }
+.maintenance-item { padding:24px; border-bottom:1px solid var(--ops-line); min-width:0; }
+.maintenance-item:last-child { border-bottom:0; }
+.maintenance-item:hover { background:var(--ops-canvas); }
+.maintenance-page .maintenance-ink { color:var(--ops-ink); }
+.maintenance-page .maintenance-muted { color:var(--ops-muted); }
+.maintenance-page .maintenance-border { border-color:var(--ops-line); }
+.maintenance-page .maintenance-soft { background:var(--ops-canvas); border-color:var(--ops-line); }
+.maintenance-item h3 { font-weight:600; }
+.maintenance-item .uppercase { text-transform:none; letter-spacing:0; font-weight:550; background:var(--ops-canvas); border-color:var(--ops-line); }
+.maintenance-overlay { overflow-y:auto; }
+.maintenance-page .maintenance-dialog { padding:24px; max-height:calc(100dvh - 48px); overflow-y:auto; border-color:var(--ops-line); border-radius:10px; }
+.maintenance-dialog .ops-form { padding:4px 0 0; gap:16px; }
+.maintenance-dialog .ops-form label { gap:7px; }
+.maintenance-dialog .ops-form-row { gap:16px; }
+.maintenance-error { display:flex; align-items:center; gap:12px; padding:30px 24px; color:var(--ops-ink); font-size:12px; }
+.maintenance-error p { color:var(--ops-muted); margin-top:5px; }
+.maintenance-error button { margin-left:auto; }
+@media(max-width:760px) {
+  .maintenance-page { padding-top:24px; }
+  .maintenance-header { flex-direction:column; align-items:flex-start; gap:18px; margin-bottom:24px; }
+  .maintenance-summary { grid-template-columns:repeat(2,minmax(0,1fr)); gap:24px 0; margin-bottom:24px; }
+  .maintenance-summary > div { padding:0 16px; }
+  .maintenance-summary > div:nth-child(odd) { padding-left:0; border-left:0; }
+  .maintenance-summary dd { font-size:26px; }
+  .maintenance-register-heading { flex-direction:column; align-items:stretch; padding:20px 16px 8px; gap:16px; }
+  .maintenance-search { width:100%; }
+  .maintenance-filters { padding:0 16px; gap:22px; }
+  .maintenance-item { padding:20px 16px; }
+  .maintenance-page .maintenance-dialog { padding:18px; }
+  .maintenance-error { flex-wrap:wrap; }
+}
+
+.maintenance-priority-normal { color:var(--ops-muted); border-color:var(--ops-line); background:transparent; }
+.maintenance-priority-high { color:#8a580d; border-color:#e5cfac; background:#fff8eb; }
+.maintenance-priority-critical { color:#a12d26; border-color:#ebc3c0; background:#fff1ef; }
+.dark .maintenance-priority-high { color:#e5c894; border-color:#5b4c33; background:#2a241b; }
+.dark .maintenance-priority-critical { color:#f0b1ac; border-color:#603c3b; background:#2c1e1e; }
+.maintenance-item .flex.items-center.gap-2.mb-1 { flex-wrap:wrap; }
