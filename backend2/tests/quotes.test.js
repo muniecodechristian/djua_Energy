@@ -55,6 +55,29 @@ describe('Customer quotations and installation lifecycle',()=>{
   expect(otherResponse.body.data.stats.draftsToFollowUp).toBe(0);
   expect(otherResponse.body.data.kitIds).toEqual([]);
  });
+ it('filters validated quotes as a group while keeping summary amounts role-scoped and split by currency',async()=>{
+  const draft=await save('dashboard-filter-draft');
+  const approved=await save('dashboard-filter-approved');
+  const installing=await save('dashboard-filter-installing');
+  const installed=await save('dashboard-filter-installed');
+  await Quote.updateOne({number:approved.number},{$set:{status:'approved',amount:200}});
+  await Quote.updateOne({number:installing.number},{$set:{status:'installing',amount:300,currency:'CDF'}});
+  await Quote.updateOne({number:installed.number},{$set:{status:'installed',amount:400,currency:'CDF'}});
+  const createdAt=new Date(Date.now()-4*24*60*60*1000);
+  await Quote.collection.collection.updateOne({number:draft.number},{$set:{createdAt,amount:100}});
+
+  const validated=await request(app).get('/api/quotes').query({status:'validated'}).set('Cookie',cookie(commercial));
+  expect(validated.status).toBe(200);
+  expect(validated.body.data.quotes.map(item=>item.status).sort()).toEqual(['approved','installed','installing']);
+  expect(validated.body.data.total).toBe(3);
+  expect(validated.body.data.stats.total).toBe(4);
+  expect(validated.body.data.stats.valuePendingByCurrency).toEqual({USD:300,CDF:300});
+
+  const followUps=await request(app).get('/api/quotes').query({followUp:'true'}).set('Cookie',cookie(commercial));
+  expect(followUps.status).toBe(200);
+  expect(followUps.body.data.quotes.map(item=>item.number)).toEqual([draft.number]);
+  expect(followUps.body.data.total).toBe(1);
+ });
  it('is idempotent for retries, including parallel saves',async()=>{
   const results=await Promise.all([1,2].map(()=>request(app).post('/api/quotes').set('Cookie',cookie(commercial)).send(body())));
   expect(results.every(item=>[200,201].includes(item.status))).toBe(true);

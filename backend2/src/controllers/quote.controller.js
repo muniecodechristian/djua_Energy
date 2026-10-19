@@ -47,13 +47,20 @@ export async function listQuotes(req, res) {
     const search = String(req.query.search || '').trim().slice(0, 100);
     const filter = { ...scope };
     const followUpBefore = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
+    const status = String(req.query.status || '');
+    if (status === 'validated') filter.status = { $in: ['approved', 'installing', 'installed'] };
+    else if (['draft', 'approved', 'installing', 'installed'].includes(status)) filter.status = status;
+    if (req.query.followUp === 'true') {
+      filter.status = 'draft';
+      filter.createdAt = { $lt: followUpBefore };
+    }
     if(search) {
       const phone = normalizeSalesPhone(search);
       const clients = await Client.find({ $or: [{ searchName: new RegExp(escapeRegex(foldName(search)), 'i') }, ...(phone ? [{ phone: new RegExp(escapeRegex(phone)) }] : [])] }).select('_id').limit(1000).lean();
       filter.$or = [{ client: { $in: clients.map(client => client._id) } }, { number: new RegExp(escapeRegex(search), 'i') }, { 'customer.name': new RegExp(escapeRegex(search), 'i') }, ...(phone ? [{ 'customer.phone': new RegExp(escapeRegex(phone)) }] : [])];
     }
     const page = Math.max(1, Math.min(10000, Number.parseInt(req.query.page, 10) || 1));
-    const [quotes, total, stats, notices, kitIds, followUps] = await Promise.all([
+    const [quotes, total, stats, notices, kitIds, followUps, pendingAmounts] = await Promise.all([
       Quote.find(filter).sort({ createdAt: -1, _id: -1 }).skip((page-1)*30).limit(30).lean(),
       Quote.countDocuments(filter),
       Quote.aggregate([{ $match: scope }, { $group: {
@@ -64,9 +71,15 @@ export async function listQuotes(req, res) {
       Notice.find({ ...scope, expiresAt: { $gt: new Date() } }).sort({ createdAt: -1 }).limit(100).lean(),
       Quote.distinct('kitId', { ...scope, kitId: { $type: 'string' } }),
       Quote.find({ ...scope, status: 'draft', createdAt: { $lt: followUpBefore } }).sort({ createdAt: -1 }).limit(5).lean(),
+      Quote.aggregate([
+        { $match: { ...scope, status: { $ne: 'installed' } } },
+        { $group: { _id: '$currency', amount: { $sum: '$amount' } } },
+      ]),
     ]);
     const statusCounts = Object.fromEntries(stats.map(item => [item._id, item.count]));
     statusCounts.draftsToFollowUp = stats.reduce((sum, item) => sum + item.draftsToFollowUp, 0);
+    statusCounts.total = stats.reduce((sum, item) => sum + item.count, 0);
+    statusCounts.valuePendingByCurrency = Object.fromEntries(pendingAmounts.map(item => [item._id, item.amount]));
     res.json({ success: true, data: { quotes, total, page, pageSize: 30, stats: statusCounts, notices, kitIds, followUps, timezone: QUOTE_TIMEZONE } });
   } catch { return fail(res, 500, 'Impossible de charger les devis.'); }
 }

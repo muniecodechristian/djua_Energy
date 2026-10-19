@@ -22,13 +22,7 @@ const TeamManagement = lazy(() => import('./pages/TeamManagement'));
 const TechnicianApp = lazy(() => import('./pages/TechnicianApp'));
 const AdminReports = lazy(() => import('./pages/AdminReports'));
 const ProductCatalog = lazy(() => import('./pages/ProductCatalog'));
-const AdminQuotes = lazy(() => import('./pages/AdminQuotes'));
-
-function QuotesHome() {
-  const user = useAuthStore(state => state.user);
-  const isAdmin = user?.role === 'admin' || user?.role === 'administration';
-  return isAdmin ? <AdminQuotes /> : <Devis />;
-}
+const QuotesDashboard = lazy(() => import('./pages/QuotesDashboard'));
 
 function DashboardHome() {
   const user = useAuthStore(state => state.user);
@@ -66,7 +60,7 @@ function App() {
         <Route element={<MainLayout />}>
           <Route path="/diagnostics"          element={<Navigate to="/parc" replace />} />
           <Route path="/dashboard"            element={<DashboardHome />} />
-          <Route path="/devis"                element={<QuotesHome />} />
+          <Route path="/devis"                element={<QuotesDashboard />} />
           <Route path="/devis/nouveau"        element={<Devis />} />
           <Route path="/notification"         element={<FleetStatusFeed />} />
           <Route path="/decision"             element={<Navigate to="/notification" replace />} />
