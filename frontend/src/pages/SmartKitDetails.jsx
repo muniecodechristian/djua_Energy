@@ -680,27 +680,6 @@ export default function SmartKitDetails() {
                     prev={P?.battery_power_w} curr={T?.battery_power_w} />
                 </div>
 
-                <Card title="Mesures reçues de l’IoT" subtitle="Les champs présents dans les messages du boîtier s’affichent automatiquement.">
-                  {currentMetrics.size > 0 ? (
-                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                      {[...currentMetrics].map(([group, metrics]) => (
-                        <section key={group} className="rounded-md border border-[var(--panel-border)] bg-[var(--app-surface)] px-4">
-                          <h3 className={`border-b border-[var(--panel-border)] py-3 text-sm font-semibold ${FG}`}>{group}</h3>
-                          <dl className="divide-y divide-[var(--panel-border)]">
-                            {metrics.map((metric) => (
-                              <div key={metric.path} className="flex items-start justify-between gap-3 py-2.5">
-                                <dt className={`text-sm ${MUTED}`}>{metric.label}</dt>
-                                <dd className={`text-right text-sm font-medium tabular-nums ${FG}`}>{formatTelemetryValue(metric.value, metric.unit)}</dd>
-                              </div>
-                            ))}
-                          </dl>
-                        </section>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className={`py-2 text-sm ${MUTED}`}>Aucune mesure exploitable n’a encore été reçue.</p>
-                  )}
-                </Card>
 
                 <Suspense fallback={<div className="kit-card p-6 text-sm" role="status">Chargement de la vue du kit…</div>}>
                   <KitExplorer telemetry={T} />

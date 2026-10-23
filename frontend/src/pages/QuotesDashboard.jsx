@@ -96,10 +96,14 @@ function MetricCard({ icon: Icon, label, value, note, tone, progress, onClick })
     : <article className="quotes-metric">{content}</article>;
 }
 
-function QuoteRow({ quote, focusQuote }) {
+function QuoteRow({ quote, focusQuote, currentUser }) {
   const [expanded, setExpanded] = useState(quote.number === focusQuote);
   const [date, setDate] = useState('');
   const cache = useQueryClient();
+  const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'administration';
+  const isCreator = quote.owner && (String(quote.owner) === String(currentUser?._id) || String(quote.owner?._id) === String(currentUser?._id));
+  const canManageInstallation = isAdmin || isCreator;
+
   const validation = useMutation({
     mutationFn: async () => api.patch(`/api/quotes/${encodeURIComponent(quote.number)}/approve`, { plannedDate: date }),
     onSuccess: () => {
@@ -118,8 +122,8 @@ function QuoteRow({ quote, focusQuote }) {
       <td><strong>{quoteCustomer(quote)}</strong><small>{quote.customer?.profile === 'entreprise' ? 'Entreprise' : 'Client'}</small></td>
       <td className="quotes-amount">{currency(quote.amount, quote.currency)}</td>
       <td><span className={`quotes-status ${status.tone}`}><i />{status.label}</span></td>
-      <td><span className="quotes-next-action">{quote.status === 'draft' ? 'Relancer / valider' : quote.status === 'installed' ? 'Installation terminée' : 'Suivre l’installation'}</span><small>{quote.status === 'draft' ? 'Proposition en attente' : quote.plannedDate ? `Prévue le ${formatDate(quote.plannedDate)}` : quote.kitId || 'Étape suivante à confirmer'}</small></td>
-      <td>{quote.plannedDate ? formatDate(quote.plannedDate) : '—'}</td>
+      <td><span className="quotes-next-action">{quote.status === 'draft' ? (canManageInstallation ? 'Relancer / valider' : 'En attente de validation') : quote.status === 'installed' ? 'Installation terminée' : 'Suivre l’installation'}</span><small>{quote.status === 'draft' ? 'Proposition en attente' : (canManageInstallation && quote.plannedDate) ? `Prévue le ${formatDate(quote.plannedDate)}` : quote.kitId || 'Étape suivante à confirmer'}</small></td>
+      <td>{(canManageInstallation && quote.plannedDate) ? formatDate(quote.plannedDate) : '—'}</td>
       <td><button className="quotes-row-more" aria-label={`Détails du devis ${quote.number}`} onClick={event => { event.stopPropagation(); setExpanded(value => !value); }}>···</button></td>
     </tr>
     {expanded && <tr className="quotes-expanded-row"><td colSpan="8"><div className="quotes-expanded-content">
@@ -128,9 +132,21 @@ function QuoteRow({ quote, focusQuote }) {
         <div><small>Adresse du site</small><strong>{[quote.site?.adresse, quote.site?.ville].filter(Boolean).join(', ') || 'Adresse non renseignée'}</strong></div>
         <div><small>Dimensionnement</small><strong>{nf.format(quote.system?.panels || 0)} panneaux · {nf.format(quote.system?.panelPower || 0)} W</strong></div>
         <div><small>Stockage / onduleur</small><strong>{nf.format(quote.system?.batteryCapacity || 0)} kWh · {nf.format(quote.system?.inverterPower || 0)} kVA</strong></div>
+        {canManageInstallation && quote.plannedDate && (
+          <div><small>Date d'installation prévue</small><strong className="text-emerald-600 dark:text-emerald-400">{formatDate(quote.plannedDate)}</strong></div>
+        )}
       </div>
       {quote.appliances?.length > 0 && <ul className="quotes-appliance-list">{quote.appliances.slice(0, 8).map((item, index) => <li key={`${item.name}-${index}`}>{item.quantity} × {item.name}<small>{nf.format(item.watts || 0)} W · {item.hours || 0} h/j</small></li>)}</ul>}
-      {quote.status === 'draft' && <form className="quotes-validation-form" onSubmit={event => { event.preventDefault(); validation.mutate(); }}><label>Date d’installation prévue<input type="date" required min={kinshasaToday()} value={date} onChange={event => setDate(event.target.value)} /></label><button type="submit" disabled={!date || date < kinshasaToday() || validation.isPending}>{validation.isPending ? 'Validation…' : 'Valider le devis'}</button><small>Heure de Kinshasa. Cette date sera rapprochée de l’installation effectivement enregistrée.</small></form>}
+      {quote.status === 'draft' && canManageInstallation && (
+        <form className="quotes-validation-form" onSubmit={event => { event.preventDefault(); validation.mutate(); }}>
+          <label>Date d’installation prévue<input type="date" required min={kinshasaToday()} value={date} onChange={event => setDate(event.target.value)} /></label>
+          <button type="submit" disabled={!date || date < kinshasaToday() || validation.isPending}>{validation.isPending ? 'Validation…' : 'Valider le devis'}</button>
+          <small>Heure de Kinshasa. En validant, le devis passe au statut validé et la date d'installation est enregistrée.</small>
+        </form>
+      )}
+      {quote.status === 'draft' && !canManageInstallation && (
+        <p className="text-xs text-zinc-500 italic mt-2">La validation du devis et la fixation de la date d’installation sont réservées à son créateur et à l'administrateur.</p>
+      )}
     </div></td></tr>}
   </>;
 }
@@ -224,7 +240,7 @@ export default function QuotesDashboard() {
         {query.isPending && <div className="quotes-table-state"><RefreshCw size={18} className="ops-spin" />Chargement des devis…</div>}
         {query.isError && <div className="quotes-table-state is-error" role="alert"><FileText size={19} /><strong>Impossible de charger les devis.</strong><span>Vérifiez votre connexion puis réessayez.</span><button type="button" onClick={() => query.refetch()}>Réessayer</button></div>}
         {query.isSuccess && data.quotes.length === 0 && <div className="quotes-table-state"><FileText size={20} /><strong>{term ? 'Aucun résultat pour cette recherche.' : followUpsOnly ? 'Aucune relance à effectuer.' : status ? `Aucun devis au statut « ${status === 'validated' ? 'Validés' : statusConfig[status]?.tab} ».` : 'Aucun devis enregistré pour le moment.'}</strong><span>{!term && !followUpsOnly && !status ? 'Créez votre première proposition pour commencer le suivi.' : 'Modifiez vos filtres ou votre recherche.'}</span>{!term && !followUpsOnly && !status && <Link to="/devis/nouveau">Créer un devis solaire <ArrowRight size={14} /></Link>}</div>}
-        {query.isSuccess && data.quotes.length > 0 && <div className="quotes-table-scroll"><table className="quotes-table"><thead><tr><th aria-label="Détails" /><th>Devis</th><th>Client</th><th>Montant estimé</th><th>Statut</th><th>Prochaine action</th><th>Installation prévue</th><th><span className="sr-only">Actions</span>···</th></tr></thead><tbody>{data.quotes.map(quote => <QuoteRow key={quote._id || quote.number} quote={quote} focusQuote={focusQuote} />)}</tbody></table></div>}
+        {query.isSuccess && data.quotes.length > 0 && <div className="quotes-table-scroll"><table className="quotes-table"><thead><tr><th aria-label="Détails" /><th>Devis</th><th>Client</th><th>Montant estimé</th><th>Statut</th><th>Prochaine action</th><th>Installation prévue</th><th><span className="sr-only">Actions</span>···</th></tr></thead><tbody>{data.quotes.map(quote => <QuoteRow key={quote._id || quote.number} quote={quote} focusQuote={focusQuote} currentUser={user} />)}</tbody></table></div>}
 
         {query.isSuccess && data.total > 0 && <footer className="quotes-pagination"><span>{nf.format(Math.min((page - 1) * (data.pageSize || 30) + 1, data.total))}–{nf.format(Math.min(page * (data.pageSize || 30), data.total))} sur {nf.format(data.total)} devis</span><div><button type="button" aria-label="Page précédente" disabled={page === 1 || query.isFetching} onClick={() => setPage(value => value - 1)}><ChevronLeft size={15} /></button><span>Page {page} sur {pages}</span><button type="button" aria-label="Page suivante" disabled={page >= pages || query.isFetching} onClick={() => setPage(value => value + 1)}><ChevronRight size={15} /></button></div></footer>}
       </section>

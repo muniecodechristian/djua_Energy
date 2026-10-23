@@ -26,7 +26,7 @@ router.get('/kits/:kitId', controller.getKitById);
 router.get(
   '/kits/:kitId/scan-history',
   protect,
-  authorizeRoles('technician', 'shop_manager', 'admin'),
+  authorizeRoles('technician', 'shop_manager', 'admin', 'commercial', 'administration'),
   controller.getKitScanHistory,
 );
 

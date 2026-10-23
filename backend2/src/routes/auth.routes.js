@@ -2,8 +2,8 @@
 import { Router } from 'express';
 import { rateLimit } from 'express-rate-limit';
 import { validate } from '../middlewares/validate.middleware.js';
-import { registerSchema, teamUserSchema, teamMemberStatusSchema, teamMemberParamsSchema, changePasswordSchema } from '../schemas/auth.schema.js';
-import { register, createTeamUser, getTeamUsers, updateTeamUserStatus, deleteTeamUser, changePassword, login, logout, getMe } from '../controllers/auth.controller.js';
+import { registerSchema, teamUserSchema, updateTeamUserSchema, teamMemberStatusSchema, teamMemberParamsSchema, changePasswordSchema } from '../schemas/auth.schema.js';
+import { register, createTeamUser, getTeamUsers, updateTeamUser, updateTeamUserStatus, deleteTeamUser, changePassword, login, logout, getMe } from '../controllers/auth.controller.js';
 import { protect, authorizeRoles } from '../middlewares/auth.middleware.js';
 
 const router = Router();
@@ -26,6 +26,7 @@ router.post('/register', authLimiter, validate(registerSchema), register);
 // POST /auth/team-users — hiérarchie admin -> responsable -> équipe de zone
 router.post('/team-users', protect, authorizeRoles('admin', 'shop_manager'), validate(teamUserSchema), createTeamUser);
 router.get('/team-users', protect, authorizeRoles('shop_manager'), getTeamUsers);
+router.patch('/team-users/:userId', protect, authorizeRoles('shop_manager', 'admin'), validate(updateTeamUserSchema), updateTeamUser);
 router.patch('/team-users/:userId/status', protect, authorizeRoles('shop_manager'), validate(teamMemberStatusSchema), updateTeamUserStatus);
 router.delete('/team-users/:userId', protect, authorizeRoles('shop_manager'), validate(teamMemberParamsSchema), deleteTeamUser);
 router.patch('/password', protect, validate(changePasswordSchema), changePassword);

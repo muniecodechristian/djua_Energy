@@ -25,6 +25,11 @@ const UserSchema = new mongoose.Schema({
     lowercase: true,
     index: true,
   },
+  whatsapp: {
+    type: String,
+    trim: true,
+    default: '',
+  },
   password: {
     type: String,
     required: [true, 'Password is required'],

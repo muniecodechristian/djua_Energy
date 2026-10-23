@@ -39,8 +39,23 @@ export const teamUserSchema = z.object({
     prenom: z.string().trim().min(2),
     postNom: z.string().trim().optional(),
     identifier: identifierSchema,
+    whatsapp: z.string().trim().min(6, 'Le numéro WhatsApp est requis (ex: +243...)').optional(),
     password: passwordStrengthSchema,
     role: z.enum(['shop_manager', 'technician', 'commercial']),
+    zone: z.string().trim().optional(),
+  }),
+});
+
+export const updateTeamUserSchema = z.object({
+  params: z.object({ userId: z.string().regex(/^[a-f\d]{24}$/i) }),
+  body: z.object({
+    nom: z.string().trim().min(2).optional(),
+    prenom: z.string().trim().min(2).optional(),
+    postNom: z.string().trim().optional(),
+    identifier: identifierSchema.optional(),
+    whatsapp: z.string().trim().min(6).optional(),
+    password: passwordStrengthSchema.optional(),
+    role: z.enum(['shop_manager', 'technician', 'commercial']).optional(),
     zone: z.string().trim().optional(),
   }),
 });

@@ -67,7 +67,7 @@ export const register = async (req, res) => {
 };
 
 export const createTeamUser = async (req, res) => {
-  const { nom, prenom, postNom = '', identifier, password, role, zone } = req.body;
+  const { nom, prenom, postNom = '', identifier, whatsapp, password, role, zone } = req.body;
   const actorRole = req.user.role === 'administration' ? 'admin' : req.user.role;
 
   if (actorRole === 'admin' && role !== 'shop_manager') {
@@ -75,6 +75,10 @@ export const createTeamUser = async (req, res) => {
   }
   if (actorRole === 'shop_manager' && !['technician', 'commercial'].includes(role)) {
     return sendError(res, 'A shop manager can create only technicians or commercial users', [], 403);
+  }
+
+  if (['technician', 'commercial'].includes(role) && (!whatsapp || String(whatsapp).trim().length < 6)) {
+    return sendError(res, 'Le numéro WhatsApp est obligatoire pour créer un technicien ou un commercial', [], 400);
   }
 
   const assignedZone = actorRole === 'admin' ? zone?.trim() : req.user.zone?.trim();
@@ -94,6 +98,7 @@ export const createTeamUser = async (req, res) => {
       prenom,
       postNom,
       identifier: normalizedIdentifier,
+      whatsapp: whatsapp ? String(whatsapp).trim() : '',
       password,
       role,
       zone: assignedZone,
@@ -108,6 +113,7 @@ export const createTeamUser = async (req, res) => {
       prenom: user.prenom,
       postNom: user.postNom,
       identifier: user.identifier,
+      whatsapp: user.whatsapp,
       role: user.role,
       zone: user.zone,
       status: user.status,
@@ -126,7 +132,7 @@ export const getTeamUsers = async (req, res) => {
       createdBy: req.user._id,
       role: { $in: ['technician', 'commercial'] },
     })
-      .select('nom prenom postNom identifier role zone status mustChangePassword createdAt')
+      .select('nom prenom postNom identifier whatsapp role zone status mustChangePassword createdAt')
       .sort({ createdAt: -1 })
       .lean();
 
@@ -136,6 +142,80 @@ export const getTeamUsers = async (req, res) => {
     })));
   } catch (error) {
     return sendError(res, `Could not load team members: ${error.message}`, [], 500);
+  }
+};
+
+export const updateTeamUser = async (req, res) => {
+  const { userId } = req.params;
+  const { nom, prenom, postNom, identifier, whatsapp, role, zone, password } = req.body;
+  const actorRole = req.user.role === 'administration' ? 'admin' : req.user.role;
+
+  try {
+    const user = await User.findById(userId);
+    if (!user) {
+      return sendError(res, 'Membre de l’équipe introuvable', [], 404);
+    }
+
+    // Un responsable shop ne peut modifier que les membres qu'il a créés ou de sa zone (techniciens/commerciaux)
+    if (actorRole === 'shop_manager') {
+      const isOwner = user.createdBy && user.createdBy.toString() === req.user._id.toString();
+      const isSameZone = user.zone && user.zone === req.user.zone;
+      if (!isOwner && !isSameZone) {
+        return sendError(res, 'Vous n’êtes pas autorisé à modifier ce compte', [], 403);
+      }
+      if (!['technician', 'commercial'].includes(user.role)) {
+        return sendError(res, 'Un responsable shop ne peut modifier que des techniciens ou des commerciaux', [], 403);
+      }
+    }
+
+    if (nom) user.nom = nom.trim();
+    if (prenom) user.prenom = prenom.trim();
+    if (postNom !== undefined) user.postNom = postNom.trim();
+    if (whatsapp !== undefined) {
+      if (['technician', 'commercial'].includes(user.role) && String(whatsapp).trim().length < 6) {
+        return sendError(res, 'Le numéro WhatsApp est obligatoire', [], 400);
+      }
+      user.whatsapp = String(whatsapp).trim();
+    }
+    if (role && ['technician', 'commercial'].includes(role)) {
+      user.role = role;
+    }
+    if (zone && actorRole === 'admin') {
+      user.zone = zone.trim();
+    }
+
+    if (identifier) {
+      const normalizedIdentifier = identifier.trim().toLowerCase();
+      if (normalizedIdentifier !== user.identifier) {
+        const existing = await User.findOne({ identifier: normalizedIdentifier, _id: { $ne: user._id } });
+        if (existing) {
+          return sendError(res, 'Un utilisateur avec cet identifiant existe déjà', [], 400);
+        }
+        user.identifier = normalizedIdentifier;
+      }
+    }
+
+    if (password && password.trim().length >= 8) {
+      user.password = password; // pre-save hook will hash it
+    }
+
+    await user.save();
+
+    return sendSuccess(res, 'Informations du membre mises à jour avec succès', {
+      _id: user._id,
+      nom: user.nom,
+      prenom: user.prenom,
+      postNom: user.postNom,
+      identifier: user.identifier,
+      whatsapp: user.whatsapp,
+      role: user.role,
+      zone: user.zone,
+      status: user.status,
+      mustChangePassword: user.mustChangePassword,
+      createdAt: user.createdAt,
+    });
+  } catch (error) {
+    return sendError(res, `Échec de mise à jour du membre: ${error.message}`, [], 500);
   }
 };
 

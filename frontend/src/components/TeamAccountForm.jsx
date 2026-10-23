@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import api from '../api/axios';
 import useAuthStore from '../hooks/Zustand/useAuthStore';
 
-const emptyForm = { nom: '', prenom: '', postNom: '', identifier: '', password: '', zone: '' };
+const emptyForm = { nom: '', prenom: '', postNom: '', identifier: '', whatsapp: '', password: '', zone: '' };
 const roleLabels = { shop_manager: 'Responsable shop', technician: 'Technicien', commercial: 'Commercial' };
 
 export default function TeamAccountForm({ onCreated }) {
@@ -24,6 +24,10 @@ export default function TeamAccountForm({ onCreated }) {
       toast.error(isAdmin ? 'Indiquez la zone du responsable.' : 'Votre compte n’a pas de zone attribuée. Contactez un administrateur.');
       return;
     }
+    if (['technician', 'commercial'].includes(teamRole) && !form.whatsapp.trim()) {
+      toast.error('Le numéro WhatsApp est obligatoire pour les techniciens et commerciaux.');
+      return;
+    }
 
     setIsSubmitting(true);
     try {
@@ -32,6 +36,7 @@ export default function TeamAccountForm({ onCreated }) {
         prenom: form.prenom,
         postNom: form.postNom,
         identifier: form.identifier.trim(),
+        whatsapp: form.whatsapp.trim(),
         password: form.password,
         role: teamRole,
         zone: assignedZone,
@@ -54,6 +59,7 @@ export default function TeamAccountForm({ onCreated }) {
     <label>Post-nom <span>(facultatif)</span><input name="postNom" autoComplete="additional-name" value={form.postNom} onChange={update}/></label>
     {!isAdmin && <label>Fonction<select value={teamRole} onChange={event => setTeamRole(event.target.value)}><option value="technician">Technicien</option><option value="commercial">Commercial</option></select></label>}
     {isAdmin && <label>Fonction<input value="Responsable shop" readOnly/></label>}
+    <label>Numéro WhatsApp <span style={{ color: '#ea580c' }}>*</span><input name="whatsapp" type="tel" autoComplete="tel" placeholder="+243…" value={form.whatsapp} onChange={update} required={['technician', 'commercial'].includes(teamRole)}/><small>Numéro WhatsApp obligatoire pour la coordination de terrain.</small></label>
     <label>Email ou téléphone<input name="identifier" type="text" autoComplete="username" placeholder="nom@exemple.com ou +243…" value={form.identifier} onChange={update} required/></label>
     <label>Mot de passe initial<input name="password" type="password" autoComplete="new-password" minLength={8} value={form.password} onChange={update} required/><small>8 caractères minimum, avec majuscule, minuscule, chiffre et caractère spécial.</small></label>
     <label><span className="inline-flex items-center gap-2"><MapPin size={14}/>Zone d’affectation</span><input name="zone" value={isAdmin ? form.zone : (user?.zone || '')} onChange={isAdmin ? update : undefined} readOnly={!isAdmin} placeholder={isAdmin ? 'Ex. Kinshasa, Goma…' : 'Zone du responsable'} required/></label>

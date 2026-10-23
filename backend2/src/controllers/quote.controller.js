@@ -80,7 +80,19 @@ export async function listQuotes(req, res) {
     statusCounts.draftsToFollowUp = stats.reduce((sum, item) => sum + item.draftsToFollowUp, 0);
     statusCounts.total = stats.reduce((sum, item) => sum + item.count, 0);
     statusCounts.valuePendingByCurrency = Object.fromEntries(pendingAmounts.map(item => [item._id, item.amount]));
-    res.json({ success: true, data: { quotes, total, page, pageSize: 30, stats: statusCounts, notices, kitIds, followUps, timezone: QUOTE_TIMEZONE } });
+
+    const isAdmin = ['admin', 'administration'].includes(req.user.role);
+    const userIdStr = String(req.user._id);
+    const sanitizedQuotes = quotes.map(q => {
+      const isOwner = q.owner && String(q.owner) === userIdStr;
+      if (!isAdmin && !isOwner) {
+        const { plannedDate, ...rest } = q;
+        return rest;
+      }
+      return q;
+    });
+
+    res.json({ success: true, data: { quotes: sanitizedQuotes, total, page, pageSize: 30, stats: statusCounts, notices, kitIds, followUps, timezone: QUOTE_TIMEZONE } });
   } catch { return fail(res, 500, 'Impossible de charger les devis.'); }
 }
 export async function getQuote(req, res) {
@@ -89,14 +101,34 @@ export async function getQuote(req, res) {
     if(!quote) return fail(res,404,'Devis introuvable dans votre équipe.');
     if(req.user.role === 'technician' && !['approved','installed'].includes(quote.status)) return fail(res,409,'Ce devis n’est pas encore validé ou son installation est en cours.');
     if(req.user.role === 'technician' && quote.status === 'installed') return fail(res,409,'Ce devis est déjà associé à un kit installé.');
+
+    const isAdmin = ['admin', 'administration'].includes(req.user.role);
+    const isOwner = quote.owner && String(quote.owner) === String(req.user._id);
+    if (!isAdmin && !isOwner && req.user.role !== 'technician') {
+      delete quote.plannedDate;
+    }
+
     return res.json({ success: true, data: quote });
   } catch { return fail(res,500,'Impossible de charger le devis.'); }
 }
 export async function approveQuote(req, res) {
   if(!validPlannedDate(req.body.plannedDate)) return fail(res,400,'Choisissez aujourd’hui ou une date future (heure de Kinshasa).');
   try {
-    const quote = await Quote.findOneAndUpdate({ ...quoteScope(req.user), number: String(req.params.number).toUpperCase(), status: 'draft' }, { $set: { status: 'approved', plannedDate: req.body.plannedDate, validatedAt: new Date(), validatedBy: req.user._id } }, { returnDocument: 'after' });
-    if(!quote) return fail(res,409,'Devis introuvable ou déjà validé. Actualisez la liste.');
+    const quote = await Quote.findOne({ ...quoteScope(req.user), number: String(req.params.number).toUpperCase() });
+    if(!quote) return fail(res,404,'Devis introuvable.');
+
+    const isAdmin = ['admin', 'administration'].includes(req.user.role);
+    const isOwner = quote.owner && String(quote.owner) === String(req.user._id);
+    if (!isAdmin && !isOwner) {
+      return fail(res, 403, 'Seul le créateur du devis ou un administrateur peut définir la date d’installation et valider le devis.');
+    }
+
+    quote.status = 'approved';
+    quote.plannedDate = req.body.plannedDate;
+    quote.validatedAt = new Date();
+    quote.validatedBy = req.user._id;
+    await quote.save();
+
     return res.json({ success: true, data: quote });
   } catch { return fail(res,500,'Impossible de valider le devis.'); }
 }
