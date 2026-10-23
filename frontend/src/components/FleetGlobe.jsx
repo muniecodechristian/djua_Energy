@@ -15,14 +15,14 @@ const xyz = (p, r = 100) => {
 };
 
 const ZONE_TARGETS = {
-  kinshasa:   { latitude: -4.3225, longitude: 15.3222, distance: 42, label: 'Kinshasa' },
-  lubumbashi: { latitude: -11.6642, longitude: 27.4728, distance: 42, label: 'Lubumbashi' },
-  goma:       { latitude: -1.6792, longitude: 29.2235, distance: 42, label: 'Goma' },
-  butembo:    { latitude: 0.1322, longitude: 29.2930, distance: 42, label: 'Butembo' },
-  bukavu:     { latitude: -2.4908, longitude: 28.8579, distance: 42, label: 'Bukavu' },
-  matadi:     { latitude: -5.8160, longitude: 13.4600, distance: 42, label: 'Matadi' },
-  mbujimayi:  { latitude: -6.1360, longitude: 23.5900, distance: 42, label: 'Mbuji-Mayi' },
-  kisangani:  { latitude: 0.5153, longitude: 25.1920, distance: 42, label: 'Kisangani' },
+  kinshasa:   { latitude: -4.3225, longitude: 15.3222, distance: 32, label: 'Kinshasa' },
+  lubumbashi: { latitude: -11.6642, longitude: 27.4728, distance: 32, label: 'Lubumbashi' },
+  goma:       { latitude: -1.6792, longitude: 29.2235, distance: 32, label: 'Goma' },
+  butembo:    { latitude: 0.1322, longitude: 29.2930, distance: 32, label: 'Butembo' },
+  bukavu:     { latitude: -2.4908, longitude: 28.8579, distance: 32, label: 'Bukavu' },
+  matadi:     { latitude: -5.8160, longitude: 13.4600, distance: 32, label: 'Matadi' },
+  mbujimayi:  { latitude: -6.1360, longitude: 23.5900, distance: 32, label: 'Mbuji-Mayi' },
+  kisangani:  { latitude: 0.5153, longitude: 25.1920, distance: 32, label: 'Kisangani' },
 };
 
 const STATUS_3D = {
@@ -347,6 +347,11 @@ export default function FleetGlobe({ sites, onSelect, userZone }) {
       },
     };
     resize();
+    // Zoom immédiat sur la zone du responsable shop dès l'init,
+    // avant même la réception des données des sites
+    if (activeZoneConfig) {
+      focusZone();
+    }
 
     return () => {
       disposed = true;
