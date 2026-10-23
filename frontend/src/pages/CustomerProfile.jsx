@@ -36,16 +36,16 @@ const paymentHistory = [
 
 const riskFactorsList = [
   { label: 'Comportement de paiement', level: 'Élevé', value: 85, color: 'bg-red-500', textColor: 'text-red-400' },
-  { label: 'Faible consommation d\'énergie', level: 'Moyen', value: 60, color: 'bg-orange-500', textColor: 'text-orange-400' },
-  { label: 'Déplacement du kit détecté', level: 'Moyen', value: 55, color: 'bg-orange-500', textColor: 'text-orange-400' },
+  { label: 'Faible consommation d\'énergie', level: 'Moyen', value: 60, color: 'bg-amber-500', textColor: 'text-amber-400' },
+  { label: 'Déplacement du kit détecté', level: 'Moyen', value: 55, color: 'bg-amber-500', textColor: 'text-amber-400' },
   { label: 'Ancienneté inférieure à 18 mois', level: 'Faible', value: 30, color: 'bg-yellow-500', textColor: 'text-yellow-400' },
   { label: 'Aucune réclamation formelle', level: 'Faible', value: 10, color: 'bg-slate-700', textColor: 'text-emerald-400' },
 ];
 
 const interactionsList = [
-  { date: '19 Mai 2026', title: 'Intervention créée', desc: 'Maintenance corrective pour KIT-K-87391', author: 'Vous', badgeColor: 'bg-[var(--ops-canvas)] text-orange-400 border border-[var(--ops-line)]' },
+  { date: '19 Mai 2026', title: 'Intervention créée', desc: 'Maintenance corrective pour KIT-K-87391', author: 'Vous', badgeColor: 'bg-[var(--ops-canvas)] text-amber-400 border border-[var(--ops-line)]' },
   { date: '02 Mai 2026', title: 'Paiement reçu', desc: '25 000 FCFA via Mobile Money', author: 'Système', badgeColor: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' },
-  { date: '12 Avr 2026', title: 'Appel client', desc: 'Demande de renseignement sur la date de facturation', author: 'Agent 0451', badgeColor: 'bg-[var(--ops-canvas)] text-orange-400 border border-[var(--ops-line)]' },
+  { date: '12 Avr 2026', title: 'Appel client', desc: 'Demande de renseignement sur la date de facturation', author: 'Agent 0451', badgeColor: 'bg-[var(--ops-canvas)] text-amber-400 border border-[var(--ops-line)]' },
   { date: '05 Avr 2026', title: 'Rappel envoyé', desc: 'Rappel de paiement pour l\'échéance d\'avril', author: 'Système', badgeColor: 'bg-slate-800 text-slate-400 border border-slate-700' },
 ];
 
@@ -66,7 +66,7 @@ const Card = ({ children, className = "", title, action, titleRight }) => (
             <motion.div 
               whileHover={{ scale: 1.05 }} 
               whileTap={{ scale: 0.95 }}
-              className="text-xs text-orange-400 hover:text-orange-300 cursor-pointer font-medium"
+              className="text-xs text-amber-400 hover:text-amber-300 cursor-pointer font-medium"
             >
               {action}
             </motion.div>
@@ -139,7 +139,7 @@ export default function CustomerProfile() {
           <motion.button 
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.97 }}
-            className="px-4 py-1.5 bg-orange-600 rounded-lg text-xs font-medium text-white transition-colors flex items-center gap-1.5 shadow-[0_4px_20px_rgba(234,88,12,0.4)]"
+            className="px-4 py-1.5 bg-amber-600 rounded-lg text-xs font-medium text-white transition-colors flex items-center gap-1.5 shadow-[0_4px_20px_rgba(234,88,12,0.4)]"
           >
             Créer une intervention
           </motion.button>
@@ -163,12 +163,12 @@ export default function CustomerProfile() {
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.97 }}
             className={`pb-2 text-xs font-medium whitespace-nowrap transition-colors relative ${
-              activeTab === tab ? 'text-orange-400' : 'text-slate-500 hover:text-slate-300'
+              activeTab === tab ? 'text-amber-400' : 'text-slate-500 hover:text-slate-300'
             }`}
           >
             {tab}
             {activeTab === tab && (
-              <motion.div layoutId="activeCustomerTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-orange-500" />
+              <motion.div layoutId="activeCustomerTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-amber-500" />
             )}
           </motion.button>
         ))}
@@ -208,15 +208,15 @@ export default function CustomerProfile() {
                   </p>
                   
                   <div className="mt-2 space-y-1 text-[11px] text-slate-400">
-                    <p className="flex items-center gap-2 font-mono"><Phone size={12} className="text-orange-500/70" /> {selectedClient ? selectedClient.clientPhone : '+225 07 08 14 12 58'}</p>
-                    <p className="flex items-center gap-2"><Mail size={12} className="text-orange-500/70" /> client@djua-energy.cd</p>
-                    <p className="flex items-center gap-2"><MapPin size={12} className="text-orange-500/70" /> {selectedClient?.gpsCoordinates ? `Lat: ${selectedClient.gpsCoordinates.latitude.toFixed(4)}, Lon: ${selectedClient.gpsCoordinates.longitude.toFixed(4)}` : 'Yopougon, Abidjan, Côte d\'Ivoire'}</p>
+                    <p className="flex items-center gap-2 font-mono"><Phone size={12} className="text-amber-500/70" /> {selectedClient ? selectedClient.clientPhone : '+225 07 08 14 12 58'}</p>
+                    <p className="flex items-center gap-2"><Mail size={12} className="text-amber-500/70" /> client@djua-energy.cd</p>
+                    <p className="flex items-center gap-2"><MapPin size={12} className="text-amber-500/70" /> {selectedClient?.gpsCoordinates ? `Lat: ${selectedClient.gpsCoordinates.latitude.toFixed(4)}, Lon: ${selectedClient.gpsCoordinates.longitude.toFixed(4)}` : 'Yopougon, Abidjan, Côte d\'Ivoire'}</p>
                   </div>
                 </div>
               </div>
 
               <div className="p-4 grid grid-cols-2 gap-y-3 gap-x-4 text-[10px] flex-1">
-                <div><span className="text-slate-500 block">Offre Actuelle</span><span className="text-orange-400 font-medium truncate block max-w-[150px]">{selectedClient ? selectedClient.offerName : 'Résidentiel'}</span></div>
+                <div><span className="text-slate-500 block">Offre Actuelle</span><span className="text-amber-400 font-medium truncate block max-w-[150px]">{selectedClient ? selectedClient.offerName : 'Résidentiel'}</span></div>
                 <div><span className="text-slate-500 block">Type de contrat</span><span className="text-slate-200">Pay-As-You-Go</span></div>
                 <div><span className="text-slate-500 block">Frais Activation</span><span className="text-slate-200">{selectedClient?.subscriptionFeePaid ? 'Payés' : 'Non payés'}</span></div>
                 <div><span className="text-slate-500 block">Géré par</span><span className="text-slate-200">Orange API</span></div>
@@ -233,15 +233,15 @@ export default function CustomerProfile() {
                 <div className="relative w-28 h-28 flex items-center justify-center">
                   <svg className="w-full h-full transform -rotate-90">
                     <circle cx="56" cy="56" r="46" stroke="#1e293b" strokeWidth="8" fill="none" />
-                    <circle cx="56" cy="56" r="46" stroke="#f97316" strokeWidth="8" fill="none" strokeDasharray="289" strokeDashoffset={289 - (289 * 0.72)} strokeLinecap="round" />
+                    <circle cx="56" cy="56" r="46" stroke="#F59E0B" strokeWidth="8" fill="none" strokeDasharray="289" strokeDashoffset={289 - (289 * 0.72)} strokeLinecap="round" />
                   </svg>
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
                     <span className="text-2xl font-bold text-white">72<span className="text-[10px] text-slate-500 font-normal">/100</span></span>
-                    <span className="text-[9px] text-orange-400 font-medium">Risque Moyen</span>
+                    <span className="text-[9px] text-amber-400 font-medium">Risque Moyen</span>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-1.5 mt-2 bg-[var(--ops-canvas)] border border-[var(--ops-line)] px-2 py-0.5 rounded text-[10px] text-orange-400">
+                <div className="flex items-center gap-1.5 mt-2 bg-[var(--ops-canvas)] border border-[var(--ops-line)] px-2 py-0.5 rounded text-[10px] text-amber-400">
                   <TrendingUp size={12} />
                   <span>Tendance du risque : <strong>+12 pts</strong> <span className="text-slate-500">(30 derniers jours)</span></span>
                 </div>
@@ -250,8 +250,8 @@ export default function CustomerProfile() {
               <div className="mt-3 pt-3 border-t border-slate-800/80 space-y-1.5 text-[10px]">
                 <span className="text-slate-500 block font-medium uppercase text-[9px]">Facteurs de risque clés</span>
                 <div className="flex justify-between items-center"><span className="text-slate-300 flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-red-500"></span> Retards de paiement</span><span className="text-red-400 font-semibold">Élevé</span></div>
-                <div className="flex justify-between items-center"><span className="text-slate-300 flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-orange-500"></span> Faible consommation</span><span className="text-orange-400 font-semibold">Moyen</span></div>
-                <div className="flex justify-between items-center"><span className="text-slate-300 flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-orange-500"></span> Déplacement du kit</span><span className="text-orange-400 font-semibold">Moyen</span></div>
+                <div className="flex justify-between items-center"><span className="text-slate-300 flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Faible consommation</span><span className="text-amber-400 font-semibold">Moyen</span></div>
+                <div className="flex justify-between items-center"><span className="text-slate-300 flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Déplacement du kit</span><span className="text-amber-400 font-semibold">Moyen</span></div>
               </div>
             </Card>
           </motion.div>
@@ -262,7 +262,7 @@ export default function CustomerProfile() {
               <div className="grid grid-cols-2 gap-3 h-full">
                 
                 <motion.div whileHover={{ scale: 1.02 }} className="bg-transparent p-3 rounded-xl border border-slate-800/80 flex items-start gap-3 shadow-[0_4px_16px_rgba(0,0,0,0.3)]">
-                  <div className="p-2 bg-[var(--ops-canvas)] border border-[var(--ops-line)] rounded-lg text-orange-400">
+                  <div className="p-2 bg-[var(--ops-canvas)] border border-[var(--ops-line)] rounded-lg text-amber-400">
                     <Box size={16} />
                   </div>
                   <div>
@@ -325,7 +325,7 @@ export default function CustomerProfile() {
                 </div>
                 <div className="text-right text-[10px] space-y-0.5">
                   <div className="text-slate-400"><strong className="text-white">9</strong> Paiements à temps</div>
-                  <div className="text-slate-400"><strong className="text-orange-400">2</strong> Paiements tardifs</div>
+                  <div className="text-slate-400"><strong className="text-amber-400">2</strong> Paiements tardifs</div>
                   <div className="text-slate-400"><strong className="text-red-400">1</strong> Paiement manqué</div>
                 </div>
               </div>
@@ -336,7 +336,7 @@ export default function CustomerProfile() {
                   <motion.div key={idx} whileHover={{ scale: 1.08 }} className="flex flex-col items-center gap-1 cursor-pointer">
                     <div className={`w-full h-2 rounded-sm shadow-[0_2px_8px_rgba(0,0,0,0.4)] ${
                       item.status === 'ontime' ? 'bg-emerald-500' :
-                      item.status === 'late' ? 'bg-orange-500' : 'bg-red-500'
+                      item.status === 'late' ? 'bg-amber-500' : 'bg-red-500'
                     }`} />
                     <span className="text-[8px] text-slate-500">{item.month}</span>
                   </motion.div>
@@ -345,7 +345,7 @@ export default function CustomerProfile() {
 
               <div className="flex gap-3 justify-center text-[9px] text-slate-400 mt-3 pt-2 border-t border-slate-800/50">
                 <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> À temps</span>
-                <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-orange-500"></span> En retard</span>
+                <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span> En retard</span>
                 <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-red-500"></span> Manqué</span>
               </div>
             </Card>
@@ -370,7 +370,7 @@ export default function CustomerProfile() {
               <div className="h-20 w-full my-1">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={energyData} margin={{ top: 5, right: 0, left: 0, bottom: 0 }}>
-                    <Area type="monotone" dataKey="usage" stroke="#f97316" strokeWidth={2} fill="transparent" />
+                    <Area type="monotone" dataKey="usage" stroke="#F59E0B" strokeWidth={2} fill="transparent" />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
@@ -388,7 +388,7 @@ export default function CustomerProfile() {
             <Card title="KIT ACTIF" action="Détails du kit ->" className="h-full">
               <motion.div whileHover={{ scale: 1.01 }} className="flex items-center gap-3 bg-transparent p-2.5 rounded-xl border border-slate-800/80 mb-3 shadow-[0_4px_16px_rgba(0,0,0,0.3)]">
                 <div className="w-10 h-12 bg-slate-900/80 rounded flex items-center justify-center flex-shrink-0 border border-slate-800">
-                  <Box size={20} className="text-orange-400" />
+                  <Box size={20} className="text-amber-400" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between">
@@ -427,7 +427,7 @@ export default function CustomerProfile() {
               title="NOTES CLIENT" 
               action="Toutes les notes ->" 
               titleRight={
-                <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} className="text-[10px] text-orange-400 hover:text-orange-300 flex items-center gap-1 font-medium">
+                <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} className="text-[10px] text-amber-400 hover:text-amber-300 flex items-center gap-1 font-medium">
                   <Plus size={10} /> Ajouter
                 </motion.button>
               } 
@@ -438,7 +438,7 @@ export default function CustomerProfile() {
                 <motion.div whileHover={{ scale: 1.01 }} className="bg-transparent p-2.5 rounded-xl border border-slate-800/80 shadow-[0_4px_16px_rgba(0,0,0,0.3)]">
                   <div className="flex justify-between items-center mb-1">
                     <div className="flex items-center gap-1.5">
-                      <div className="w-4 h-4 rounded-full bg-orange-600 text-[8px] text-white font-bold flex items-center justify-center">AK</div>
+                      <div className="w-4 h-4 rounded-full bg-amber-600 text-[8px] text-white font-bold flex items-center justify-center">AK</div>
                       <span className="text-[10px] font-semibold text-slate-200">Alex KOUASSI</span>
                     </div>
                     <span className="text-[8px] text-slate-500">19 Mai 2026, 11:32</span>
@@ -506,7 +506,7 @@ export default function CustomerProfile() {
                     <div className="w-12 pt-0.5 text-right flex-shrink-0">
                       <span className="text-[8px] text-slate-500 block leading-tight">{item.date}</span>
                     </div>
-                    <div className="w-2 h-2 rounded-full bg-orange-500 ring-4 ring-[#030712] mt-1 flex-shrink-0"></div>
+                    <div className="w-2 h-2 rounded-full bg-amber-500 ring-4 ring-[#030712] mt-1 flex-shrink-0"></div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center justify-between">
                         <h4 className="text-[10px] font-bold text-slate-200 truncate">{item.title}</h4>
@@ -525,7 +525,7 @@ export default function CustomerProfile() {
             <Card 
               title="RECOMMANDATIONS" 
               titleRight={
-                <span className="text-[9px] text-orange-400 flex items-center gap-1 font-medium">
+                <span className="text-[9px] text-amber-400 flex items-center gap-1 font-medium">
                   <Sparkles size={10} /> Propulsé par D3LIA AI
                 </span>
               } 
@@ -536,24 +536,24 @@ export default function CustomerProfile() {
                 
                 <motion.div whileHover={{ scale: 1.01 }} className="bg-transparent p-2.5 rounded-xl border border-slate-800/80 flex items-start justify-between gap-2 shadow-[0_4px_16px_rgba(0,0,0,0.3)]">
                   <div className="flex items-start gap-2 min-w-0">
-                    <Sparkles size={12} className="text-orange-400 mt-0.5 flex-shrink-0 animate-spin" style={{ animationDuration: '6s' }} />
+                    <Sparkles size={12} className="text-amber-400 mt-0.5 flex-shrink-0 animate-spin" style={{ animationDuration: '6s' }} />
                     <div>
                       <h4 className="text-[10px] font-bold text-slate-200">Proposer des conseils d'efficacité énergétique</h4>
                       <p className="text-[9px] text-slate-400 leading-tight">Faible consommation détectée. Partager des astuces pour optimiser l'usage.</p>
                     </div>
                   </div>
-                  <span className="text-[8px] px-2 py-0.5 rounded bg-[var(--ops-canvas)] border border-[var(--ops-line)] text-orange-400 font-medium flex-shrink-0">Recommandé</span>
+                  <span className="text-[8px] px-2 py-0.5 rounded bg-[var(--ops-canvas)] border border-[var(--ops-line)] text-amber-400 font-medium flex-shrink-0">Recommandé</span>
                 </motion.div>
 
                 <motion.div whileHover={{ scale: 1.01 }} className="bg-transparent p-2.5 rounded-xl border border-slate-800/80 flex items-start justify-between gap-2 shadow-[0_4px_16px_rgba(0,0,0,0.3)]">
                   <div className="flex items-start gap-2 min-w-0">
-                    <Sparkles size={12} className="text-orange-400 mt-0.5 flex-shrink-0" />
+                    <Sparkles size={12} className="text-amber-400 mt-0.5 flex-shrink-0" />
                     <div>
                       <h4 className="text-[10px] font-bold text-slate-200">Ajustement du plan de paiement</h4>
                       <p className="text-[9px] text-slate-400 leading-tight">Le client a 2 paiements en retard. Proposer des options de paiement flexibles.</p>
                     </div>
                   </div>
-                  <span className="text-[8px] px-2 py-0.5 rounded bg-[var(--ops-canvas)] border border-[var(--ops-line)] text-orange-400 font-medium flex-shrink-0">Recommandé</span>
+                  <span className="text-[8px] px-2 py-0.5 rounded bg-[var(--ops-canvas)] border border-[var(--ops-line)] text-amber-400 font-medium flex-shrink-0">Recommandé</span>
                 </motion.div>
 
                 <motion.div whileHover={{ scale: 1.01 }} className="bg-transparent p-2.5 rounded-xl border border-slate-800/80 flex items-start justify-between gap-2 shadow-[0_4px_16px_rgba(0,0,0,0.3)]">

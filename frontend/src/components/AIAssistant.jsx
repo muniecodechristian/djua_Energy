@@ -498,7 +498,7 @@ export default function AIAssistant() {
                       {isAi ? (
                         <AIMessageBubble msg={msg} handleCopy={handleCopy} copiedId={copiedId} onSuggestionClick={(q) => sendMessage(q)} />
                       ) : (
-                        <div className="relative px-4 py-3 rounded-2xl text-[13px] leading-relaxed bg-orange-500 border border-orange-400 text-white font-medium rounded-tr-xs shadow-sm">
+                        <div className="relative px-4 py-3 rounded-2xl text-[13px] leading-relaxed bg-amber-500 border border-amber-400 text-white font-medium rounded-tr-xs shadow-sm">
                           {msg.isVoice && (
                             <span className="absolute -top-1.5 -left-1.5 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center shadow-md" title="Envoyé par vocal">
                               <Mic size={9} color="white" />
@@ -542,7 +542,7 @@ export default function AIAssistant() {
                 onClick={() => sendMessage("Rapport des hubs critiques à Goma")}
                 className="text-xs font-medium text-[var(--app-foreground)] bg-[var(--panel-alt)] hover:bg-[var(--panel)] border border-[var(--panel-border)] rounded-full px-3.5 py-1.5 whitespace-nowrap flex items-center gap-1.5 transition-all duration-150 active:scale-95"
               >
-                <MapPin size={12} className="text-orange-400" /> Hubs Goma
+                <MapPin size={12} className="text-amber-400" /> Hubs Goma
               </button>
               <button
                 onClick={() => sendMessage("Statut global du parc RDC")}
@@ -558,7 +558,7 @@ export default function AIAssistant() {
               className="djua-assistant-composer p-3 bg-[var(--panel)] border-t border-[var(--panel-border)] flex items-end gap-2"
             >
               {/* Champ texte avec badge de transcription live au-dessus */}
-              <div className="flex-1 relative bg-[var(--panel-alt)] border border-[var(--panel-border)] focus-within:border-[#FF7900] rounded-2xl transition-colors duration-150">
+              <div className="flex-1 relative bg-[var(--panel-alt)] border border-[var(--panel-border)] focus-within:border-[#F59E0B] rounded-2xl transition-colors duration-150">
                 {/* Transcription live flottante au-dessus du champ */}
                 <InterimBadge text={interimText} />
 
@@ -595,7 +595,7 @@ export default function AIAssistant() {
               <button
                 type="submit"
                 disabled={!input.trim() || isTyping}
-                className="w-9 h-9 rounded-xl bg-orange-500 hover:bg-orange-400 text-white disabled:opacity-40 disabled:hover:bg-orange-500 flex items-center justify-center transition-all duration-150 active:scale-95 flex-shrink-0 shadow-sm"
+                className="w-9 h-9 rounded-xl bg-amber-500 hover:bg-amber-400 text-white disabled:opacity-40 disabled:hover:bg-amber-500 flex items-center justify-center transition-all duration-150 active:scale-95 flex-shrink-0 shadow-sm"
               >
                 <Send size={14} className="translate-x-0.5" />
               </button>

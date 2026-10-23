@@ -143,7 +143,7 @@ export default class ErrorBoundary extends React.Component {
         <div
           className="absolute inset-0 pointer-events-none opacity-20"
           style={{
-            backgroundImage: `radial-gradient(rgba(255, 121, 0, 0.12) 1px, transparent 1px), radial-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px)`,
+            backgroundImage: `radial-gradient(rgba(245, 158, 11, 0.12) 1px, transparent 1px), radial-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px)`,
             backgroundSize: '32px 32px, 16px 16px',
             backgroundPosition: '0 0, 16px 16px',
           }}
@@ -153,7 +153,7 @@ export default class ErrorBoundary extends React.Component {
           {/* En-tête statut industriel */}
           <div className="flex items-start justify-between gap-4 pb-6 border-b border-zinc-900">
             <div className="flex items-center gap-3.5">
-              <div className="w-12 h-12 rounded-xl bg-[var(--ops-canvas)] border border-[var(--ops-line)] flex items-center justify-center text-[#FF7900] shrink-0">
+              <div className="w-12 h-12 rounded-xl bg-[var(--ops-canvas)] border border-[var(--ops-line)] flex items-center justify-center text-[#F59E0B] shrink-0">
                 <ShieldAlert size={24} />
               </div>
               <div>
@@ -193,7 +193,7 @@ export default class ErrorBoundary extends React.Component {
 
             {/* Badge de l'erreur */}
             <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-zinc-900/80 border border-zinc-800/80 text-zinc-400 text-xs font-mono break-all">
-              <Terminal size={14} className="text-[#FF7900] shrink-0" />
+              <Terminal size={14} className="text-[#F59E0B] shrink-0" />
               <span className="text-zinc-200 font-semibold">{error?.name || 'Error'}:</span>
               <span className="text-zinc-400">{error?.message || 'Erreur d’exécution non spécifiée'}</span>
             </div>
@@ -212,7 +212,7 @@ export default class ErrorBoundary extends React.Component {
                 type="button"
                 onClick={this.handleSoftReset}
                 disabled={isRecovering}
-                className="group inline-flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl bg-[#FF7900] hover:bg-[#e06c00] active:scale-[0.98] text-white text-xs font-bold transition-all shadow-lg shadow-none disabled:opacity-50 cursor-pointer"
+                className="group inline-flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl bg-[#F59E0B] hover:bg-[#D97706] active:scale-[0.98] text-white text-xs font-bold transition-all shadow-lg shadow-none disabled:opacity-50 cursor-pointer"
               >
                 <RotateCcw
                   size={15}

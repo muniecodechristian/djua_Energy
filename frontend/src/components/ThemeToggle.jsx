@@ -46,7 +46,7 @@ export default function ThemeToggle() {
       onClick={toggleTheme}
       whileHover={reduced ? undefined : { scale: 1.025 }}
       whileTap={reduced ? undefined : { scale: 0.97 }}
-      className="flex items-center gap-2 rounded-xl border border-[var(--panel-border)] bg-[var(--panel-alt)] px-3 py-2 text-xs font-semibold text-[var(--app-foreground)] hover:bg-[var(--panel)] hover:text-[#FF7900] transition-colors"
+      className="flex items-center gap-2 rounded-xl border border-[var(--panel-border)] bg-[var(--panel-alt)] px-3 py-2 text-xs font-semibold text-[var(--app-foreground)] hover:bg-[var(--panel)] hover:text-[#F59E0B] transition-colors"
     >
       <span className="flex items-center justify-center text-[var(--app-foreground)]">
         <motion.span
@@ -56,7 +56,7 @@ export default function ThemeToggle() {
           transition={{ duration: 0.25, ease: 'easeOut' }}
           className="flex items-center justify-center"
         >
-          {isDark ? <SunMedium size={17} className="text-orange-400" /> : <MoonStar size={17} className="text-orange-500" />}
+          {isDark ? <SunMedium size={17} className="text-amber-400" /> : <MoonStar size={17} className="text-amber-500" />}
         </motion.span>
       </span>
       <span className="hidden sm:inline text-xs font-medium">

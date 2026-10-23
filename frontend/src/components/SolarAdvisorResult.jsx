@@ -74,10 +74,10 @@ function KpiCard({ icon: Icon, label, value, sub, accent }) {
   return (
     <div className={`rounded-2xl border p-4 flex flex-col gap-1.5 transition-all ${accentCls}`}>
       <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-[var(--muted-foreground)] font-bold">
-        <Icon size={12} className={accent ? 'text-[#ff7900]' : 'text-[var(--muted-foreground)]'} />
+        <Icon size={12} className={accent ? 'text-[#F59E0B]' : 'text-[var(--muted-foreground)]'} />
         {label}
       </div>
-      <div className={`text-2xl font-black tracking-tight ${accent ? 'text-[#ff7900]' : 'text-[var(--app-foreground)]'}`}>
+      <div className={`text-2xl font-black tracking-tight ${accent ? 'text-[#F59E0B]' : 'text-[var(--app-foreground)]'}`}>
         {value}
       </div>
       {sub && <div className="text-[10px] text-[var(--muted-foreground)] leading-snug">{sub}</div>}
@@ -450,10 +450,10 @@ export default function SolarAdvisorResult({ result, onClose, onContactRequest }
             <button key={id} aria-pressed={tab===id} onClick={() => setTab(id)}
               className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all duration-300 ${
                 tab === id
-                  ? 'bg-white dark:bg-zinc-700 text-[#ff7900] shadow-sm ring-1 ring-zinc-900/5 dark:ring-white/10'
+                  ? 'bg-white dark:bg-zinc-700 text-[#F59E0B] shadow-sm ring-1 ring-zinc-900/5 dark:ring-white/10'
                   : 'text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 hover:bg-black/5 dark:hover:bg-white/5'
               }`}>
-              <Icon size={14} className={tab === id ? 'text-[#ff7900]' : ''} />
+              <Icon size={14} className={tab === id ? 'text-[#F59E0B]' : ''} />
               {label}
             </button>
           ))}
@@ -476,7 +476,7 @@ export default function SolarAdvisorResult({ result, onClose, onContactRequest }
                   </div>
                 </div>
                 <div className="text-left sm:text-right">
-                  <div className="text-2xl font-black text-[#ff7900] tracking-tight">DJUA ENERGY</div>
+                  <div className="text-2xl font-black text-[#F59E0B] tracking-tight">DJUA ENERGY</div>
                   <div className="text-xs font-semibold text-[#666] uppercase tracking-widest mt-1">Solutions Solaires Intelligentes</div>
                   <div className="text-sm text-[#555] mt-2">Avenue de l'Énergie, Kinshasa</div>
                   <div className="text-sm text-[#555]">contact@djua.com</div>
@@ -543,7 +543,7 @@ export default function SolarAdvisorResult({ result, onClose, onContactRequest }
                   )}
                   <div className="flex justify-between items-center border-t border-[#d4d4d8] pt-3 mt-1">
                     <span className="text-lg font-black text-[#111]">NET À PAYER</span>
-                    <span className="text-xl font-black text-[#ff7900]">{fmtCurrency(totalPrice, currency)}</span>
+                    <span className="text-xl font-black text-[#F59E0B]">{fmtCurrency(totalPrice, currency)}</span>
                   </div>
                 </div>
               </div>
@@ -561,7 +561,7 @@ export default function SolarAdvisorResult({ result, onClose, onContactRequest }
                 <button onClick={() => setShowAlternatives(!showAlternatives)}
                   className="w-full flex items-center justify-between py-3 px-4 rounded-xl border border-[var(--panel-border)] bg-[var(--panel-alt)] text-sm font-bold text-[var(--app-foreground)] hover:bg-[var(--panel)] transition">
                   <span className="flex items-center gap-2">
-                    <BarChart3 size={15} className="text-[#ff7900]" />
+                    <BarChart3 size={15} className="text-[#F59E0B]" />
                     Options d'évolution proposées ({alternatives.length})
                   </span>
                   {showAlternatives ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
@@ -792,7 +792,7 @@ export function SolarAdvisorTrigger({ isLoading, hasResult, onClick }) {
   return (
     <motion.button type="button" onClick={onClick} disabled={isLoading}
       whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-      className="solar-generate-trigger w-full flex items-center justify-center gap-3 rounded-full bg-orange-500 px-6 py-4 text-sm font-semibold text-white shadow-[0_16px_30px_rgba(249,115,22,0.3)] transition hover:bg-orange-400 disabled:cursor-not-allowed disabled:bg-zinc-800 disabled:text-zinc-500 disabled:shadow-none">
+      className="solar-generate-trigger w-full flex items-center justify-center gap-3 rounded-full bg-amber-500 px-6 py-4 text-sm font-semibold text-white shadow-[0_16px_30px_rgba(245,158,11,0.3)] transition hover:bg-amber-400 disabled:cursor-not-allowed disabled:bg-zinc-800 disabled:text-zinc-500 disabled:shadow-none">
       {isLoading ? (
         <><Loader2 size={16} className="animate-spin" />Calcul de votre solution…</>
       ) : hasResult ? (

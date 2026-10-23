@@ -1,202 +1,190 @@
 <!doctype html>
-<html lang="fr">
+<html class="scroll-smooth" lang="fr">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#0d100e" />
-    <meta name="description" content="Djua Energy conçoit des solutions solaires adaptées aux usages et aux réalités de la République démocratique du Congo." />
-    <title>Djua Energy — L’énergie solaire, pensée pour durer</title>
-    <link rel="preload" as="image" href="./assets/solar-panels.jpg" />
-    <link rel="stylesheet" href="./styles.css" />
-    <script src="./script.js" defer></script>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Djua | L'Énergie Solaire Intelligente &amp; Télémétrie en RDC</title>
+    <!-- Google Fonts: Plus Jakarta Sans & Inter -->
+    <link href="https://fonts.googleapis.com" rel="preconnect" />
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Inter:wght@300;400;500;600;700&amp;display=swap"
+      rel="stylesheet"
+    />
+    <!-- Tailwind CSS CDN with plugins -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <!-- Tailwind Custom Configuration -->
+    <script data-purpose="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              brand: {
+                orange: "#f59e0b",
+                amber: "#f97316",
+                darkOrange: "#e66a00",
+                accent: "#ff8a00",
+                slate: "#0f172a",
+                navy: "#0b132b",
+                sand: "#fcfaf7",
+                surface: "#f8fafc",
+              },
+              solar: {
+                primary: "#f59e0b",
+                dark: "#d97706",
+                light: "#fef3c7",
+                subtle: "#fffbeb",
+              },
+            },
+            fontFamily: {
+              sans: ["Plus Jakarta Sans", "Inter", "sans-serif"],
+              mono: ["JetBrains Mono", "monospace"],
+            },
+            boxShadow: {
+              soft: "0 10px 30px -10px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.02)",
+              float: "0 20px 40px -15px rgba(245, 158, 11, 0.15), 0 0 25px 0 rgba(0, 0, 0, 0.04)",
+              card: "0 2px 8px -2px rgba(0, 0, 0, 0.05), 0 10px 24px -8px rgba(0, 0, 0, 0.06)",
+              glow: "0 0 50px -10px rgba(245, 158, 11, 0.35)",
+            },
+            animation: {
+              "float-slow": "floating 6s ease-in-out infinite",
+              "float-delayed": "floating 7s ease-in-out 2s infinite",
+              "pulse-slow": "pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite",
+              marquee: "marquee 28s linear infinite",
+            },
+            keyframes: {
+              floating: {
+                "0%, 100%": { transform: "translateY(0px)" },
+                "50%": { transform: "translateY(-10px)" },
+              },
+              marquee: {
+                "0%": { transform: "translateX(0%)" },
+                "100%": { transform: "translateX(-50%)" },
+              },
+            },
+          },
+        },
+      };
+    </script>
+    <!-- BEGIN: Custom Stylesheet -->
+    <style data-purpose="base-typography">
+      body {
+        font-family: "Plus Jakarta Sans", sans-serif;
+        color: #0f172a;
+        background-color: #ffffff;
+        -webkit-font-smoothing: antialiased;
+      }
+      .mask-radial {
+        mask-image: linear-gradient(
+          to right,
+          transparent,
+          black 12%,
+          black 88%,
+          transparent
+        );
+        -webkit-mask-image: linear-gradient(
+          to right,
+          transparent,
+          black 12%,
+          black 88%,
+          transparent
+        );
+      }
+      .subtle-dots {
+        background-image: radial-gradient(
+          rgba(15, 23, 42, 0.08) 1px,
+          transparent 1px
+        );
+        background-size: 24px 24px;
+      }
+      .tab-active-btn {
+        background-color: #ffffff;
+        color: #0f172a;
+        box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
+        border-color: #e2e8f0;
+      }
+    </style>
+    <!-- END: Custom Stylesheet -->
+    <style data-purpose="djua-animations">
+      /* ===== Djua : couche d'animations ===== */
+      .js-anim .rv { opacity: 0; }
+      .js-anim .rv.in { animation: dj-rise 0.9s cubic-bezier(0.16, 1, 0.3, 1) var(--d, 0s) both; }
+      .js-anim .rv-img { opacity: 0; }
+      .js-anim .rv-img.in { animation: dj-img 1.1s cubic-bezier(0.16, 1, 0.3, 1) var(--d, 0s) both; }
+      @keyframes dj-rise {
+        from { opacity: 0; transform: translateY(28px); filter: blur(6px); }
+        to { opacity: 1; transform: translateY(0); filter: blur(0); }
+      }
+      @keyframes dj-img {
+        from { opacity: 0; clip-path: inset(10% 8% 10% 8% round 24px); }
+        to { opacity: 1; clip-path: inset(0 round 0); }
+      }
+      .dj-g { background-size: 200% auto; }
+      @keyframes dj-fade { from { opacity: 0; filter: blur(8px); } to { opacity: 1; filter: blur(0); } }
+      @keyframes dj-grad { to { background-position: 100% 0; } }
+      [data-count] { font-variant-numeric: tabular-nums; }
+      
+      /* bandes défilantes (partenaires + témoignages) */
+      .mq-t { width: max-content; animation: dj-mql var(--mq-d, 40s) linear infinite; will-change: transform; }
+      .mq-t.r { animation-name: dj-mqr; }
+      .mq:hover .mq-t { animation-play-state: paused; }
+      @keyframes dj-mql { to { transform: translateX(var(--mq-s, -50%)); } }
+      @keyframes dj-mqr { from { transform: translateX(var(--mq-s, -50%)); } to { transform: translateX(0); } }
+      
+      .mq-t [class*="rounded-lg"] { transition: transform 0.3s, box-shadow 0.3s; }
+      .mq-t [class*="rounded-lg"]:hover { transform: translateY(-3px); box-shadow: 0 10px 24px -10px rgba(245, 158, 11, 0.4); }
+      
+      /* boutons, en-tête, progression */
+      a[class*="from-amber-400"], button[class*="from-amber-400"] { position: relative; overflow: hidden; }
+      a[class*="from-amber-400"]::after, button[class*="from-amber-400"]::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, 0.55) 50%, transparent 70%);
+        transform: translateX(-120%);
+        transition: transform 0.7s;
+      }
+      a[class*="from-amber-400"]:hover::after, button[class*="from-amber-400"]:hover::after {
+        transform: translateX(120%);
+      }
+      header.dj-s { box-shadow: 0 8px 24px -14px rgba(15, 23, 42, 0.25); }
+      #dj-bar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        z-index: 60;
+        background: linear-gradient(90deg, #fbbf24, #f97316);
+        transform-origin: 0 50%;
+        transform: scaleX(0);
+      }
+      .subtle-dots { animation: dj-dots 80s linear infinite; }
+      @keyframes dj-dots { to { background-position: 240px 240px; } }
+      .dj-orb {
+        position: absolute;
+        border-radius: 50%;
+        filter: blur(70px);
+        opacity: 0.45;
+        pointer-events: none;
+        z-index: 0;
+        animation: dj-drift 14s ease-in-out infinite alternate;
+      }
+      .dj-orb.a { width: 340px; height: 340px; top: -90px; left: -70px; background: #fcd34d; }
+      .dj-orb.b { width: 380px; height: 380px; right: -90px; bottom: 15%; background: #fdba74; animation-delay: -6s; }
+      @keyframes dj-drift { to { transform: translate(60px, 45px); } }
+      .dj-tab { animation: dj-tab 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
+      @keyframes dj-tab { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+      .carousel-track img { -webkit-user-drag: none; user-select: none; }
+      #ecosysteme-monday .mask-radial::-webkit-scrollbar { display: none; }
+      @media (prefers-reduced-motion: reduce) {
+        .mq-t, .dj-g, .dj-orb, .subtle-dots { animation: none !important; }
+      }
+    </style>
   </head>
-  <body>
-    <a class="skip-link" href="#contenu">Aller au contenu</a>
-    <header class="site-header">
-      <a class="brand" href="#accueil" aria-label="Djua Energy, accueil">
-        <span class="brand-mark" aria-hidden="true">
-          <svg viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="6" stroke="currentColor" stroke-width="2.4"/><path d="M16 2.8v4M16 25.2v4M29.2 16h-4M6.8 16h-4m22.55-9.35-2.83 2.83M9.48 22.52l-2.83 2.83m18.7 0-2.83-2.83M9.48 9.48 6.65 6.65" stroke="currentColor" stroke-linecap="round" stroke-width="2.4"/></svg>
-        </span>
-        <span class="brand-name">djua<span>energy</span><small>Solutions solaires en RDC</small></span>
-      </a>
-
-      <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="navigation" aria-label="Ouvrir le menu">
-        <span></span><span></span>
-      </button>
-
-      <nav class="navigation" id="navigation" aria-label="Navigation principale">
-        <a href="#solutions">Nos solutions</a>
-        <a href="#approche">Notre approche</a>
-        <a href="#suivi">Le suivi</a>
-        <a class="button button-small button-light" href="#contact">Parler de votre projet <span aria-hidden="true">↗</span></a>
-      </nav>
-    </header>
-
-    <main id="contenu">
-      <section class="hero section-wrap" id="accueil" aria-labelledby="hero-title">
-        <div class="hero-copy">
-          <p class="eyebrow"><span class="eyebrow-dot"></span> L’énergie, autrement en RDC</p>
-          <h1 id="hero-title">L’énergie solaire.<br /><span>Déployée plus vite.</span></h1>
-          <p class="hero-description">Des kits solaires pré-assemblés, des mini-réseaux et des centrales hybrides conçus pour les réalités du terrain et les besoins de chaque site.</p>
-          <div class="hero-actions">
-            <a class="button button-accent" href="#solutions">Explorer nos solutions <span aria-hidden="true">↘</span></a>
-            <a class="button button-outline" href="#contact">Demander une étude</a>
-          </div>
-          <div class="hero-note"><span class="note-line"></span><span>De la préparation du système au suivi de son exploitation.</span></div>
-        </div>
-
-        <figure class="hero-visual">
-          <img src="./assets/solar-panels.jpg" alt="Panneaux solaires installés sur un site de production" fetchpriority="high" />
-          <figcaption>
-            <span class="caption-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none"><path d="M3 11.5 12 4l9 7.5M5.5 10v10h13V10M9 20v-6h6v6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            </span>
-            <span><strong>Une énergie pensée pour le terrain</strong><small>Solutions adaptées à chaque installation</small></span>
-            <span class="caption-arrow" aria-hidden="true">↗</span>
-          </figcaption>
-          <span class="visual-index" aria-hidden="true">DJ / 01</span>
-        </figure>
-      </section>
-
-      <section class="proof-strip section-wrap" aria-label="Les engagements Djua Energy">
-        <article class="proof-item">
-          <span class="proof-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M4 20V7l8-4 8 4v13M8 20v-5h8v5M8 9h.01M12 9h.01M16 9h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-          <span><strong>Préparé en atelier</strong><small>Un système organisé avant son déploiement.</small></span>
-        </article>
-        <article class="proof-item">
-          <span class="proof-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.8"/><path d="M12 7v5l3.5 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-          <span><strong>Un déploiement maîtrisé</strong><small>Des étapes pensées pour limiter les imprévus.</small></span>
-        </article>
-        <article class="proof-item">
-          <span class="proof-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3 20 6v5c0 5-3.4 8.4-8 10-4.6-1.6-8-5-8-10V6l8-3Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="m9 12 2 2 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-          <span><strong>Du matériel sélectionné</strong><small>Des composants choisis selon le projet.</small></span>
-        </article>
-        <article class="proof-item">
-          <span class="proof-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M13.5 2.8 5 13h6l-.5 8.2L19 11h-6l.5-8.2Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-          <span><strong>Une énergie plus propre</strong><small>Le solaire au cœur de votre alimentation.</small></span>
-        </article>
-      </section>
-
-      <section class="intro section-wrap" id="approche">
-        <div class="section-kicker"><span>01</span><span class="kicker-rule"></span><span>Notre approche</span></div>
-        <div class="intro-content">
-          <h2>Une bonne installation commence par <span>les bons usages.</span></h2>
-          <div class="intro-aside">
-            <p>Chaque site a son rythme, ses équipements et ses contraintes. Nous partons de ces réalités pour préparer une solution cohérente, évolutive et plus simple à exploiter.</p>
-            <a class="text-link" href="#contact">Parlons de vos besoins <span aria-hidden="true">↗</span></a>
-          </div>
-        </div>
-      </section>
-
-      <section class="solutions section-wrap" id="solutions" aria-labelledby="solutions-title">
-        <div class="section-heading">
-          <div>
-            <p class="eyebrow">Des systèmes adaptés à votre contexte</p>
-            <h2 id="solutions-title">Une réponse pour chaque échelle.</h2>
-          </div>
-          <p>Du besoin d’un foyer à l’alimentation d’un site, le dimensionnement suit le projet — pas l’inverse.</p>
-        </div>
-
-        <div class="solution-grid">
-          <article class="solution-card solution-featured">
-            <div class="solution-number">01 <span>— POUR LES FOYERS & LES ACTIVITÉS</span></div>
-            <div class="solution-icon" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="M4 14 16 4l12 10M7 12v16h18V12M12 28v-9h8v9M11 14h.01M21 14h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-            <h3>Kits solaires intelligents</h3>
-            <p>Un système dimensionné selon les appareils utilisés, les habitudes de consommation et l’autonomie recherchée.</p>
-            <a href="#contact" aria-label="Parler d'un kit solaire">En savoir plus <span aria-hidden="true">↗</span></a>
-          </article>
-          <article class="solution-card">
-            <div class="solution-number">02 <span>— POUR LES COMMUNAUTÉS</span></div>
-            <div class="solution-icon" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="M4 28V13h10v15M18 28V5h10v23M2 28h28M8 18h2m-2 5h2m12-13h2m-2 5h2m-2 5h2m-2 5h2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-            <h3>Mini-réseaux</h3>
-            <p>Des solutions de production et de distribution d’énergie à étudier selon les besoins d’une localité ou d’un ensemble de sites.</p>
-            <a href="#contact" aria-label="Parler d'un mini-réseau">En savoir plus <span aria-hidden="true">↗</span></a>
-          </article>
-          <article class="solution-card">
-            <div class="solution-number">03 <span>— POUR LES SITES EXIGEANTS</span></div>
-            <div class="solution-icon" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><rect x="4" y="8" width="24" height="19" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M10 8V5h12v3M10 14h4m4 0h4m-12 5h4m4 0h4m-12 5h4m4 0h4M2 28h28" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></div>
-            <h3>Centrales hybrides</h3>
-            <p>Des architectures combinant plusieurs sources d’énergie, préparées pour répondre aux contraintes d’exploitation du site.</p>
-            <a href="#contact" aria-label="Parler d'une centrale hybride">En savoir plus <span aria-hidden="true">↗</span></a>
-          </article>
-        </div>
-      </section>
-
-      <section class="operations section-wrap" id="suivi">
-        <div class="operations-panel">
-          <div class="operations-copy">
-            <div class="section-kicker section-kicker-dark"><span>02</span><span class="kicker-rule"></span><span>Après l’installation</span></div>
-            <p class="eyebrow">Le projet continue sur le terrain</p>
-            <h2>Produire, c’est important.<br /><span>Bien suivre, aussi.</span></h2>
-            <p class="operations-description">La supervision aide les équipes à garder une vue sur les équipements, consulter les mesures disponibles et organiser les interventions.</p>
-            <ul class="operations-list">
-              <li><span aria-hidden="true">01</span> État des équipements et relevés disponibles</li>
-              <li><span aria-hidden="true">02</span> Alertes et localisation des installations</li>
-              <li><span aria-hidden="true">03</span> Suivi des interventions techniques</li>
-            </ul>
-            <a class="button button-accent" href="#contact">Échanger avec notre équipe <span aria-hidden="true">↗</span></a>
-          </div>
-          <div class="operations-visual" aria-label="Illustration des outils de suivi Djua Energy">
-            <div class="dashboard-card">
-              <div class="dashboard-top"><span class="dashboard-brand"><span class="mini-mark">d</span> Djua <b>Energy</b></span><span class="live-status"><i></i> SUIVI DES SITES</span></div>
-              <div class="dashboard-title"><span>Vue d’ensemble</span><span class="dashboard-period">Aujourd’hui⌄</span></div>
-              <div class="dashboard-summary">
-                <div><small>INSTALLATIONS</small><strong>Suivi centralisé</strong><span>Une vue par équipement</span></div>
-                <div class="summary-symbol" aria-hidden="true">↗</div>
-              </div>
-              <div class="chart-label"><span>Production solaire</span><small>Exemple de suivi</small></div>
-              <div class="chart" aria-label="Illustration d’une courbe de production solaire">
-                <div class="chart-y"><span>100%</span><span>50%</span><span>0%</span></div>
-                <svg viewBox="0 0 420 150" role="img" aria-label="Courbe illustrative, sans données réelles">
-                  <path class="chart-grid" d="M0 22H420M0 75H420M0 128H420"/>
-                  <path class="chart-fill" d="M0 122C28 122 33 111 60 112S94 118 121 90 155 87 181 83 218 91 244 61 278 53 305 60 336 24 362 39 393 17 420 14V150H0Z"/>
-                  <path class="chart-line" d="M0 122C28 122 33 111 60 112S94 118 121 90 155 87 181 83 218 91 244 61 278 53 305 60 336 24 362 39 393 17 420 14"/>
-                </svg>
-              </div>
-              <div class="chart-x"><span>06h</span><span>09h</span><span>12h</span><span>15h</span><span>18h</span></div>
-              <p class="dashboard-disclaimer">Illustration d’interface · pas de données de production réelles</p>
-            </div>
-            <div class="operations-stamp"><span>DJUA</span><span>ÉNERGIE<br />EN MOUVEMENT</span></div>
-          </div>
-        </div>
-      </section>
-
-      <section class="process section-wrap" aria-labelledby="process-title">
-        <div class="section-heading">
-          <div><p class="eyebrow">Simple, structuré, suivi</p><h2 id="process-title">Du premier échange<br />à la mise en service.</h2></div>
-          <p>Une démarche claire pour construire un système qui correspond à votre situation.</p>
-        </div>
-        <ol class="process-list">
-          <li><span class="process-index">01</span><div><h3>Comprendre</h3><p>Vos besoins, vos appareils et votre site.</p></div></li>
-          <li><span class="process-index">02</span><div><h3>Dimensionner</h3><p>Une étude adaptée à vos usages et priorités.</p></div></li>
-          <li><span class="process-index">03</span><div><h3>Préparer</h3><p>Les équipements et les étapes de déploiement.</p></div></li>
-          <li><span class="process-index">04</span><div><h3>Accompagner</h3><p>Le suivi du système et des interventions.</p></div></li>
-        </ol>
-      </section>
-
-      <section class="contact section-wrap" id="contact">
-        <div class="contact-panel">
-          <div>
-            <p class="eyebrow">Parlons de votre projet</p>
-            <h2>Quelle énergie<br />vous faut-il ?</h2>
-          </div>
-          <div class="contact-action">
-            <p>Décrivez-nous votre besoin. Notre équipe pourra vous orienter vers la prochaine étape.</p>
-            <a class="button button-accent" href="mailto:contact@djua.com?subject=Demande%20d%E2%80%99%C3%A9tude%20solaire">Demander une étude solaire <span aria-hidden="true">↗</span></a>
-            <small>Votre application de messagerie s’ouvrira pour préparer la demande.</small>
-          </div>
-          <span class="contact-sun" aria-hidden="true"></span>
-        </div>
-      </section>
-    </main>
-
-    <footer class="site-footer section-wrap">
-      <a class="brand footer-brand" href="#accueil" aria-label="Djua Energy, retour en haut">
-        <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="6" stroke="currentColor" stroke-width="2.4"/><path d="M16 2.8v4M16 25.2v4M29.2 16h-4M6.8 16h-4m22.55-9.35-2.83 2.83M9.48 22.52l-2.83 2.83m18.7 0-2.83-2.83M9.48 9.48 6.65 6.65" stroke="currentColor" stroke-linecap="round" stroke-width="2.4"/></svg></span>
-        <span class="brand-name">djua<span>energy</span><small>Solutions solaires en RDC</small></span>
-      </a>
-      <p>Des solutions solaires pensées pour durer.</p>
-      <span class="footer-copy">© <span id="year">2026</span> Djua Energy</span>
-    </footer>
+  <body class="selection:bg-amber-100 selection:text-amber-900 bg-white text-slate-900">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

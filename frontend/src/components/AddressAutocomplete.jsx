@@ -137,13 +137,13 @@ export default function AddressAutocomplete({
           className={`w-full bg-zinc-950 border rounded-lg px-3.5 py-2 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-1 transition-colors ${
             error
               ? 'border-rose-500 focus:border-rose-500 focus:ring-rose-500'
-              : 'border-zinc-800 focus:border-[#FF7900] focus:ring-[#FF7900]'
+              : 'border-zinc-800 focus:border-[#F59E0B] focus:ring-[#F59E0B]'
           }`}
         />
 
         {isLoading && (
           <div className="absolute right-3 pointer-events-none">
-            <span className="w-4 h-4 border-2 border-[#FF7900] border-t-transparent rounded-full animate-spin block" />
+            <span className="w-4 h-4 border-2 border-[#F59E0B] border-t-transparent rounded-full animate-spin block" />
           </div>
         )}
       </div>
@@ -159,7 +159,7 @@ export default function AddressAutocomplete({
                 onMouseEnter={() => setSelectedIndex(index)}
                 className={`px-3.5 py-2.5 text-xs cursor-pointer transition-colors flex items-center gap-2 ${
                   selectedIndex === index
-                    ? 'bg-[var(--ops-canvas)] text-[#FF7900] font-medium'
+                    ? 'bg-[var(--ops-canvas)] text-[#F59E0B] font-medium'
                     : 'text-zinc-300 hover:bg-zinc-800/80'
                 }`}
               >

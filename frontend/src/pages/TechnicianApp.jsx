@@ -145,18 +145,18 @@ export default function TechnicianApp() {
       <header className="sticky top-0 z-40 bg-[#0e1626]/95 backdrop-blur-md border-b border-slate-800 px-4 py-3 shadow-lg">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-600 to-[#FF7900] flex items-center justify-center text-black font-black shadow-md shadow-none">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-600 to-[#F59E0B] flex items-center justify-center text-black font-black shadow-md shadow-none">
               <Zap size={20} className="fill-black" />
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-sm font-bold text-white tracking-wide">Djua Field Ops</span>
-                <span className="px-2 py-0.5 text-[10px] font-bold bg-[var(--ops-canvas)] text-[#FF7900] border border-[var(--ops-line)] rounded-full">
+                <span className="px-2 py-0.5 text-[10px] font-bold bg-[var(--ops-canvas)] text-[#F59E0B] border border-[var(--ops-line)] rounded-full">
                   TECHNICIEN
                 </span>
               </div>
               <p className="text-[11px] text-slate-400 flex items-center gap-1.5">
-                <User size={11} className="text-[#FF7900]" />
+                <User size={11} className="text-[#F59E0B]" />
                 <strong className="text-slate-200">{user?.prenom} {user?.nom}</strong>
                 {user?.zone && (
                   <span className="flex items-center gap-0.5 text-slate-400">
@@ -164,7 +164,7 @@ export default function TechnicianApp() {
                   </span>
                 )}
                 {user?.seniority === 'senior' && (
-                  <span className="text-[#FF7900] font-semibold">★ Senior</span>
+                  <span className="text-[#F59E0B] font-semibold">★ Senior</span>
                 )}
               </p>
             </div>
@@ -187,7 +187,7 @@ export default function TechnicianApp() {
             onClick={() => setActiveTab('missions')}
             className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-xs font-bold transition-all ${
               activeTab === 'missions'
-                ? 'bg-[#FF7900] text-black shadow-md shadow-none'
+                ? 'bg-[#F59E0B] text-black shadow-md shadow-none'
                 : 'text-slate-400 hover:text-white'
             }`}
           >
@@ -199,7 +199,7 @@ export default function TechnicianApp() {
             onClick={() => setActiveTab('scan')}
             className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-xs font-bold transition-all ${
               activeTab === 'scan'
-                ? 'bg-[#FF7900] text-black shadow-md shadow-none'
+                ? 'bg-[#F59E0B] text-black shadow-md shadow-none'
                 : 'text-slate-400 hover:text-white'
             }`}
           >
@@ -242,7 +242,7 @@ export default function TechnicianApp() {
 
           {interventionsQuery.isLoading ? (
             <div className="p-8 text-center text-slate-400 text-xs">
-              <RefreshCw className="animate-spin mx-auto mb-2 text-[#FF7900]" size={22} />
+              <RefreshCw className="animate-spin mx-auto mb-2 text-[#F59E0B]" size={22} />
               Chargement de vos missions…
             </div>
           ) : displayedMissions.length === 0 ? (
@@ -294,7 +294,7 @@ export default function TechnicianApp() {
                         </div>
 
                         <h3 className="text-base font-bold text-white flex items-center gap-2">
-                          <span className="text-[#FF7900]">{mission.kitId}</span>
+                          <span className="text-[#F59E0B]">{mission.kitId}</span>
                           <span className="text-slate-400 font-normal text-xs">({mission.type || 'Maintenance'})</span>
                         </h3>
                       </div>
@@ -372,7 +372,7 @@ export default function TechnicianApp() {
           <div className="bg-[#121c2e] border border-slate-800 rounded-2xl p-4 shadow-lg space-y-3">
             <div>
               <h2 className="text-sm font-bold text-white flex items-center gap-2">
-                <Scan size={18} className="text-[#FF7900]" />
+                <Scan size={18} className="text-[#F59E0B]" />
                 Vérification & Historique de maintenance du Kit
               </h2>
               <p className="text-xs text-slate-400 mt-0.5">
@@ -386,13 +386,13 @@ export default function TechnicianApp() {
                 placeholder="Ex: DJUA-KIT-001"
                 value={scannedKitInput}
                 onChange={(e) => setScannedKitInput(e.target.value)}
-                className="flex-1 bg-[#090d16] border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white uppercase placeholder-slate-500 font-mono focus:outline-none focus:border-[#FF7900]"
+                className="flex-1 bg-[#090d16] border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white uppercase placeholder-slate-500 font-mono focus:outline-none focus:border-[#F59E0B]"
                 required
               />
               <button
                 type="submit"
                 disabled={!scannedKitInput.trim() || scanQuery.isFetching}
-                className="px-4 py-2 bg-[#FF7900] hover:bg-orange-500 text-black text-xs font-bold rounded-xl flex items-center gap-1.5 transition-colors shadow-md shadow-none disabled:opacity-50"
+                className="px-4 py-2 bg-[#F59E0B] hover:bg-amber-600 text-black text-xs font-bold rounded-xl flex items-center gap-1.5 transition-colors shadow-md shadow-none disabled:opacity-50"
               >
                 {scanQuery.isFetching ? <RefreshCw size={15} className="animate-spin" /> : <Scan size={15} />}
                 Vérifier
@@ -403,7 +403,7 @@ export default function TechnicianApp() {
           {/* Résultats de la vérification */}
           {scanQuery.isFetching && (
             <div className="p-8 text-center text-slate-400 text-xs">
-              <RefreshCw className="animate-spin mx-auto mb-2 text-[#FF7900]" size={22} />
+              <RefreshCw className="animate-spin mx-auto mb-2 text-[#F59E0B]" size={22} />
               Vérification de l'équipement et recherche des maintenances antérieures…
             </div>
           )}
@@ -455,7 +455,7 @@ export default function TechnicianApp() {
                   {/* Métriques télémétriques temps réel */}
                   <div>
                     <h4 className="text-xs font-bold text-slate-300 mb-2 flex items-center gap-1.5">
-                      <Radio size={14} className="text-[#FF7900]" />
+                      <Radio size={14} className="text-[#F59E0B]" />
                       Signaux télémétriques actuels
                     </h4>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -479,7 +479,7 @@ export default function TechnicianApp() {
 
                       <div className="bg-black/30 p-2.5 rounded-xl border border-slate-800 text-xs">
                         <span className="text-slate-400 flex items-center gap-1 text-[11px]">
-                          <Sun size={13} className="text-[#FF7900]" /> Puissance Solaire
+                          <Sun size={13} className="text-[#F59E0B]" /> Puissance Solaire
                         </span>
                         <p className="text-base font-bold text-white mt-1">
                           {scanQuery.data.signal?.solarPowerW != null ? `${scanQuery.data.signal.solarPowerW} W` : '—'}
@@ -500,7 +500,7 @@ export default function TechnicianApp() {
                   {/* ── HISTORIQUE COMPLET DES MAINTENANCES SUR CE KIT ────────────── */}
                   <div className="pt-2">
                     <h4 className="text-xs font-bold text-white mb-2 flex items-center gap-1.5">
-                      <FileText size={15} className="text-[#FF7900]" />
+                      <FileText size={15} className="text-[#F59E0B]" />
                       Historique des maintenances & rapports des précédents techniciens ({scanQuery.data.interventions?.length || 0})
                     </h4>
 
@@ -597,7 +597,7 @@ export default function TechnicianApp() {
 
               <div>
                 <label className="block text-xs font-bold text-slate-300 mb-1.5">
-                  Rapport technique d'intervention <span className="text-[#FF7900]">*</span>
+                  Rapport technique d'intervention <span className="text-[#F59E0B]">*</span>
                 </label>
                 <textarea
                   rows={5}

@@ -150,7 +150,7 @@ export default function GeofencingAlerts() {
           <div className="flex-1 p-3 space-y-2">
             {isLoading ? (
               <div className="h-40 flex items-center justify-center">
-                <div className="w-8 h-8 rounded-full border-2 border-zinc-800 border-t-[#FF7900] animate-spin" />
+                <div className="w-8 h-8 rounded-full border-2 border-zinc-800 border-t-[#F59E0B] animate-spin" />
               </div>
             ) : alerts.length === 0 ? (
               <div className="py-12 text-center space-y-3">
@@ -202,7 +202,7 @@ export default function GeofencingAlerts() {
                             e.stopPropagation();
                             handleResolveAlert(alert._id);
                           }}
-                          className="text-[#FF7900] hover:text-orange-400 transition-colors font-bold uppercase tracking-wider"
+                          className="text-[#F59E0B] hover:text-amber-400 transition-colors font-bold uppercase tracking-wider"
                         >
                           Résoudre
                         </button>
@@ -234,14 +234,14 @@ export default function GeofencingAlerts() {
                 <Circle
                   center={mapData.refCenter}
                   radius={90}
-                  pathOptions={{ color: '#FF7900', fillColor: '#FF7900', fillOpacity: 0.05, dashArray: '5, 8' }}
+                  pathOptions={{ color: '#F59E0B', fillColor: '#F59E0B', fillOpacity: 0.05, dashArray: '5, 8' }}
                 />
 
                 {/* Initial position marker */}
                 <Marker position={mapData.refCenter}>
                   <Popup>
                     <div className="text-xs font-sans text-zinc-800">
-                      <strong className="text-[#FF7900]">Position Initiale Autorisée</strong>
+                      <strong className="text-[#F59E0B]">Position Initiale Autorisée</strong>
                       <br />
                       Kit: {selectedAlert?.kitId}
                     </div>

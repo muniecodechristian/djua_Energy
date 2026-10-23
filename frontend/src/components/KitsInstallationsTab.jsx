@@ -29,7 +29,7 @@ export default function KitsInstallationsTab({ client }) {
       <div className="bg-zinc-950/40 border border-zinc-800/80 rounded-xl p-5 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.5)]">
         <div className="flex items-center justify-between border-b border-zinc-900 pb-4 mb-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-[var(--ops-canvas)] border border-[var(--ops-line)] rounded-xl flex items-center justify-center text-orange-400">
+            <div className="w-10 h-10 bg-[var(--ops-canvas)] border border-[var(--ops-line)] rounded-xl flex items-center justify-center text-amber-400">
               <Box size={20} />
             </div>
             <div>
@@ -52,7 +52,7 @@ export default function KitsInstallationsTab({ client }) {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 text-xs text-zinc-400">
           <div className="flex items-start gap-3">
-            <Radio size={16} className="text-orange-500/70 mt-0.5 flex-shrink-0" />
+            <Radio size={16} className="text-amber-500/70 mt-0.5 flex-shrink-0" />
             <div>
               <span className="text-[10px] text-zinc-500 block uppercase tracking-wider font-semibold">Identifiant Boîtier / Kit ID</span>
               <span className="text-sm font-bold text-white font-mono">{client.kitId}</span>
@@ -60,7 +60,7 @@ export default function KitsInstallationsTab({ client }) {
           </div>
 
           <div className="flex items-start gap-3">
-            <CreditCard size={16} className="text-orange-500/70 mt-0.5 flex-shrink-0" />
+            <CreditCard size={16} className="text-amber-500/70 mt-0.5 flex-shrink-0" />
             <div>
               <span className="text-[10px] text-zinc-500 block uppercase tracking-wider font-semibold">Offre Commerciale</span>
               <span className="text-sm font-bold text-zinc-200">{client.offerName || 'Non spécifiée'}</span>
@@ -68,7 +68,7 @@ export default function KitsInstallationsTab({ client }) {
           </div>
 
           <div className="flex items-start gap-3">
-            <Calendar size={16} className="text-orange-500/70 mt-0.5 flex-shrink-0" />
+            <Calendar size={16} className="text-amber-500/70 mt-0.5 flex-shrink-0" />
             <div>
               <span className="text-[10px] text-zinc-500 block uppercase tracking-wider font-semibold">Date d'Installation</span>
               <span className="text-sm font-bold text-zinc-200">{formatDate(client.installationDate)}</span>
@@ -76,7 +76,7 @@ export default function KitsInstallationsTab({ client }) {
           </div>
 
           <div className="flex items-start gap-3">
-            <MapPin size={16} className="text-orange-500/70 mt-0.5 flex-shrink-0" />
+            <MapPin size={16} className="text-amber-500/70 mt-0.5 flex-shrink-0" />
             <div>
               <span className="text-[10px] text-zinc-500 block uppercase tracking-wider font-semibold">Coordonnées GPS</span>
               <span className="text-sm font-bold text-zinc-200 font-mono">{formatGPS(client.gpsCoordinates)}</span>
@@ -84,7 +84,7 @@ export default function KitsInstallationsTab({ client }) {
           </div>
 
           <div className="flex items-start gap-3">
-            <ShieldAlert size={16} className="text-orange-500/70 mt-0.5 flex-shrink-0" />
+            <ShieldAlert size={16} className="text-amber-500/70 mt-0.5 flex-shrink-0" />
             <div>
               <span className="text-[10px] text-zinc-500 block uppercase tracking-wider font-semibold">Frais d'activation (Orange)</span>
               <span className="text-sm font-bold text-zinc-200">
@@ -94,7 +94,7 @@ export default function KitsInstallationsTab({ client }) {
           </div>
 
           <div className="flex items-start gap-3">
-            <Radio size={16} className="text-orange-500/70 mt-0.5 flex-shrink-0" />
+            <Radio size={16} className="text-amber-500/70 mt-0.5 flex-shrink-0" />
             <div>
               <span className="text-[10px] text-zinc-500 block uppercase tracking-wider font-semibold">Téléphone de l'abonné</span>
               <span className="text-sm font-bold text-zinc-200 font-mono">{client.clientPhone}</span>

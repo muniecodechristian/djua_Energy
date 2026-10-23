@@ -61,13 +61,13 @@ export default function KitScannerHistory() {
               placeholder="Scanner ou saisir le matricule (ex: KIT-GOMBE-001)..."
               value={inputKitId}
               onChange={(e) => setInputKitId(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-[#FF7900] text-sm"
+              className="w-full pl-10 pr-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-[#F59E0B] text-sm"
             />
           </div>
           <button
             type="submit"
             disabled={!inputKitId.trim() || isFetching}
-            className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2.5 bg-[#FF7900] hover:bg-[#FF8F2E] text-black font-semibold rounded-xl text-sm transition-colors"
+            className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2.5 bg-[#F59E0B] hover:bg-[#FBBF24] text-black font-semibold rounded-xl text-sm transition-colors"
           >
             <Search size={16} />
             {isFetching ? 'Vérification...' : 'Vérifier le kit'}
@@ -170,7 +170,7 @@ export default function KitScannerHistory() {
               </div>
               <Link
                 to={`/InterventionWizard?kitId=${encodeURIComponent(kit.kitId)}`}
-                className="mt-3 flex items-center justify-center gap-2 px-4 py-2 bg-[#FF7900] hover:bg-[#FF8F2E] text-black font-semibold rounded-lg text-xs transition-colors"
+                className="mt-3 flex items-center justify-center gap-2 px-4 py-2 bg-[#F59E0B] hover:bg-[#FBBF24] text-black font-semibold rounded-lg text-xs transition-colors"
               >
                 <Wrench size={14} /> Planifier maintenance sur ce kit
               </Link>
@@ -218,7 +218,7 @@ export default function KitScannerHistory() {
 
               <div className="ops-card p-3 text-center col-span-2 sm:col-span-1">
                 <span className="text-[11px] text-slate-400 flex items-center justify-center gap-1 mb-1">
-                  <Thermometer size={14} className="text-orange-400" /> Température
+                  <Thermometer size={14} className="text-amber-400" /> Température
                 </span>
                 <p className="text-lg font-bold text-white font-mono">
                   {signal.deviceTemp != null ? `${signal.deviceTemp} °C` : '—'}
@@ -288,7 +288,7 @@ export default function KitScannerHistory() {
                             <span className={`ops-badge ${isDone ? 'success' : 'medium'}`}>
                               {item.status}
                             </span>
-                            <span className="text-xs font-semibold text-[#FF7900] uppercase">
+                            <span className="text-xs font-semibold text-[#F59E0B] uppercase">
                               {item.type || 'Maintenance'}
                             </span>
                             <span className="text-xs text-slate-400">· Priorité : {item.priority}</span>
@@ -316,7 +316,7 @@ export default function KitScannerHistory() {
                               <FileText size={14} /> Compte-rendu du technicien ({tech?.prenom ? `${tech.prenom} ${tech.nom}` : 'Technicien assigné'}) :
                             </span>
                             {tech?.seniority === 'senior' && (
-                              <span className="text-[#FF7900] bg-[var(--ops-canvas)] px-2 py-0.5 rounded text-[10px]">
+                              <span className="text-[#F59E0B] bg-[var(--ops-canvas)] px-2 py-0.5 rounded text-[10px]">
                                 ★ Technicien Senior
                               </span>
                             )}
@@ -334,7 +334,7 @@ export default function KitScannerHistory() {
                       {/* Signature du technicien */}
                       <div className="flex items-center justify-between pt-2 border-t border-slate-800 text-[11px] text-slate-400">
                         <span className="flex items-center gap-1.5">
-                          <UserCheck size={14} className="text-[#FF7900]" />
+                          <UserCheck size={14} className="text-[#F59E0B]" />
                           Technicien intervenant : <strong className="text-slate-200">{tech?.prenom ? `${tech.prenom} ${tech.nom}` : 'Assigné'}</strong>
                           {tech?.zone && <span>(Zone: {tech.zone})</span>}
                         </span>

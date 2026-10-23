@@ -63,13 +63,15 @@ export default function MainLayout() {
     return () => window.removeEventListener('keydown', shortcut);
   }, []);
   const results = [...visibleNavigation.map(item => ({label:item.label, description:item.description, path:item.path})), ...(!hasRestrictedNavigation ? asList(kits.data).filter(kit => kit.kitId).map(kit => ({label:kit.kitId || 'Équipement', description:kit.province || kit.region || 'Fiche équipement', path:detailUrl(kit.kitId)})) : [])].filter(item => (item.label + ' ' + item.description).toLowerCase().includes(search.toLowerCase())).slice(0, 10);
-  if (isAdmin && location.pathname.toLowerCase() !== '/devis/nouveau' && !visibleNavigation.some(item => item.path.toLowerCase() === location.pathname.toLowerCase())) return <Navigate to="/AdministrationSettings" replace/>;
-  if (isAdminOnlyPage && !isAdmin && !isCommercial) return <Navigate to={restrictedPageFallback} replace/>;
+  if (isAdmin && !visibleNavigation.some(item => item.path.toLowerCase() === location.pathname.toLowerCase()) && !['/devis/nouveau'].includes(location.pathname.toLowerCase())) return <Navigate to="/AdministrationSettings" replace/>;
+  if (isAdminOnlyPage && !isAdmin && !isCommercial && role !== 'shop_manager') return <Navigate to={restrictedPageFallback} replace/>;
   if (isCatalogPage && !isAdmin && !isCommercial) return <Navigate to={restrictedPageFallback} replace/>;
-  if (isCommercial && !['/dashboard', '/devis', '/parc', '/rapports', '/catalogue'].includes(location.pathname.toLowerCase())) return <Navigate to="/dashboard" replace/>;
+  if (isCommercial && !['/dashboard', '/devis', '/devis/nouveau', '/parc', '/rapports', '/catalogue'].includes(location.pathname.toLowerCase())) return <Navigate to="/dashboard" replace/>;
   if (isTechnician && location.pathname.toLowerCase() !== '/technicien') return <Navigate to="/technicien" replace/>;
   if (!isAdmin && location.pathname.toLowerCase() === '/administrationsettings') return <Navigate to={role === 'shop_manager' ? '/equipe' : '/dashboard'} replace/>;
   if (isTeamPage && role !== 'shop_manager') return <Navigate to={isAdmin ? '/AdministrationSettings' : isTechnician ? '/technicien' : '/dashboard'} replace/>;
+  const isShopManager = role === 'shop_manager';
+  if (isShopManager && !['/dashboard', '/parc', '/notification', '/InterventionWizard', '/equipe', '/devis', '/devis/nouveau'].includes(location.pathname.toLowerCase()) && !/smartkit|customerprofile/i.test(location.pathname)) return <Navigate to="/dashboard" replace/>;
   return <div className="ops-shell">
     <a className="ops-skip-link" href="#main-content">Aller au contenu</a>
     <Sidebar isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen}/>

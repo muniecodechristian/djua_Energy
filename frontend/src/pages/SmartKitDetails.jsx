@@ -25,15 +25,15 @@ const KitExplorer = lazy(() => import('../components/KitExplorer'));
 /* ------------------------------------------------------------------
    Design tokens
    - Neutres : viennent de vos variables CSS (--panel, --panel-border...)
-   - Orange : SEULE couleur de marque (#FF7900, orange Orange)
+   - Ambre : SEULE couleur de marque (#F59E0B, ambre Djua)
    - Vert / rouge / ambre : réservés aux ÉTATS (ok / alerte / attention)
 ------------------------------------------------------------------- */
-const ORANGE = '#FF7900';
+const ORANGE = '#F59E0B';
 const SURFACE = 'bg-[var(--panel)] border border-[var(--panel-border)]';
 const MUTED = 'text-[var(--muted-foreground)]';
 const FG = 'text-[var(--app-foreground)]';
 const SUBTLE = 'bg-[var(--panel-alt)]';
-const FOCUS = 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FF7900]';
+const FOCUS = 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F59E0B]';
 
 const TONES = {
   ok: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
@@ -47,7 +47,7 @@ const TONES = {
 const customIcon = L.divIcon({
   className: 'custom-leaflet-marker',
   html: `<div style="position:relative;display:flex;align-items:center;justify-content:center;width:28px;height:28px;">
-    <span style="position:absolute;height:100%;width:100%;border-radius:50%;background:rgba(255,121,0,0.35);animation:kit-ping 1.6s cubic-bezier(0,0,.2,1) infinite;"></span>
+    <span style="position:absolute;height:100%;width:100%;border-radius:50%;background:rgba(245,158,11,0.35);animation:kit-ping 1.6s cubic-bezier(0,0,.2,1) infinite;"></span>
     <span style="position:relative;border-radius:50%;width:14px;height:14px;background:${ORANGE};border:2.5px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.25);"></span>
   </div>`,
   iconSize: [28, 28],
@@ -161,7 +161,7 @@ const Trend = ({ prev, curr, unit = '' }) => {
 
 /* Grand indicateur : uniquement pour les 4 chiffres qui comptent */
 const Stat = ({ label, hint, value, unit, prev, curr, meter, primary = false }) => (
-  <div className={`kit-stat ${SURFACE} rounded-lg p-5 ${primary ? 'border-t-2 border-t-[#FF7900]' : ''}`}>
+  <div className={`kit-stat ${SURFACE} rounded-lg p-5 ${primary ? 'border-t-2 border-t-[#F59E0B]' : ''}`}>
     <p className={`text-sm font-medium ${FG}`}>{label}</p>
     <p className={`text-xs ${MUTED}`}>{hint}</p>
     <p className={`mt-3 flex items-baseline gap-1.5 tabular-nums ${FG}`}>
@@ -201,7 +201,7 @@ const TrendChart = ({ data, options, height = 256 }) => {
             onClick={() => setKey(o.key)}
             aria-pressed={key === o.key}
             className={`rounded-md border px-3 py-1.5 text-xs font-medium transition-colors ${FOCUS} ${key === o.key
-              ? 'border-[#FF7900] bg-[var(--ops-canvas)] text-[var(--app-foreground)]'
+              ? 'border-[#F59E0B] bg-[var(--ops-canvas)] text-[var(--app-foreground)]'
               : `border-[var(--panel-border)] ${MUTED} hover:text-[var(--app-foreground)]`}`}
           >
             {o.label}
@@ -407,7 +407,7 @@ function PredictionIATab({ kitId }) {
                 <p className={`mt-2 text-base font-semibold ${FG}`}>{translateAlertTitle(alert?.title, priority)}</p>
                 {alert?.message && <p className={`mt-1 max-w-2xl text-sm leading-relaxed ${MUTED}`}>{alert.message}</p>}
                 {alert?.recommended_action && (
-                  <div className={`mt-4 rounded-md border-l-2 border-l-[#FF7900] ${SUBTLE} p-3 text-sm ${FG}`}>
+                  <div className={`mt-4 rounded-md border-l-2 border-l-[#F59E0B] ${SUBTLE} p-3 text-sm ${FG}`}>
                     <span className="font-semibold">À faire : </span>{alert.recommended_action}
                   </div>
                 )}
@@ -637,7 +637,7 @@ export default function SmartKitDetails() {
                 key={id} type="button" role="tab" aria-selected={activeTab === id}
                 onClick={() => setActiveTab(id)}
                 className={`whitespace-nowrap border-b-2 pb-3 text-sm font-medium transition-colors ${FOCUS} ${activeTab === id
-                  ? 'border-[#FF7900] text-[var(--app-foreground)]'
+                  ? 'border-[#F59E0B] text-[var(--app-foreground)]'
                   : `border-transparent ${MUTED} hover:text-[var(--app-foreground)]`}`}
               >
                 {label}
@@ -898,7 +898,7 @@ export default function SmartKitDetails() {
                     required
                     value={interventionForm.title}
                     onChange={(e) => setInterventionForm(f => ({ ...f, title: e.target.value }))}
-                    className="w-full rounded-md border border-[var(--panel-border)] bg-[var(--app-surface)] px-3 py-2 text-sm text-[var(--app-foreground)] placeholder-[var(--muted-foreground)] focus:border-[#FF7900] focus:outline-none focus:ring-1 focus:ring-[#FF7900]"
+                    className="w-full rounded-md border border-[var(--panel-border)] bg-[var(--app-surface)] px-3 py-2 text-sm text-[var(--app-foreground)] placeholder-[var(--muted-foreground)] focus:border-[#F59E0B] focus:outline-none focus:ring-1 focus:ring-[#F59E0B]"
                     placeholder="Ex: Remplacement du contrôleur"
                   />
                 </div>
@@ -909,7 +909,7 @@ export default function SmartKitDetails() {
                     rows={3}
                     value={interventionForm.description}
                     onChange={(e) => setInterventionForm(f => ({ ...f, description: e.target.value }))}
-                    className="w-full rounded-md border border-[var(--panel-border)] bg-[var(--app-surface)] px-3 py-2 text-sm text-[var(--app-foreground)] placeholder-[var(--muted-foreground)] focus:border-[#FF7900] focus:outline-none focus:ring-1 focus:ring-[#FF7900] resize-none"
+                    className="w-full rounded-md border border-[var(--panel-border)] bg-[var(--app-surface)] px-3 py-2 text-sm text-[var(--app-foreground)] placeholder-[var(--muted-foreground)] focus:border-[#F59E0B] focus:outline-none focus:ring-1 focus:ring-[#F59E0B] resize-none"
                     placeholder="Détails de l'anomalie et du matériel nécessaire..."
                   />
                 </div>
@@ -918,7 +918,7 @@ export default function SmartKitDetails() {
                   <select
                     value={interventionForm.priority}
                     onChange={(e) => setInterventionForm(f => ({ ...f, priority: e.target.value }))}
-                    className="w-full rounded-md border border-[var(--panel-border)] bg-[var(--app-surface)] px-3 py-2 text-sm text-[var(--app-foreground)] focus:border-[#FF7900] focus:outline-none focus:ring-1 focus:ring-[#FF7900]"
+                    className="w-full rounded-md border border-[var(--panel-border)] bg-[var(--app-surface)] px-3 py-2 text-sm text-[var(--app-foreground)] focus:border-[#F59E0B] focus:outline-none focus:ring-1 focus:ring-[#F59E0B]"
                   >
                     <option value="Basse">Basse</option>
                     <option value="Moyenne">Moyenne</option>
@@ -937,7 +937,7 @@ export default function SmartKitDetails() {
                   <button
                     type="submit"
                     disabled={createIntervention.isLoading}
-                    className="px-4 py-2 text-sm font-semibold rounded-md bg-[#FF7900] text-black hover:bg-[#FF8F2E] transition-colors disabled:opacity-50"
+                    className="px-4 py-2 text-sm font-semibold rounded-md bg-[#F59E0B] text-black hover:bg-[#FBBF24] transition-colors disabled:opacity-50"
                   >
                     {createIntervention.isLoading ? 'Création...' : 'Créer l\'intervention'}
                   </button>

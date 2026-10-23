@@ -1,19 +1,39 @@
-# Djua Energy — site vitrine
+# Djua Energy — Site Vitrine (React + TypeScript)
 
-Site de présentation statique, autonome et sans dépendance de framework.
+Application vitrine moderne, autonome et indépendante pour Djua Energy, conçue avec React 19, TypeScript, Tailwind CSS et Vite.
 
-## Lancer en local
+## Structure du projet
 
-Ouvrez `index.html` dans un navigateur, ou servez le dossier avec un serveur HTTP statique, par exemple :
+- `src/` : Code source React TypeScript
+  - `components/` : Composants modulaires (`Header`, `Hero`, `TrustMetrics`, `PartnersMarquee`, `EcosystemTabs`, `SupervisionSuite`, `Solutions`, `Pricing`, `Testimonials`, `ControlFeatures`, `Faq`, `Footer`, `PilotModal`)
+  - `App.tsx` : Assemblage principal du site
+  - `main.tsx` : Point d'entrée React
+  - `index.css` : Styles personnalisés, micro-animations, halos et keyframes
+- `index.html` : Shell HTML avec configuration Tailwind et typographies Google Fonts (Plus Jakarta Sans & Inter)
+- `index.legacy.html` : Sauvegarde de la version HTML statique d'origine
 
+## Démarrage rapide
+
+Installez les dépendances :
 ```sh
-python -m http.server 8000
+npm install
 ```
 
-Puis ouvrez <http://localhost:8000> depuis le dossier `frontend-site`.
+Lancez le serveur de développement en local :
+```sh
+npm run dev
+```
 
-## Avant publication
+Par défaut, l'application est accessible sur [http://localhost:5174](http://localhost:5174).
 
-- Confirmer que `contact@djua.com` est bien l’adresse de contact à publier.
-- Vérifier les droits de republication de `assets/solar-panels.jpg`.
-- Le graphique de suivi est une illustration et ne présente pas de données réelles.
+## Build de production
+
+Pour valider le typage TypeScript et créer le bundle de production optimisé :
+```sh
+npm run build
+```
+
+Pour prévisualiser le build généré :
+```sh
+npm run preview
+```

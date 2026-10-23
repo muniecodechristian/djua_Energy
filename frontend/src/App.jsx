@@ -9,6 +9,7 @@ import useAuthStore from './hooks/Zustand/useAuthStore.js';
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const CommercialDashboard = lazy(() => import('./pages/CommercialDashboard'));
 import LoginTeak from './pages/LoginTeak';
+import SiteVitrine from './pages/SiteVitrine';
 import MainLayout from './pages/MainLayout';
 const FleetStatusFeed = lazy(() => import('./pages/FleetStatusFeed'));
 const SmartKitDetails = lazy(() => import('./pages/SmartKitDetails'));
@@ -41,7 +42,7 @@ function App() {
           style: {
             background: '#111827',
             color: '#f9fafb',
-            border: '1px solid rgba(249, 115, 22, 0.4)',
+            border: '1px solid rgba(245, 158, 11, 0.4)',
             boxShadow: '0 18px 40px rgba(15, 23, 42, 0.35)',
           },
           success: { style: { borderColor: 'rgba(34, 197, 94, 0.5)' } },
@@ -50,8 +51,12 @@ function App() {
       />
       <SonnerToaster position="top-right" richColors closeButton />
       <Routes>
-        {/* Route publique */}
-        <Route path="/" element={<LoginTeak />} />
+        {/* Route publique principale : Site Vitrine */}
+        <Route path="/" element={<SiteVitrine />} />
+
+        {/* Page de connexion à l'application */}
+        <Route path="/login" element={<LoginTeak />} />
+        <Route path="/connexion" element={<Navigate to="/login" replace />} />
 
         {/* Espace dédié application Technicien */}
         <Route path="/technicien" element={<TechnicianApp />} />

@@ -1,7 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import { useLoginMutation } from '../hooks/tanstack/useAuthMutations.js';
+import useAuthStore from '../hooks/Zustand/useAuthStore.js';
+
+const LOGO_URL = "https://lh3.googleusercontent.com/aida-public/AB6AXuBjEVP6WMcrEsv2nLYSgS9v4WfV711u6ne8fa0aJHDt8jAPuumn7dzikn8PIFEYq7whxH5iUZF0Hp4b92Z9SI44LG4uRnir7pr0-ES6zx8j0xpVv2pEq-x2t_pioe64Plt7nSVa8R3qmC0HbNrrXrNmnwO6NR6nrr80S_g0KTAAhwU7TLDwQxylz9da34eGd7zyXiuyuz5ah02oKZx3i2MRdZVu6H3tfwGv5hNcm8A_UvHUSZdbWh7He3c3Alx5dlSJzww";
 
 // --- ICÔNES SVG INLINE (Zéro dépendance, performance maximale) ---
 const ArrowRightIcon = ({ className = "w-4 h-4" }) => (
@@ -61,7 +64,24 @@ export default function LoginDjuaEnergy() {
   const [password, setPassword] = useState('');
   
   const navigate = useNavigate();
+  const user = useAuthStore((state) => state.user);
   const loginMutation = useLoginMutation();
+
+  useEffect(() => {
+    if (user) {
+      const role = user.role;
+      navigate(
+        role === 'admin' || role === 'administration'
+          ? '/AdministrationSettings'
+          : role === 'commercial'
+          ? '/devis'
+          : role === 'technician'
+          ? '/technicien'
+          : '/dashboard',
+        { replace: true }
+      );
+    }
+  }, [user, navigate]);
 
   React.useEffect(() => {
     if (typeof document === 'undefined') return undefined;
@@ -133,8 +153,8 @@ export default function LoginDjuaEnergy() {
         >
           <defs>
             <linearGradient id="energyStream" x1="0%" y1="50%" x2="100%" y2="50%">
-              <stop offset="0%" stopColor={isDark ? '#ea580c' : '#f97316'} stopOpacity="0" />
-              <stop offset="50%" stopColor={isDark ? '#f97316' : '#f59e0b'} stopOpacity="0.35" />
+              <stop offset="0%" stopColor={isDark ? '#d97706' : '#f59e0b'} stopOpacity="0" />
+              <stop offset="50%" stopColor={isDark ? '#f59e0b' : '#f59e0b'} stopOpacity="0.35" />
               <stop offset="100%" stopColor={isDark ? '#eab308' : '#eab308'} stopOpacity="0" />
             </linearGradient>
           </defs>
@@ -181,8 +201,8 @@ export default function LoginDjuaEnergy() {
         >
           <defs>
             <radialGradient id="solarRayGrad" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor={isDark ? '#f97316' : '#eab308'} stopOpacity="1" />
-              <stop offset="60%" stopColor={isDark ? '#ea580c' : '#f97316'} stopOpacity="0.3" />
+              <stop offset="0%" stopColor={isDark ? '#f59e0b' : '#eab308'} stopOpacity="1" />
+              <stop offset="60%" stopColor={isDark ? '#d97706' : '#f59e0b'} stopOpacity="0.3" />
               <stop offset="100%" stopColor={isDark ? '#0a0a0a' : '#faf9f6'} stopOpacity="0" />
             </radialGradient>
           </defs>
@@ -202,7 +222,7 @@ export default function LoginDjuaEnergy() {
           <motion.div
             key={i}
             className={`absolute rounded-full pointer-events-none blur-[1px] ${
-              isDark ? 'bg-amber-400' : 'bg-orange-500'
+              isDark ? 'bg-amber-400' : 'bg-amber-500'
             }`}
             style={{
               left: particle.x,
@@ -233,19 +253,24 @@ export default function LoginDjuaEnergy() {
         animate="animate"
         className="relative z-10 w-full max-w-[390px] px-6 py-10 flex flex-col items-center"
       >
+        {/* LIEN RETOUR SITE VITRINE */}
+        <motion.div variants={fadeInUp} className="w-full mb-6">
+          <Link
+            to="/"
+            className={`inline-flex items-center gap-1.5 text-xs font-medium transition-colors ${
+              isDark ? 'text-neutral-400 hover:text-amber-400' : 'text-neutral-500 hover:text-amber-600'
+            }`}
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Retour au site Djua
+          </Link>
+        </motion.div>
         
         {/* LOGO DJUA ENERGY */}
         <motion.div variants={fadeInUp} className="flex items-center gap-2.5 mb-8 select-none">
-          <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors duration-300 ${
-            isDark ? 'bg-neutral-800 text-white' : 'bg-neutral-900 text-white'
-          }`}>
-            <svg viewBox="0 0 24 24" className="w-4.5 h-4.5 fill-current">
-              <path d="M12 2L2 19.72h20L12 2zm0 4.5l6.43 11.22H5.57L12 6.5z" />
-            </svg>
-          </div>
-          <span className={`text-xl font-bold tracking-tight transition-colors duration-300 ${
-            isDark ? 'text-neutral-100' : 'text-neutral-900'
-          }`}>Djua Energy</span>
+          <img src={LOGO_URL} alt="Djua Energy" className="h-9 w-auto object-contain" />
         </motion.div>
 
         {/* FORMULAIRE (Commence directement sous le logo) */}
@@ -261,8 +286,8 @@ export default function LoginDjuaEnergy() {
               required
               className={`w-full rounded-lg px-3.5 py-3 text-xs focus:outline-none focus:ring-1 transition-all ${
                 isDark 
-                  ? 'bg-[#141414] border border-neutral-900 focus:border-[var(--ops-line)] focus:ring-orange-500/20 text-neutral-100 placeholder:text-neutral-700' 
-                  : 'bg-white border border-neutral-200 focus:border-[var(--ops-line)] focus:ring-orange-500/10 text-neutral-900 placeholder:text-neutral-400'
+                  ? 'bg-[#141414] border border-neutral-900 focus:border-[var(--ops-line)] focus:ring-amber-500/20 text-neutral-100 placeholder:text-neutral-700' 
+                  : 'bg-white border border-neutral-200 focus:border-[var(--ops-line)] focus:ring-amber-500/10 text-neutral-900 placeholder:text-neutral-400'
               }`}
             />
           </motion.div>
@@ -278,8 +303,8 @@ export default function LoginDjuaEnergy() {
               required
               className={`w-full rounded-lg px-3.5 py-3 text-xs tracking-widest focus:outline-none focus:ring-1 transition-all ${
                 isDark 
-                  ? 'bg-[#141414] border border-neutral-900 focus:border-[var(--ops-line)] focus:ring-orange-500/20 text-neutral-100 placeholder:text-neutral-700' 
-                  : 'bg-white border border-neutral-200 focus:border-[var(--ops-line)] focus:ring-orange-500/10 text-neutral-900 placeholder:text-neutral-400'
+                  ? 'bg-[#141414] border border-neutral-900 focus:border-[var(--ops-line)] focus:ring-amber-500/20 text-neutral-100 placeholder:text-neutral-700' 
+                  : 'bg-white border border-neutral-200 focus:border-[var(--ops-line)] focus:ring-amber-500/10 text-neutral-900 placeholder:text-neutral-400'
               }`}
             />
           </motion.div>
@@ -291,7 +316,7 @@ export default function LoginDjuaEnergy() {
               whileHover={{ scale: 1.01 }}
               whileTap={{ scale: 0.99 }}
               disabled={loginMutation.isPending}
-              className={`w-full bg-[#ea580c] hover:bg-[#f97316] text-white font-bold py-3.5 rounded-lg flex items-center justify-center gap-1.5 shadow-md shadow-none text-xs transition-all ${
+              className={`w-full bg-[#F59E0B] hover:bg-[#D97706] text-black font-bold py-3.5 rounded-lg flex items-center justify-center gap-1.5 shadow-md shadow-none text-xs transition-all ${
                 loginMutation.isPending ? 'opacity-70 cursor-not-allowed' : ''
               }`}
             >
@@ -300,18 +325,18 @@ export default function LoginDjuaEnergy() {
             </motion.button>
           </motion.div>
         </form>
-        <Link to="/dashboard" className="mt-5 text-xs font-medium text-orange-600 hover:text-orange-500 underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-4">Consulter la supervision sans connexion</Link>
+        <Link to="/dashboard" className="mt-5 text-xs font-medium text-amber-600 hover:text-amber-500 underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-4">Consulter la supervision sans connexion</Link>
 
         {/* LIENS INFÉRIEURS */}
         <motion.div 
           variants={fadeInUp}
           className="mt-8 flex items-center gap-3 text-[10px] font-bold uppercase tracking-wider text-neutral-500"
         >
-          <a href="#" className="hover:text-[#ea580c] transition-colors">Mot de passe oublié ?</a>
+          <a href="#" className="hover:text-amber-500 transition-colors">Mot de passe oublié ?</a>
           <span className={`w-1 h-1 rounded-full ${isDark ? 'bg-neutral-800' : 'bg-neutral-300'}`} />
-          <a href="#" className="hover:text-[#ea580c] transition-colors">S'inscrire</a>
+          <a href="#" className="hover:text-amber-500 transition-colors">S'inscrire</a>
           <span className={`w-1 h-1 rounded-full ${isDark ? 'bg-neutral-800' : 'bg-neutral-300'}`} />
-          <a href="#" className="hover:text-[#ea580c] transition-colors">Mentions légales</a>
+          <a href="#" className="hover:text-amber-500 transition-colors">Mentions légales</a>
         </motion.div>
 
       </motion.div>

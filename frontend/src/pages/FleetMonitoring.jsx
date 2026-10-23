@@ -28,12 +28,12 @@ import api from '../api/axios.js';
 const geoUrl = 'https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json';
 
 const staticKpis = [
-  { title: 'KITS ACTIFS', value: '158,742', sub: '+2.1% ce mois', color: 'text-orange-400', stroke: '#f97316', spark: [12, 14, 13, 15, 16, 15, 18] },
-  { title: 'EN LIGNE', value: '147,510', sub: '92.9% de la flotte', color: 'text-orange-400', stroke: '#f97316', spark: [100, 105, 102, 110, 115, 120, 125] },
-  { title: 'AVERTISSEMENT', value: '7,810', sub: '4.9% de la flotte', color: 'text-orange-400', stroke: '#f97316', spark: [18, 16, 14, 15, 12, 13, 11] },
-  { title: 'HORS LIGNE / ERREUR', value: '3,422', sub: '2.2% de la flotte', color: 'text-orange-400', stroke: '#f97316', spark: [8, 9, 7, 10, 6, 8, 5] },
-  { title: 'PROD. MOY. / JOUR', value: '1.24 kWh', sub: '+12% vs 30j', color: 'text-orange-400', stroke: '#f97316', spark: [0.8, 0.9, 1.1, 1.0, 1.2, 1.24] },
-  { title: 'NIVEAU DE BATTERIE MOY.', value: '78%', sub: 'État optimal', color: 'text-orange-400', stroke: '#f97316', spark: [70, 72, 75, 74, 76, 78] },
+  { title: 'KITS ACTIFS', value: '158,742', sub: '+2.1% ce mois', color: 'text-amber-400', stroke: '#F59E0B', spark: [12, 14, 13, 15, 16, 15, 18] },
+  { title: 'EN LIGNE', value: '147,510', sub: '92.9% de la flotte', color: 'text-amber-400', stroke: '#F59E0B', spark: [100, 105, 102, 110, 115, 120, 125] },
+  { title: 'AVERTISSEMENT', value: '7,810', sub: '4.9% de la flotte', color: 'text-amber-400', stroke: '#F59E0B', spark: [18, 16, 14, 15, 12, 13, 11] },
+  { title: 'HORS LIGNE / ERREUR', value: '3,422', sub: '2.2% de la flotte', color: 'text-amber-400', stroke: '#F59E0B', spark: [8, 9, 7, 10, 6, 8, 5] },
+  { title: 'PROD. MOY. / JOUR', value: '1.24 kWh', sub: '+12% vs 30j', color: 'text-amber-400', stroke: '#F59E0B', spark: [0.8, 0.9, 1.1, 1.0, 1.2, 1.24] },
+  { title: 'NIVEAU DE BATTERIE MOY.', value: '78%', sub: 'État optimal', color: 'text-amber-400', stroke: '#F59E0B', spark: [70, 72, 75, 74, 76, 78] },
 ];
 
 const mapMarkers = [
@@ -50,11 +50,11 @@ const mapMarkers = [
 ];
 
 const initialLiveFeedEvents = [
-  { id: 'static-1', type: 'alert', text: 'KIT-K-87391 Alerte Surchauffe (Kinshasa)', time: '14:08', badge: 'Avertissement', color: 'text-orange-400 border-[var(--ops-line)]', isGeofence: false },
-  { id: 'static-2', type: 'connect', text: 'KIT-K-10293 Télémétrie rétablie (Goma)', time: '14:05', badge: 'En ligne', color: 'text-orange-400 border-[var(--ops-line)]', isGeofence: false },
-  { id: 'static-3', type: 'maint', text: 'KIT-K-99210 Maintenance terminée (Lubumbashi)', time: '13:58', badge: 'Résolu', color: 'text-orange-400 border-[var(--ops-line)]', isGeofence: false },
-  { id: 'static-4', type: 'install', text: 'KIT-K-33410 Nouveau kit activé (Matadi)', time: '13:45', badge: 'Actif', color: 'text-orange-400 border-[var(--ops-line)]', isGeofence: false },
-  { id: 'static-5', type: 'alert', text: 'KIT-K-00129 Batterie Critique <15% (Mbuji-Mayi)', time: '13:30', badge: 'Critique', color: 'text-orange-400 border-[var(--ops-line)]', isGeofence: false },
+  { id: 'static-1', type: 'alert', text: 'KIT-K-87391 Alerte Surchauffe (Kinshasa)', time: '14:08', badge: 'Avertissement', color: 'text-amber-400 border-[var(--ops-line)]', isGeofence: false },
+  { id: 'static-2', type: 'connect', text: 'KIT-K-10293 Télémétrie rétablie (Goma)', time: '14:05', badge: 'En ligne', color: 'text-amber-400 border-[var(--ops-line)]', isGeofence: false },
+  { id: 'static-3', type: 'maint', text: 'KIT-K-99210 Maintenance terminée (Lubumbashi)', time: '13:58', badge: 'Résolu', color: 'text-amber-400 border-[var(--ops-line)]', isGeofence: false },
+  { id: 'static-4', type: 'install', text: 'KIT-K-33410 Nouveau kit activé (Matadi)', time: '13:45', badge: 'Actif', color: 'text-amber-400 border-[var(--ops-line)]', isGeofence: false },
+  { id: 'static-5', type: 'alert', text: 'KIT-K-00129 Batterie Critique <15% (Mbuji-Mayi)', time: '13:30', badge: 'Critique', color: 'text-amber-400 border-[var(--ops-line)]', isGeofence: false },
 ];
 
 const MiniSparkline = ({ data, stroke }) => (
@@ -150,8 +150,8 @@ export default function FleetMonitoring() {
       title: 'ALERTES GÉOFENCE',
       value: geofenceAlertCount.toString(),
       sub: geofenceAlertCount > 0 ? '⚠ Kits hors périmètre' : 'Tous en zone',
-      color: geofenceAlertCount > 0 ? 'text-red-400' : 'text-orange-400',
-      stroke: geofenceAlertCount > 0 ? '#ef4444' : '#f97316',
+      color: geofenceAlertCount > 0 ? 'text-red-400' : 'text-amber-400',
+      stroke: geofenceAlertCount > 0 ? '#ef4444' : '#F59E0B',
       spark: [0, 0, 0, 0, 0, 0, geofenceAlertCount],
       isLive: true,
     },
@@ -176,13 +176,13 @@ export default function FleetMonitoring() {
             <input
               type="text"
               placeholder="Rechercher un kit, client..."
-              className="pl-8 pr-4 py-1.5 bg-transparent border border-slate-700 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-orange-500 w-48 lg:w-64"
+              className="pl-8 pr-4 py-1.5 bg-transparent border border-slate-700 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-amber-500 w-48 lg:w-64"
             />
           </div>
           <button className="px-3 py-1.5 bg-transparent border border-slate-700 rounded-lg text-xs text-slate-300 hover:border-slate-500 flex items-center gap-2 cursor-pointer">
             <Calendar size={14} /> 21 Avr 2026 - 19 Mai 2026
           </button>
-          <button className="px-3 py-1.5 border border-orange-600 text-orange-500 hover:bg-[var(--ops-canvas)] rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer">
+          <button className="px-3 py-1.5 border border-amber-600 text-amber-500 hover:bg-[var(--ops-canvas)] rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer">
             <Filter size={14} /> FILTRER
           </button>
         </div>
@@ -217,9 +217,9 @@ export default function FleetMonitoring() {
           <div className="bg-transparent border border-slate-800 rounded-xl p-4 flex flex-col h-full space-y-4">
             <div className="flex justify-between items-center pb-2 border-b border-slate-800">
               <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                <Filter size={14} className="text-orange-400" /> FILTRES
+                <Filter size={14} className="text-amber-400" /> FILTRES
               </h3>
-              <button className="text-[10px] text-orange-400 hover:text-orange-300 cursor-pointer font-medium">RÉINITIALISER</button>
+              <button className="text-[10px] text-amber-400 hover:text-amber-300 cursor-pointer font-medium">RÉINITIALISER</button>
             </div>
 
             <div className="space-y-3 flex-1 text-xs">
@@ -230,14 +230,14 @@ export default function FleetMonitoring() {
                   <input
                     type="text"
                     placeholder="Numéro de série, Nom..."
-                    className="w-full pl-7 pr-3 py-1.5 bg-transparent border border-slate-800 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-orange-500"
+                    className="w-full pl-7 pr-3 py-1.5 bg-transparent border border-slate-800 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-amber-500"
                   />
                 </div>
               </div>
 
               <div>
                 <label className="text-[10px] text-slate-400 block mb-1 uppercase tracking-wider font-medium">Espace Régional RDC</label>
-                <select className="w-full px-3 py-1.5 bg-transparent border border-slate-800 rounded-lg text-xs text-slate-300 focus:outline-none focus:border-orange-500">
+                <select className="w-full px-3 py-1.5 bg-transparent border border-slate-800 rounded-lg text-xs text-slate-300 focus:outline-none focus:border-amber-500">
                   <option className="bg-slate-900">Toutes les régions</option>
                   <option className="bg-slate-900">Kinshasa & Kongo Central</option>
                   <option className="bg-slate-900">Grand Katanga</option>
@@ -249,7 +249,7 @@ export default function FleetMonitoring() {
 
               <div>
                 <label className="text-[10px] text-slate-400 block mb-1 uppercase tracking-wider font-medium">Ville / Province</label>
-                <select className="w-full px-3 py-1.5 bg-transparent border border-slate-800 rounded-lg text-xs text-slate-300 focus:outline-none focus:border-orange-500">
+                <select className="w-full px-3 py-1.5 bg-transparent border border-slate-800 rounded-lg text-xs text-slate-300 focus:outline-none focus:border-amber-500">
                   <option className="bg-slate-900">Toutes les villes</option>
                   <option className="bg-slate-900">Kinshasa</option>
                   <option className="bg-slate-900">Lubumbashi</option>
@@ -266,16 +266,16 @@ export default function FleetMonitoring() {
                 <label className="text-[10px] text-slate-400 block mb-2 uppercase tracking-wider font-medium">Statut Opérationnel</label>
                 <div className="space-y-1.5">
                   <label className="flex items-center gap-2 text-[11px] text-slate-300 cursor-pointer">
-                    <input type="checkbox" defaultChecked className="rounded border-slate-700 bg-transparent text-orange-600 focus:ring-0 accent-orange-500" />
-                    <span className="w-2 h-2 rounded-full bg-orange-500"></span> En ligne / Actif
+                    <input type="checkbox" defaultChecked className="rounded border-slate-700 bg-transparent text-amber-600 focus:ring-0 accent-amber-500" />
+                    <span className="w-2 h-2 rounded-full bg-amber-500"></span> En ligne / Actif
                   </label>
                   <label className="flex items-center gap-2 text-[11px] text-slate-300 cursor-pointer">
-                    <input type="checkbox" defaultChecked className="rounded border-slate-700 bg-transparent text-orange-600 focus:ring-0 accent-orange-500" />
-                    <span className="w-2 h-2 rounded-full bg-orange-500"></span> Avertissement
+                    <input type="checkbox" defaultChecked className="rounded border-slate-700 bg-transparent text-amber-600 focus:ring-0 accent-amber-500" />
+                    <span className="w-2 h-2 rounded-full bg-amber-500"></span> Avertissement
                   </label>
                   <label className="flex items-center gap-2 text-[11px] text-slate-300 cursor-pointer">
-                    <input type="checkbox" defaultChecked className="rounded border-slate-700 bg-transparent text-orange-600 focus:ring-0 accent-orange-500" />
-                    <span className="w-2 h-2 rounded-full bg-orange-500"></span> Hors ligne / Critique
+                    <input type="checkbox" defaultChecked className="rounded border-slate-700 bg-transparent text-amber-600 focus:ring-0 accent-amber-500" />
+                    <span className="w-2 h-2 rounded-full bg-amber-500"></span> Hors ligne / Critique
                   </label>
                   <label className="flex items-center gap-2 text-[11px] text-red-400 cursor-pointer border border-red-900/30 rounded-lg px-2 py-1 mt-1 bg-red-950/10">
                     <input type="checkbox" defaultChecked className="rounded border-slate-700 bg-transparent focus:ring-0 accent-red-500" />
@@ -286,7 +286,7 @@ export default function FleetMonitoring() {
 
               <div>
                 <label className="text-[10px] text-slate-400 block mb-1 uppercase tracking-wider font-medium">Score de Santé</label>
-                <select className="w-full px-3 py-1.5 bg-transparent border border-slate-800 rounded-lg text-xs text-slate-300 focus:outline-none focus:border-orange-500">
+                <select className="w-full px-3 py-1.5 bg-transparent border border-slate-800 rounded-lg text-xs text-slate-300 focus:outline-none focus:border-amber-500">
                   <option className="bg-slate-900">Tous les scores</option>
                   <option className="bg-slate-900">Excellent (&gt;80)</option>
                   <option className="bg-slate-900">Moyen (50-80)</option>
@@ -296,7 +296,7 @@ export default function FleetMonitoring() {
 
               <div>
                 <label className="text-[10px] text-slate-400 block mb-1 uppercase tracking-wider font-medium">Niveau de Charge (SoC)</label>
-                <select className="w-full px-3 py-1.5 bg-transparent border border-slate-800 rounded-lg text-xs text-slate-300 focus:outline-none focus:border-orange-500">
+                <select className="w-full px-3 py-1.5 bg-transparent border border-slate-800 rounded-lg text-xs text-slate-300 focus:outline-none focus:border-amber-500">
                   <option className="bg-slate-900">Tous niveaux</option>
                   <option className="bg-slate-900">&gt; 50%</option>
                   <option className="bg-slate-900">20% - 50%</option>
@@ -305,7 +305,7 @@ export default function FleetMonitoring() {
               </div>
             </div>
 
-            <button className="w-full py-2 border border-orange-600 text-orange-500 hover:bg-[var(--ops-canvas)] rounded-lg text-xs font-semibold uppercase tracking-wider transition-colors mt-auto cursor-pointer">
+            <button className="w-full py-2 border border-amber-600 text-amber-500 hover:bg-[var(--ops-canvas)] rounded-lg text-xs font-semibold uppercase tracking-wider transition-colors mt-auto cursor-pointer">
               APPLIQUER LES FILTRES
             </button>
           </div>
@@ -320,11 +320,11 @@ export default function FleetMonitoring() {
                     key={tab}
                     onClick={() => setMapTab(tab)}
                     className={`text-xs font-bold tracking-wider pb-1 relative transition-colors cursor-pointer ${
-                      mapTab === tab ? 'text-orange-400' : 'text-slate-400 hover:text-slate-200'
+                      mapTab === tab ? 'text-amber-400' : 'text-slate-400 hover:text-slate-200'
                     }`}
                   >
                     {tab}
-                    {mapTab === tab && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-orange-500" />}
+                    {mapTab === tab && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-amber-500" />}
                   </button>
                 ))}
               </div>
@@ -363,7 +363,7 @@ export default function FleetMonitoring() {
                         style={{
                           default: { outline: 'none' },
                           hover: { fill: 'rgba(51, 65, 85, 0.2)', outline: 'none' },
-                          pressed: { fill: 'rgba(249, 115, 22, 0.2)', outline: 'none' },
+                          pressed: { fill: 'rgba(245, 158, 11, 0.2)', outline: 'none' },
                         }}
                       />
                     ))
@@ -378,8 +378,8 @@ export default function FleetMonitoring() {
                     className="cursor-pointer group"
                   >
                     <g transform="translate(-10, -10)">
-                      <circle cx="10" cy="10" r="8" className="opacity-40 animate-ping fill-orange-500" />
-                      <circle cx="10" cy="10" r="8" className="fill-transparent stroke-orange-500 stroke-2" />
+                      <circle cx="10" cy="10" r="8" className="opacity-40 animate-ping fill-amber-500" />
+                      <circle cx="10" cy="10" r="8" className="fill-transparent stroke-amber-500 stroke-2" />
                       <text x="10" y="12.5" textAnchor="middle" fill="#ffffff" fontSize="6.5" fontWeight="bold">
                         {marker.count > 10000 ? `${Math.round(marker.count / 1000)}k` : marker.count}
                       </text>
@@ -394,9 +394,9 @@ export default function FleetMonitoring() {
               </div>
 
               <div className="absolute left-3 bottom-3 border border-slate-800 p-2.5 rounded-lg text-[10px] space-y-1 z-10 font-medium backdrop-blur-sm">
-                <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-orange-500"></span> Normal (147,510)</div>
-                <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-orange-500"></span> Avertissement (7,810)</div>
-                <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-orange-500"></span> Critique (3,422)</div>
+                <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-amber-500"></span> Normal (147,510)</div>
+                <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-amber-500"></span> Avertissement (7,810)</div>
+                <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-amber-500"></span> Critique (3,422)</div>
                 {geofenceAlertCount > 0 && (
                   <div className="flex items-center gap-2 text-red-400 border-t border-slate-700/50 pt-1">
                     <ShieldAlert size={10} /> Géofence ({geofenceAlertCount})
@@ -414,7 +414,7 @@ export default function FleetMonitoring() {
             <div>
               <div className="flex justify-between items-center pb-2 border-b border-slate-800 mb-3">
                 <h3 className="text-xs font-bold text-white uppercase tracking-wider">KIT SÉLECTIONNÉ</h3>
-                <span className="text-[10px] text-orange-400 hover:text-orange-300 cursor-pointer flex items-center gap-0.5 font-medium">
+                <span className="text-[10px] text-amber-400 hover:text-amber-300 cursor-pointer flex items-center gap-0.5 font-medium">
                   DÉTAILS <ExternalLink size={10} />
                 </span>
               </div>
@@ -437,12 +437,12 @@ export default function FleetMonitoring() {
 
               <div className="flex items-center gap-3 border border-slate-800 p-3 rounded-xl">
                 <div className="w-12 h-14 bg-transparent rounded-lg flex items-center justify-center border border-slate-800 flex-shrink-0">
-                  <Box size={24} className="text-orange-400" />
+                  <Box size={24} className="text-amber-400" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between">
                     <h4 className="text-xs font-bold text-white truncate">{selectedKit}</h4>
-                    <span className="px-1.5 py-0.2 text-orange-400 border border-[var(--ops-line)] text-[9px] rounded font-semibold uppercase tracking-wide">● En ligne</span>
+                    <span className="px-1.5 py-0.2 text-amber-400 border border-[var(--ops-line)] text-[9px] rounded font-semibold uppercase tracking-wide">● En ligne</span>
                   </div>
                   <p className="text-[9px] text-slate-400 truncate mt-0.5">SN: RN87391V22K41</p>
                   <p className="text-[9px] text-slate-400 truncate">Modèle: Djua Home 200X</p>
@@ -454,8 +454,8 @@ export default function FleetMonitoring() {
             <div className="grid grid-cols-2 gap-2 text-center">
               <div className="border border-slate-800 p-2.5 rounded-xl">
                 <span className="text-[9px] text-slate-400 block uppercase tracking-wider font-medium">SCORE DE SANTÉ</span>
-                <span className="text-sm font-bold text-orange-400">89<span className="text-[9px] text-slate-500">/100</span></span>
-                <span className="text-[8px] text-orange-400/90 block font-medium uppercase">Bon état</span>
+                <span className="text-sm font-bold text-amber-400">89<span className="text-[9px] text-slate-500">/100</span></span>
+                <span className="text-[8px] text-amber-400/90 block font-medium uppercase">Bon état</span>
               </div>
               <div className="border border-slate-800 p-2.5 rounded-xl">
                 <span className="text-[9px] text-slate-400 block uppercase tracking-wider font-medium">BATTERIE (SOC)</span>
@@ -476,7 +476,7 @@ export default function FleetMonitoring() {
 
             <div className="space-y-2 text-[10px] border border-slate-800 p-3 rounded-xl font-medium">
               <div className="flex items-center gap-1.5 text-slate-300">
-                <MapPin size={12} className="text-orange-500 flex-shrink-0" />
+                <MapPin size={12} className="text-amber-500 flex-shrink-0" />
                 <span className="truncate">Ngaliema, Macampagne, Kinshasa, RDC</span>
               </div>
               <div className="flex justify-between text-slate-400 pt-1 border-t border-slate-800 uppercase">
@@ -485,7 +485,7 @@ export default function FleetMonitoring() {
               </div>
             </div>
 
-            <button className="w-full py-2 border border-orange-600 text-orange-500 hover:bg-[var(--ops-canvas)] rounded-lg text-xs font-semibold uppercase tracking-wider transition-colors mt-auto flex items-center justify-center gap-1.5 cursor-pointer">
+            <button className="w-full py-2 border border-amber-600 text-amber-500 hover:bg-[var(--ops-canvas)] rounded-lg text-xs font-semibold uppercase tracking-wider transition-colors mt-auto flex items-center justify-center gap-1.5 cursor-pointer">
               INSPECTER LE KIT <ArrowRight size={14} />
             </button>
           </div>
@@ -497,7 +497,7 @@ export default function FleetMonitoring() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3 pb-2 border-b border-slate-800">
             <div className="flex items-center gap-3">
               <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                <Activity size={14} className="text-orange-400" /> ÉVÉNEMENTS EN DIRECT
+                <Activity size={14} className="text-amber-400" /> ÉVÉNEMENTS EN DIRECT
               </h3>
               <div className="flex gap-2 flex-wrap">
                 {['Tous', 'Géofence', 'Erreurs', 'Maintenance', 'Installations'].map((f, i) => (
@@ -508,7 +508,7 @@ export default function FleetMonitoring() {
                       feedFilter === f
                         ? f === 'Géofence'
                           ? 'border border-red-600 text-red-400 bg-red-950/10'
-                          : 'border border-orange-600 text-orange-400'
+                          : 'border border-amber-600 text-amber-400'
                         : 'bg-transparent text-slate-400 hover:text-slate-200 border border-slate-800'
                     }`}
                   >
@@ -517,7 +517,7 @@ export default function FleetMonitoring() {
                 ))}
               </div>
             </div>
-            <button className="text-[10px] text-orange-400 hover:text-orange-300 font-semibold uppercase tracking-wider flex items-center gap-1 cursor-pointer">
+            <button className="text-[10px] text-amber-400 hover:text-amber-300 font-semibold uppercase tracking-wider flex items-center gap-1 cursor-pointer">
               VOIR LE JOURNAL COMPLET <ArrowRight size={10} />
             </button>
           </div>

@@ -77,7 +77,7 @@ export default function ClientHistoryTab({ client }) {
                   <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-3.5 hover:border-zinc-700/50 transition-all">
                     <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-900/40 pb-2 mb-2 text-[10px]">
                       <span className="flex items-center gap-1 text-zinc-400 font-medium">
-                        <Clock size={12} className="text-orange-500/80" />
+                        <Clock size={12} className="text-amber-500/80" />
                         {formatTime(entry.timestamp)}
                       </span>
                       <span className={`px-2 py-0.5 rounded flex items-center gap-1 font-semibold ${
@@ -111,7 +111,7 @@ export default function ClientHistoryTab({ client }) {
                       <div>
                         <span className="text-[9px] text-zinc-500 block uppercase font-semibold">Localisation</span>
                         <span className="text-zinc-200 font-mono flex items-center gap-1">
-                          <MapPin size={10} className="text-orange-500/60" />
+                          <MapPin size={10} className="text-amber-500/60" />
                           {d.latitude != null ? `${d.latitude.toFixed(4)}, ${d.longitude.toFixed(4)}` : 'Non disponible'}
                         </span>
                       </div>

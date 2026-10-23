@@ -17,7 +17,7 @@ import {
 const topKpis = [
   { title: 'Kits Actifs Totaux', value: '158,742', change: '+2.1%', isPos: true, icon: Zap, color: 'text-blue-400 border-blue-500/30', stroke: '#3b82f6', spark: [12,14,13,15,16,15,18,17,19] },
   { title: 'Énergie Totale Générée', value: '147,510 MWh', change: '+4.8%', isPos: true, icon: Activity, color: 'text-green-400 border-green-500/30', stroke: '#22c55e', spark: [100,110,105,120,125,130,147] },
-  { title: 'Incidents Critiques', value: '11', change: '-12.5%', isPos: true, icon: ShieldAlert, color: 'text-orange-400 border-[var(--ops-line)]', stroke: '#f97316', spark: [18,16,14,15,12,13,11] },
+  { title: 'Incidents Critiques', value: '11', change: '-12.5%', isPos: true, icon: ShieldAlert, color: 'text-amber-400 border-[var(--ops-line)]', stroke: '#F59E0B', spark: [18,16,14,15,12,13,11] },
   { title: 'Interventions Résolues', value: '712', change: '+8.5%', isPos: true, icon: CheckCircle2, color: 'text-purple-400 border-purple-500/30', stroke: '#a855f7', spark: [50,55,62,58,65,70,71.2] },
   { title: 'Revenu Total (FCFA)', value: '312.5M', change: '+5.2%', isPos: true, icon: DollarSign, color: 'text-emerald-400 border-emerald-500/30', stroke: '#10b981', spark: [280,290,285,300,305,312] },
   { title: 'CO2 Économisé', value: '127.4 t', change: '+10.1%', isPos: true, icon: Leaf, color: 'text-cyan-400 border-cyan-500/30', stroke: '#06b6d4', spark: [90,95,102,110,115,127] },
@@ -36,7 +36,7 @@ const gridDistributionData = [
   { name: 'Micro-réseau / Sur réseau', value: 41.2, color: '#3b82f6' },
   { name: 'Autonome hors réseau', value: 22.8, color: '#a855f7' },
   { name: 'Hubs commerciaux intelligents', value: 18.5, color: '#22c55e' },
-  { name: 'Hubs communautaires', value: 12.1, color: '#f97316' },
+  { name: 'Hubs communautaires', value: 12.1, color: '#F59E0B' },
   { name: 'Hybride', value: 5.4, color: '#06b6d4' },
 ];
 
@@ -114,7 +114,7 @@ export default function OperationsOverview() {
           <button className="px-3 py-1.5 bg-transparent border border-slate-800 rounded-lg text-xs text-slate-300 hover:bg-slate-800/50 flex items-center gap-2 cursor-pointer">
             <Sliders size={14} /> Filtres
           </button>
-          <button className="px-3 py-1.5 bg-[#FF7900] hover:bg-[#e06c00] text-white rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer shadow-[0_0_15px_rgba(255,121,0,0.3)]">
+          <button className="px-3 py-1.5 bg-[#F59E0B] hover:bg-[#D97706] text-white rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer shadow-[0_0_15px_rgba(245,158,11,0.3)]">
             <Download size={14} /> Exporter le Rapport
           </button>
         </div>
@@ -159,7 +159,7 @@ export default function OperationsOverview() {
               <span className="flex items-center gap-1.5"><span className="w-2 h-0.5 bg-green-500"></span><span className="text-slate-400">Disponibilité Réseau %</span></span>
               <span className="flex items-center gap-1.5"><span className="w-2 h-0.5 bg-purple-500"></span><span className="text-slate-400">Maint. Préventive %</span></span>
               <span className="flex items-center gap-1.5"><span className="w-2 h-0.5 bg-blue-500"></span><span className="text-slate-400">SLA Respecté %</span></span>
-              <span className="flex items-center gap-1.5"><span className="w-2 h-0.5 bg-orange-500"></span><span className="text-slate-400">Efficacité %</span></span>
+              <span className="flex items-center gap-1.5"><span className="w-2 h-0.5 bg-amber-500"></span><span className="text-slate-400">Efficacité %</span></span>
             </div>
 
             <div className="h-48 w-full">
@@ -171,7 +171,7 @@ export default function OperationsOverview() {
                   <Tooltip contentStyle={{ backgroundColor: '#111827', borderColor: '#1e293b', fontSize: '11px' }} />
                   <Line type="monotone" dataKey="availability" stroke="#22c55e" strokeWidth={1.5} dot={false} />
                   <Line type="monotone" dataKey="sla" stroke="#3b82f6" strokeWidth={1.5} dot={false} />
-                  <Line type="monotone" dataKey="efficiency" stroke="#f97316" strokeWidth={1.5} dot={false} />
+                  <Line type="monotone" dataKey="efficiency" stroke="#F59E0B" strokeWidth={1.5} dot={false} />
                   <Line type="monotone" dataKey="maint" stroke="#a855f7" strokeWidth={1.5} dot={false} />
                 </LineChart>
               </ResponsiveContainer>
@@ -218,7 +218,7 @@ export default function OperationsOverview() {
             </div>
             
             <div className="mt-2 text-center">
-              <button className="text-[10px] text-[#FF7900] hover:text-[#e06c00] cursor-pointer">Voir la carte topologique -&gt;</button>
+              <button className="text-[10px] text-[#F59E0B] hover:text-[#D97706] cursor-pointer">Voir la carte topologique -&gt;</button>
             </div>
           </Card>
         </motion.div>
@@ -294,7 +294,7 @@ export default function OperationsOverview() {
                       <td className="py-2.5 text-slate-300 font-mono">{row.eff}</td>
                       <td className="py-2.5 text-right">
                         <span className={`px-2 py-0.5 rounded-full text-[9px] font-medium bg-transparent border ${
-                          row.status === 'Nominal' ? 'text-green-400 border-green-500/30' : 'text-orange-400 border-[var(--ops-line)]'
+                          row.status === 'Nominal' ? 'text-green-400 border-green-500/30' : 'text-amber-400 border-[var(--ops-line)]'
                         }`}>
                           {row.status}
                         </span>
@@ -330,7 +330,7 @@ export default function OperationsOverview() {
         <motion.div variants={fadeUp} className="xl:col-span-4">
           <Card 
             title="RECOMMANDATIONS DU SYSTÈME IA" 
-            titleRight={<span className="text-[9px] text-[#FF7900] flex items-center gap-1"><Sparkles size={10} /> IA D3LIA</span>}
+            titleRight={<span className="text-[9px] text-[#F59E0B] flex items-center gap-1"><Sparkles size={10} /> IA D3LIA</span>}
             action="Voir toutes les recommandations -&gt;" 
             className="h-full"
           >
@@ -356,7 +356,7 @@ export default function OperationsOverview() {
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
         <div className="bg-[var(--ops-surface)] border border-[var(--ops-line)] rounded-xl p-3.5 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-transparent border border-[var(--ops-line)] text-[#FF7900] rounded-lg flex-shrink-0">
+            <div className="p-2 bg-transparent border border-[var(--ops-line)] text-[#F59E0B] rounded-lg flex-shrink-0">
               <Sparkles size={18} />
             </div>
             <div>
@@ -373,7 +373,7 @@ export default function OperationsOverview() {
             <button className="px-3 py-1.5 bg-transparent border border-slate-700 hover:bg-slate-800/50 text-slate-200 rounded-lg text-xs font-medium transition-colors cursor-pointer">
               Voir le Rapport Détaillé
             </button>
-            <button className="px-3 py-1.5 bg-[#FF7900] hover:bg-[#e06c00] text-white rounded-lg text-xs font-medium transition-colors cursor-pointer shadow-[0_0_15px_rgba(255,121,0,0.3)]">
+            <button className="px-3 py-1.5 bg-[#F59E0B] hover:bg-[#D97706] text-white rounded-lg text-xs font-medium transition-colors cursor-pointer shadow-[0_0_15px_rgba(245,158,11,0.3)]">
               Activer la Précharge Auto
             </button>
           </div>

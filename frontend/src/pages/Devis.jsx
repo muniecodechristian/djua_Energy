@@ -84,7 +84,7 @@ import SolarAdvisorResult, { SolarAdvisorTrigger } from '../components/SolarAdvi
 import { useCatalogProducts } from '../hooks/tanstack/useCatalogProducts';
 
 /* ────────────────────────────────────────────────────────────────────────────
-   DESIGN TOKENS — Orange RDC : noir, blanc, orange #FF7900, Helvetica Neue
+   DESIGN TOKENS — Orange RDC : noir, blanc, orange #F59E0B, Helvetica Neue
    Tout le thème passe par des variables CSS (clair / sombre) : plus de couleurs
    en dur dans le JSX, le mode clair fonctionne enfin partout.
 ──────────────────────────────────────────────────────────────────────────── */
@@ -1057,8 +1057,8 @@ function AddModal({ onClose, onAdd, defaultCategory = 'Multimédia' }) {
             
             <div className="dv-card space-y-4 p-4 border border-[var(--ops-line)]">
               <div className="flex items-center gap-2 mb-1">
-                <Sparkles size={16} className="text-[#ff7900]" />
-                <h4 className="text-sm font-bold text-[#ff7900]">Estimation de puissance</h4>
+                <Sparkles size={16} className="text-[#F59E0B]" />
+                <h4 className="text-sm font-bold text-[#F59E0B]">Estimation de puissance</h4>
               </div>
               <p className="dv-muted text-xs">Estimation locale indicative. La plaque signalétique ou la fiche du fabricant reste la référence.</p>
               <div className="flex gap-2">
@@ -1069,7 +1069,7 @@ function AddModal({ onClose, onAdd, defaultCategory = 'Multimédia' }) {
                   type="button" 
                   onClick={handleSmartFetch}
                   disabled={isSimulatingAI}
-                  className="dv-btn bg-[#ff7900] text-black hover:brightness-110 disabled:opacity-50 min-w-[120px]"
+                  className="dv-btn bg-[#F59E0B] text-black hover:brightness-110 disabled:opacity-50 min-w-[120px]"
                 >
                   {isSimulatingAI ? <Loader2 size={16} className="animate-spin" /> : 'Estimer'}
                 </button>
@@ -1134,10 +1134,10 @@ function AddModal({ onClose, onAdd, defaultCategory = 'Multimédia' }) {
               )}
               <div className="dv-device-preview-caption">
                 <div className="flex items-center gap-2 mb-1">
-                  <div className="p-1.5 rounded-lg bg-[var(--ops-canvas)] backdrop-blur-md border border-[var(--ops-line)] text-[#ff7900]">
+                  <div className="p-1.5 rounded-lg bg-[var(--ops-canvas)] backdrop-blur-md border border-[var(--ops-line)] text-[#F59E0B]">
                     <SelectedIcon size={16} />
                   </div>
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-[#ff7900]">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-[#F59E0B]">
                     {category}
                   </span>
                 </div>
@@ -1173,7 +1173,7 @@ function AddModal({ onClose, onAdd, defaultCategory = 'Multimédia' }) {
 
         <div className="flex items-center justify-end gap-3 border-t px-5 py-4" style={{ borderColor: 'var(--line)' }}>
           <button type="button" onClick={onClose} className="dv-btn dv-btn-ghost">Annuler</button>
-          <button type="button" onClick={handleAdd} className="dv-btn dv-btn-primary bg-[#ff7900] text-black hover:brightness-110"><Plus size={17} />Ajouter au devis</button>
+          <button type="button" onClick={handleAdd} className="dv-btn dv-btn-primary bg-[#F59E0B] text-black hover:brightness-110"><Plus size={17} />Ajouter au devis</button>
         </div>
       </motion.div>
     </motion.div>
@@ -1327,11 +1327,11 @@ function QuotePreview({ selectedProfile, selectedType, customType, companyForm, 
       <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} ref={dialogRef} role="dialog" aria-modal="true" aria-label="Proposition et suivi du devis" className="quote-print-sheet relative my-auto w-full max-w-5xl overflow-hidden rounded-2xl bg-white text-slate-950 shadow-2xl">
         <div className="flex items-center justify-between bg-black px-5 py-4 text-white sm:px-8">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center bg-[#ff7900] text-black"><FileText size={20} /></div>
+            <div className="flex h-10 w-10 items-center justify-center bg-[#F59E0B] text-black"><FileText size={20} /></div>
             <div><p className="text-sm font-bold">Votre proposition solaire</p><p className="text-xs text-slate-300">Dimensionnement et estimation · Djua Energy</p></div>
           </div>
           <div className="flex items-center gap-2 print:hidden">
-            <button type="button" onClick={() => window.print()} className="quote-actions inline-flex items-center gap-2 rounded-lg bg-[#ff7900] px-4 py-2 text-sm font-bold text-black transition hover:brightness-110"><Printer size={15} />Enregistrer en PDF</button>
+            <button type="button" onClick={() => window.print()} className="quote-actions inline-flex items-center gap-2 rounded-lg bg-[#F59E0B] px-4 py-2 text-sm font-bold text-black transition hover:brightness-110"><Printer size={15} />Enregistrer en PDF</button>
             <button type="button" onClick={onClose} aria-label="Fermer le devis" className="rounded-lg p-2 text-slate-300 transition hover:bg-white/10 hover:text-white"><X size={18} /></button>
           </div>
         </div>
@@ -1349,7 +1349,7 @@ function QuotePreview({ selectedProfile, selectedType, customType, companyForm, 
         <div className="quote-document p-5 sm:p-10" >
           <div className="flex flex-col justify-between gap-8 border-b border-slate-200 pb-8 sm:flex-row">
             <div>
-              <div className="mb-4 flex items-center gap-2"><span className="h-3 w-3 bg-[#ff7900]" /><span className="text-sm font-bold">Djua Energy × Orange RDC</span></div>
+              <div className="mb-4 flex items-center gap-2"><span className="h-3 w-3 bg-[#F59E0B]" /><span className="text-sm font-bold">Djua Energy × Orange RDC</span></div>
               <h2 className="text-3xl font-black tracking-tight sm:text-4xl">Une solution pensée pour vos usages</h2>
               <p className="mt-2 max-w-lg text-sm leading-relaxed text-slate-600">Une proposition dimensionnée selon vos usages, votre bâtiment et la charge estimée de votre site.</p>
             </div>
@@ -1369,7 +1369,7 @@ function QuotePreview({ selectedProfile, selectedType, customType, companyForm, 
           </div>
           <div className="mt-8 flex flex-col gap-8 sm:flex-row sm:justify-between">
             <div className="max-w-md border border-orange-200 bg-orange-50 p-4"><div className="mb-2 flex items-center gap-2 text-[#c25a00]"><Zap size={15} /><span className="text-sm font-bold">Base de dimensionnement</span></div><p className="text-sm leading-relaxed text-slate-700">Estimation basée sur {fmtEnergy(calc.dailyWh)}/jour, {appliances.length} équipement(s) et une puissance simultanée de {fmtPower(calc.simultaneousWatts)}. Les prix et caractéristiques seront confirmés après visite technique.</p></div>
-            <div className="w-full max-w-sm space-y-3 text-sm"><div className="flex justify-between"><span className="text-slate-500">Sous-total HT</span><strong>{formatAmount(subtotal)}</strong></div><div className="flex justify-between"><span className="text-slate-500">TVA (16%)</span><strong>{formatAmount(tax)}</strong></div><div className="mt-3 flex items-end justify-between border-t-2 border-black pt-4"><span className="font-black">Total TTC</span><strong className="text-2xl font-black text-[#ff7900]">{formatAmount(total)}</strong></div></div>
+            <div className="w-full max-w-sm space-y-3 text-sm"><div className="flex justify-between"><span className="text-slate-500">Sous-total HT</span><strong>{formatAmount(subtotal)}</strong></div><div className="flex justify-between"><span className="text-slate-500">TVA (16%)</span><strong>{formatAmount(tax)}</strong></div><div className="mt-3 flex items-end justify-between border-t-2 border-black pt-4"><span className="font-black">Total TTC</span><strong className="text-2xl font-black text-[#F59E0B]">{formatAmount(total)}</strong></div></div>
           </div>
           <div className="mt-10 grid gap-5 border-t border-slate-200 pt-6 text-xs text-slate-600 sm:grid-cols-3"><div><p className="mb-1 font-bold text-slate-950">Conditions de paiement</p><p>À définir avec l’équipe commerciale au moment de l’offre finale.</p></div><div><p className="mb-1 font-bold text-slate-950">Installation</p><p>Le calendrier sera confirmé après vérification du site.</p></div><div><p className="mb-1 font-bold text-slate-950">À retenir</p><p>Cette estimation n’est pas un engagement contractuel. Les prix et caractéristiques seront validés après étude technique.</p></div></div>
           <div className="mt-8 flex items-center justify-between text-xs font-semibold text-slate-400"><span>Merci pour votre confiance</span><span>Djua Energy · Énergie intelligente</span></div>

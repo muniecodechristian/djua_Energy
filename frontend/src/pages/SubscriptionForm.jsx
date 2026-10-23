@@ -15,7 +15,7 @@ const getInputClasses = (hasError) => `
   focus:outline-none focus:ring-1 transition-colors
   ${hasError 
     ? 'border-rose-500 focus:border-rose-500 focus:ring-rose-500' 
-    : 'border-zinc-800 focus:border-[#FF7900] focus:ring-[#FF7900]'
+    : 'border-zinc-800 focus:border-[#F59E0B] focus:ring-[#F59E0B]'
   }
 `;
 
@@ -55,7 +55,7 @@ const ClientTypeSelector = () => {
             <label
               key={type.id}
               className={`relative flex items-center justify-between p-4 rounded-xl border cursor-pointer transition-all duration-150 ${
-                isSelected ? 'bg-zinc-900 border-[#FF7900] text-white ring-1 ring-[#FF7900]' : 'bg-zinc-900/40 border-zinc-800 hover:border-zinc-700 text-zinc-400'
+                isSelected ? 'bg-zinc-900 border-[#F59E0B] text-white ring-1 ring-[#F59E0B]' : 'bg-zinc-900/40 border-zinc-800 hover:border-zinc-700 text-zinc-400'
               }`}
             >
               <input type="radio" value={type.id} {...register('clientType')} className="sr-only" />
@@ -63,7 +63,7 @@ const ClientTypeSelector = () => {
                 <p className="font-medium text-sm text-zinc-100">{type.label}</p>
                 <p className="text-xs text-zinc-500 mt-0.5">{type.desc}</p>
               </div>
-              <span className={`w-4 h-4 rounded-full border flex items-center justify-center ${isSelected ? 'border-[#FF7900] bg-[#FF7900]' : 'border-zinc-700'}`}>
+              <span className={`w-4 h-4 rounded-full border flex items-center justify-center ${isSelected ? 'border-[#F59E0B] bg-[#F59E0B]' : 'border-zinc-700'}`}>
                 {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-black" />}
               </span>
             </label>
@@ -257,9 +257,9 @@ const BillingSection = () => {
           <input type="number" min="1" {...register('monthsCount', { valueAsNumber: true })} className={getInputClasses()} />
         </div>
         <div>
-          <label className="block text-[11px] font-semibold text-[#FF7900] mb-1">Total Calculé ($)</label>
+          <label className="block text-[11px] font-semibold text-[#F59E0B] mb-1">Total Calculé ($)</label>
           {/* Input ReadOnly pur affichage */}
-          <input type="text" readOnly value={computedTotal.toFixed(2)} className="w-full bg-zinc-900/80 border border-[var(--ops-line)] rounded px-2.5 py-1.5 text-sm font-bold font-mono text-[#FF7900] cursor-not-allowed focus:outline-none" />
+          <input type="text" readOnly value={computedTotal.toFixed(2)} className="w-full bg-zinc-900/80 border border-[var(--ops-line)] rounded px-2.5 py-1.5 text-sm font-bold font-mono text-[#F59E0B] cursor-not-allowed focus:outline-none" />
         </div>
       </div>
     </div>
@@ -272,14 +272,14 @@ const TermsSection = () => {
   return (
     <div className="bg-zinc-900/40 border border-zinc-800 rounded-xl p-5 md:p-6 space-y-4">
       <label className="flex items-start gap-3 cursor-pointer group">
-        <input type="checkbox" {...register('acceptCommercialProspection')} className="mt-0.5 w-4 h-4 accent-[#FF7900] rounded bg-zinc-950 border-zinc-800 cursor-pointer" />
+        <input type="checkbox" {...register('acceptCommercialProspection')} className="mt-0.5 w-4 h-4 accent-[#F59E0B] rounded bg-zinc-950 border-zinc-800 cursor-pointer" />
         <span className="text-xs text-zinc-400 group-hover:text-zinc-300 transition-colors leading-relaxed">
           J'accepte de recevoir des informations et prospections commerciales provenant d'Orange RDC.
         </span>
       </label>
 
       <label className="flex items-start gap-3 cursor-pointer group">
-        <input type="checkbox" {...register('acceptTerms', { required: 'Veuillez accepter les conditions CGLV' })} className="mt-0.5 w-4 h-4 accent-[#FF7900] rounded bg-zinc-950 border-zinc-800 cursor-pointer" />
+        <input type="checkbox" {...register('acceptTerms', { required: 'Veuillez accepter les conditions CGLV' })} className="mt-0.5 w-4 h-4 accent-[#F59E0B] rounded bg-zinc-950 border-zinc-800 cursor-pointer" />
         <span className="text-xs text-zinc-400 group-hover:text-zinc-300 transition-colors leading-relaxed">
           Je déclare avoir pris connaissance et accepté les Conditions Générales de Location-Vente du service Orange Energies. <span className="text-rose-500">*</span>
         </span>
@@ -405,7 +405,7 @@ export default function SubscriptionForm() {
         </div>
         <div className="self-start sm:self-center">
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-mono bg-zinc-900 border border-zinc-800 text-zinc-300">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#FF7900]" />
+            <span className="w-1.5 h-1.5 rounded-full bg-[#F59E0B]" />
             Nouveau Dossier
           </span>
         </div>
@@ -430,7 +430,7 @@ export default function SubscriptionForm() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full py-3.5 px-6 rounded-xl bg-[#FF7900] hover:bg-[#e66d00] active:scale-[0.998] disabled:opacity-50 text-black font-semibold text-sm transition-all duration-150 cursor-pointer flex items-center justify-center gap-2"
+            className="w-full py-3.5 px-6 rounded-xl bg-[#F59E0B] hover:bg-[#D97706] active:scale-[0.998] disabled:opacity-50 text-black font-semibold text-sm transition-all duration-150 cursor-pointer flex items-center justify-center gap-2"
           >
             {isLoading ? (
               <span className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" />

@@ -29,7 +29,7 @@ const STATUS = {
 
 const SEV = {
   critical: 'bg-rose-500/10 text-rose-600 border-rose-500/20 dark:bg-rose-500/20 dark:text-rose-400',
-  high: 'bg-[var(--ops-canvas)] text-orange-600 border-[var(--ops-line)] dark:bg-[var(--ops-canvas)] dark:text-orange-400',
+  high: 'bg-[var(--ops-canvas)] text-amber-600 border-[var(--ops-line)] dark:bg-[var(--ops-canvas)] dark:text-amber-400',
   medium: 'bg-amber-500/10 text-amber-600 border-amber-500/20 dark:bg-amber-500/20 dark:text-amber-400',
   low: 'bg-sky-500/10 text-sky-600 border-sky-500/20 dark:bg-sky-500/20 dark:text-sky-400',
 };
@@ -88,7 +88,7 @@ function LeafletMap({ points }) {
               >
                 <Popup className="custom-popup rounded-2xl overflow-hidden shadow-xl border-0">
                   <div className="font-sans px-1 py-0.5">
-                    <Link to={detailUrl(p.kitId)} className="block text-sm font-bold text-zinc-900 mb-1">{p.kitId} <span className="block text-xs text-orange-700">Ouvrir la fiche</span></Link>
+                    <Link to={detailUrl(p.kitId)} className="block text-sm font-bold text-zinc-900 mb-1">{p.kitId} <span className="block text-xs text-amber-700">Ouvrir la fiche</span></Link>
                     <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider text-white shadow-sm" style={{ backgroundColor: color }}>
                       {STATUS[p.status].label}
                     </span>
@@ -153,7 +153,7 @@ export default function Dashboard() {
   const pctOps = kits.length > 0 ? Math.round((operational / kits.length) * 100) : 0;
 
   const kpis = [
-    { label: 'Kits installés', value: cv(kitsQuery, kits.length), hint: 'Parc total déployé', icon: Sun, accent: '#f97316', to: '/parc', pct: null },
+    { label: 'Kits installés', value: cv(kitsQuery, kits.length), hint: 'Parc total déployé', icon: Sun, accent: '#F59E0B', to: '/parc', pct: null },
     { label: 'Kits en ligne', value: kitsQuery.isError || kitsQuery.isPending ? '—' : cv(telemetryQuery, online), hint: 'Signal actif — < 5 min', icon: Radio, accent: '#10b981', to: '/parc', pct: pctOnline, pctColor: 'text-emerald-500 dark:text-emerald-400', liveIndicator: true },
     { label: 'Alertes ouvertes', value: cv(alertsQuery, alerts.length), hint: alertsQuery.isSuccess ? `${affected.size} kit(s) impacté(s)` : 'Source indisponible', icon: AlertTriangle, accent: '#f43f5e', to: '/notification', pct: pctCritical, pctColor: alerts.length > 0 ? 'text-rose-500 dark:text-rose-400' : 'text-zinc-500' },
     { label: 'Sans alerte active', value: kitsQuery.isError || kitsQuery.isPending ? '—' : cv(alertsQuery, operational), hint: 'Aucune alerte active', icon: CheckCircle2, accent: '#8b5cf6', to: '/parc', pct: pctOps, pctColor: 'text-violet-500 dark:text-violet-400' },

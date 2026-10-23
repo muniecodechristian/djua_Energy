@@ -11,8 +11,8 @@
   --dv-line: #e4e4da;
   --dv-ink: #20251f;
   --dv-muted: #697168;
-  --dv-orange: #e87827;
-  --dv-orange-soft: rgba(232, 120, 39, 0.1);
+  --dv-orange: #F59E0B;
+  --dv-orange-soft: rgba(245, 158, 11, 0.1);
   --dv-green: #536e52;
   --dv-green-soft: rgba(83, 110, 82, 0.1);
   --dv-error: #b84032;
@@ -36,8 +36,8 @@
   --dv-line: #353a33;
   --dv-ink: #f0efe8;
   --dv-muted: #a5a99e;
-  --dv-orange: #f28b43;
-  --dv-orange-soft: rgba(242, 139, 67, 0.14);
+  --dv-orange: #FCD34D;
+  --dv-orange-soft: rgba(252, 211, 77, 0.14);
   --dv-green: #9dbb91;
   --dv-green-soft: rgba(157, 187, 145, 0.13);
   --dv-error: #ff8678;
