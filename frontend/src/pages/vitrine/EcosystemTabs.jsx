@@ -83,7 +83,7 @@ export default function EcosystemTabs() {
 
   return (
     <section
-      className="py-20 md:py-28 bg-gradient-to-b from-white via-slate-50/50 to-white border-b border-slate-100 overflow-hidden"
+      className="py-28 md:py-36 bg-gradient-to-b from-white via-slate-50/50 to-white border-b border-slate-100 overflow-hidden"
       id="ecosysteme-monday"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">

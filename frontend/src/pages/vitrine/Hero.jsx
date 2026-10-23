@@ -4,7 +4,7 @@ const CONTROLLER_IMG = "https://lh3.googleusercontent.com/aida-public/AB6AXuAyUc
 
 export default function Hero({ onOpenPilot }) {
   return (
-    <section className="relative pt-12 pb-16 md:pt-20 md:pb-24 overflow-hidden subtle-dots border-b border-slate-100">
+    <section className="relative pt-16 pb-24 md:pt-28 md:pb-36 overflow-hidden subtle-dots border-b border-slate-100">
       {/* Background ambient orbs */}
       <i className="dj-orb a" aria-hidden="true" />
       <i className="dj-orb b" aria-hidden="true" />

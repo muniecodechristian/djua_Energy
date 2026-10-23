@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Maximize2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
@@ -10,16 +10,36 @@ import GeofenceSiteScene from './GeofenceSiteScene';
 import FleetGlobe from './FleetGlobe';
 import { useFleetPositions, positionSample, mergePositionSamples } from '../hooks/tanstack/useFleetPositions';
 
-export default function GeofenceSiteCard({ kits, alerts, records = [] }) {
+export default function GeofenceSiteCard({ kits, alerts, records = [], userZone }) {
   const [selection,setSelection]=useState('all');
-  const sites=useFleetPositions(kits,records);
+  const rawSites=useFleetPositions(kits,records);
+  const sites = useMemo(() => {
+    return rawSites.map(s => {
+      const kit = kits.find(k => k.kitId === s.kitId);
+      const kitAlerts = (alerts || []).filter(a => a.kitId === s.kitId && a.status === 'active');
+      const hasCritical = kitAlerts.some(a => a.type === 'geofence_exit' || a.severity === 'critical' || a.severity === 'high');
+      const hasWarning = kitAlerts.length > 0;
+      const status = hasCritical || kit?.status === 'alert' || kit?.status === 'incident'
+        ? 'alert'
+        : hasWarning || kit?.status === 'warning'
+        ? 'warning'
+        : (s.position || kit?.status === 'active' || kit?.status === 'online')
+        ? 'online'
+        : 'offline';
+      return {
+        ...s,
+        status,
+        hasAlert: kitAlerts.length > 0,
+      };
+    });
+  }, [rawSites, alerts, kits]);
   const card=useRef(null);
   const kitId=kits.some(k=>k.kitId===selection)?selection:null;
   return <section ref={card} className="dashboard-panel geofence-site-card" aria-label="Carte 3D du géofencing">
     <header className="dashboard-map-heading"><div><h2>World Map 3D</h2><p>Vue mondiale du parc et sites des kits</p></div><button type="button" className="geofence-expand" aria-label="Agrandir la carte 3D" title="Plein écran, Échap pour quitter" onClick={()=>{if(document.fullscreenElement)document.exitFullscreen();else card.current?.requestFullscreen?.().catch(()=>{});}}><Maximize2 size={14}/></button></header>
     {kitId?<Site key={kitId} kit={kits.find(k=>k.kitId===kitId)} kits={kits} alerts={alerts} onSelect={setSelection} fleetTrail={sites.find(s=>s.kitId===kitId)?.trail||[]}/>:<>
       <div className="geofence-site-selector"><label>Vue<select aria-label="Kit du site 3D" value="all" onChange={e=>setSelection(e.target.value)}><option value="all">Tous les kits</option>{kits.filter(k=>k.kitId).map(k=><option key={k.kitId} value={k.kitId}>{k.kitId}</option>)}</select></label></div>
-      <FleetGlobe sites={sites} onSelect={setSelection}/>
+      <FleetGlobe sites={sites} onSelect={setSelection} userZone={userZone}/>
       <div className="geofence-site-details"><strong className="fleet-overview-title">Vue d'ensemble du parc</strong><p className="geofence-source">Cliquez sur un repère ou choisissez un kit pour explorer son site. Les traces relient uniquement les points GPS reçus.</p><p className="geofence-source">{sites.filter(s=>!s.reference&&!s.position).length} kit(s) sans position GPS · Maisons représentées de manière schématique.</p></div>
     </>}
 

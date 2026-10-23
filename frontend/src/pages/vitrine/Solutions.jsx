@@ -3,7 +3,7 @@ import React from 'react';
 export default function Solutions({ onSelectSolution }) {
   return (
     <section
-      className="py-20 md:py-24 bg-slate-50/70 border-y border-slate-200/70"
+      className="py-28 md:py-36 bg-slate-50/70 border-y border-slate-200/70"
       data-purpose="use-cases"
       id="solutions"
     >

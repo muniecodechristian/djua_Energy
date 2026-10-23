@@ -12,7 +12,7 @@ export default function Footer() {
             <a className="inline-block" href="#" title="Djua Home">
               <img
                 alt="Djua Logo"
-                className="h-8 w-auto brightness-0 invert object-contain"
+                className="h-6 w-auto brightness-0 invert object-contain"
                 src={LOGO_URL}
               />
             </a>

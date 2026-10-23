@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   AlertTriangle, ArrowRight, BellRing, CalendarDays, CheckCircle2, ChevronRight,
-  ClipboardList, FileText, RefreshCw, Wifi, Wrench,
+  ClipboardList, FileText, PanelsTopLeft, RefreshCw, Wifi, Wrench,
 } from 'lucide-react';
 import api from '../api/axios';
 import PageEntrance from '../components/PageEntrance';
@@ -204,7 +204,7 @@ export default function CommercialDashboard() {
 
       <section className="commercial-shortcuts" aria-label="Accès rapides">
         <Link to="/devis"><ClipboardList size={16} /><span><strong>Nouveau dimensionnement</strong><small>Préparer une offre solaire</small></span><ArrowRight size={15} /></Link>
-        <Link to="/catalogue"><FileText size={16} /><span><strong>Catalogue équipements</strong><small>Consulter les produits partagés</small></span><ArrowRight size={15} /></Link>
+        <Link to="/parc"><PanelsTopLeft size={16} /><span><strong>Parc d’installations</strong><small>Suivi des kits et équipements</small></span><ArrowRight size={15} /></Link>
         <Link to="/rapports"><Wrench size={16} /><span><strong>Rapports d’activité</strong><small>Suivre vos ventes et résultats</small></span><ArrowRight size={15} /></Link>
       </section>
     </PageEntrance>

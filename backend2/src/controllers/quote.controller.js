@@ -61,7 +61,14 @@ export async function listQuotes(req, res) {
     }
     const page = Math.max(1, Math.min(10000, Number.parseInt(req.query.page, 10) || 1));
     const [quotes, total, stats, notices, kitIds, followUps, pendingAmounts] = await Promise.all([
-      Quote.find(filter).sort({ createdAt: -1, _id: -1 }).skip((page-1)*30).limit(30).lean(),
+      Quote.find(filter)
+        .populate('owner', 'nom prenom email role phone')
+        .populate('shopManager', 'nom prenom email phone')
+        .populate('validatedBy', 'nom prenom email')
+        .sort({ createdAt: -1, _id: -1 })
+        .skip((page-1)*30)
+        .limit(30)
+        .lean(),
       Quote.countDocuments(filter),
       Quote.aggregate([{ $match: scope }, { $group: {
         _id: '$status',
@@ -97,7 +104,11 @@ export async function listQuotes(req, res) {
 }
 export async function getQuote(req, res) {
   try {
-    const quote = await Quote.findOne({ ...quoteScope(req.user), number: String(req.params.number).toUpperCase() }).lean();
+    const quote = await Quote.findOne({ ...quoteScope(req.user), number: String(req.params.number).toUpperCase() })
+      .populate('owner', 'nom prenom email role phone')
+      .populate('shopManager', 'nom prenom email phone')
+      .populate('validatedBy', 'nom prenom email')
+      .lean();
     if(!quote) return fail(res,404,'Devis introuvable dans votre équipe.');
     if(req.user.role === 'technician' && !['approved','installed'].includes(quote.status)) return fail(res,409,'Ce devis n’est pas encore validé ou son installation est en cours.');
     if(req.user.role === 'technician' && quote.status === 'installed') return fail(res,409,'Ce devis est déjà associé à un kit installé.');

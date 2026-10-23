@@ -16,14 +16,17 @@ import { useSolarAsk } from '../hooks/tanstack/useSolarAdvisor';
 
 const KitExplorer = lazy(() => import('./KitExplorer'));
 
+import cleanAiText from '../lib/cleanAiText';
+
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-const fmtCurrency = (amount, currency = 'XAF') => {
+const fmtCurrency = (amount, currency = 'CDF') => {
   if (amount == null) return '—';
+  const c = (!currency || currency === 'XAF' || currency === 'CDF' || currency === 'FC') ? 'Francs' : currency;
   return new Intl.NumberFormat('fr-CD', {
     style: 'decimal',
     maximumFractionDigits: 0,
-  }).format(amount) + ' ' + currency;
+  }).format(amount) + ' ' + c;
 };
 
 const fmtWh = (wh) => {
@@ -302,8 +305,9 @@ function SolarChat({ recommendationId, open, onClose }) {
     setInput('');
     ask(q, {
       onSuccess: (data) => {
-        const text = data?.answer || data?.assistant_message || "Je n'ai pas pu générer une réponse.";
-        setMessages((prev) => [...prev, { id: Date.now() + 1, role: 'assistant', text }]);
+        const raw = data?.answer || data?.assistant_message || "Je n'ai pas pu générer une réponse.";
+        const text = cleanAiText(raw);
+        setMessages((prev) => [...prev, { id: Date.now() + 1, role: 'assistant', text, isNew: true }]);
       },
       onError: () => {
         setMessages((prev) => [...prev, {
@@ -341,7 +345,9 @@ export default function SolarAdvisorResult({ result, onClose, onContactRequest }
   const quote        = result.quote             || {};
   const alternatives = result.alternatives      || [];
   const explanationRaw = result.explanation || result.explication || result.summary || '';
-  const explanation  = Array.isArray(explanationRaw) ? explanationRaw : (explanationRaw ? [explanationRaw] : []);
+  const explanation  = Array.isArray(explanationRaw)
+    ? explanationRaw.map(cleanAiText)
+    : (explanationRaw ? [cleanAiText(explanationRaw)] : []);
   const assumptions  = result.assumptions       || [];
   const limitations  = result.limitations       || [];
   const missing      = result.missing_information || [];
@@ -359,7 +365,7 @@ export default function SolarAdvisorResult({ result, onClose, onContactRequest }
   const sysVoltage    = sizing.system_voltage_v;
   const ctrlA         = sizing.controller_current_a;
   const totalPrice    = quote.total_estimated;
-  const currency      = quote.currency || 'XAF';
+  const currency      = (quote.currency === 'XAF' || !quote.currency) ? 'CDF' : quote.currency;
   const dailyKwh      = consumption.total_daily_energy_kwh;
   const adjustedWh    = consumption.adjusted_daily_energy_wh;
   const simultaneousW = consumption.simultaneous_power_w;

@@ -17,8 +17,10 @@ import {
   Settings2,
   ShieldCheck,
   Sun,
+  UserPlus,
   Users,
   Wrench,
+  X,
 } from 'lucide-react';
 import PageEntrance from '../components/PageEntrance';
 import ThemeToggle from '../components/ThemeToggle';
@@ -189,11 +191,6 @@ function SettingsSectionContent({ activeSection, user, onSelectSection }) {
             <div><dt>Portée</dt><dd>Administration de la plateforme Djua Energy</dd></div>
           </dl>
         </section>
-        <section className="admin-settings-card admin-settings-action-card">
-          <div className="admin-settings-action-icon"><Users size={20} /></div>
-          <div><h2>Provisionner un accès</h2><p>Créez un responsable shop avec sa zone d’affectation.</p></div>
-          <button className="admin-settings-link" type="button" onClick={() => onSelectSection('equipes')}>Créer un responsable shop <ChevronRight size={15} aria-hidden="true" /></button>
-        </section>
       </div>
     );
   }
@@ -275,6 +272,7 @@ export default function AdministrationSettings() {
   const isAdmin = user?.role === 'admin' || user?.role === 'administration';
   const [activeSection, setActiveSection] = useState('organisation');
   const [preferences, setPreferences] = useState(readPreferences);
+  const [isCreateUserModalOpen, setIsCreateUserModalOpen] = useState(false);
 
   if (!isAdmin) return <Navigate to={user?.role === 'shop_manager' ? '/equipe' : '/dashboard'} replace />;
 
@@ -333,6 +331,43 @@ export default function AdministrationSettings() {
             : <SettingsSectionContent activeSection={activeSection} user={user} onSelectSection={selectSection} />}
         </main>
       </div>
+
+      {/* Floating Action Button (FAB) pour créer un utilisateur */}
+      <button
+        type="button"
+        className="admin-fab-create-user"
+        onClick={() => setIsCreateUserModalOpen(true)}
+        aria-label="Créer un utilisateur"
+        title="Créer un utilisateur"
+      >
+        <UserPlus size={18} />
+        <span>Créer un utilisateur</span>
+      </button>
+
+      {/* Modal de création d'utilisateur */}
+      {isCreateUserModalOpen && (
+        <div className="admin-create-user-modal-backdrop" onClick={() => setIsCreateUserModalOpen(false)}>
+          <div className="admin-create-user-modal" onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="modal-create-user-title">
+            <header className="flex items-center justify-between pb-3 mb-4 border-b border-zinc-200 dark:border-white/10">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center">
+                  <UserPlus size={18} />
+                </div>
+                <h2 id="modal-create-user-title" className="text-base font-bold text-zinc-900 dark:text-white">Créer un utilisateur</h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsCreateUserModalOpen(false)}
+                className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                aria-label="Fermer"
+              >
+                <X size={18} />
+              </button>
+            </header>
+            <TeamAccountForm onCreated={() => setIsCreateUserModalOpen(false)} />
+          </div>
+        </div>
+      )}
     </PageEntrance>
   );
 }

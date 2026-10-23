@@ -8,7 +8,7 @@ export default function Pricing({ onSelectTier }) {
 
   return (
     <section
-      className="py-20 md:py-28 bg-white border-t border-slate-100"
+      className="py-28 md:py-36 bg-white border-t border-slate-100"
       data-purpose="pricing-section"
       id="tarifs"
     >

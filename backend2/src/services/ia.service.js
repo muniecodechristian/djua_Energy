@@ -11,13 +11,26 @@ class IAService {
     });
   }
 
+  // ─── Nettoie les étoiles markdown (*, **, ***) et formate les listes ────────
+  cleanAiText(text) {
+    if (!text || typeof text !== 'string') return '';
+    return text
+      .replace(/^[\t ]*[\*\-][\t ]+/gm, '• ')
+      .replace(/\*\*\*(.*?)\*\*\*/g, '$1')
+      .replace(/\*\*(.*?)\*\*/g, '$1')
+      .replace(/\*(.*?)\*/g, '$1')
+      .replace(/\*/g, '')
+      .replace(/^[\t ]*#{1,6}[\t ]+/gm, '')
+      .trim();
+  }
+
   // ─── Normalise n'importe quel format de réponse ML → format interne unifié ───
   normalizeMLResponse(data, source) {
     // Format /ai/chat → { assistant_message, next_questions, used_ai, ... }
     if (data?.assistant_message) {
       return {
-        assistant_message: data.assistant_message,
-        next_questions: data.next_questions || [],
+        assistant_message: this.cleanAiText(data.assistant_message),
+        next_questions: (data.next_questions || []).map(q => this.cleanAiText(q)),
         can_recommend: data.can_recommend ?? false,
         used_ai: data.used_ai ?? true,
         source,
@@ -25,18 +38,19 @@ class IAService {
     }
     // Format /demo/kit-console/chat → { answer, used_llm, context, ... }
     if (data?.answer) {
+      const cleanAnswer = this.cleanAiText(data.answer);
       return {
-        assistant_message: data.answer,
-        answer: data.answer,
+        assistant_message: cleanAnswer,
+        answer: cleanAnswer,
         error: data.error,
-        next_questions: data.next_questions || [],
+        next_questions: (data.next_questions || []).map(q => this.cleanAiText(q)),
         can_recommend: false,
         used_ai: data.used_llm ?? false,
         source,
       };
     }
     // Fallback générique
-    const text = typeof data === 'string' ? data : JSON.stringify(data);
+    const text = typeof data === 'string' ? this.cleanAiText(data) : JSON.stringify(data);
     return {
       assistant_message: text || 'Réponse reçue du modèle.',
       next_questions: [],

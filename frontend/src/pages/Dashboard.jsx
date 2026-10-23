@@ -3,7 +3,7 @@ import PageEntrance from '../components/PageEntrance';
 import { revealGroup, revealItem } from '../lib/motion';
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { MapContainer, TileLayer, Popup, Circle, CircleMarker } from 'react-leaflet';
+import { MapContainer, TileLayer, Popup, Circle, CircleMarker, useMap } from 'react-leaflet';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import 'leaflet/dist/leaflet.css';
 import {
@@ -21,10 +21,29 @@ import {
 const GeofenceSiteCard = lazy(() => import('../components/GeofenceSiteCard'));
 
 /* ---------- Helpers de style avancés ---------- */
+import useAuthStore from '../hooks/Zustand/useAuthStore';
+
 const STATUS = {
-  alert: { label: 'Alerte', badge: 'bg-rose-500/10 text-rose-500 border-rose-500/20 dark:bg-rose-500/20 dark:text-rose-400 dark:border-rose-500/30', dot: '#f43f5e', hex: '#f43f5e' },
-  online: { label: 'Signal récent', badge: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:bg-emerald-500/20 dark:text-emerald-400 dark:border-emerald-500/30', dot: '#10b981', hex: '#10b981' },
-  offline: { label: 'À vérifier', badge: 'bg-zinc-500/10 text-zinc-600 border-zinc-500/20 dark:bg-zinc-500/20 dark:text-zinc-400 dark:border-zinc-500/30', dot: '#71717a', hex: '#71717a' },
+  active:   { label: 'Actif',         badge: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:bg-emerald-500/20 dark:text-emerald-400 dark:border-emerald-500/30', dot: '#10b981', hex: '#10b981' },
+  online:   { label: 'Actif',         badge: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:bg-emerald-500/20 dark:text-emerald-400 dark:border-emerald-500/30', dot: '#10b981', hex: '#10b981' },
+  verifier: { label: 'À vérifier',   badge: 'bg-amber-500/10 text-amber-600 border-amber-500/20 dark:bg-amber-500/20 dark:text-amber-400 dark:border-amber-500/30', dot: '#f59e0b', hex: '#f59e0b' },
+  warning:  { label: 'À vérifier',   badge: 'bg-amber-500/10 text-amber-600 border-amber-500/20 dark:bg-amber-500/20 dark:text-amber-400 dark:border-amber-500/30', dot: '#f59e0b', hex: '#f59e0b' },
+  alert:    { label: 'Alerte',        badge: 'bg-rose-500/10 text-rose-500 border-rose-500/20 dark:bg-rose-500/20 dark:text-rose-400 dark:border-rose-500/30',    dot: '#ef4444', hex: '#ef4444' },
+  critical: { label: 'Alerte',        badge: 'bg-rose-500/10 text-rose-500 border-rose-500/20 dark:bg-rose-500/20 dark:text-rose-400 dark:border-rose-500/30',    dot: '#ef4444', hex: '#ef4444' },
+  offline:  { label: 'Hors ligne',   badge: 'bg-zinc-500/10 text-zinc-600 border-zinc-500/20 dark:bg-zinc-500/20 dark:text-zinc-400 dark:border-zinc-500/30',    dot: '#6b7280', hex: '#6b7280' },
+};
+
+// Zone centers — used to auto-fit the map for shop managers
+const ZONE_CENTERS = {
+  kinshasa:   { center: [-4.3225, 15.3222], zoom: 11 },
+  lubumbashi: { center: [-11.6642, 27.4728], zoom: 11 },
+  goma:       { center: [-1.6792, 29.2235], zoom: 11 },
+  butembo:    { center: [0.1322, 29.2930], zoom: 11 },
+  bukavu:     { center: [-2.4908, 28.8579], zoom: 11 },
+  matadi:     { center: [-5.8160, 13.4600], zoom: 11 },
+  mbujimayi:  { center: [-6.1360, 23.5900], zoom: 11 },
+  kisangani:  { center: [0.5153, 25.1920], zoom: 11 },
+  default:    { center: [-4.0383, 21.7587], zoom: 5 },
 };
 
 const SEV = {
@@ -43,24 +62,58 @@ const containerAnim = revealGroup;
 const itemAnim = revealItem;
 const MotionLink = motion.create(Link);
 
-/* ---------- Carte Leaflet avec Geofencing ---------- */
-function LeafletMap({ points }) {
-  const defaultCenter = [-4.0383, 21.7587];
+function MapResizer() {
+  const map = useMap();
+  useEffect(() => {
+    map.invalidateSize();
+    const handleResize = () => map.invalidateSize();
+    window.addEventListener('resize', handleResize);
+    const t1 = setTimeout(() => map.invalidateSize(), 150);
+    const t2 = setTimeout(() => map.invalidateSize(), 600);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, [map]);
+  return null;
+}
 
+function MapCenterHandler({ center, zoom, points }) {
+  const map = useMap();
+  useEffect(() => {
+    if (points && points.length > 1) {
+      const coords = points.map(p => p.coords).filter(Boolean);
+      if (coords.length > 1) {
+        try {
+          map.fitBounds(coords, { padding: [50, 50], maxZoom: 13 });
+          return;
+        } catch {}
+      }
+    }
+    if (center && Array.isArray(center) && center.length === 2) {
+      map.setView(center, zoom || 11, { animate: true });
+    }
+  }, [center, zoom, points, map]);
+  return null;
+}
+
+/* ---------- Carte Leaflet avec Geofencing ---------- */
+function LeafletMap({ points, mapCenter = ZONE_CENTERS.default.center, mapZoom = ZONE_CENTERS.default.zoom }) {
   return (
     <div className="absolute inset-0 h-full w-full z-0" style={{ background: 'var(--background)' }}>
-      <MapContainer center={defaultCenter} zoom={5} className="h-full w-full outline-none" zoomControl={false}>
+      <MapContainer center={mapCenter} zoom={mapZoom} className="h-full w-full outline-none" zoomControl={false}>
+        <MapResizer />
+        <MapCenterHandler center={mapCenter} zoom={mapZoom} points={points} />
         <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           className="map-tiles grayscale-[20%] contrast-[110%] dark:invert dark:grayscale-[80%] dark:hue-rotate-180"
         />
-
-
         {points.map(p => {
           if (!p.coords) return null;
           const isSelected = false;
-          const color = STATUS[p.status]?.hex || '#71717a';
+          const color = STATUS[p.status]?.hex || '#6b7280';
 
           return (
             <div key={p.id}>
@@ -70,27 +123,26 @@ function LeafletMap({ points }) {
                 pathOptions={{
                   color: color,
                   fillColor: color,
-                  fillOpacity: isSelected ? 0.15 : 0.05,
+                  fillOpacity: isSelected ? 0.15 : 0.07,
                   weight: isSelected ? 1.5 : 0.5,
                   dashArray: isSelected ? '4 4' : undefined
                 }}
               />
-
               <CircleMarker
                 center={p.coords}
-                radius={isSelected ? 7 : 4}
+                radius={isSelected ? 8 : 6}
                 pathOptions={{
-                  color: isSelected ? '#fff' : 'transparent',
+                  color: '#fff',
                   fillColor: color,
                   fillOpacity: 1,
-                  weight: isSelected ? 2 : 0
+                  weight: 2
                 }}
               >
                 <Popup className="custom-popup rounded-2xl overflow-hidden shadow-xl border-0">
                   <div className="font-sans px-1 py-0.5">
                     <Link to={detailUrl(p.kitId)} className="block text-sm font-bold text-zinc-900 mb-1">{p.kitId} <span className="block text-xs text-amber-700">Ouvrir la fiche</span></Link>
                     <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider text-white shadow-sm" style={{ backgroundColor: color }}>
-                      {STATUS[p.status].label}
+                      {STATUS[p.status]?.label || p.status}
                     </span>
                   </div>
                 </Popup>
@@ -105,6 +157,7 @@ function LeafletMap({ points }) {
 
 export default function Dashboard() {
  const reduced = useReducedMotion();
+  const user = useAuthStore(state => state.user);
   const kitsQuery = useKitsQuery();
   const alertsQuery = useAlertsQuery();
   const telemetryQuery = useTelemetryQuery();
@@ -114,6 +167,12 @@ export default function Dashboard() {
   const [filter, setFilter] = useState('all');
   const [tab, setTab] = useState('overview');
   const navigate = useNavigate();
+
+  // Zone-aware map: if user has an assigned zone, center on it
+  const zoneKey = (user?.zone || '').toLowerCase().replace(/[\s-]/g, '');
+  const zoneConfig = ZONE_CENTERS[zoneKey] || ZONE_CENTERS.default;
+  const mapCenter = zoneConfig.center;
+  const mapZoom = zoneConfig.zoom;
 
   useEffect(() => {
     const interval = setInterval(() => setNow(Date.now()), 30000);
@@ -137,8 +196,25 @@ export default function Dashboard() {
     telemetryQuery.isError && 'télémétrie',
   ].filter(Boolean);
 
-  const cv = (q, n) => (q.isPending || q.isError ? '—' : n.toLocaleString('fr-FR'));
-  const statusOf = kit => (affected.has(kit.kitId) ? 'alert' : recent(kit) ? 'online' : 'offline');
+  const statusOf = kit => {
+    if (affected.has(kit.kitId) || kit.status === 'alert' || kit.status === 'incident' || kit.status === 'critical') return 'alert';
+    if (!recent(kit) && (kit.status === 'active' || kit.status === 'online')) return 'verifier';
+    if (kit.status === 'warning' || kit.status === 'verifier' || kit.status === 'a_verifier') return 'verifier';
+    if (recent(kit) || kit.status === 'online' || kit.status === 'active') return 'active';
+    return 'offline';
+  };
+
+  const isShopManager = user?.role === 'shop_manager';
+  const managerZone = (user?.zone || '').trim().toLowerCase().replace(/[\s-]/g, '');
+
+  // Si responsable de shop, centrer/filtrer sur son étendue ou zone assignée
+  const managerLocated = (isShopManager && managerZone)
+    ? located.filter(({ kit }) => {
+        const kZone = (kit.zone || '').trim().toLowerCase().replace(/[\s-]/g, '');
+        return kZone === managerZone || kit.shopManager === user?._id;
+      })
+    : located;
+  const activeLocated = (isShopManager && managerLocated.length > 0) ? managerLocated : located;
 
   const affectedKnown = kits.filter(kit => affected.has(kit.kitId)).length;
   const operational = kits.length - affectedKnown;
@@ -351,12 +427,19 @@ export default function Dashboard() {
             <div className="dashboard-geographic-pair">
             <section className={`${panel} dashboard-map`} aria-label="Carte du parc solaire">
               <header className="dashboard-map-heading">
-                <div><h2>Répartition du parc</h2><p>{cv(kitsQuery, located.length)} kits avec une position GPS</p></div>
+                <div>
+                  <h2>Répartition du parc {isShopManager && user?.zone && `(${user.zone})`}</h2>
+                  <p>{cv(kitsQuery, activeLocated.length)} kits localisés {isShopManager && user?.zone ? 'dans votre zone' : ''}</p>
+                </div>
                 <Link to="/parc">Ouvrir le parc <ArrowUpRight size={14}/></Link>
               </header>
               <div className="dashboard-map-viewport">
-                <LeafletMap points={located.map(({ kit, point }) => ({ id: kit.kitId || kit._id, kitId: kit.kitId, coords: point, status: statusOf(kit) }))} />
-                {located.length === 0 && (
+                <LeafletMap 
+                  points={activeLocated.map(({ kit, point }) => ({ id: kit.kitId || kit._id, kitId: kit.kitId, coords: point, status: statusOf(kit) }))}
+                  mapCenter={mapCenter}
+                  mapZoom={mapZoom}
+                />
+                {activeLocated.length === 0 && (
                   <div className="dashboard-map-empty">
                     <MapPin size={24} strokeWidth={1.5} />
                     <strong>{kitsQuery.isPending ? 'Chargement des positions…' : kitsQuery.isError ? 'Positions indisponibles' : 'Aucune position renseignée'}</strong>
@@ -365,12 +448,15 @@ export default function Dashboard() {
                 )}
               </div>
               <footer className="dashboard-map-legend">
-                {Object.entries(STATUS).map(([key, status]) => <span key={key}><i style={{ backgroundColor: status.dot }} />{status.label}</span>)}
+                <span><i style={{ backgroundColor: '#10b981' }} />Actif</span>
+                <span><i style={{ backgroundColor: '#f59e0b' }} />À vérifier</span>
+                <span><i style={{ backgroundColor: '#ef4444' }} />Alerte</span>
+                <span><i style={{ backgroundColor: '#6b7280' }} />Hors ligne</span>
                 <small>Zone de référence : 90 m</small>
               </footer>
             </section>
               <Suspense fallback={<section className="dashboard-panel geofence-site-card"><p className="geofence-empty" role="status">Chargement du site 3D…</p></section>}>
-                <GeofenceSiteCard kits={kits} alerts={alerts} records={asList(telemetryQuery.data)} />
+                <GeofenceSiteCard kits={kits} alerts={alerts} records={asList(telemetryQuery.data)} userZone={user?.zone} />
               </Suspense>
             </div>
 

@@ -44,7 +44,7 @@ export default function Header({ onOpenPilot }) {
             <a className="flex items-center gap-3 group" href="#" title="Djua Energy">
               <img
                 alt="Djua Logo"
-                className="h-8 sm:h-9 w-auto object-contain transition-transform duration-200 group-hover:scale-105"
+                className="h-6 sm:h-7 w-auto object-contain transition-transform duration-200 group-hover:scale-105"
                 src={LOGO_URL}
               />
             </a>

@@ -50,7 +50,9 @@ export default function Sidebar({ isSidebarOpen, setIsSidebarOpen }) {
   return <>
     <AnimatePresence>{isSidebarOpen && <motion.button initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: reduced ? 0 : 0.15 }} className="ops-backdrop" aria-label="Fermer la navigation" onClick={() => setIsSidebarOpen(false)} />}</AnimatePresence>
     <aside ref={panel} inert={mobile && !isSidebarOpen ? true : undefined} id="primary-navigation" className={'ops-sidebar ' + (collapsed ? 'is-collapsed ' : '') + (isSidebarOpen ? 'is-open' : '')}>
-      <Link to={role === 'admin' ? '/AdministrationSettings' : role === 'commercial' ? '/devis' : '/dashboard'} className="ops-brand" onClick={() => setIsSidebarOpen(false)}><span className="ops-brand-icon" style={{ background: 'transparent' }}><img src={LOGO_URL} alt="Djua Energy" style={{ width: '100%', height: '100%', objectFit: 'contain' }} /></span><span className="ops-nav-label"><strong>djua<span className="ops-brand-light"> energy</span></strong><small>SOLAR OPERATIONS</small></span></Link>
+      <Link to={role === 'admin' ? '/AdministrationSettings' : role === 'commercial' ? '/devis' : '/dashboard'} className="ops-brand ops-brand-logo-only" onClick={() => setIsSidebarOpen(false)} aria-label="Accueil Djua Energy">
+        <img src={LOGO_URL} alt="Djua Energy" className="ops-brand-logo-img" />
+      </Link>
       <button className="ops-mobile-close ops-icon-button" aria-label="Fermer le menu" onClick={() => setIsSidebarOpen(false)}><X size={18}/></button>
       <LayoutGroup id="primary-nav"><nav aria-label="Navigation principale">
         {sections.map(section => <div className="ops-nav-group" key={section}>

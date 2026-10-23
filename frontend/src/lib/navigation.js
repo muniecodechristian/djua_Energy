@@ -34,7 +34,7 @@ export function navigationForRole(role) {
   
   // Le commercial est uniquement là pour la partie devis, rien d'autre
   if (normalizedRole === 'commercial') {
-    const commercialPaths = ['/dashboard', '/devis', '/parc', '/rapports', '/catalogue'];
+    const commercialPaths = ['/dashboard', '/devis', '/parc', '/rapports'];
     return navigation.filter(item => commercialPaths.includes(item.path))
       .sort((left, right) => commercialPaths.indexOf(left.path) - commercialPaths.indexOf(right.path))
       .map(item => ({

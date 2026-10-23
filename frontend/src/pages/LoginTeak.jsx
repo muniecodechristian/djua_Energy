@@ -253,21 +253,6 @@ export default function LoginDjuaEnergy() {
         animate="animate"
         className="relative z-10 w-full max-w-[390px] px-6 py-10 flex flex-col items-center"
       >
-        {/* LIEN RETOUR SITE VITRINE */}
-        <motion.div variants={fadeInUp} className="w-full mb-6">
-          <Link
-            to="/"
-            className={`inline-flex items-center gap-1.5 text-xs font-medium transition-colors ${
-              isDark ? 'text-neutral-400 hover:text-amber-400' : 'text-neutral-500 hover:text-amber-600'
-            }`}
-          >
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
-            Retour au site Djua
-          </Link>
-        </motion.div>
-        
         {/* LOGO DJUA ENERGY */}
         <motion.div variants={fadeInUp} className="flex items-center gap-2.5 mb-8 select-none">
           <img src={LOGO_URL} alt="Djua Energy" className="h-9 w-auto object-contain" />

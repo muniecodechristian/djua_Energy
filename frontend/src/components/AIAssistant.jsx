@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import api from "../api/axios";
 import { useVoiceInput } from "../hooks/useVoiceInput";
+import cleanAiText from "../lib/cleanAiText";
 import "./AIAssistant.css";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -43,23 +44,30 @@ const getFriendlyAIError = (error) => {
 // ─── Composant bulle de message IA ───────────────────────────────────────────
 
 const AIMessageBubble = ({ msg, handleCopy, copiedId, onSuggestionClick }) => {
+  const clean = React.useMemo(() => cleanAiText(msg.text), [msg.text]);
   const [isTyping, setIsTyping] = useState(msg.isNew);
-  const [displayedText, setDisplayedText] = useState(msg.isNew ? "" : msg.text);
+  const [displayedText, setDisplayedText] = useState(msg.isNew ? "" : clean);
 
   useEffect(() => {
-    if (!msg.isNew) return;
+    if (!msg.isNew) {
+      setDisplayedText(clean);
+      setIsTyping(false);
+      return;
+    }
     let index = 0;
+    setIsTyping(true);
     const interval = setInterval(() => {
-      if (index < msg.text.length) {
-        setDisplayedText((prev) => prev + msg.text.charAt(index));
-        index++;
-      } else {
-        clearInterval(interval);
+      index += 2;
+      if (index >= clean.length) {
+        setDisplayedText(clean);
         setIsTyping(false);
+        clearInterval(interval);
+      } else {
+        setDisplayedText(clean.slice(0, index));
       }
-    }, 10);
+    }, 12);
     return () => clearInterval(interval);
-  }, [msg.isNew, msg.text]);
+  }, [msg.isNew, clean]);
 
   return (
     <div className="flex flex-col gap-2 w-full">
@@ -355,23 +363,23 @@ export default function AIAssistant() {
   const extractAIPayload = (payload) => {
     const data = payload?.data ?? payload;
     if (!data) return { text: "Aucune réponse reçue.", nextQuestions: [] };
-    if (data.answer) return { text: data.answer, nextQuestions: data.next_questions || data.nextQuestions || [] };
-    if (data.assistant_message) return { text: data.assistant_message, nextQuestions: data.next_questions || [] };
+    if (data.answer) return { text: cleanAiText(data.answer), nextQuestions: (data.next_questions || data.nextQuestions || []).map(cleanAiText) };
+    if (data.assistant_message) return { text: cleanAiText(data.assistant_message), nextQuestions: (data.next_questions || []).map(cleanAiText) };
     if (data.error || data.errors) return { text: "L'assistant est momentanément indisponible. Réessayez dans quelques instants.", nextQuestions: [] };
-    if (typeof data === "string") return { text: data, nextQuestions: [] };
+    if (typeof data === "string") return { text: cleanAiText(data), nextQuestions: [] };
     if (typeof data === "object") {
-      if (typeof data.message === "string") return { text: data.message, nextQuestions: [] };
-      if (typeof data.text === "string") return { text: data.text, nextQuestions: [] };
-      if (typeof data.reply === "string") return { text: data.reply, nextQuestions: [] };
+      if (typeof data.message === "string") return { text: cleanAiText(data.message), nextQuestions: [] };
+      if (typeof data.text === "string") return { text: cleanAiText(data.text), nextQuestions: [] };
+      if (typeof data.reply === "string") return { text: cleanAiText(data.reply), nextQuestions: [] };
       if (Array.isArray(data)) return { text: data.map(d => extractAIPayload(d).text).join("\n"), nextQuestions: [] };
       if (data.choices?.[0]) {
         const c = data.choices[0];
-        if (typeof c.text === "string") return { text: c.text, nextQuestions: [] };
-        if (c.message && typeof c.message.content === "string") return { text: c.message.content, nextQuestions: [] };
+        if (typeof c.text === "string") return { text: cleanAiText(c.text), nextQuestions: [] };
+        if (c.message && typeof c.message.content === "string") return { text: cleanAiText(c.message.content), nextQuestions: [] };
       }
       return { text: "Je n'ai pas pu interpréter cette réponse. Vous pouvez reformuler votre demande.", nextQuestions: [] };
     }
-    return { text: String(data), nextQuestions: [] };
+    return { text: cleanAiText(String(data)), nextQuestions: [] };
   };
 
   const handleKeyDown = (e) => {

@@ -9,6 +9,44 @@ const mlClient = axios.create({
   headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
 });
 
+function cleanAsterisks(text) {
+  if (!text || typeof text !== 'string') return text;
+  return text
+    .replace(/^[\t ]*[\*\-][\t ]+/gm, '• ')
+    .replace(/\*\*\*(.*?)\*\*\*/g, '$1')
+    .replace(/\*\*(.*?)\*\*/g, '$1')
+    .replace(/\*(.*?)\*/g, '$1')
+    .replace(/\*/g, '')
+    .replace(/^[\t ]*#{1,6}[\t ]+/gm, '')
+    .trim();
+}
+
+function sanitizeSolarData(data) {
+  if (!data || typeof data !== 'object') return data;
+  if (data.quote) {
+    if (!data.quote.currency || data.quote.currency === 'XAF') data.quote.currency = 'CDF';
+    if (Array.isArray(data.quote.items)) {
+      data.quote.items.forEach(it => {
+        if (!it.currency || it.currency === 'XAF') it.currency = 'CDF';
+      });
+    }
+  }
+  if (data.financial_plan && (!data.financial_plan.currency || data.financial_plan.currency === 'XAF')) {
+    data.financial_plan.currency = 'CDF';
+  }
+  if (data.answer) data.answer = cleanAsterisks(data.answer);
+  if (data.assistant_message) data.assistant_message = cleanAsterisks(data.assistant_message);
+  if (data.explanation) {
+    if (typeof data.explanation === 'string') data.explanation = cleanAsterisks(data.explanation);
+    else if (Array.isArray(data.explanation)) data.explanation = data.explanation.map(cleanAsterisks);
+  }
+  if (data.summary) {
+    if (typeof data.summary === 'string') data.summary = cleanAsterisks(data.summary);
+    else if (Array.isArray(data.summary)) data.summary = data.summary.map(cleanAsterisks);
+  }
+  return data;
+}
+
 // ─── Helper : proxy générique vers l'API ML (pour les autres routes) ────────
 async function proxyToML(method, path, data, res) {
   if (!ML_BASE) {
@@ -23,13 +61,8 @@ async function proxyToML(method, path, data, res) {
       : await mlClient.post(path, data);
 
     console.log(`[Solar]  ${method.toUpperCase()} ${path} → ${mlRes.status}`);
-    console.log('\n════════════════════════════════════════════════════════════════');
-    console.log(`  [Solar API Proxy] RÉPONSE de ${path} — HTTP ${mlRes.status}`);
-    console.log('════════════════════════════════════════════════════════════════');
-    console.log(JSON.stringify(mlRes.data, null, 2));
-    console.log('════════════════════════════════════════════════════════════════\n');
-    
-    return res.json({ success: true, data: mlRes.data });
+    const sanitized = sanitizeSolarData(mlRes.data);
+    return res.json({ success: true, data: sanitized });
   } catch (err) {
     const status = err.response?.status || 0;
     const body = err.response?.data;
@@ -167,7 +200,8 @@ export async function recommend(req, res) {
     console.log(JSON.stringify(mlRes.data, null, 2));
     console.log('════════════════════════════════════════════════════════════════\n');
 
-    return res.json({ success: true, data: mlRes.data });
+    const sanitized = sanitizeSolarData(mlRes.data);
+    return res.json({ success: true, data: sanitized });
   } catch (err) {
     const elapsed = Date.now() - startTime;
     const status = err.response?.status || 0;

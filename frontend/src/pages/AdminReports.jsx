@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import {
   Activity, AlertTriangle, ArrowDownToLine, BarChart3, CalendarDays, CheckCircle2, ChevronDown,
   ChevronRight, CircleAlert, Clock3, FileText, Gauge, Leaf, MapPin, RefreshCw,
-  Save, Search, Users, Wrench, X,
+  Save, Search, Users, Wrench, X, Eye,
 } from 'lucide-react';
 import {
   Area, AreaChart, CartesianGrid, Cell, Legend, Line, LineChart, Pie, PieChart,
@@ -16,6 +16,7 @@ import { useGetInterventions } from '../hooks/tanstack/useInterventions';
 import { useAlertsQuery, useKitsQuery, useTelemetryQuery } from '../hooks/tanstack/useKitQueries';
 import { activeAlerts, asList, formatDate } from '../lib/operations';
 import useAuthStore from '../hooks/Zustand/useAuthStore';
+import QuoteDetailModal from '../components/QuoteDetailModal';
 import './AdminReports.css';
 
 const tabs = [
@@ -213,6 +214,7 @@ export default function AdminReports() {
   const [reportGenerated, setReportGenerated] = useState(false);
   const [templateMessage, setTemplateMessage] = useState(initialReportTemplate.message);
   const [reportFormat, setReportFormat] = useState('csv');
+  const [selectedReportQuote, setSelectedReportQuote] = useState(null);
 
   const quotesQuery = useQuery({
     queryKey: ['sales-quotes', user?._id, 'reports'],
@@ -537,7 +539,7 @@ export default function AdminReports() {
         </div>
         <section className="reports-card reports-detail-card">
           <header className="reports-card-title"><div><h2>Devis de la période</h2><p>{quotesQuery.isSuccess ? `${numberFormat.format(quotes.length)} devis correspondant aux filtres.` : 'Données commerciales issues des devis enregistrés.'}</p></div><label className="reports-search"><Search size={15} /><input aria-label="Rechercher un devis" placeholder="Client, numéro, province…" value={search} onChange={event => setSearch(event.target.value)} /></label></header>
-          {quotesQuery.isPending ? <ListSkeleton /> : quotesQuery.isError ? null : quotes.length === 0 ? <EmptyChart>Aucun devis ne correspond à cette période et à cette province.</EmptyChart> : <div className="ops-table-scroll"><table className="ops-table reports-table"><thead><tr><th>Devis</th><th>Client</th><th>Province</th><th>Dimensionnement</th><th>Statut</th><th>Date</th><th>Montant</th></tr></thead><tbody>{quotes.filter(quote => [quote.number, quote.customer?.name, getProvince(quote)].join(' ').toLowerCase().includes(search.trim().toLowerCase())).map(quote => <tr key={quote._id || quote.number}><td><strong>{quote.number || 'Devis'}</strong></td><td>{quote.customer?.name || 'Client non renseigné'}</td><td>{getProvince(quote) || '—'}</td><td>{numberFormat.format(quote.system?.panels || 0)} panneaux<small>{numberFormat.format(quote.system?.panelPower || 0)} W / panneau</small></td><td><span className={`reports-status-pill status-${quote.status || 'draft'}`}><i />{statusLabels[quote.status] || quote.status || 'Inconnu'}</span></td><td>{formatDate(quote.createdAt)}</td><td>{Number(quote.amount || 0).toLocaleString('fr-FR')} {quote.currency || ''}</td></tr>)}</tbody></table></div>}
+          {quotesQuery.isPending ? <ListSkeleton /> : quotesQuery.isError ? null : quotes.length === 0 ? <EmptyChart>Aucun devis ne correspond à cette période et à cette province.</EmptyChart> : <div className="ops-table-scroll"><table className="ops-table reports-table"><thead><tr><th>Devis</th><th>Client</th><th>Province</th><th>Dimensionnement</th><th>Statut</th><th>Date</th><th>Montant</th><th>Détails</th></tr></thead><tbody>{quotes.filter(quote => [quote.number, quote.customer?.name, getProvince(quote)].join(' ').toLowerCase().includes(search.trim().toLowerCase())).map(quote => <tr key={quote._id || quote.number}><td><strong>{quote.number || 'Devis'}</strong></td><td>{quote.customer?.name || 'Client non renseigné'}</td><td>{getProvince(quote) || '—'}</td><td>{numberFormat.format(quote.system?.panels || 0)} panneaux<small>{numberFormat.format(quote.system?.panelPower || 0)} W / panneau</small></td><td><span className={`reports-status-pill status-${quote.status || 'draft'}`}><i />{statusLabels[quote.status] || quote.status || 'Inconnu'}</span></td><td>{formatDate(quote.createdAt)}</td><td>{Number(quote.amount || 0).toLocaleString('fr-FR')} {quote.currency === 'CDF' || !quote.currency ? 'FC' : quote.currency}</td><td><button type="button" className="ops-button" style={{ padding: '4px 8px', fontSize: 11, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5 }} onClick={() => setSelectedReportQuote(quote)}><Eye size={12} /> Voir</button></td></tr>)}</tbody></table></div>}
         </section>
       </div>}
 
@@ -607,6 +609,13 @@ export default function AdminReports() {
           {interventionsQuery.isPending ? <ListSkeleton /> : interventionsQuery.isError ? null : filteredInterventions.length === 0 ? <div className="reports-empty-chart"><FileText size={20} /><span>{interventions.some(item => item.report?.trim()) ? 'Aucun compte-rendu ne correspond aux filtres.' : 'Les rapports apparaîtront ici lorsqu’un technicien aura clôturé une intervention avec un compte-rendu.'}</span></div> : <div className="ops-table-scroll"><table className="ops-table reports-table"><thead><tr><th>Intervention</th><th>Kit</th><th>Technicien</th><th>Date du rapport</th><th>Compte-rendu</th></tr></thead><tbody>{filteredInterventions.map((report, index) => <tr key={report._id || report.id || `${report.kitId}-${index}`}><td><strong>{report.title || 'Intervention'}</strong><small>{report.type || 'Maintenance'}</small></td><td>{report.kitId || 'Non renseigné'}</td><td>{[report.assignedTo?.prenom, report.assignedTo?.nom].filter(Boolean).join(' ') || 'Non assigné'}</td><td>{formatDate(report.updatedAt || report.scheduledDate)}</td><td className="reports-report-cell">{report.report}</td></tr>)}</tbody></table></div>}
         </section>}
       </div>}
+
+      {selectedReportQuote && (
+        <QuoteDetailModal
+          quote={selectedReportQuote}
+          onClose={() => setSelectedReportQuote(null)}
+        />
+      )}
     </PageEntrance>
   );
 }

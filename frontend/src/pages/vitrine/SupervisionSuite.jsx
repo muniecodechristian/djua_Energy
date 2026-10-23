@@ -10,7 +10,7 @@ export default function SupervisionSuite() {
   const [activeTab, setActiveTab] = useState(1);
 
   return (
-    <section className="py-20 md:py-28 bg-white" data-purpose="product-suite" id="supervision">
+    <section className="py-28 md:py-36 bg-white" data-purpose="product-suite" id="supervision">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="max-w-3xl mx-auto text-center mb-10">

@@ -6,7 +6,7 @@ import { Server } from 'socket.io';
 import jwt from 'jsonwebtoken';
 import config from '../config/env.config.js';
 import User from '../models/user.model.js';
-import { parseCookie } from 'cookie';
+import cookie from 'cookie';
 
 /** @type {Server | null} */
 let io = null;
@@ -21,7 +21,8 @@ function extractToken(socket) {
   // 1. Cookie HttpOnly (même mécanisme que le middleware protect)
   const cookieHeader = socket.handshake.headers?.cookie;
   if (cookieHeader) {
-    const cookies = parseCookie(cookieHeader);
+    const parse = cookie.parse || cookie.default?.parse;
+    const cookies = typeof parse === 'function' ? parse(cookieHeader) : {};
     if (cookies.token) return cookies.token;
   }
 

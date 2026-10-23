@@ -94,3 +94,55 @@
   .admin-settings-preferences > label,.admin-settings-theme { grid-template-columns: 1fr; gap: 6px; padding-block: 7px; }
   .admin-settings-theme { grid-template-columns: 1fr auto 15px; }
 }
+
+/* Floating Action Button (FAB) pour création d'utilisateur */
+.admin-fab-create-user {
+  position: fixed;
+  bottom: 28px;
+  right: 28px;
+  z-index: 50;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 12px 20px;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #ffffff;
+  border: none;
+  font-size: 13px;
+  font-weight: 650;
+  box-shadow: 0 8px 24px rgba(217, 119, 6, 0.45), 0 2px 6px rgba(0, 0, 0, 0.12);
+  cursor: pointer;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.admin-fab-create-user:hover {
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: 0 12px 28px rgba(217, 119, 6, 0.6), 0 4px 10px rgba(0, 0, 0, 0.18);
+  background: linear-gradient(135deg, #fbbf24, #d97706);
+}
+.admin-fab-create-user:active {
+  transform: translateY(0) scale(0.98);
+}
+.admin-create-user-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+}
+.admin-create-user-modal {
+  width: 100%;
+  max-width: 580px;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: var(--ops-surface);
+  border: 1px solid var(--ops-line);
+  border-radius: 16px;
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.3);
+  padding: 24px;
+  position: relative;
+}
+

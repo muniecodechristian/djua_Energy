@@ -3,6 +3,7 @@ import SalesQuotes, { SalesQuoteOverview } from '../components/SalesQuotes';
 import useAuthStore from '../hooks/Zustand/useAuthStore';
 import { useLocation } from 'react-router-dom';
 import QuoteChat, { QuoteChatButton } from '../components/QuoteChat';
+import cleanAiText from '../lib/cleanAiText';
 import './Devis.css';
 import EquipmentPhoto, { equipmentPhoto, WhatsAppIcon } from '../components/EquipmentPhoto';
 import useDialog from '../hooks/useDialog';
@@ -65,6 +66,26 @@ import {
   BatteryCharging,
   Sun,
   ImagePlus,
+  Waves,
+  Blocks,
+  Triangle,
+  CircleCheck,
+  Ban,
+  KeyRound,
+  FileCheck,
+  UserCog,
+  CloudSun,
+  TreePine,
+  DoorOpen,
+  Handshake,
+  ShieldOff,
+  Sunrise,
+  Sunset,
+  Moon,
+  Cable,
+  Unplug,
+  Fuel,
+  PlugZap,
 } from 'lucide-react';
 import { useSolarConversation, useSolarRecommend } from '../hooks/tanstack/useSolarAdvisor';
 import SolarAdvisorResult, { SolarAdvisorTrigger } from '../components/SolarAdvisorResult';
@@ -239,7 +260,7 @@ const DETAIL_SCHEMA = {
       { type: 'stepper', key: 'levels', label: 'Nombre de niveaux', def: 1, min: 1, max: 6 },
       { type: 'stepper', key: 'rooms', label: 'Nombre de pièces', def: 4, min: 1, max: 30 },
       ROOF,
-      { type: 'choice', key: 'shade', label: 'Ombre sur le toit', options: [{ value: 'Aucune', icon: SunIcon }, { value: 'Un peu', icon: CloudSun }, { value: 'Beaucoup', icon: TreePine }] },
+      { type: 'choice', key: 'shade', label: 'Ombre sur le toit', options: [{ value: 'Aucune', icon: Sun }, { value: 'Un peu', icon: CloudSun }, { value: 'Beaucoup', icon: TreePine }] },
       { type: 'choice', key: 'fence', label: 'Parcelle clôturée', options: YES_NO },
     ],
   },
@@ -1280,7 +1301,8 @@ function QuoteAdvisor({ calc, appliances, buildingType, site, open, onClose }) {
       if (typeof answer !== 'string' || !answer.trim()) {
         throw new Error('La réponse du service de conseil est vide ou dans un format inattendu.');
       }
-      setMessages((previous) => [...previous, { role: 'assistant', text: answer.trim() }]);
+      const cleaned = cleanAiText(answer.trim());
+      setMessages((previous) => [...previous, { id: Date.now(), role: 'assistant', text: cleaned, isNew: true }]);
     } catch (error) {
       setMessages((previous) => [...previous, {
         role: 'assistant',

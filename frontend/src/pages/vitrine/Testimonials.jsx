@@ -89,7 +89,7 @@ const REVIEWS_ROW2 = [
 export default function Testimonials() {
   return (
     <section
-      className="py-20 md:py-28 bg-slate-50/60 border-t border-slate-200/70"
+      className="py-28 md:py-36 bg-slate-50/60 border-t border-slate-200/70"
       data-purpose="social-proof-testimonials"
       id="temoignages"
     >

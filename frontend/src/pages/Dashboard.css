@@ -115,34 +115,34 @@
   .dashboard-refined .dashboard-overview section:last-child { padding-bottom:0; }
 }
 
-/* Fit the available workspace height; only individual work panels may scroll. */
-.ops-content:has(> .dashboard-refined) { overflow:hidden; }
-.dashboard-home.dashboard-refined { height:100%; min-height:0; overflow:hidden; }
-.dashboard-refined .dashboard-layout { height:100%; max-height:100%; padding:16px 20px; gap:14px; overflow:hidden; }
+/* Page scrolls normally; only the map and globe panels have fixed heights. */
+.ops-content:has(> .dashboard-refined) { overflow:auto; }
+.dashboard-home.dashboard-refined { height:auto; min-height:100%; overflow:visible; }
+.dashboard-refined .dashboard-layout { height:auto; max-height:none; padding:16px 20px 32px; gap:16px; overflow:visible; }
 .dashboard-refined .dashboard-heading { flex:none; }
 .dashboard-refined .dashboard-heading h1 { font-size:24px; }
 .dashboard-refined .dashboard-heading > div > p:last-child { margin-top:5px; font-size:12px; }
-.dashboard-refined .dashboard-main-grid { flex:1; min-height:0; gap:14px; }
-.dashboard-refined .dashboard-fleet { min-height:0; height:100%; overflow:hidden; }
+.dashboard-refined .dashboard-main-grid { flex:none; gap:14px; }
+.dashboard-refined .dashboard-fleet { min-height:0; height:auto; overflow:visible; max-height:none; }
 .dashboard-refined .dashboard-fleet > div:first-child { padding:14px 14px 0; flex:none; }
 .dashboard-refined .dashboard-fleet > div:first-child .mb-4 { margin-bottom:10px; }
-.dashboard-refined #dashboard-fleet-list { overflow:auto; min-height:0; }
+.dashboard-refined #dashboard-fleet-list { overflow:visible; min-height:0; }
 .dashboard-refined #dashboard-fleet-list > div { min-height:0; }
 .dashboard-refined .dashboard-fleet-footer { flex:none; padding:8px 14px; }
-.dashboard-refined .dashboard-map-column { min-height:0; height:100%; gap:12px; }
+.dashboard-refined .dashboard-map-column { height:auto; gap:12px; }
 .dashboard-refined .dashboard-metrics { flex:none; gap:10px; grid-template-columns:repeat(4,minmax(0,1fr)); }
 .dashboard-refined .dashboard-metric { padding:12px; }
 .dashboard-refined .dashboard-metric strong { font-size:27px; margin:7px 0; }
 .dashboard-refined .dashboard-metric-foot { font-size:10px; }
-.dashboard-refined .dashboard-map { min-height:0; height:auto; flex:1; }
+.dashboard-refined .dashboard-map { min-height:320px; height:auto; flex:1; }
 .dashboard-map-heading { flex:none; padding:12px 16px; }
 .dashboard-map-heading p { font-size:10px; margin-top:3px; }
-.dashboard-map-viewport { min-height:0; overflow:hidden; }
+.dashboard-map-viewport { min-height:280px; overflow:hidden; }
 .dashboard-map-legend { flex:none; padding:10px 16px; }
-.dashboard-refined .dashboard-summary { height:174px; flex:0 0 174px; display:flex; flex-direction:column; overflow:hidden; }
+.dashboard-refined .dashboard-summary { height:auto; min-height:180px; flex:none; display:flex; flex-direction:column; overflow:visible; }
 .dashboard-refined .dashboard-summary-tabs { flex:none; }
 .dashboard-refined .dashboard-summary-tabs button { padding:11px 0; }
-.dashboard-refined .dashboard-summary > .p-5 { padding:12px 16px; min-height:0; overflow:auto; }
+.dashboard-refined .dashboard-summary > .p-5 { padding:16px; min-height:0; overflow:visible; }
 .dashboard-refined .dashboard-overview section h3 { font-size:21px; }
 .dashboard-refined .dashboard-overview section p { line-height:1.5; }
 .dashboard-refined .dashboard-overview section .mt-4 { margin-top:8px; }
@@ -173,14 +173,19 @@
  .dashboard-metric-label svg { display:none; }
  .dashboard-refined .dashboard-metric { padding:10px; }
  .dashboard-metric-label { font-size:10px; }
+ .dashboard-geographic-pair { grid-template-columns:1fr; height:auto; min-height:auto; gap:14px; }
+ .dashboard-geographic-pair .dashboard-map { height:380px; min-height:380px; }
+ .dashboard-geographic-pair .geofence-site-card { height:400px; min-height:400px; }
 }
 @media(max-width:900px) {
- .dashboard-refined .dashboard-main-grid { display:flex; flex-direction:column; overflow:auto; }
- .dashboard-refined .dashboard-map-column { order:0; height:440px; min-height:440px; }
- .dashboard-refined .dashboard-fleet { order:1; min-height:280px; height:280px; flex:none; }
- .dashboard-refined .dashboard-summary { height:155px; flex-basis:155px; }
- .dashboard-refined .dashboard-map-viewport { min-height:0; }
- .dashboard-refined .dashboard-map { min-height:0; }
+ .dashboard-refined .dashboard-main-grid { display:flex; flex-direction:column; overflow:visible; }
+ .dashboard-refined .dashboard-map-column { order:0; height:auto; min-height:0; overflow:visible; }
+ .dashboard-refined .dashboard-fleet { order:1; min-height:auto; height:auto; flex:none; }
+ .dashboard-refined .dashboard-summary { height:auto; min-height:160px; flex:none; overflow:visible; }
+ .dashboard-geographic-pair { grid-template-columns:1fr; height:auto; min-height:0; gap:14px; }
+ .dashboard-geographic-pair .dashboard-map { height:360px; min-height:360px; }
+ .dashboard-geographic-pair .geofence-site-card { height:380px; min-height:380px; }
+ .dashboard-map-viewport { min-height:260px; height:100%; position:relative; }
 }
 @media(max-width:640px) {
  .dashboard-refined .dashboard-layout { padding:12px; gap:10px; }
@@ -189,7 +194,9 @@
  .dashboard-refined .dashboard-heading > div > p:last-child { max-width:240px; font-size:11px; }
  .dashboard-refined .dashboard-heading > div:last-child { gap:12px; }
  .dashboard-refined .dashboard-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
- .dashboard-refined .dashboard-map-column { height:580px; min-height:580px; }
+ .dashboard-refined .dashboard-map-column { height:auto; min-height:0; overflow:visible; }
+ .dashboard-geographic-pair .dashboard-map { height:340px; min-height:340px; }
+ .dashboard-geographic-pair .geofence-site-card { height:360px; min-height:360px; }
  .dashboard-kit-preview .kit-explorer { grid-template-columns:1fr; grid-template-rows:200px minmax(0,1fr); overflow:auto; }
  .dashboard-kit-preview .kit-explorer-inspector { border-left:0; border-top:1px solid var(--ops-line); }
  .dashboard-kit-selector { flex-wrap:wrap; gap:6px; }
@@ -206,8 +213,8 @@
 .dashboard-kit-preview .kit-section-label { font-size:9px; margin-bottom:5px; }
 .dashboard-kit-preview .kit-explorer-parts { margin-bottom:8px; }
 /* Two complementary geographic cards: fleet map + selected site's geofence. */
-.dashboard-geographic-pair { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.1fr); flex:1; min-height:0; gap:12px; }
-.dashboard-geographic-pair .dashboard-map { min-width:0; }
+.dashboard-geographic-pair { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.1fr); flex:none; min-height:420px; height:440px; gap:12px; }
+.dashboard-geographic-pair .dashboard-map { min-width:0; height:100%; min-height:380px; display:flex; flex-direction:column; position:relative; }
 .dashboard-refined .dashboard-geographic-pair .dashboard-map-heading { padding:11px 12px; align-items:flex-start; }
 .dashboard-geographic-pair .dashboard-map-heading h2 { font-size:12px; }
 .dashboard-geographic-pair .dashboard-map-heading p { font-size:10px; line-height:1.5; }
@@ -258,13 +265,14 @@
  .dashboard-geographic-pair { gap:10px; }
 }
 @media(max-width:900px) {
- .dashboard-refined .dashboard-map-column { height:550px; min-height:550px; }
- .dashboard-geographic-pair { min-height:360px; }
+ .dashboard-refined .dashboard-main-grid { display:flex; flex-direction:column; overflow:visible; }
+ .dashboard-refined .dashboard-map-column { height:auto; min-height:0; }
+ .dashboard-geographic-pair { height:380px; min-height:380px; }
 }
 @media(max-width:640px) {
- .dashboard-refined .dashboard-map-column { height:auto; min-height:1000px; flex:none; }
- .dashboard-geographic-pair { grid-template-columns:1fr; grid-template-rows:350px 450px; flex:none; }
- .geofence-scene { min-height:170px; }
+ .dashboard-refined .dashboard-map-column { height:auto; min-height:0; flex:none; }
+ .dashboard-geographic-pair { grid-template-columns:1fr; grid-template-rows:350px 450px; height:auto; flex:none; }
+ .geofence-scene { min-height:200px; }
 }.fleet-globe-canvas { position:absolute; inset:0; cursor:grab; }
 .fleet-globe-canvas:active { cursor:grabbing; }
 .fleet-globe-canvas canvas { display:block; touch-action:none; }
