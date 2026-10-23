@@ -12,6 +12,8 @@ import {
   Search, FileText, CheckCircle2, Navigation, Info
 } from 'lucide-react';
 import { useKitsQuery, useAlertsQuery, useTelemetryQuery } from '../hooks/tanstack/useKitQueries';
+import { useQuery } from '@tanstack/react-query';
+import api from '../api/axios';
 import { useFleetLiveStatus } from '../hooks/tanstack/useFleetLiveStatus';
 import {
   asList, activeAlerts, prioritize, latestByKit,
@@ -161,6 +163,22 @@ export default function Dashboard() {
   const kitsQuery = useKitsQuery();
   const alertsQuery = useAlertsQuery();
   const telemetryQuery = useTelemetryQuery();
+  const isShopManager = user?.role === 'shop_manager';
+  const quotesQuery = useQuery({
+    queryKey: ['sales-quotes', user?._id, 'shop-manager-dashboard'],
+    queryFn: async () => {
+      const res = (await api.get('/api/quotes', { params: { page: 1 } })).data?.data;
+      if (!res || !Array.isArray(res.quotes)) return { quotes: [], followUps: [], stats: {} };
+      return {
+        quotes: res.quotes,
+        followUps: asList(res.followUps),
+        stats: res.stats || {},
+      };
+    },
+    enabled: Boolean(isShopManager),
+    refetchInterval: 30_000,
+    staleTime: 15_000,
+  });
   const { activeKitIds, isSocketConnected } = useFleetLiveStatus();
   const [now, setNow] = useState(Date.now);
   const [search, setSearch] = useState('');
@@ -187,14 +205,21 @@ export default function Dashboard() {
   const online = kits.filter(recent).length;
   const affected = new Set(alerts.map(a => a.kitId));
   const located = kits.map(kit => ({ kit, point: coordinates(kit) })).filter(i => i.point);
-  const refreshing = [kitsQuery, alertsQuery, telemetryQuery].some(q => q.isFetching);
-  const refresh = () => { kitsQuery.refetch(); alertsQuery.refetch(); telemetryQuery.refetch(); };
+  const refreshing = [kitsQuery, alertsQuery, telemetryQuery, isShopManager ? quotesQuery : null].filter(Boolean).some(q => q.isFetching);
+  const refresh = () => {
+    kitsQuery.refetch();
+    alertsQuery.refetch();
+    telemetryQuery.refetch();
+    if (isShopManager) quotesQuery.refetch();
+  };
 
   const failures = [
     kitsQuery.isError && 'parc',
     alertsQuery.isError && 'alertes',
     telemetryQuery.isError && 'télémétrie',
   ].filter(Boolean);
+
+  const cv = (q, n) => (q?.isPending || q?.isError ? '—' : Number(n ?? 0).toLocaleString('fr-FR'));
 
   const statusOf = kit => {
     if (affected.has(kit.kitId) || kit.status === 'alert' || kit.status === 'incident' || kit.status === 'critical') return 'alert';
@@ -204,7 +229,6 @@ export default function Dashboard() {
     return 'offline';
   };
 
-  const isShopManager = user?.role === 'shop_manager';
   const managerZone = (user?.zone || '').trim().toLowerCase().replace(/[\s-]/g, '');
 
   // Si responsable de shop, centrer/filtrer sur son étendue ou zone assignée
@@ -228,11 +252,50 @@ export default function Dashboard() {
   const pctCritical = kits.length > 0 ? Math.round((affected.size / kits.length) * 100) : 0;
   const pctOps = kits.length > 0 ? Math.round((operational / kits.length) * 100) : 0;
 
+  const toFollowUpCount = quotesQuery.data?.followUps?.length ?? quotesQuery.data?.stats?.draftsToFollowUp ?? 0;
+  const underWatchCount = affected.size;
+  const pctUnderWatch = kits.length > 0 ? Math.round((underWatchCount / kits.length) * 100) : 0;
+
   const kpis = [
     { label: 'Kits installés', value: cv(kitsQuery, kits.length), hint: 'Parc total déployé', icon: Sun, accent: '#F59E0B', to: '/parc', pct: null },
     { label: 'Kits en ligne', value: kitsQuery.isError || kitsQuery.isPending ? '—' : cv(telemetryQuery, online), hint: 'Signal actif — < 5 min', icon: Radio, accent: '#10b981', to: '/parc', pct: pctOnline, pctColor: 'text-emerald-500 dark:text-emerald-400', liveIndicator: true },
-    { label: 'Alertes ouvertes', value: cv(alertsQuery, alerts.length), hint: alertsQuery.isSuccess ? `${affected.size} kit(s) impacté(s)` : 'Source indisponible', icon: AlertTriangle, accent: '#f43f5e', to: '/notification', pct: pctCritical, pctColor: alerts.length > 0 ? 'text-rose-500 dark:text-rose-400' : 'text-zinc-500' },
-    { label: 'Sans alerte active', value: kitsQuery.isError || kitsQuery.isPending ? '—' : cv(alertsQuery, operational), hint: 'Aucune alerte active', icon: CheckCircle2, accent: '#8b5cf6', to: '/parc', pct: pctOps, pctColor: 'text-violet-500 dark:text-violet-400' },
+    isShopManager ? {
+      label: 'Devis à relancer',
+      value: quotesQuery.isPending ? '…' : quotesQuery.isError ? '0' : String(toFollowUpCount),
+      hint: toFollowUpCount > 0 ? `${toFollowUpCount} sans validation > 3j` : 'Aucun devis en attente',
+      icon: FileText,
+      accent: '#F59E0B',
+      to: '/devis',
+      pct: null,
+    } : {
+      label: 'Alertes ouvertes',
+      value: cv(alertsQuery, alerts.length),
+      hint: alertsQuery.isSuccess ? `${affected.size} kit(s) impacté(s)` : 'Source indisponible',
+      icon: AlertTriangle,
+      accent: '#f43f5e',
+      to: '/notification',
+      pct: pctCritical,
+      pctColor: alerts.length > 0 ? 'text-rose-500 dark:text-rose-400' : 'text-zinc-500',
+    },
+    isShopManager ? {
+      label: 'Installation à surveiller',
+      value: cv(alertsQuery, underWatchCount),
+      hint: underWatchCount > 0 ? `${underWatchCount} équipement(s) sous vigilance` : 'Toutes conformes',
+      icon: AlertTriangle,
+      accent: '#f59e0b',
+      to: '/parc',
+      pct: pctUnderWatch,
+      pctColor: underWatchCount > 0 ? 'text-amber-500 dark:text-amber-400' : 'text-emerald-500',
+    } : {
+      label: 'Sans alerte active',
+      value: kitsQuery.isError || kitsQuery.isPending ? '—' : cv(alertsQuery, operational),
+      hint: 'Aucune alerte active',
+      icon: CheckCircle2,
+      accent: '#8b5cf6',
+      to: '/parc',
+      pct: pctOps,
+      pctColor: 'text-violet-500 dark:text-violet-400',
+    },
   ];
 
   /* ---------- Filtres & Liste ---------- */
