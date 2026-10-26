@@ -31,7 +31,7 @@ export async function saveQuote(req, res) {
     let client;
     try { client = await Client.findOneAndUpdate(clientFilter, { $set: { ...input.customer, searchName: foldName(input.customer.name) } }, { upsert: true, returnDocument: 'after', runValidators: true }); }
     catch (error) { if(error.code !== 11000) throw error; client = await Client.findOne(clientFilter); }
-    const quote = await Quote.create({ ...input, owner: req.user._id, shopManager, client: client._id, number: `DJ-${new Date().getFullYear()}-${randomBytes(5).toString('hex').toUpperCase()}` });
+    const quote = await Quote.create({ ...input, owner: req.user._id, shopManager, client: client._id, number: `DJ-${new Date().getFullYear()}-${randomBytes(3).toString('hex').toUpperCase()}` });
     return res.status(201).json({ success: true, data: quote });
   } catch (error) {
     if (error.code === 11000) {
@@ -104,23 +104,35 @@ export async function listQuotes(req, res) {
 }
 export async function getQuote(req, res) {
   try {
-    const quote = await Quote.findOne({ ...quoteScope(req.user), number: String(req.params.number).toUpperCase() })
+    const number = String(req.params.number).toUpperCase();
+    let quote = await Quote.findOne({ ...quoteScope(req.user), number })
       .populate('owner', 'nom prenom email role phone')
       .populate('shopManager', 'nom prenom email phone')
       .populate('validatedBy', 'nom prenom email')
       .lean();
-    if(!quote) return fail(res,404,'Devis introuvable dans votre équipe.');
-    if(req.user.role === 'technician' && !['approved','installed'].includes(quote.status)) return fail(res,409,'Ce devis n’est pas encore validé ou son installation est en cours.');
-    if(req.user.role === 'technician' && quote.status === 'installed') return fail(res,409,'Ce devis est déjà associé à un kit installé.');
+
+    if (!quote) {
+      // Distinguer "inexistant" d'"existe mais hors équipe" pour le technicien.
+      if (req.user.role === 'technician') {
+        const any = await Quote.findOne({ number }).lean();
+        if (any) {
+          return fail(res, 403, "Vous n'avez pas la permission d'utiliser ce devis parce que ce commercial ne fait pas partie de votre équipe.");
+        }
+      }
+      return fail(res, 404, 'Devis introuvable dans votre équipe.');
+    }
+
+    if (req.user.role === 'technician' && !['approved', 'installed'].includes(quote.status)) return fail(res, 409, 'Ce devis n’est pas encore validé ou son installation est en cours.');
+    if (req.user.role === 'technician' && quote.status === 'installed') return fail(res, 409, 'Ce devis est déjà associé à un kit installé.');
 
     const isAdmin = ['admin', 'administration'].includes(req.user.role);
-    const isOwner = quote.owner && String(quote.owner) === String(req.user._id);
+    const isOwner = quote.owner && String(quote.owner._id || quote.owner) === String(req.user._id);
     if (!isAdmin && !isOwner && req.user.role !== 'technician') {
       delete quote.plannedDate;
     }
 
     return res.json({ success: true, data: quote });
-  } catch { return fail(res,500,'Impossible de charger le devis.'); }
+  } catch { return fail(res, 500, 'Impossible de charger le devis.'); }
 }
 export async function approveQuote(req, res) {
   if(!validPlannedDate(req.body.plannedDate)) return fail(res,400,'Choisissez aujourd’hui ou une date future (heure de Kinshasa).');

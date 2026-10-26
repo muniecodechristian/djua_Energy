@@ -41,6 +41,8 @@ export const protect = async (req, res, next) => {
 
 export const authorizeRoles = (...allowedRoles) => (req, res, next) => {
   const role = req.user?.role === 'administration' ? 'admin' : req.user?.role;
+  // L'administrateur a accès à tout, quel que soit le rôle requis.
+  if (role === 'admin') return next();
   if (!allowedRoles.includes(role)) {
     return sendError(res, 'You do not have permission to perform this action', [], 403);
   }

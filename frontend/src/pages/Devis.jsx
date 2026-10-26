@@ -241,7 +241,7 @@ const STEP_LABELS = {
   payment: 'Paiement',
   summary: 'Devis',
 };
-const getStepOrder = () => ['profile', 'equipment', 'details', 'proposal', 'payment', 'summary'];
+const getStepOrder = () => ['profile', 'equipment', 'details', 'proposal', 'summary'];
 
 /* ─── Détails du bâtiment : ce qu'on demande dépend du type choisi ─── */
 const ROOF = {
@@ -1323,7 +1323,7 @@ function QuotePreview({ selectedProfile, selectedType, customType, companyForm, 
   const customerName = selectedProfile === 'entreprise' ? (companyForm.companyName || companyForm.contactName || 'Client professionnel') : (clientForm.fullName || 'Client particulier');
   const typeLabel = selectedType === 'Autre' ? (customType || 'Autre') : selectedType;
   const [savedQuote,setSavedQuote] = useState(null);
-  const temporaryQuoteNumber = useMemo(() => `DJ-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`, []);
+  const temporaryQuoteNumber = useMemo(() => `DJ-${new Date().getFullYear()}-${String(Date.now()).slice(-4)}`, []);
   const quoteNumber = savedQuote?.number || temporaryQuoteNumber;
   const address = [site.adresse, site.quartier, site.commune, site.ville].filter(Boolean).join(', ');
   const lineItems = [
@@ -1573,7 +1573,6 @@ export default function Devis() {
     equipment: 'Quels appareils sont utilisés ?',
     details: selectedProfile === 'entreprise' ? 'Informations de l’entreprise & Localisation' : 'Informations du client & Localisation',
     proposal: 'Proposition de système solaire',
-    payment: 'Préparer l’option de paiement',
     summary: 'Vérifiez avant de valider',
   };
 
@@ -1817,8 +1816,8 @@ export default function Devis() {
                           <button type="button" onClick={() => toast.success('Brouillon enregistré avec succès.')} className="dv-btn dv-btn-ghost w-full sm:w-auto">
                             <Bookmark size={16} /> Enregistrer comme brouillon
                           </button>
-                          <button type="button" onClick={() => setCurrentStep('payment')} className="dv-btn dv-btn-primary w-full sm:w-auto">
-                            Passer aux options de paiement <ArrowRight size={16} />
+                          <button type="button" onClick={() => { handleSubmit(); setCurrentStep('summary'); }} className="dv-btn dv-btn-primary w-full sm:w-auto">
+                            Créer le devis <ArrowRight size={16} />
                           </button>
                         </div>
                       </div>
@@ -1860,292 +1859,6 @@ export default function Devis() {
                   </div>
                 )}
 
-                {/* ── PRÉPARER L'OPTION DE PAIEMENT (Capture 2) ── */}
-                {currentStep === 'payment' && (
-                  <div className="space-y-6">
-                    <div>
-                      <p className="text-xs font-bold uppercase tracking-wider mb-1" style={{ color: 'var(--or)' }}>Dernière étape avant le devis</p>
-                      <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Préparer l'option de paiement</h2>
-                      <p className="dv-muted text-sm mt-1">Choisissez avec le client une option de règlement à présenter dans le devis.</p>
-                    </div>
-
-                    <div className="grid grid-cols-1 lg:grid-cols-[1.85fr_1.15fr] gap-6 items-start">
-                      {/* Colonne gauche */}
-                      <div className="space-y-5">
-                        <div className="dv-card p-5 space-y-4">
-                          <div>
-                            <h3 className="text-sm font-bold text-[var(--fg)]">Quelle option présentez-vous au client ?</h3>
-                            <p className="dv-muted text-xs mt-0.5">Comparez le règlement comptant et le paiement échelonné avec le client.</p>
-                          </div>
-
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            {/* Option Comptant */}
-                            <div
-                              onClick={() => setPaymentType('comptant')}
-                              className={`relative cursor-pointer rounded-xl p-4 transition-all ${
-                                paymentType === 'comptant'
-                                  ? 'ring-2 ring-[var(--or)] bg-[var(--or-soft)]'
-                                  : 'border border-[var(--line)] bg-[var(--card)] hover:border-[var(--or-line)]'
-                              }`}
-                              style={paymentType === 'comptant' ? { borderColor: 'var(--or)' } : {}}
-                            >
-                              {paymentType === 'comptant' && (
-                                <div className="absolute top-3.5 right-3.5 h-5 w-5 rounded-full flex items-center justify-center text-white" style={{ background: 'var(--or)' }}>
-                                  <Check size={13} strokeWidth={3} />
-                                </div>
-                              )}
-                              <div className="flex items-center gap-2.5 mb-1.5">
-                                <CreditCard size={18} style={{ color: 'var(--or)' }} />
-                                <h4 className="text-sm font-bold text-[var(--fg)]">Paiement comptant</h4>
-                              </div>
-                              <p className="dv-muted text-xs leading-relaxed">Un règlement unique, sans coût de financement.</p>
-                            </div>
-
-                            {/* Option Échelonné */}
-                            <div
-                              onClick={() => setPaymentType('echelonne')}
-                              className={`relative cursor-pointer rounded-xl p-4 transition-all ${
-                                paymentType === 'echelonne'
-                                  ? 'ring-2 ring-[var(--or)] bg-[var(--or-soft)]'
-                                  : 'border border-[var(--line)] bg-[var(--card)] hover:border-[var(--or-line)]'
-                              }`}
-                              style={paymentType === 'echelonne' ? { borderColor: 'var(--or)' } : {}}
-                            >
-                              {paymentType === 'echelonne' && (
-                                <div className="absolute top-3.5 right-3.5 h-5 w-5 rounded-full flex items-center justify-center text-white" style={{ background: 'var(--or)' }}>
-                                  <Check size={13} strokeWidth={3} />
-                                </div>
-                              )}
-                              <div className="flex items-center gap-2.5 mb-1.5">
-                                <Calendar size={18} style={{ color: 'var(--or)' }} />
-                                <h4 className="text-sm font-bold text-[var(--fg)]">Paiement échelonné</h4>
-                              </div>
-                              <p className="dv-muted text-xs leading-relaxed">Répartissez le paiement sur une durée choisie.</p>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Section durée échelonnée */}
-                        {paymentType === 'echelonne' && (
-                          <div className="dv-card p-5 space-y-4">
-                            <div>
-                              <h3 className="text-sm font-bold text-[var(--fg)]">Sur quelle durée répartir le paiement ?</h3>
-                              <p className="dv-muted text-xs mt-0.5">Le versement initial représente 10 % du montant total.</p>
-                            </div>
-
-                            <div className="space-y-3">
-                              {[12, 24, 36].map((dur) => {
-                                const plan = paymentPlans[dur];
-                                const isSelected = echelonneDuration === dur;
-                                return (
-                                  <div
-                                    key={dur}
-                                    onClick={() => setEchelonneDuration(dur)}
-                                    className={`relative cursor-pointer rounded-xl p-4 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
-                                      isSelected
-                                        ? 'ring-2 ring-[var(--or)] bg-[var(--or-soft)]'
-                                        : 'border border-[var(--line)] bg-[var(--card)] hover:border-[var(--or-line)]'
-                                    }`}
-                                    style={isSelected ? { borderColor: 'var(--or)' } : {}}
-                                  >
-                                    <div className="flex items-center gap-3">
-                                      <div className={`h-5 w-5 rounded-full border-2 flex items-center justify-center ${isSelected ? 'border-[var(--or)]' : 'border-[var(--line)]'}`}>
-                                        {isSelected && <div className="h-2.5 w-2.5 rounded-full" style={{ background: 'var(--or)' }} />}
-                                      </div>
-                                      <div>
-                                        <div className="flex items-center gap-2">
-                                          <span className="text-sm font-bold text-[var(--fg)]">{dur} mois</span>
-                                          {dur === 24 && (
-                                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold" style={{ background: 'var(--or-soft)', color: 'var(--or)', border: '1px solid var(--or-line)' }}>
-                                              Populaire
-                                            </span>
-                                          )}
-                                        </div>
-                                        <p className="dv-muted text-xs mt-0.5">Total à payer : {plan.total.toLocaleString('fr-FR')} $</p>
-                                      </div>
-                                    </div>
-
-                                    <div className="sm:text-right">
-                                      <p className="text-base font-extrabold text-[var(--fg)]">{plan.monthly} $ / mois</p>
-                                      <p className="dv-muted text-xs">Versement initial : {plan.downPayment.toLocaleString('fr-FR')} $</p>
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Actions bas */}
-                        <div className="flex flex-col-reverse sm:flex-row items-center justify-between gap-3 pt-2">
-                          <button type="button" onClick={() => setCurrentStep('proposal')} className="dv-btn dv-btn-ghost w-full sm:w-auto">
-                            <ArrowLeft size={16} /> Retour à la recommandation
-                          </button>
-                          <button type="button" onClick={() => { handleSubmit(); setCurrentStep('summary'); }} className="dv-btn dv-btn-primary w-full sm:w-auto">
-                            Créer le devis <ArrowRight size={16} />
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Colonne droite (Sidebar Payment) */}
-                      <div className="space-y-4">
-                        {/* Floating Card: Montant du système */}
-                        <div className="dv-card p-5 text-center sm:text-right rounded-xl border border-[var(--line)] bg-[var(--card)] space-y-1">
-                          <p className="dv-muted text-xs">Montant du système</p>
-                          <p className="text-3xl font-black text-[var(--fg)] tracking-tight">{systemCostUSD.toLocaleString('fr-FR')} $</p>
-                          <p className="dv-muted text-xs">{proposalOption === 'complementaire' ? 'Système solaire complémentaire' : 'Système solaire autonome'}</p>
-                        </div>
-
-                        {/* Card: Système proposé */}
-                        <div className="dv-card p-5 space-y-3">
-                          <h4 className="text-sm font-bold text-[var(--fg)] pb-2 border-b border-[var(--line)]">Système proposé</h4>
-                          <div className="space-y-2.5 text-xs">
-                            <div className="flex justify-between"><span className="dv-muted">Panneaux solaires</span><strong className="text-[var(--fg)]">{calc.solarKw.toFixed(1).replace('.', ',')} kWc</strong></div>
-                            <div className="flex justify-between"><span className="dv-muted">Batterie LiFePO4</span><strong className="text-[var(--fg)]">{calc.batteryKwh.toFixed(1).replace('.', ',')} kWh</strong></div>
-                            <div className="flex justify-between"><span className="dv-muted">Onduleur hybride</span><strong className="text-[var(--fg)]">{calc.inverterKva.toFixed(1).replace('.', ',')} kVA</strong></div>
-                            <div className="flex justify-between"><span className="dv-muted">Consommation estimée</span><strong className="text-[var(--fg)]">{(calc.dailyWh / 1000).toFixed(2).replace('.', ',')} kWh / jour</strong></div>
-                          </div>
-                        </div>
-
-                        {/* Card: Option à présenter */}
-                        <div className="dv-card p-5 space-y-3">
-                          <h4 className="text-sm font-bold text-[var(--fg)] pb-2 border-b border-[var(--line)]">Option à présenter</h4>
-                          <div className="space-y-3">
-                            <div>
-                              <p className="dv-muted text-xs">{paymentType === 'echelonne' ? `Paiement échelonné · ${echelonneDuration} mois` : 'Paiement comptant'}</p>
-                              <p className="text-2xl font-black mt-0.5 tracking-tight" style={{ color: 'var(--or)' }}>
-                                {paymentType === 'echelonne' ? `${paymentPlans[echelonneDuration].monthly} $ / mois` : `${systemCostUSD.toLocaleString('fr-FR')} $`}
-                              </p>
-                            </div>
-                            <div className="space-y-2 text-xs border-t border-[var(--line)] pt-3">
-                              <div className="flex justify-between"><span className="dv-muted">Versement initial</span><strong className="text-[var(--fg)]">{paymentType === 'echelonne' ? `${paymentPlans[echelonneDuration].downPayment.toLocaleString('fr-FR')} $` : '—'}</strong></div>
-                              <div className="flex justify-between"><span className="dv-muted">Total à payer</span><strong className="text-[var(--fg)]">{paymentType === 'echelonne' ? `${paymentPlans[echelonneDuration].total.toLocaleString('fr-FR')} $` : `${systemCostUSD.toLocaleString('fr-FR')} $`}</strong></div>
-                              <div className="flex justify-between"><span className="dv-muted">Coût du financement</span><strong className="text-[var(--fg)]">{paymentType === 'echelonne' ? `${paymentPlans[echelonneDuration].interest.toLocaleString('fr-FR')} $` : '0 $'}</strong></div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </PageEntrance>
-            </AnimatePresence>
-          </div>
-        ) : (
-          <div className="grid items-start gap-6 xl:grid-cols-[1.7fr_0.8fr]">
-            <section key={shakeKey} className={`dv-panel min-w-0 p-5 md:p-7 ${shakeKey ? 'dv-shake' : ''}`}>
-              <AnimatePresence mode="wait" initial={false}>
-                <PageEntrance key={currentStep}>
-
-                  {/* 1. PROFIL */}
-                  {currentStep === 'profile' && (
-                    <>
-                      <StepHeader eyebrow="Commençons" title={titles.profile} subtitle="Choisissez le type de client. Les questions suivantes s’adapteront." />
-                      <div className="grid gap-4 md:grid-cols-2">
-                        {profileCards.map((profile) => {
-                          const Icon = profile.icon;
-                          return (
-                            <motion.button type="button" key={profile.id} onClick={() => handleProfileSelect(profile.id)} whileHover={{ y: -4 }} whileTap={{ scale: 0.98 }} className="group dv-card flex min-h-[220px] flex-col justify-between p-6 text-left transition-colors hover:!border-[var(--or)]">
-                              <span className="grid h-16 w-16 place-items-center transition-transform group-hover:rotate-[-4deg]" style={{ background: 'var(--or)', color: '#000' }}><Icon className="h-8 w-8" /></span>
-                              <div><h3 className="text-2xl font-bold">{profile.title}</h3><p className="dv-muted mt-2 text-sm">{profile.description}</p></div>
-                              <span className="mt-4 inline-flex items-center gap-2 text-sm font-bold" style={{ color: 'var(--or)' }}>Choisir<ArrowRight size={16} className="transition-transform group-hover:translate-x-1" /></span>
-                            </motion.button>
-                          );
-                        })}
-                      </div>
-                    </>
-                  )}
-
-                  {/* 2. ÉQUIPEMENTS (Consommation en premier) */}
-                  {currentStep === 'equipment' && (
-                    <>
-                      <StepHeader eyebrow="La consommation" title={titles.equipment} subtitle="Touchez les appareils du client. Plus la liste est complète, plus le devis sera juste." />
-                      <QuickAdd appliances={appliances} onQuickAdd={handleQuickAdd} catalogProducts={catalogQuery.data || []} catalogLoading={catalogQuery.isPending} catalogError={catalogQuery.isError} />
-                      {appliances.length === 0 ? (
-                        <div className="dv-card flex flex-col items-center px-6 py-10 text-center" style={{ borderStyle: 'dashed', borderColor: 'var(--or-line)' }}>
-                          <span className="dv-ping mb-4 grid h-14 w-14 place-items-center rounded-full" style={{ background: 'var(--or-soft)', color: 'var(--or)' }}><Plus size={26} /></span>
-                          <h3 className="text-lg font-bold">Aucun appareil pour le moment</h3>
-                          <p className="dv-muted mt-1 max-w-sm text-sm">Touchez un modèle ci-dessus, ou ajoutez un appareil précis.</p>
-                          <button type="button" onClick={() => { setDefaultApplianceCategory('Multimédia'); setIsAdding(true); }} className="dv-btn dv-btn-primary mt-5"><Plus size={16} />Ajouter un appareil</button>
-                        </div>
-                      ) : (
-                        <ApplianceList onReorder={handleReorderAppliance} appliances={appliances} onUpdate={handleUpdateAppliance} onRemove={handleRemoveAppliance} onAddClick={(category) => { setDefaultApplianceCategory(category || 'Multimédia'); setIsAdding(true); }} />
-                      )}
-                      <div className="mt-6 flex flex-col gap-4 rounded-xl p-4 sm:flex-row sm:items-center sm:justify-between" style={{ background: 'var(--or-soft)', border: '1px solid var(--or-line)' }}>
-                        <div>
-                          <p className="dv-muted text-xs">Consommation totale calculée</p>
-                          <p className="text-2xl font-black"><AnimatedNumber value={calc.dailyWh / 1000} decimals={2} /> <span className="text-base font-bold">kWh / jour</span></p>
-                        </div>
-                        <div className="flex gap-3">
-                          <button type="button" onClick={goBack} className="dv-btn dv-btn-ghost"><ArrowLeft size={16} />Retour</button>
-                          <button type="button" onClick={goToNext} disabled={appliances.length === 0} className="dv-btn dv-btn-primary">
-                            Continuer vers le client <ArrowRight size={16} />
-                          </button>
-                        </div>
-                      </div>
-                    </>
-                  )}
-
-                  {/* 3. DÉTAILS CLIENT + POSITION/CARTE DANS LA MÊME SECTION */}
-                  {currentStep === 'details' && (
-                    <>
-                      <StepHeader eyebrow={selectedProfile === 'entreprise' ? "L'entreprise" : 'Le client'} title={titles.details} subtitle="Renseignez l'identité du client et confirmez son emplacement géographique sur la carte." />
-                      {selectedProfile === 'entreprise' ? (
-                        <div className="space-y-5">
-                          <div className="grid gap-4 md:grid-cols-2">
-                            <Field label="Nom de l'entreprise" required><Input icon={Building2} value={companyForm.companyName} onChange={setCompany('companyName')} placeholder="Ex : Boutique Mbala & Fils" /></Field>
-                            <Field label="Secteur d'activité"><Input value={companyForm.secteur} onChange={setCompany('secteur')} placeholder="Ex : commerce, restauration" /></Field>
-                            <Field label="Personne à contacter"><Input icon={UserRound} value={companyForm.contactName} onChange={setCompany('contactName')} placeholder="Ex : Jean Mbala" /></Field>
-                            <Field label="Téléphone" error={phoneInvalid ? 'Numéro trop court' : undefined}><Input prefix="+243" inputMode="tel" invalid={phoneInvalid} value={companyForm.phone} onChange={setCompany('phone')} placeholder="850 000 000" /></Field>
-                            <Field label="Email" className="md:col-span-2"><Input type="email" value={companyForm.email} onChange={setCompany('email')} placeholder="contact@entreprise.com" /></Field>
-                          </div>
-                          <ContactPreference value={companyForm.contactPref} onChange={(contactPref) => setCompanyForm((previous) => ({ ...previous, contactPref }))} />
-                          <div className="dv-card overflow-hidden">
-                            <button type="button" onClick={() => setShowLegal((v) => !v)} className="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-bold" aria-expanded={showLegal}>
-                              <span>Informations légales <span className="dv-muted font-medium">· facultatif</span></span>
-                              <motion.span animate={{ rotate: showLegal ? 45 : 0 }}><Plus size={18} style={{ color: 'var(--or)' }} /></motion.span>
-                            </button>
-                            <AnimatePresence initial={false}>
-                              {showLegal && (
-                                <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-                                  <div className="grid gap-4 p-4 pt-1 md:grid-cols-3">
-                                    <Field label="RCCM"><Input value={companyForm.rccm} onChange={setCompany('rccm')} placeholder="RCCM/KN/2024/B/12345" /></Field>
-                                    <Field label="Identifiant fiscal"><Input value={companyForm.idNationale} onChange={setCompany('idNationale')} placeholder="A1234567" /></Field>
-                                    <Field label="Numéro TVA"><Input value={companyForm.tva} onChange={setCompany('tva')} placeholder="TVA 123456789" /></Field>
-                                  </div>
-                                </motion.div>
-                              )}
-                            </AnimatePresence>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="space-y-5">
-                          <div className="grid gap-4 md:grid-cols-2">
-                            <Field label="Nom complet" required className="md:col-span-2"><Input icon={UserRound} value={clientForm.fullName} onChange={setClient('fullName')} placeholder="Ex : Christian Mukendi" autoFocus /></Field>
-                            <Field label="Téléphone" error={phoneInvalid ? 'Numéro trop court' : undefined}><Input prefix="+243" inputMode="tel" invalid={phoneInvalid} value={clientForm.phone} onChange={setClient('phone')} placeholder="850 000 000" /></Field>
-                            <Field label="Email"><Input type="email" value={clientForm.email} onChange={setClient('email')} placeholder="client@email.com" /></Field>
-                          </div>
-                          <ContactPreference value={clientForm.contactPref} onChange={(contactPref) => setClientForm((previous) => ({ ...previous, contactPref }))} />
-                        </div>
-                      )}
-
-                      {/* Adresse et position du client (carte intégrée) */}
-                      <div className="mt-6 dv-card p-4 md:p-5">
-                        <div className="mb-4 flex items-center gap-3">
-                          <span className="dv-num">2</span>
-                          <div>
-                            <h3 className="text-base font-bold leading-tight">Adresse &amp; position géographique</h3>
-                            <p className="dv-muted text-xs">Recherchez l'adresse ou placez le curseur sur la carte.</p>
-                          </div>
-                        </div>
-                        <AddressPicker site={siteForm} onChange={(patch) => setSiteForm((prev) => ({ ...prev, ...patch }))} theme={theme} />
-                      </div>
-
-                      <NavBar onBack={goBack} onNext={goToNext} nextDisabled={!stepValidity.details} onDisabledClick={blocked} nextLabel="Voir la proposition" />
-                    </>
-                  )}
-
-                  {/* 6. RÉSUMÉ & VALIDATION DU DEVIS */}
                   {currentStep === 'summary' && (
                     <>
                       <StepHeader eyebrow="Validation finale" title={titles.summary} subtitle="Votre proposition est prête. Vous pouvez l'examiner, l'imprimer ou l'envoyer directement au client." />
@@ -2245,7 +1958,6 @@ export default function Devis() {
                       <div className="mt-6 flex flex-col gap-3">
                         {!mlResult && <SolarAdvisorTrigger isLoading={isRecommending} hasResult={!!mlResult} onClick={handleAIRecommend} />}
                         <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
-                          <button type="button" onClick={() => setCurrentStep('payment')} className="dv-btn dv-btn-ghost"><ArrowLeft size={16} />Modifier le paiement</button>
                           <button type="button" onClick={handleSubmit} disabled={isSubmitting} className="dv-btn dv-btn-primary" style={{ minWidth: 220 }}>
                             {isSubmitting ? <><Loader2 size={17} className="animate-spin" />Préparation…</> : <><FileText size={17} />Voir et imprimer le devis</>}
                           </button>
@@ -2267,7 +1979,6 @@ export default function Devis() {
                   )}
                 </PageEntrance>
               </AnimatePresence>
-            </section>
 
             <SummaryCard selectedProfile={selectedProfile} selectedType="" customType="" projectForm={projectForm} site={siteForm} appliances={appliances} calc={calc} hasName={hasName} />
           </div>

@@ -17,6 +17,10 @@ import { sendError } from '../utils/apiResponse.js';
  * Doit être placé APRÈS protect + authorizeRoles('shop_manager').
  */
 export const verifyTechnicianOwnership = async (req, res, next) => {
+  // L'administrateur bypass les vérifications de propriété.
+  const role = req.user?.role === 'administration' ? 'admin' : req.user?.role;
+  if (role === 'admin') return next();
+
   const technicianId = req.body.assignedTo;
 
   if (!technicianId) {
@@ -72,6 +76,10 @@ export const verifyTechnicianOwnership = async (req, res, next) => {
  * Doit être placé APRÈS protect + authorizeRoles('shop_manager').
  */
 export const verifyKitZoneOwnership = async (req, res, next) => {
+  // L'administrateur bypass les vérifications de propriété.
+  const role = req.user?.role === 'administration' ? 'admin' : req.user?.role;
+  if (role === 'admin') return next();
+
   const kitId = req.body.kitId || req.params.kitId;
   const userZone = req.user.zone;
 
