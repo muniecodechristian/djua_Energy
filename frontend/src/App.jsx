@@ -9,7 +9,6 @@ import useAuthStore from './hooks/Zustand/useAuthStore.js';
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const CommercialDashboard = lazy(() => import('./pages/CommercialDashboard'));
 import LoginTeak from './pages/LoginTeak';
-import SiteVitrine from './pages/SiteVitrine';
 import MainLayout from './pages/MainLayout';
 const FleetStatusFeed = lazy(() => import('./pages/FleetStatusFeed'));
 const SmartKitDetails = lazy(() => import('./pages/SmartKitDetails'));
@@ -28,6 +27,11 @@ const QuotesDashboard = lazy(() => import('./pages/QuotesDashboard'));
 function DashboardHome() {
   const user = useAuthStore(state => state.user);
   return user?.role === 'commercial' ? <CommercialDashboard /> : <Dashboard />;
+}
+
+function HomeRoute() {
+  const user = useAuthStore(state => state.user);
+  return user ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />;
 }
 
 function App() {
@@ -51,8 +55,8 @@ function App() {
       />
       <SonnerToaster position="top-right" richColors closeButton />
       <Routes>
-        {/* Route publique principale : Site Vitrine */}
-        <Route path="/" element={<SiteVitrine />} />
+        {/* Route principale : redirection selon l'état d'authentification */}
+        <Route path="/" element={<HomeRoute />} />
 
         {/* Page de connexion à l'application */}
         <Route path="/login" element={<LoginTeak />} />

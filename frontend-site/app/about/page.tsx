@@ -36,12 +36,12 @@ const reveal = {
 
 export default function AboutPage() {
   return (
-    <main className="min-h-screen bg-[#fff7f7] text-[#38131b]">
+    <main className="min-h-screen bg-[#ffffff] text-[#0f172a]">
       <SiteHeader />
 
       <section className="mx-auto max-w-7xl px-6 pt-6">
         <div
-          className="relative flex min-h-[330px] items-center overflow-hidden rounded-2xl bg-[#571426] bg-cover bg-center px-8 text-white sm:px-16"
+          className="relative flex min-h-[330px] items-center overflow-hidden rounded-2xl bg-[#0f172a] bg-cover bg-center px-8 text-white sm:px-16"
           style={{
             backgroundImage:
               "linear-gradient(90deg, rgba(87,20,38,.98), rgba(87,20,38,.48)), url('https://lh3.googleusercontent.com/aida-public/AB6AXuCxpkf7ZiysGVJ2AzRTzqMviQ8dD9RosCGIegjE68anjCXDiEf5zqE4GktFS4_yvIJy439UKA9D3ZpLlI6JXNlVdjPkZoCLpfSdqDTGeKy088ClfJfgL_6etvYfNq5Bgu9HtnSmnBbMOOE5wqKyTw3BscicIAdmGcxRgB42ZCRL8kkeafuo2CjFxlc4ub419s2Itsnj_3cJEQ0wHQh_bmComBurtd5ndx8I7o6GCdRhqpKe3UcyG6iXeKHFmjnS5q8pDFI')",
@@ -64,7 +64,7 @@ export default function AboutPage() {
             </p>
           </motion.div>
         </div>
-        <p className="mt-3 text-right text-[10px] text-[#38131b]/50">
+        <p className="mt-3 text-right text-[10px] text-[#0f172a]/50">
           <Link href="/">Accueil</Link>　/　<span className="text-[#f59e0b]">À propos</span>
         </p>
       </section>
@@ -85,7 +85,7 @@ export default function AboutPage() {
             Née de la conviction que les marques congolaises méritent mieux.
           </h2>
         </div>
-        <div className="text-sm leading-7 text-[#38131b]/70">
+        <div className="text-sm leading-7 text-[#0f172a]/70">
           <p>
             Tech+ est une agence de communication stratégique et de conseil basée à Kinshasa, en République Démocratique du Congo. Nous accompagnons les marques, institutions et entrepreneurs qui veulent construire une communication forte, cohérente et adaptée à leur réalité.
           </p>
@@ -128,7 +128,7 @@ export default function AboutPage() {
           <h2 className="text-3xl font-semibold leading-tight sm:text-4xl">
             Donner aux marques congolaises une voix forte et un impact réel.
           </h2>
-          <p className="mt-5 text-sm leading-7 text-[#38131b]/65">
+          <p className="mt-5 text-sm leading-7 text-[#0f172a]/65">
             Nous rendons la communication plus claire, plus créative et plus proche des réalités africaines. De la stratégie à la production, chaque projet est une occasion de connecter une vision à son public cible avec authenticité et professionnalisme.
           </p>
           <Link
@@ -162,17 +162,17 @@ export default function AboutPage() {
               transition={{ duration: 0.45 }}
               className="rounded-2xl bg-white p-6 shadow-sm"
             >
-              <span className="grid size-11 place-items-center rounded-full bg-[#fbbf24] text-[#571426]">
+              <span className="grid size-11 place-items-center rounded-full bg-[#fbbf24] text-[#0f172a]">
                 <Icon className="size-5" />
               </span>
               <h3 className="mt-6 text-base font-bold">{title}</h3>
-              <p className="mt-3 text-xs leading-5 text-[#38131b]/60">{text}</p>
+              <p className="mt-3 text-xs leading-5 text-[#0f172a]/60">{text}</p>
             </motion.article>
           ))}
         </motion.div>
       </section>
 
-      <section className="mx-6 mb-20 overflow-hidden rounded-2xl bg-[#571426] px-6 py-14 text-center text-white sm:px-12">
+      <section className="mx-6 mb-20 overflow-hidden rounded-2xl bg-[#0f172a] px-6 py-14 text-center text-white sm:px-12">
         <div className="mx-auto max-w-2xl">
           <p className="text-[10px] font-bold uppercase tracking-widest text-[#fbbf24]">Parlons de votre projet</p>
           <h2 className="mt-4 text-3xl font-semibold sm:text-5xl">Votre prochaine histoire de marque commence ici.</h2>

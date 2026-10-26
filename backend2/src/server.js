@@ -4,6 +4,7 @@ import { startBroker } from './broker/mqtt.broker.js';
 import { connectClient } from './services/mqtt.service.js';
 import orangeEnergyService from './services/orangeEnergy.service.js';
 import app from './app.js';
+import { startInstallationOverdueWorker } from './services/installationOverdue.service.js';
 import http from 'http';
 import { initSocket } from './services/socket.service.js';
 
@@ -40,6 +41,9 @@ const startServer = async () => {
 
     // 4. Lancement de la tâche de fond de synchronisation Orange Energy (toutes les 2 heures)
     startBackgroundSync();
+
+    // 5. Lancement du worker d'installation en retard (cron-like, toutes les heures)
+    startInstallationOverdueWorker();
 
     // 5. Démarrage du serveur HTTP avec Socket.io
     const server = http.createServer(app);

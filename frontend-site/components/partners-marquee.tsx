@@ -13,12 +13,12 @@ const partners = [
 
 export function PartnersMarquee() {
   return (
-    <section className="bg-white py-14 border-b border-[#571426]/10 overflow-hidden">
+    <section className="bg-white py-14 border-b border-[#0f172a]/10 overflow-hidden">
       <div className="mx-auto max-w-7xl px-6 mb-10 text-center">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-[#d7263d]">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-[#f59e0b]">
           Ils nous font confiance
         </p>
-        <h2 className="mt-2 text-2xl font-semibold text-[#38131b] sm:text-3xl">
+        <h2 className="mt-2 text-2xl font-semibold text-[#0f172a] sm:text-3xl">
           Nos partenaires de référence
         </h2>
       </div>
@@ -44,7 +44,7 @@ export function PartnersMarquee() {
               key={`${partner.id}-${index}`}
               className="group shrink-0"
             >
-              <div className="relative h-24 w-36 sm:h-28 sm:w-44 overflow-hidden rounded-2xl border border-[#571426]/10 bg-[#fff7f7] shadow-sm transition-all duration-300 group-hover:shadow-lg group-hover:border-[#d7263d]/25 group-hover:scale-105">
+              <div className="relative h-24 w-36 sm:h-28 sm:w-44 overflow-hidden rounded-2xl border border-[#0f172a]/10 bg-[#ffffff] shadow-sm transition-all duration-300 group-hover:shadow-lg group-hover:border-[#f59e0b]/25 group-hover:scale-105">
                 <Image
                   src={partner.src}
                   alt={partner.alt}
@@ -56,7 +56,7 @@ export function PartnersMarquee() {
                   }}
                 />
                 {/* Overlay subtil au hover */}
-                <div className="absolute inset-0 rounded-2xl ring-2 ring-[#d7263d]/0 group-hover:ring-[#d7263d]/20 transition-all duration-300" />
+                <div className="absolute inset-0 rounded-2xl ring-2 ring-[#f59e0b]/0 group-hover:ring-[#f59e0b]/20 transition-all duration-300" />
               </div>
             </div>
           ))}

@@ -1,10 +1,9 @@
 import { ArrowUpRight, Mail, MapPin, Phone } from "lucide-react";
 import Link from "next/link";
-import Image from "next/image";
 
 export function SiteFooter() {
   return (
-    <footer id="contact" className="w-full bg-[#fff7f7] pt-10">
+    <footer id="contact" className="w-full bg-[#ffffff] pt-10">
       <div className="w-full overflow-hidden bg-[#171518] text-white">
         <div className="border-b border-white/10 px-6 py-14 text-center sm:px-12">
           <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-[#fbbf24]">
@@ -22,11 +21,9 @@ export function SiteFooter() {
               href="/"
               className="inline-flex items-center rounded-md bg-white px-2 py-1"
             >
-              <Image
-                src="/tech-plus-logo.jpg"
-                alt="Tech+ RDC"
-                width={100}
-                height={50}
+              <img
+                src="https://lh3.googleusercontent.com/aida-public/AB6AXuBjEVP6WMcrEsv2nLYSgS9v4WfV711u6ne8fa0aJHDt8jAPuumn7dzikn8PIFEYq7whxH5iUZF0Hp4b92Z9SI44LG4uRnir7pr0-ES6zx8j0xpVv2pEq-x2t_pioe64Plt7nSVa8R3qmC0HbNrrXrNmnwO6NR6nrr80S_g0KTAAhwU7TLDwQxylz9da34eGd7zyXiuyuz5ah02oKZx3i2MRdZVu6H3tfwGv5hNcm8A_UvHUSZdbWh7He3c3Alx5dlSJzww"
+                alt="Djua"
                 className="h-10 w-auto object-contain"
               />
             </Link>

@@ -12,7 +12,7 @@ const services = [
     title: "Conseil en communication",
     text: "Nous élaborons votre stratégie de communication de A à Z : positionnement, messages clés, plan d'action et identité de marque cohérente.",
     image: "/images/mission.jpg",
-    color: "bg-[#571426]",
+    color: "bg-[#0f172a]",
     textColor: "text-white",
   },
   {
@@ -21,7 +21,7 @@ const services = [
     text: "Conception de logos, chartes graphiques et univers visuels qui reflètent authentiquement votre organisation et inspirent confiance.",
     image: "/images/services-why.jpg",
     color: "bg-[#fbbf24]",
-    textColor: "text-[#38131b]",
+    textColor: "text-[#0f172a]",
   },
   {
     icon: Radio,
@@ -29,7 +29,7 @@ const services = [
     text: "Gestion de votre réputation, relations médias, organisation d'événements et communication de crise pour protéger votre image.",
     image: "/images/about-hero.jpg",
     color: "bg-white",
-    textColor: "text-[#38131b]",
+    textColor: "text-[#0f172a]",
   },
   {
     icon: Film,
@@ -37,14 +37,14 @@ const services = [
     text: "Films d'entreprise, spots publicitaires, reportages photo et contenus vidéo de haute qualité pour valoriser votre marque.",
     image: "/images/hero.jpg",
     color: "bg-[#fff1f2]",
-    textColor: "text-[#38131b]",
+    textColor: "text-[#0f172a]",
   },
   {
     icon: Globe2,
     title: "Communication digitale",
     text: "Stratégie réseaux sociaux, création de contenu, community management et présence en ligne adaptés aux publics congolais et africains.",
     image: "/images/about-portrait-woman.jpg",
-    color: "bg-[#571426]",
+    color: "bg-[#0f172a]",
     textColor: "text-white",
   },
   {
@@ -53,7 +53,7 @@ const services = [
     text: "Ateliers sur mesure, coaching d'équipes et programmes de renforcement des capacités pour professionnaliser votre communication.",
     image: "/images/about-portrait-man.jpg",
     color: "bg-[#fbbf24]",
-    textColor: "text-[#38131b]",
+    textColor: "text-[#0f172a]",
   },
 ];
 
@@ -64,13 +64,13 @@ const reveal = {
 
 export default function ServicesPage() {
   return (
-    <main className="min-h-screen bg-[#fff7f7] text-[#38131b]">
+    <main className="min-h-screen bg-[#ffffff] text-[#0f172a]">
       <SiteHeader />
 
       {/* Hero */}
       <section className="mx-auto max-w-7xl px-6">
         <div
-          className="relative flex min-h-[300px] items-center justify-center overflow-hidden rounded-2xl bg-[#571426] bg-cover bg-center text-center text-white"
+          className="relative flex min-h-[300px] items-center justify-center overflow-hidden rounded-2xl bg-[#0f172a] bg-cover bg-center text-center text-white"
           style={{
             backgroundImage:
               "linear-gradient(90deg, rgba(87,20,38,.97) 0%, rgba(87,20,38,.60) 60%), url('/images/about-hero.jpg')",
@@ -93,9 +93,9 @@ export default function ServicesPage() {
             </p>
           </motion.div>
         </div>
-        <p className="mt-3 text-right text-[10px] text-[#38131b]/50">
+        <p className="mt-3 text-right text-[10px] text-[#0f172a]/50">
           <Link href="/">Accueil</Link>　/　
-          <span className="text-[#d7263d]">Services</span>
+          <span className="text-[#f59e0b]">Services</span>
         </p>
       </section>
 
@@ -109,15 +109,15 @@ export default function ServicesPage() {
         className="mx-auto grid max-w-5xl gap-10 px-6 py-20 lg:grid-cols-2"
       >
         <div>
-          <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-[#d7263d]">
+          <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-[#f59e0b]">
             Notre mission
           </p>
           <h2 className="text-4xl font-semibold leading-tight sm:text-5xl">
             Transformer les idées en marques qui{" "}
-            <span className="text-[#d7263d]">font de l&apos;impact</span>
+            <span className="text-[#f59e0b]">font de l&apos;impact</span>
           </h2>
         </div>
-        <div className="text-sm leading-6 text-[#38131b]/65">
+        <div className="text-sm leading-6 text-[#0f172a]/65">
           <p>
             Chez Tech+, nous croyons que chaque organisation mérite une communication claire, cohérente et authentique. Nous accompagnons les entreprises, institutions et entrepreneurs congolais avec des solutions adaptées à leur réalité et à leurs ambitions.
           </p>
@@ -132,7 +132,7 @@ export default function ServicesPage() {
               "Résultats mesurables",
             ].map((item) => (
               <span key={item} className="flex items-center gap-2">
-                <Check className="size-4 text-[#d7263d]" />
+                <Check className="size-4 text-[#f59e0b]" />
                 {item}
               </span>
             ))}
@@ -148,7 +148,7 @@ export default function ServicesPage() {
           viewport={{ once: true }}
           transition={{ duration: 0.7 }}
         >
-          <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-[#d7263d]">
+          <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-[#f59e0b]">
             Pourquoi nous choisir ?
           </p>
           <h2 className="text-3xl font-semibold leading-tight sm:text-4xl">
@@ -187,14 +187,14 @@ export default function ServicesPage() {
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
               transition={{ delay: index * 0.1 }}
-              className="flex gap-4 rounded-xl bg-[#fff7f7] p-4"
+              className="flex gap-4 rounded-xl bg-[#ffffff] p-4"
             >
               <span className="grid size-9 shrink-0 place-items-center rounded-full bg-[#ffb3bd]">
-                <CircleCheck className="size-4 text-[#571426]" />
+                <CircleCheck className="size-4 text-[#0f172a]" />
               </span>
               <div>
                 <h3 className="text-sm font-bold">{title}</h3>
-                <p className="mt-1 text-xs leading-5 text-[#38131b]/60">{text}</p>
+                <p className="mt-1 text-xs leading-5 text-[#0f172a]/60">{text}</p>
               </div>
             </motion.div>
           ))}
@@ -204,13 +204,13 @@ export default function ServicesPage() {
       {/* Grille des 6 vrais services */}
       <section className="mx-auto max-w-6xl px-6 py-20">
         <div className="mx-auto mb-12 max-w-lg text-center">
-          <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-[#d7263d]">
+          <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-[#f59e0b]">
             Nos expertises
           </p>
           <h2 className="text-3xl font-semibold sm:text-4xl">
             Une offre complète pour votre communication
           </h2>
-          <p className="mt-4 text-sm leading-6 text-[#38131b]/60">
+          <p className="mt-4 text-sm leading-6 text-[#0f172a]/60">
             Six domaines d&apos;expertise pour couvrir l&apos;ensemble de vos besoins en communication.
           </p>
         </div>
@@ -257,7 +257,7 @@ export default function ServicesPage() {
       </section>
 
       {/* CTA */}
-      <section className="mx-6 mb-20 overflow-hidden rounded-2xl bg-[#571426] px-6 py-14 text-center text-white sm:px-12">
+      <section className="mx-6 mb-20 overflow-hidden rounded-2xl bg-[#0f172a] px-6 py-14 text-center text-white sm:px-12">
         <motion.div
           initial={{ opacity: 0, scale: 0.96 }}
           whileInView={{ opacity: 1, scale: 1 }}

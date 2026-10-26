@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import Image from "next/image";
 
 const links = [
   ["Accueil", "/"],
@@ -20,11 +19,11 @@ export function SiteHeader() {
   const pathname = usePathname();
 
   return (
-    <header className="sticky top-0 z-50 border-b border-[#fbbf24]/20 bg-[#571426] text-white shadow-xl shadow-[#571426]/20 backdrop-blur-md">
+    <header className="sticky top-0 z-50 border-b border-[#fbbf24]/20 bg-[#0f172a] text-white shadow-xl shadow-[#0f172a]/20 backdrop-blur-md">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
         <Link href="/" onClick={() => setOpen(false)} className="flex items-center gap-2 text-lg font-bold tracking-tight">
           <span className="rounded-md bg-white px-1.5 py-1">
-            <Image src="/tech-plus-logo.jpg" alt="Tech+" width={74} height={38} className="h-7 w-auto object-contain" priority />
+            <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuBjEVP6WMcrEsv2nLYSgS9v4WfV711u6ne8fa0aJHDt8jAPuumn7dzikn8PIFEYq7whxH5iUZF0Hp4b92Z9SI44LG4uRnir7pr0-ES6zx8j0xpVv2pEq-x2t_pioe64Plt7nSVa8R3qmC0HbNrrXrNmnwO6NR6nrr80S_g0KTAAhwU7TLDwQxylz9da34eGd7zyXiuyuz5ah02oKZx3i2MRdZVu6H3tfwGv5hNcm8A_UvHUSZdbWh7He3c3Alx5dlSJzww" alt="Djua" className="h-7 w-auto object-contain" />
           </span>
         </Link>
 
