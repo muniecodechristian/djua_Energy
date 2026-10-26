@@ -1979,15 +1979,9 @@ export default function Devis() {
                   )}
                 </PageEntrance>
               </AnimatePresence>
+  );
+}
 
-            <SummaryCard selectedProfile={selectedProfile} selectedType="" customType="" projectForm={projectForm} site={siteForm} appliances={appliances} calc={calc} hasName={hasName} />
-          </div>
-        )}
-      </div>
-
-      <AnimatePresence>
-        {isAdding && <AddModal defaultCategory={defaultApplianceCategory} onClose={() => setIsAdding(false)} onAdd={handleAddAppliance} />}
-      </AnimatePresence>
     </PageEntrance>
   );
 }
