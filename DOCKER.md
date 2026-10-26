@@ -16,7 +16,8 @@ docker compose up --build -d
 docker compose ps
 ```
 
-- Application : http://localhost:8080
+- Application (dashboard) : http://localhost:8080
+- Site marketing (Next.js) : http://localhost:3000
 - API et vérification du serveur : http://localhost:5000
 - Documentation API : http://localhost:5000/api-docs
 - MQTT : localhost:1883 (utilisateur `djua_local`, mot de passe `local-mqtt-only`)
@@ -59,6 +60,7 @@ Ne lance pas `docker compose down -v` si tu souhaites conserver les données :
 
 - `backend2/Dockerfile` installe les dépendances Node de production et lance le serveur.
 - `frontend/Dockerfile` compile React puis copie le résultat dans Nginx.
+- `frontend-site/Dockerfile` compile Next.js (mode standalone) puis lance le serveur Node.
 - `frontend/nginx.conf` permet d'actualiser directement une route comme `/parc`.
 - Les `.dockerignore` excluent les dépendances locales, builds et fichiers `.env`.
 - `compose.yaml` relie les services ; le backend attend que MongoDB soit prêt,

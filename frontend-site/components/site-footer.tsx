@@ -1,0 +1,111 @@
+import { ArrowUpRight, Mail, MapPin, Phone } from "lucide-react";
+import Link from "next/link";
+import Image from "next/image";
+
+export function SiteFooter() {
+  return (
+    <footer id="contact" className="w-full bg-[#fff7f7] pt-10">
+      <div className="w-full overflow-hidden bg-[#171518] text-white">
+        <div className="border-b border-white/10 px-6 py-14 text-center sm:px-12">
+          <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-[#fbbf24]">
+            {" "}
+            Parlons de votre projet
+          </p>
+          <h2 className="mx-auto mt-4 max-w-2xl text-3xl font-semibold tracking-tight sm:text-5xl">
+            Transformer votre idée en une marque qui fait de l&apos;impact.
+          </h2>
+        </div>
+
+        <div className="grid gap-10 px-6 py-12 sm:px-12 lg:grid-cols-[1.4fr_1fr_1fr_1fr]">
+          <div>
+            <Link
+              href="/"
+              className="inline-flex items-center rounded-md bg-white px-2 py-1"
+            >
+              <Image
+                src="/tech-plus-logo.jpg"
+                alt="Tech+ RDC"
+                width={100}
+                height={50}
+                className="h-10 w-auto object-contain"
+              />
+            </Link>
+            <p className="mt-5 max-w-xs text-xs leading-5 text-white/55">
+              Agence de communication stratégique pour les marques, institutions
+              et entrepreneurs en RDC. Basée à Kinshasa.
+            </p>
+            <div className="mt-5 flex gap-2">
+              <a
+                href="#"
+                aria-label="LinkedIn"
+                className="grid size-8 place-items-center rounded-md bg-white/10 text-[11px] font-black transition-colors hover:bg-[#f59e0b]"
+              >
+                in
+              </a>
+              <a
+                href="#"
+                aria-label="X"
+                className="grid size-8 place-items-center rounded-md bg-white/10 text-[10px] font-black transition-colors hover:bg-[#f59e0b]"
+              >
+                X
+              </a>
+              <a
+                href="#"
+                aria-label="Instagram"
+                className="grid size-8 place-items-center rounded-md bg-white/10 text-xs font-black transition-colors hover:bg-[#f59e0b]"
+              >
+                ◎
+              </a>
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-xs font-bold">Navigation</h3>
+            <div className="mt-5 flex flex-col gap-3 text-xs text-white/55">
+              <Link href="/">Accueil</Link>
+              <Link href="/about">À propos</Link>
+              <Link href="/services">Services</Link>
+              <Link href="/#insights">Actualités</Link>
+            </div>
+          </div>
+          <div>
+            <h3 className="text-xs font-bold">Expertises</h3>
+            <div className="mt-5 flex flex-col gap-3 text-xs text-white/55">
+              <span>Stratégie de marque</span>
+              <span>Communication digitale</span>
+              <span>Création de contenu</span>
+              <span>Relations publiques</span>
+            </div>
+          </div>
+          <div>
+            <h3 className="text-xs font-bold">Nous trouver</h3>
+            <div className="mt-5 flex flex-col gap-3 text-xs leading-5 text-white/55">
+              <p>
+                <MapPin className="mr-1 inline size-3 text-[#fbbf24]" />
+                Kinshasa, RDC
+              </p>
+              <p>
+                <Phone className="mr-1 inline size-3 text-[#fbbf24]" />
+                <a href="tel:+243995424606" className="text-[#fbbf24] hover:text-white">0995424606</a>
+                <span className="mx-1">/</span>
+                <a href="tel:+243837807301" className="text-[#fbbf24] hover:text-white">+243 837 807 301</a>
+              </p>
+              <a href="mailto:Techplus643@gmail.com" className="text-[#fbbf24]">
+                <Mail className="mr-1 inline size-3" />
+                Techplus643@gmail.com
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex flex-col justify-between gap-3 border-t border-white/10 px-6 py-5 text-[10px] text-white/35 sm:flex-row sm:px-12">
+          <span>© 2025 Tech+ RDC. Tous droits réservés.</span>
+          <div className="flex gap-5">
+            <a href="#">Confidentialité</a>
+            <a href="#">Mentions légales</a>
+          </div>
+        </div>
+      </div>
+    </footer>
+  );
+}
