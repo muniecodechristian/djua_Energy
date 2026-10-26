@@ -1,190 +1,24 @@
 <!doctype html>
-<html class="scroll-smooth" lang="fr">
-  <head>
-    <meta charset="utf-8" />
-    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
-    <title>Djua | L'Énergie Solaire Intelligente &amp; Télémétrie en RDC</title>
-    <!-- Google Fonts: Plus Jakarta Sans & Inter -->
-    <link href="https://fonts.googleapis.com" rel="preconnect" />
-    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Inter:wght@300;400;500;600;700&amp;display=swap"
-      rel="stylesheet"
-    />
-    <!-- Tailwind CSS CDN with plugins -->
-    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-    <!-- Tailwind Custom Configuration -->
-    <script data-purpose="tailwind-config">
-      tailwind.config = {
-        darkMode: "class",
-        theme: {
-          extend: {
-            colors: {
-              brand: {
-                orange: "#f59e0b",
-                amber: "#f97316",
-                darkOrange: "#e66a00",
-                accent: "#ff8a00",
-                slate: "#0f172a",
-                navy: "#0b132b",
-                sand: "#fcfaf7",
-                surface: "#f8fafc",
-              },
-              solar: {
-                primary: "#f59e0b",
-                dark: "#d97706",
-                light: "#fef3c7",
-                subtle: "#fffbeb",
-              },
-            },
-            fontFamily: {
-              sans: ["Plus Jakarta Sans", "Inter", "sans-serif"],
-              mono: ["JetBrains Mono", "monospace"],
-            },
-            boxShadow: {
-              soft: "0 10px 30px -10px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.02)",
-              float: "0 20px 40px -15px rgba(245, 158, 11, 0.15), 0 0 25px 0 rgba(0, 0, 0, 0.04)",
-              card: "0 2px 8px -2px rgba(0, 0, 0, 0.05), 0 10px 24px -8px rgba(0, 0, 0, 0.06)",
-              glow: "0 0 50px -10px rgba(245, 158, 11, 0.35)",
-            },
-            animation: {
-              "float-slow": "floating 6s ease-in-out infinite",
-              "float-delayed": "floating 7s ease-in-out 2s infinite",
-              "pulse-slow": "pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite",
-              marquee: "marquee 28s linear infinite",
-            },
-            keyframes: {
-              floating: {
-                "0%, 100%": { transform: "translateY(0px)" },
-                "50%": { transform: "translateY(-10px)" },
-              },
-              marquee: {
-                "0%": { transform: "translateX(0%)" },
-                "100%": { transform: "translateX(-50%)" },
-              },
-            },
-          },
-        },
-      };
-    </script>
-    <!-- BEGIN: Custom Stylesheet -->
-    <style data-purpose="base-typography">
-      body {
-        font-family: "Plus Jakarta Sans", sans-serif;
-        color: #0f172a;
-        background-color: #ffffff;
-        -webkit-font-smoothing: antialiased;
-      }
-      .mask-radial {
-        mask-image: linear-gradient(
-          to right,
-          transparent,
-          black 12%,
-          black 88%,
-          transparent
-        );
-        -webkit-mask-image: linear-gradient(
-          to right,
-          transparent,
-          black 12%,
-          black 88%,
-          transparent
-        );
-      }
-      .subtle-dots {
-        background-image: radial-gradient(
-          rgba(15, 23, 42, 0.08) 1px,
-          transparent 1px
-        );
-        background-size: 24px 24px;
-      }
-      .tab-active-btn {
-        background-color: #ffffff;
-        color: #0f172a;
-        box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
-        border-color: #e2e8f0;
-      }
-    </style>
-    <!-- END: Custom Stylesheet -->
-    <style data-purpose="djua-animations">
-      /* ===== Djua : couche d'animations ===== */
-      .js-anim .rv { opacity: 0; }
-      .js-anim .rv.in { animation: dj-rise 0.9s cubic-bezier(0.16, 1, 0.3, 1) var(--d, 0s) both; }
-      .js-anim .rv-img { opacity: 0; }
-      .js-anim .rv-img.in { animation: dj-img 1.1s cubic-bezier(0.16, 1, 0.3, 1) var(--d, 0s) both; }
-      @keyframes dj-rise {
-        from { opacity: 0; transform: translateY(28px); filter: blur(6px); }
-        to { opacity: 1; transform: translateY(0); filter: blur(0); }
-      }
-      @keyframes dj-img {
-        from { opacity: 0; clip-path: inset(10% 8% 10% 8% round 24px); }
-        to { opacity: 1; clip-path: inset(0 round 0); }
-      }
-      .dj-g { background-size: 200% auto; }
-      @keyframes dj-fade { from { opacity: 0; filter: blur(8px); } to { opacity: 1; filter: blur(0); } }
-      @keyframes dj-grad { to { background-position: 100% 0; } }
-      [data-count] { font-variant-numeric: tabular-nums; }
-      
-      /* bandes défilantes (partenaires + témoignages) */
-      .mq-t { width: max-content; animation: dj-mql var(--mq-d, 40s) linear infinite; will-change: transform; }
-      .mq-t.r { animation-name: dj-mqr; }
-      .mq:hover .mq-t { animation-play-state: paused; }
-      @keyframes dj-mql { to { transform: translateX(var(--mq-s, -50%)); } }
-      @keyframes dj-mqr { from { transform: translateX(var(--mq-s, -50%)); } to { transform: translateX(0); } }
-      
-      .mq-t [class*="rounded-lg"] { transition: transform 0.3s, box-shadow 0.3s; }
-      .mq-t [class*="rounded-lg"]:hover { transform: translateY(-3px); box-shadow: 0 10px 24px -10px rgba(245, 158, 11, 0.4); }
-      
-      /* boutons, en-tête, progression */
-      a[class*="from-amber-400"], button[class*="from-amber-400"] { position: relative; overflow: hidden; }
-      a[class*="from-amber-400"]::after, button[class*="from-amber-400"]::after {
-        content: "";
-        position: absolute;
-        inset: 0;
-        background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, 0.55) 50%, transparent 70%);
-        transform: translateX(-120%);
-        transition: transform 0.7s;
-      }
-      a[class*="from-amber-400"]:hover::after, button[class*="from-amber-400"]:hover::after {
-        transform: translateX(120%);
-      }
-      header.dj-s { box-shadow: 0 8px 24px -14px rgba(15, 23, 42, 0.25); }
-      #dj-bar {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 3px;
-        z-index: 60;
-        background: linear-gradient(90deg, #fbbf24, #f97316);
-        transform-origin: 0 50%;
-        transform: scaleX(0);
-      }
-      .subtle-dots { animation: dj-dots 80s linear infinite; }
-      @keyframes dj-dots { to { background-position: 240px 240px; } }
-      .dj-orb {
-        position: absolute;
-        border-radius: 50%;
-        filter: blur(70px);
-        opacity: 0.45;
-        pointer-events: none;
-        z-index: 0;
-        animation: dj-drift 14s ease-in-out infinite alternate;
-      }
-      .dj-orb.a { width: 340px; height: 340px; top: -90px; left: -70px; background: #fcd34d; }
-      .dj-orb.b { width: 380px; height: 380px; right: -90px; bottom: 15%; background: #fdba74; animation-delay: -6s; }
-      @keyframes dj-drift { to { transform: translate(60px, 45px); } }
-      .dj-tab { animation: dj-tab 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
-      @keyframes dj-tab { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
-      .carousel-track img { -webkit-user-drag: none; user-select: none; }
-      #ecosysteme-monday .mask-radial::-webkit-scrollbar { display: none; }
-      @media (prefers-reduced-motion: reduce) {
-        .mq-t, .dj-g, .dj-orb, .subtle-dots { animation: none !important; }
-      }
-    </style>
-  </head>
-  <body class="selection:bg-amber-100 selection:text-amber-900 bg-white text-slate-900">
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+<html lang="fr">
+
+<head>
+  <meta charset="UTF-8" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <meta name="theme-color" content="#0f172a" />
+  <meta
+    name="description"
+    content="Découvrez les solutions solaires Djua : étude, installation et suivi pour votre maison, votre entreprise ou votre site en RDC."
+  />
+  <title>Djua Energy — L’énergie, en mieux</title>
+
+  <link rel="icon" type="image/png" href="/brand/djua-logo.png" />
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.jsx"></script>
+</body>
+
 </html>
