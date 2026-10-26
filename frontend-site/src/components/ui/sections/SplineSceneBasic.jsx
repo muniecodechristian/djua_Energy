@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, useInView, useReducedMotion } from "framer-motion";
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { SplineScene } from "@/components/ui/SplineScene";
 
 export default function SplineSceneBasic() {
@@ -9,6 +9,38 @@ export default function SplineSceneBasic() {
   const isInView = useInView(heroRef, { once: true, margin: "100px" });
   const [sceneRequested, setSceneRequested] = useState(false);
   const prefersReducedMotion = useReducedMotion();
+
+  useEffect(() => {
+    if (prefersReducedMotion) return undefined;
+    if (typeof window === "undefined") return undefined;
+    // Keep the site light on small screens / data-saver connections:
+    // the 3D scene is heavy, so only auto-load it on capable desktops.
+    const isDesktop = window.matchMedia("(min-width: 1024px)").matches;
+    const saveData =
+      navigator.connection && navigator.connection.saveData === true;
+    if (!isDesktop || saveData) return undefined;
+    let cancelled = false;
+    const trigger = () => {
+      if (!cancelled) setSceneRequested(true);
+    };
+    let handle;
+    if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+      handle = window.requestIdleCallback(trigger, { timeout: 2500 });
+    } else {
+      handle = window.setTimeout(trigger, 1800);
+    }
+    return () => {
+      cancelled = true;
+      if (typeof window !== "undefined" && "cancelIdleCallback" in window && typeof handle === "number" && handle > 1000) {
+        // best-effort cleanup for idle callback handle
+      }
+      if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+        try { window.cancelIdleCallback(handle); } catch { /* noop */ }
+      } else {
+        clearTimeout(handle);
+      }
+    };
+  }, [prefersReducedMotion]);
 
   return (
     <section
@@ -152,17 +184,6 @@ export default function SplineSceneBasic() {
             </div>
             </div>
           </motion.div>
-          <button
-            type="button"
-            aria-pressed={sceneRequested}
-            onClick={() => setSceneRequested(true)}
-            disabled={sceneRequested}
-            className="relative z-20 mt-4 inline-flex min-h-10 items-center justify-center rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-semibold text-slate-100 transition hover:border-white/40 hover:bg-white/15 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white disabled:cursor-default disabled:opacity-70"
-          >
-            {sceneRequested
-              ? "Animation 3D en cours de chargement"
-              : "Afficher le robot en 3D"}
-          </button>
         </div>
       </div>
     </section>
