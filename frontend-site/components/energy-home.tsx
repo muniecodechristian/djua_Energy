@@ -2,8 +2,9 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowDown, ArrowRight, BatteryCharging, Check, MapPin, PhoneCall, ShieldCheck, Sun, Wrench } from "lucide-react";
-import { motion, useReducedMotion } from "framer-motion";
+import { ArrowDown, ArrowRight, BatteryCharging, Check, Cpu, MapPin, PhoneCall, ShieldCheck, Sun, Wrench } from "lucide-react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { useEffect, useState } from "react";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 
@@ -34,16 +35,46 @@ const steps = [
   ["Installation", "Notre équipe installe et vérifie votre équipement."],
 ];
 
+const heroSlides = [
+  {
+    eyebrow: "Énergie solaire · RDC",
+    title: "Une énergie fiable,",
+    highlight: "pensée pour votre quotidien.",
+    text: "Djua vous accompagne de l’étude à l’installation pour alimenter votre maison ou votre activité en toute confiance.",
+  },
+  {
+    eyebrow: "Maison · Commerce · Entreprise",
+    title: "Le courant reste là,",
+    highlight: "même quand le réseau s’arrête.",
+    text: "Une installation pensée pour vos appareils essentiels, vos horaires et votre budget.",
+  },
+  {
+    eyebrow: "Étude · Installation · Suivi",
+    title: "Du premier conseil",
+    highlight: "au système qui vous ressemble.",
+    text: "Notre équipe vous accompagne pour choisir, installer et suivre votre solution solaire.",
+  },
+];
+
+
 export default function EnergyHome() {
   const reducedMotion = useReducedMotion();
+  const [activeSlide, setActiveSlide] = useState(0);
   const reveal = { hidden: { opacity: 0, y: 28 }, visible: { opacity: 1, y: 0 } };
   const revealIn = { hidden: { opacity: 0, x: -32 }, visible: { opacity: 1, x: 0 } };
+
+  useEffect(() => {
+    if (reducedMotion) return undefined;
+    const timer = window.setInterval(() => setActiveSlide(index => (index + 1) % heroSlides.length), 6800);
+    return () => window.clearInterval(timer);
+  }, [reducedMotion]);
+  const slide = heroSlides[activeSlide];
 
   return (
     <main className="overflow-hidden bg-white text-[#17211e]">
       <SiteHeader />
 
-      <section className="relative isolate flex min-h-[min(760px,88svh)] items-end overflow-hidden bg-[#17211e] text-white">
+      <section className="relative isolate flex min-h-[min(760px,88svh)] items-center justify-center overflow-hidden bg-[#17191b] text-white">
         <Image
           src="/images/solar-array.jpg"
           alt="Panneaux solaires installés sous le ciel de la RDC"
@@ -52,38 +83,42 @@ export default function EnergyHome() {
           sizes="100vw"
           className="-z-20 object-cover"
         />
-        <div className="absolute inset-0 -z-10 bg-gradient-to-r from-[#101d18]/90 via-[#101d18]/62 to-[#101d18]/10" />
-        <motion.div
-          initial={reducedMotion ? false : { opacity: 0, y: 34 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-          className="mx-auto w-full max-w-7xl px-6 pb-24 pt-36 sm:pb-32"
-        >
-          <p className="mb-5 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#c9e06d]">
-            <span className="h-px w-8 bg-[#c9e06d]" /> Énergie solaire · RDC
-          </p>
-          <h1 className="max-w-3xl text-5xl font-semibold leading-[1.04] sm:text-7xl">
-            Une énergie fiable,
-            <span className="block text-[#d9e8a7]">pensée pour votre quotidien.</span>
-          </h1>
-          <p className="mt-6 max-w-xl text-base leading-7 text-white/80 sm:text-lg">
-            Djua vous accompagne de l’étude à l’installation pour alimenter votre maison ou votre activité en toute confiance.
-          </p>
-          <div className="mt-9 flex flex-wrap items-center gap-3">
-            <a href="#contact" className="inline-flex min-h-12 items-center gap-3 rounded-md bg-[#d9e8a7] px-5 text-sm font-bold text-[#17211e] transition-colors hover:bg-white">
-              Parlons de votre projet <ArrowRight size={16} />
-            </a>
-            <a href="#solutions" className="inline-flex min-h-12 items-center gap-2 rounded-md border border-white/45 px-5 text-sm font-semibold text-white transition-colors hover:bg-white/10">
-              Nos solutions <ArrowDown size={15} />
-            </a>
-          </div>
-        </motion.div>
-        <div className="absolute bottom-7 right-6 hidden items-center gap-2 text-xs text-white/75 sm:flex sm:right-10">
-          <MapPin size={14} /> Kinshasa et provinces
+        <div className="absolute inset-0 -z-10 bg-[#15181c]/55" />
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={activeSlide}
+            initial={reducedMotion ? false : { opacity: 0, y: 28, filter: 'blur(8px)' }}
+            animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+            exit={reducedMotion ? undefined : { opacity: 0, y: -18, filter: 'blur(6px)' }}
+            transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
+            className="mx-auto flex w-full max-w-5xl flex-col items-center px-6 pb-28 pt-36 text-center sm:pb-32"
+          >
+            <p className="mb-5 flex items-center gap-3 text-xs font-bold uppercase tracking-[0.18em] text-white/85">
+              <span className="h-px w-8 bg-[#ff8a00]" /> {slide.eyebrow} <span className="h-px w-8 bg-[#ff8a00]" />
+            </p>
+            <h1 className="max-w-4xl text-5xl font-semibold leading-[1.04] sm:text-7xl">
+              {slide.title}<span className="block text-[#ffad45]">{slide.highlight}</span>
+            </h1>
+            <p className="mx-auto mt-6 max-w-2xl text-base leading-7 text-white/85 sm:text-lg">{slide.text}</p>
+            <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
+              <a href="#contact" className="inline-flex min-h-12 items-center gap-3 rounded-md bg-[#ff8a00] px-5 text-sm font-bold text-[#17191b] transition-colors hover:bg-[#ffad45]">
+                Parlons de votre projet <ArrowRight size={16} />
+              </a>
+              <a href="#solutions" className="inline-flex min-h-12 items-center gap-2 rounded-md border border-white/55 px-5 text-sm font-semibold text-white transition-colors hover:bg-white/10">
+                Nos solutions <ArrowDown size={15} />
+              </a>
+            </div>
+          </motion.div>
+        </AnimatePresence>
+        <div className="absolute bottom-7 left-1/2 flex -translate-x-1/2 items-center gap-2.5" role="group" aria-label="Choisir le message d’accueil">
+          {heroSlides.map((item, index) => <button key={item.eyebrow} type="button" onClick={() => setActiveSlide(index)} aria-label={`Afficher le message ${index + 1}`} aria-pressed={activeSlide === index} className={`h-1.5 rounded-full transition-all duration-300 ${activeSlide === index ? 'w-10 bg-[#ff8a00]' : 'w-2.5 bg-white/55 hover:bg-white'}`} />)}
+        </div>
+        <div className="absolute bottom-7 right-6 hidden items-center gap-2 text-xs text-white/80 sm:flex sm:right-10">
+          <MapPin size={14} className="text-[#ff8a00]" /> Kinshasa et provinces
         </div>
       </section>
 
-      <section className="border-b border-[#17211e]/10 bg-[#f5f7f3]">
+      <section className="border-b border-[#17211e]/10 bg-[#fffaf4]">
         <div className="mx-auto grid max-w-7xl gap-5 px-6 py-7 text-sm sm:grid-cols-3 sm:py-8">
           {[
             "Étude adaptée à vos usages",
@@ -98,7 +133,7 @@ export default function EnergyHome() {
               transition={{ delay: index * 0.08, duration: 0.4 }}
               className="flex items-center gap-3 font-medium text-[#34443a]"
             >
-              <span className="grid size-7 shrink-0 place-items-center rounded-full bg-white text-[#557641]"><Check size={15} /></span>
+              <span className="grid size-7 shrink-0 place-items-center rounded-full bg-white text-[#ff8a00]"><Check size={15} /></span>
               {item}
             </motion.p>
           ))}
@@ -114,14 +149,16 @@ export default function EnergyHome() {
           className="grid gap-8 md:grid-cols-[.8fr_1.2fr] md:items-end"
         >
           <motion.div variants={reveal}>
-            <p className="mb-4 text-xs font-bold uppercase tracking-[0.14em] text-[#6b8249]">Nos solutions</p>
+            <p className="mb-4 text-xs font-bold uppercase tracking-[0.14em] text-[#ff8a00]">Nos solutions</p>
             <h2 className="max-w-xl text-3xl font-semibold leading-tight sm:text-5xl">
               Le solaire qui répond à vos besoins réels.
             </h2>
           </motion.div>
-          <motion.p variants={reveal} className="max-w-xl text-sm leading-6 text-[#58645c] md:justify-self-end">
-            Du premier échange au suivi de votre système, nous vous aidons à choisir la bonne installation, sans équipement superflu.
-          </motion.p>
+          <motion.div variants={reveal} className="relative min-h-[170px] overflow-hidden rounded-md md:justify-self-end md:w-full">
+            <Image src="/images/solar-array.jpg" alt="Panneaux solaires pour une maison ou une activité" fill sizes="(max-width: 768px) 100vw, 45vw" className="object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-r from-[#17191b]/65 to-transparent" />
+            <p className="absolute bottom-4 left-4 text-sm font-semibold text-white">Une solution étudiée pour votre site.</p>
+          </motion.div>
         </motion.div>
 
         <motion.div
@@ -141,7 +178,7 @@ export default function EnergyHome() {
             >
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold tabular-nums text-[#8b978c]">{number}</span>
-                <Icon className="size-6 text-[#638048] transition-transform duration-300 group-hover:rotate-[-8deg]" strokeWidth={1.6} />
+                <Icon className="size-6 text-[#ff8a00] transition-transform duration-300 group-hover:rotate-[-8deg]" strokeWidth={1.6} />
               </div>
               <h3 className="mt-10 text-xl font-semibold">{title}</h3>
               <p className="mt-3 max-w-sm text-sm leading-6 text-[#657168]">{text}</p>
@@ -150,7 +187,50 @@ export default function EnergyHome() {
         </motion.div>
       </section>
 
-      <section id="approche" className="bg-[#f3f6f1] px-6 py-20 sm:py-28">
+      <section className="bg-[#fff8f0] px-6 py-20 sm:py-28">
+        <div className="mx-auto grid max-w-7xl gap-12 lg:grid-cols-[1fr_1fr] lg:items-center">
+          <motion.div
+            initial={reducedMotion ? false : { opacity: 0, x: -24 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true, amount: 0.3 }}
+            transition={{ duration: 0.6 }}
+            className="relative flex min-h-[330px] items-center justify-center overflow-hidden rounded-md border border-[#17211e]/10 bg-white p-8 sm:min-h-[390px]"
+            aria-label="Illustration du boîtier connecté Djua"
+          >
+            <div className="absolute inset-0 opacity-50" style={{ backgroundImage: 'linear-gradient(#ff8a0012 1px, transparent 1px), linear-gradient(90deg, #ff8a0012 1px, transparent 1px)', backgroundSize: '28px 28px' }} />
+            <div className="relative w-full max-w-[330px] rounded-[26px] border border-[#d6d9d4] bg-gradient-to-br from-white via-[#f7f8f6] to-[#e9ece8] p-6 shadow-[0_28px_70px_rgba(23,25,27,.16)]">
+              <div className="flex items-center justify-between">
+                <span className="grid size-10 place-items-center rounded-lg bg-[#ff8a00] text-[#17191b]"><Cpu size={21} /></span>
+                <span className="inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#4c5d4f]"><i className="size-2 rounded-full bg-[#39a96b]" /> En ligne</span>
+              </div>
+              <div className="mt-8 flex items-end justify-between gap-5">
+                <div><p className="text-[10px] font-bold uppercase tracking-[0.13em] text-[#78827a]">Djua Energy</p><p className="mt-1 text-xl font-bold text-[#202622]">Boîtier connecté</p></div>
+                <div className="flex h-14 items-end gap-1.5" aria-hidden="true">{[22, 36, 27, 44, 32, 49, 39, 55].map((height, index) => <span key={index} className="w-2 rounded-t-sm bg-[#ff8a00]" style={{ height }} />)}</div>
+              </div>
+              <div className="mt-6 grid grid-cols-3 gap-2 border-t border-[#dfe2de] pt-4 text-center">
+                {[['PV', Sun], ['Batterie', BatteryCharging], ['Alertes', ShieldCheck]].map(([label, Icon]) => {
+                  const StatusIcon = Icon as typeof Sun;
+                  return <div key={label as string} className="grid justify-items-center gap-2 text-[9px] font-medium text-[#68736b]"><StatusIcon className="size-4 text-[#ff8a00]" strokeWidth={1.8} />{label as string}</div>;
+                })}
+              </div>
+            </div>
+            <div className="absolute bottom-5 left-5 inline-flex items-center gap-2 rounded-full border border-[#17211e]/10 bg-white/90 px-3 py-2 text-[10px] font-semibold text-[#465248]"><span className="size-2 rounded-full bg-[#39a96b]" />Suivi de l’installation</div>
+          </motion.div>
+          <motion.div
+            initial={reducedMotion ? false : { opacity: 0, x: 24 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true, amount: 0.3 }}
+            transition={{ duration: 0.6 }}
+          >
+            <p className="mb-4 text-xs font-bold uppercase tracking-[0.14em] text-[#ff8a00]">Votre installation, connectée</p>
+            <h2 className="max-w-xl text-3xl font-semibold leading-tight sm:text-5xl">Gardez un œil sur votre énergie.</h2>
+            <p className="mt-5 max-w-lg text-sm leading-7 text-[#59615b]">Le boîtier Djua transmet les données de votre kit pour suivre la production solaire, l’état de la batterie et les alertes techniques depuis la plateforme.</p>
+            <Link href="/services" className="mt-7 inline-flex items-center gap-2 text-sm font-bold text-[#c96500] hover:text-[#8f4700]">Découvrir le suivi Djua <ArrowRight size={16} /></Link>
+          </motion.div>
+        </div>
+      </section>
+
+      <section id="approche" className="bg-[#fffaf4] px-6 py-20 sm:py-28">
         <div className="mx-auto grid max-w-7xl gap-12 lg:grid-cols-[.9fr_1.1fr] lg:items-center">
           <motion.div
             initial="hidden"
@@ -158,14 +238,14 @@ export default function EnergyHome() {
             viewport={{ once: true, amount: 0.3 }}
             variants={revealIn}
           >
-            <p className="mb-4 text-xs font-bold uppercase tracking-[0.14em] text-[#6b8249]">Notre expertise</p>
+            <p className="mb-4 text-xs font-bold uppercase tracking-[0.14em] text-[#ff8a00]">Notre expertise</p>
             <h2 className="max-w-xl text-3xl font-semibold leading-tight sm:text-5xl">
               La bonne installation, sans complication.
             </h2>
             <p className="mt-5 max-w-lg text-sm leading-7 text-[#59665c]">
               Nous étudions votre consommation, choisissons les équipements adaptés et prenons en charge l’installation. Vous savez ce qui est prévu et pourquoi.
             </p>
-            <Link href="/about" className="mt-7 inline-flex items-center gap-2 text-sm font-bold text-[#49643b] hover:text-[#263d2b]">
+            <Link href="/about" className="mt-7 inline-flex items-center gap-2 text-sm font-bold text-[#c96500] hover:text-[#8f4700]">
               Découvrir notre approche <ArrowRight size={16} />
             </Link>
           </motion.div>
@@ -184,7 +264,7 @@ export default function EnergyHome() {
                 transition={{ delay: index * 0.08, duration: 0.45 }}
                 className="min-h-[170px] rounded-md border border-[#17211e]/8 bg-white p-5"
               >
-                <Icon className="size-5 text-[#6b8249]" strokeWidth={1.7} />
+                <Icon className="size-5 text-[#ff8a00]" strokeWidth={1.7} />
                 <h3 className="mt-6 text-base font-semibold">{title}</h3>
                 <p className="mt-2 text-sm leading-5 text-[#667168]">{text}</p>
               </motion.article>
@@ -196,7 +276,7 @@ export default function EnergyHome() {
       <section className="mx-auto max-w-7xl px-6 py-20 sm:py-28">
         <div className="grid gap-12 lg:grid-cols-[.7fr_1.3fr]">
           <motion.div initial={reducedMotion ? false : "hidden"} whileInView="visible" viewport={{ once: true }} variants={revealIn}>
-            <p className="mb-4 text-xs font-bold uppercase tracking-[0.14em] text-[#6b8249]">Votre parcours</p>
+            <p className="mb-4 text-xs font-bold uppercase tracking-[0.14em] text-[#ff8a00]">Votre parcours</p>
             <h2 className="text-3xl font-semibold leading-tight sm:text-5xl">Simple, du besoin à la mise en service.</h2>
           </motion.div>
           <div className="grid gap-0 sm:grid-cols-3">
@@ -209,7 +289,7 @@ export default function EnergyHome() {
                 transition={{ delay: index * 0.1, duration: 0.45 }}
                 className="border-t border-[#17211e]/20 py-5 sm:mr-5"
               >
-                <span className="text-xs font-bold text-[#6b8249]">0{index + 1}</span>
+                <span className="text-xs font-bold text-[#ff8a00]">0{index + 1}</span>
                 <h3 className="mt-6 text-lg font-semibold">{title}</h3>
                 <p className="mt-2 text-sm leading-6 text-[#657168]">{text}</p>
               </motion.article>
@@ -226,10 +306,10 @@ export default function EnergyHome() {
           className="mx-auto flex max-w-7xl flex-col gap-7 sm:flex-row sm:items-center sm:justify-between"
         >
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#c9e06d]">Parlons de votre installation</p>
+            <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#ffad45]">Parlons de votre installation</p>
             <h2 className="mt-3 max-w-2xl text-3xl font-semibold leading-tight sm:text-4xl">Faites le premier pas vers une énergie plus stable.</h2>
           </div>
-          <a href="#contact" className="inline-flex min-h-12 shrink-0 items-center gap-3 rounded-md bg-[#d9e8a7] px-5 text-sm font-bold text-[#17211e] hover:bg-white">
+          <a href="#contact" className="inline-flex min-h-12 shrink-0 items-center gap-3 rounded-md bg-[#ff8a00] px-5 text-sm font-bold text-[#17191b] hover:bg-[#ffad45]">
             <PhoneCall size={16} /> Contactez Djua <ArrowRight size={16} />
           </a>
         </motion.div>

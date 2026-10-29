@@ -7,12 +7,12 @@ export function SiteFooter() {
       <div className="border-b border-white/10 px-6 py-14 sm:px-12">
         <div className="mx-auto flex max-w-7xl flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#c9e06d]">Parlons de votre installation</p>
+            <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#ffad45]">Parlons de votre installation</p>
             <h2 className="mt-3 max-w-2xl text-3xl font-semibold leading-tight sm:text-4xl">
               Votre projet solaire commence par une conversation.
             </h2>
           </div>
-          <a href="tel:+243995424606" className="inline-flex min-h-12 items-center gap-2 self-start rounded-md bg-[#d9e8a7] px-5 text-sm font-bold text-[#17211e] hover:bg-white sm:self-auto">
+          <a href="tel:+243995424606" className="inline-flex min-h-12 items-center gap-2 self-start rounded-md bg-[#ff8a00] px-5 text-sm font-bold text-[#17191b] hover:bg-[#ffad45] sm:self-auto">
             <Phone size={15} /> Appeler Djua
           </a>
         </div>
@@ -39,10 +39,10 @@ export function SiteFooter() {
         <div>
           <h3 className="text-sm font-semibold">Nous contacter</h3>
           <div className="mt-4 grid gap-3 text-sm text-white/65">
-            <p><MapPin className="mr-2 inline size-4 text-[#c9e06d]" />Kinshasa, RDC</p>
-            <a href="tel:+243995424606" className="hover:text-white"><Phone className="mr-2 inline size-4 text-[#c9e06d]" />099 542 4606</a>
-            <a href="tel:+243837807301" className="hover:text-white"><Phone className="mr-2 inline size-4 text-[#c9e06d]" />+243 837 807 301</a>
-            <a href="mailto:Techplus643@gmail.com" className="hover:text-white"><Mail className="mr-2 inline size-4 text-[#c9e06d]" />Techplus643@gmail.com</a>
+            <p><MapPin className="mr-2 inline size-4 text-[#ff8a00]" />Kinshasa, RDC</p>
+            <a href="tel:+243995424606" className="hover:text-white"><Phone className="mr-2 inline size-4 text-[#ff8a00]" />099 542 4606</a>
+            <a href="tel:+243837807301" className="hover:text-white"><Phone className="mr-2 inline size-4 text-[#ff8a00]" />+243 837 807 301</a>
+            <a href="mailto:Techplus643@gmail.com" className="hover:text-white"><Mail className="mr-2 inline size-4 text-[#ff8a00]" />Techplus643@gmail.com</a>
           </div>
         </div>
       </div>
