@@ -6,7 +6,9 @@
 
 import Quote from '../models/Quote.model.js';
 import Alert from '../models/Alert.model.js';
+import User from '../models/user.model.js';
 import { notifyUser } from './notification.service.js';
+import { sendNotificationToWhatsApp } from './whatsapp.service.js';
 import { businessDay } from './quote.service.js';
 
 const ALERT_TYPE = 'installation_overdue';
@@ -52,6 +54,18 @@ export async function checkOverdueInstallations() {
       if (quote.shopManager && String(quote.shopManager) !== String(quote.owner)) {
         try { notifyUser(String(quote.shopManager), 'alert:new', payload); } catch (_) { /* noop */ }
       }
+
+      // Notification WhatsApp (message + alerte) aux mêmes destinataires
+      try {
+        if (quote.owner) {
+          const ownerUser = await User.findById(quote.owner).select('whatsapp identifier').lean();
+          if (ownerUser) await sendNotificationToWhatsApp(ownerUser, alert.label, alert.description);
+        }
+        if (quote.shopManager && String(quote.shopManager) !== String(quote.owner)) {
+          const shopUser = await User.findById(quote.shopManager).select('whatsapp identifier').lean();
+          if (shopUser) await sendNotificationToWhatsApp(shopUser, alert.label, alert.description);
+        }
+      } catch (_) { /* noop */ }
 
       created += 1;
     }

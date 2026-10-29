@@ -5,6 +5,8 @@ import Link from "next/link";
 import { ArrowDown, ArrowRight, BatteryCharging, Check, Cpu, MapPin, PhoneCall, ShieldCheck, Sun, Wrench } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useEffect, useState } from "react";
+import Lottie from "lottie-react";
+import solarAnimation from "@/lib/lottie/solar.json";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 
@@ -154,9 +156,9 @@ export default function EnergyHome() {
               Le solaire qui répond à vos besoins réels.
             </h2>
           </motion.div>
-          <motion.div variants={reveal} className="relative min-h-[170px] overflow-hidden rounded-md md:justify-self-end md:w-full">
-            <Image src="/images/solar-array.jpg" alt="Panneaux solaires pour une maison ou une activité" fill sizes="(max-width: 768px) 100vw, 45vw" className="object-cover" />
-            <div className="absolute inset-0 bg-gradient-to-r from-[#17191b]/65 to-transparent" />
+          <motion.div variants={reveal} className="relative min-h-[170px] overflow-hidden rounded-md md:justify-self-end md:w-full flex items-center justify-center bg-[#17191b]">
+            <Lottie animationData={solarAnimation} loop autoplay className="h-full w-full max-h-[220px]" />
+            <div className="absolute inset-0 bg-gradient-to-r from-[#17191b]/65 to-transparent pointer-events-none" />
             <p className="absolute bottom-4 left-4 text-sm font-semibold text-white">Une solution étudiée pour votre site.</p>
           </motion.div>
         </motion.div>

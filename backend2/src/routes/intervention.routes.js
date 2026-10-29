@@ -32,7 +32,7 @@ const router = Router();
 router.post(
   '/',
   protect,
-  authorizeRoles('shop_manager'),
+  authorizeRoles('shop_manager', 'commercial'),
   validate(createInterventionSchema),
   verifyKitZoneOwnership,
   verifyTechnicianOwnership,

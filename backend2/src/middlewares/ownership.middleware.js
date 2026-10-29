@@ -23,17 +23,22 @@ export const verifyTechnicianOwnership = async (req, res, next) => {
 
   const technicianId = req.body.assignedTo;
 
-  if (!technicianId) {
-    return sendError(res, 'Le champ assignedTo (technicien) est requis', [], 400);
-  }
+  // Auto-assignation (pas de technicien fourni) : le controller choisit le technicien senior de la zone.
+  if (!technicianId) return next();
 
   try {
-    // Condition 1: Technicien créé par le shop manager connecté
-    const conditions = [{ createdBy: req.user._id }];
-
-    // Condition 2: Technicien assigné à la zone du shop manager (ex: technicien senior ou de zone)
-    if (req.user.zone) {
-      conditions.push({ zone: req.user.zone });
+    // Conditions de propriété selon le rôle créateur.
+    const conditions = [];
+    if (role === 'shop_manager') {
+      conditions.push({ createdBy: req.user._id });
+      if (req.user.zone) conditions.push({ zone: req.user.zone });
+    } else if (role === 'commercial') {
+      // Un commercial peut assigner les techniciens de sa zone (senior bro).
+      if (req.user.zone) conditions.push({ zone: req.user.zone });
+      else conditions.push({ createdBy: req.user._id });
+    } else {
+      conditions.push({ createdBy: req.user._id });
+      if (req.user.zone) conditions.push({ zone: req.user.zone });
     }
 
     const technician = await User.findOne({

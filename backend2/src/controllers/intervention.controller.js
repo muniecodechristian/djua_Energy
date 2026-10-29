@@ -4,6 +4,7 @@
 // Les notifications Socket.io sont déléguées au notification.service.
 
 import { Intervention } from '../models/Intervention.model.js';
+import User from '../models/user.model.js';
 import { sendSuccess, sendError } from '../utils/apiResponse.js';
 import {
   notifyNewIntervention,
@@ -11,6 +12,7 @@ import {
   notifyInterventionStatusUpdate,
   notifyReportSubmitted,
 } from '../services/notification.service.js';
+import { sendInterventionToWhatsApp } from '../services/whatsapp.service.js';
 
 // ── POST /api/interventions ───────────────────────────────────────────────────
 /**
@@ -18,9 +20,26 @@ import {
  * Le middleware verifyTechnicianOwnership a déjà validé la propriété.
  */
 export const createIntervention = async (req, res) => {
-  const { kitId, title, description, type, priority, scheduledDate, assignedTo } = req.body;
+  let { kitId, title, description, type, priority, scheduledDate, assignedTo } = req.body;
 
   try {
+    // ── Auto-assignation au technicien senior de la zone si non fourni ──────────
+    // Permet à la page SmartKitDetails (qui ne transmet pas assignedTo) de créer
+    // une intervention pointée vers le technicien senior ("senior bro") de la zone.
+    if (!assignedTo) {
+      const zone = req.user?.zone;
+      const seniorTech = await User.findOne({
+        role: 'technician',
+        seniority: 'senior',
+        status: 'active',
+        ...(zone ? { zone } : {}),
+      }).select('_id');
+      if (!seniorTech) {
+        return sendError(res, "Aucun technicien senior disponible pour cette zone", [], 422);
+      }
+      assignedTo = seniorTech._id.toString();
+    }
+
     const intervention = await Intervention.create({
       kitId,
       title,
@@ -33,14 +52,19 @@ export const createIntervention = async (req, res) => {
     });
 
     const populated = await Intervention.findById(intervention._id)
-      .populate('assignedTo', 'nom prenom identifier zone')
+      .populate('assignedTo', 'nom prenom identifier zone whatsapp seniority')
       .populate('createdBy', 'nom prenom identifier')
       .lean();
 
     // ── Notification temps réel au technicien ────────────────────────────────
     notifyNewIntervention(assignedTo, populated);
 
-    return sendSuccess(res, 'Intervention créée et technicien notifié', populated, 201);
+    // ── Envoi WhatsApp (message + intervention) au technicien pointé ─────────
+    const whatsapp = await sendInterventionToWhatsApp(populated.assignedTo, populated);
+
+    const responseData = { ...populated, whatsappLink: whatsapp.link, whatsappSent: whatsapp.sent };
+
+    return sendSuccess(res, 'Intervention créée et technicien notifié', responseData, 201);
   } catch (error) {
     console.error('[Intervention Controller] createIntervention error:', error.message);
     return sendError(res, `Erreur lors de la création: ${error.message}`, [], 500);
@@ -210,6 +234,9 @@ export const reassignIntervention = async (req, res) => {
 
     // Notification au nouveau technicien
     notifyInterventionReassigned(newTechnicianId, populated);
+
+    // Envoi WhatsApp au nouveau technicien assigné
+    await sendInterventionToWhatsApp(populated.assignedTo, populated);
 
     return sendSuccess(res, 'Intervention réassignée avec succès', populated);
   } catch (error) {

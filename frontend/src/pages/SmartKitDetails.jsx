@@ -15,7 +15,7 @@ import { io } from 'socket.io-client';
 import api from '../api/axios';
 import { predictionMatchesKit } from '../lib/operations';
 import { formatTelemetryValue, getTelemetryMetrics, groupTelemetryMetrics } from '../lib/telemetryMetrics';
-import { useCreateIntervention } from '../hooks/tanstack/useInterventions.js';
+import { useCreateIntervention, useTeamTechnicians } from '../hooks/tanstack/useInterventions.js';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { MapContainer, TileLayer, Marker, Circle, useMap } from 'react-leaflet';
@@ -467,12 +467,13 @@ export default function SmartKitDetails() {
   
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [interventionForm, setInterventionForm] = useState({ title: '', description: '', priority: 'Moyenne' });
+  const [interventionForm, setInterventionForm] = useState({ title: '', description: '', priority: 'Moyenne', assignedTo: '' });
 
   const { telemetryRecords, latestTelemetry, isLive, isLoading } = useKitLiveTelemetry(kitId);
   const { data: kits = [] } = useKitsQuery();
   const { data: alerts = [] } = useAlertsQuery();
   const createIntervention = useCreateIntervention();
+const technicians = useTeamTechnicians();
   const kitReference = kits.find((kit) => kit.kitId === kitId);
 
   const T = latestTelemetry;
@@ -559,12 +560,16 @@ export default function SmartKitDetails() {
     e.preventDefault();
     createIntervention.mutate({
       kitId,
-      ...interventionForm
+      ...interventionForm,
+      ...(interventionForm.assignedTo ? { assignedTo: interventionForm.assignedTo } : {}),
     }, {
-      onSuccess: () => {
+      onSuccess: (data) => {
         showToast('Intervention créée et stockée en BD pour 2 semaines');
+        if (data?.data?.whatsappLink) {
+          window.open(data.data.whatsappLink, '_blank', 'noopener,noreferrer');
+        }
         setIsModalOpen(false);
-        setInterventionForm({ title: '', description: '', priority: 'Moyenne' });
+        setInterventionForm({ title: '', description: '', priority: 'Moyenne', assignedTo: '' });
       },
       onError: () => {
         showToast('Erreur lors de la création de l\'intervention');
@@ -622,12 +627,13 @@ export default function SmartKitDetails() {
               >
                 Consulter le diagnostic
               </button>
-              <Link
-                to={`/InterventionWizard?kitId=${encodeURIComponent(kitId)}`}
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(true)}
                 className={`kit-action ${FOCUS}`}
               >
                 Créer une intervention
-              </Link>
+              </button>
             </div>
           </div>
 
@@ -903,6 +909,21 @@ export default function SmartKitDetails() {
                     <option value="Moyenne">Moyenne</option>
                     <option value="Haute">Haute</option>
                     <option value="Critique">Critique</option>
+                  </select>
+                </div>
+                <div>
+                  <label className={`block text-sm font-medium ${FG} mb-1.5`}>Technicien assigné (optionnel)</label>
+                  <select
+                    value={interventionForm.assignedTo}
+                    onChange={(e) => setInterventionForm(f => ({ ...f, assignedTo: e.target.value }))}
+                    className="w-full rounded-md border border-[var(--panel-border)] bg-[var(--app-surface)] px-3 py-2 text-sm text-[var(--app-foreground)] focus:border-[#F59E0B] focus:outline-none focus:ring-1 focus:ring-[#F59E0B]"
+                  >
+                    <option value="">Auto (technicien senior de la zone)</option>
+                    {(technicians.data || []).map((t) => (
+                      <option key={t._id} value={t._id}>
+                        {t.prenom} {t.nom} {t.seniority === 'senior' ? '★' : ''}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <div className="pt-4 flex justify-end gap-3">

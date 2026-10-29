@@ -21,7 +21,7 @@ export const createInterventionSchema = z.object({
       errorMap: () => ({ message: 'Priorité invalide (Basse, Moyenne, Haute, Critique)' }),
     }).optional(),
     scheduledDate: z.string().datetime({ offset: true }).optional(),
-    assignedTo: z.string().regex(objectIdRegex, 'ID technicien invalide'),
+    assignedTo: z.string().regex(objectIdRegex, 'ID technicien invalide').optional(),
   }),
 });
 

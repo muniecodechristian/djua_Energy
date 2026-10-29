@@ -9,6 +9,7 @@ import {
   ArrowLeft,
   ArrowRight,
   Battery,
+  Box,
   BriefcaseBusiness,
   Building2,
   Check,
