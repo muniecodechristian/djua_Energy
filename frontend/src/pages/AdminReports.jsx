@@ -283,12 +283,16 @@ export default function AdminReports() {
   const allKpis = [
     { label: 'Devis créés', value: quotesQuery.isSuccess ? numberFormat.format(quotes.length) : '—', note: 'Sur la période sélectionnée', icon: FileText, tone: 'orange' },
     { label: 'Devis validés', value: quotesQuery.isSuccess ? numberFormat.format(validatedCount) : '—', note: 'Validés ou en cours d’installation', icon: CheckCircle2, tone: 'green' },
-    { label: 'Installations suivies', value: kitsQuery.isSuccess ? numberFormat.format(filteredKits.length) : '—', note: province === 'all' ? 'Parc enregistré' : province, icon: Users, tone: 'purple' },
-    { label: 'Alertes ouvertes', value: alertsQuery.isSuccess ? numberFormat.format(filteredAlerts.length) : '—', note: 'Actives ou prises en charge', icon: AlertTriangle, tone: 'red' },
+    { label: 'Installations suivies', value: isCommercial ? numberFormat.format(quotes.filter(quote => quote.status === 'installed').length) : kitsQuery.isSuccess ? numberFormat.format(filteredKits.length) : '—', note: isCommercial ? 'Issues des devis validés' : province === 'all' ? 'Parc enregistré' : province, icon: Users, tone: 'purple' },
+    { label: isCommercial ? 'Devis à traiter' : 'Alertes ouvertes', value: isCommercial ? numberFormat.format(quotes.filter(quote => quote.status === 'draft').length) : alertsQuery.isSuccess ? numberFormat.format(filteredAlerts.length) : '—', note: isCommercial ? 'À valider ou relancer' : 'Actives ou prises en charge', icon: isCommercial ? Clock3 : AlertTriangle, tone: 'red' },
   ];
-  const kpis = isCommercial ? allKpis.slice(0, 2) : allKpis;
+  const kpis = allKpis;
 
   const anomalies = useMemo(() => {
+    if (isCommercial) {
+      const pending = quotes.filter(quote => quote.status === 'draft').length;
+      return pending ? [{ name: 'Devis en attente de validation', count: pending }] : [];
+    }
     const counts = new Map();
     filteredAlerts.forEach(alert => {
       const name = alert.label || alert.type || 'Autre alerte';
@@ -339,11 +343,15 @@ export default function AdminReports() {
       .filter(days => Number.isFinite(days) && days >= 0);
     return durations.length ? durations.reduce((total, days) => total + days, 0) / durations.length : null;
   }, [quotes]);
-  const contractStatuses = useMemo(() => [
+  const contractStatuses = useMemo(() => (isCommercial ? [
+    { name: 'Créés', value: quotes.length, color: '#ff6a00' },
+    { name: 'Acceptés', value: validatedCount, color: '#2eaa70' },
+    { name: 'En attente', value: Math.max(quotes.length - validatedCount, 0), color: '#f6a623' },
+  ] : [
     { name: 'Actifs', value: filteredKits.filter(kit => kit.status === 'active').length, color: '#2eaa70' },
     { name: 'Suspendus', value: filteredKits.filter(kit => kit.status === 'suspended').length, color: '#f6a623' },
     { name: 'Résiliés', value: filteredKits.filter(kit => kit.status === 'terminated').length, color: '#aeb8c7' },
-  ].filter(item => item.value), [filteredKits]);
+  ]).filter(item => item.value), [isCommercial, quotes, validatedCount, filteredKits]);
   const reportClients = useMemo(() => [...new Set(quotes.map(quote => quote.customer?.name).filter(Boolean))].sort((left, right) => left.localeCompare(right, 'fr')), [quotes]);
   const reportQuotes = useMemo(() => reportClient === 'all' ? quotes : quotes.filter(quote => quote.customer?.name === reportClient), [quotes, reportClient]);
   const reportTrend = useMemo(() => createTrend(reportQuotes, [], range), [reportQuotes, range]);
@@ -489,19 +497,19 @@ export default function AdminReports() {
           <ChartCard title="Activité commerciale" description="Devis créés, validés et installés sur la période.">
             {quotesQuery.isPending ? <EmptyChart>Chargement des devis…</EmptyChart> : quotes.length === 0 ? <EmptyChart /> : <div className="reports-chart"><ResponsiveContainer width="100%" height="100%"><LineChart data={trend} margin={{ top: 10, right: 10, bottom: 0, left: -18 }}><CartesianGrid stroke="#edf0f4" vertical={false} /><XAxis dataKey="day" tickLine={false} axisLine={false} minTickGap={24} /><YAxis allowDecimals={false} tickLine={false} axisLine={false} /><Tooltip content={<ChartTooltip />} /><Legend verticalAlign="bottom" height={32} iconType="circle" /><Line name="Devis créés" dataKey="created" stroke="#ff6a00" strokeWidth={2.5} dot={false} activeDot={{ r: 4 }} /><Line name="Devis validés" dataKey="validated" stroke="#3984f7" strokeWidth={2.5} dot={false} activeDot={{ r: 4 }} /><Line name="Installés" dataKey="installed" stroke="#2eaa70" strokeWidth={2.5} dot={false} activeDot={{ r: 4 }} /></LineChart></ResponsiveContainer></div>}
           </ChartCard>
-          {!isCommercial && <ChartCard title="Production solaire et charge DC" description="Énergie mesurée par les dernières télémétries disponibles (Wh).">
-            {telemetryQuery.isPending ? <EmptyChart>Chargement de la télémétrie…</EmptyChart> : filteredTelemetry.length === 0 || !trend.some(row => row.produced || row.consumed) ? <EmptyChart>Aucune mesure d’énergie exploitable pour cette période.</EmptyChart> : <div className="reports-chart"><ResponsiveContainer width="100%" height="100%"><AreaChart data={trend} margin={{ top: 10, right: 10, bottom: 0, left: -12 }}><CartesianGrid stroke="#edf0f4" vertical={false} /><XAxis dataKey="day" tickLine={false} axisLine={false} minTickGap={24} /><YAxis tickLine={false} axisLine={false} /><Tooltip content={<ChartTooltip />} /><Legend verticalAlign="bottom" height={32} iconType="circle" /><Area name="Production solaire (Wh)" dataKey="produced" type="monotone" stroke="#ff6a00" fill="#ff6a00" fillOpacity={0.12} strokeWidth={2} /><Area name="Charge DC (Wh)" dataKey="consumed" type="monotone" stroke="#3984f7" fill="#3984f7" fillOpacity={0.10} strokeWidth={2} /></AreaChart></ResponsiveContainer></div>}
-          </ChartCard>}
+          <ChartCard title={isCommercial ? 'Suivi des conversions' : 'Production solaire et charge DC'} description={isCommercial ? 'Devis créés, acceptés et installations réalisées.' : 'Énergie mesurée par les dernières télémétries disponibles (Wh).'}>
+            {isCommercial ? <div className="reports-chart"><ResponsiveContainer width="100%" height="100%"><LineChart data={trend} margin={{ top: 10, right: 10, bottom: 0, left: -12 }}><CartesianGrid stroke="#edf0f4" vertical={false} /><XAxis dataKey="day" tickLine={false} axisLine={false} minTickGap={24} /><YAxis allowDecimals={false} tickLine={false} axisLine={false} /><Tooltip content={<ChartTooltip />} /><Legend verticalAlign="bottom" height={32} iconType="circle" /><Line name="Devis créés" dataKey="created" stroke="#ff6a00" strokeWidth={2.5} dot={false} /><Line name="Devis acceptés" dataKey="validated" stroke="#3984f7" strokeWidth={2.5} dot={false} /><Line name="Installés" dataKey="installed" stroke="#2eaa70" strokeWidth={2.5} dot={false} /></LineChart></ResponsiveContainer></div> : telemetryQuery.isPending ? <EmptyChart>Chargement de la télémétrie…</EmptyChart> : filteredTelemetry.length === 0 || !trend.some(row => row.produced || row.consumed) ? <EmptyChart>Aucune mesure d’énergie exploitable pour cette période.</EmptyChart> : <div className="reports-chart"><ResponsiveContainer width="100%" height="100%"><AreaChart data={trend} margin={{ top: 10, right: 10, bottom: 0, left: -12 }}><CartesianGrid stroke="#edf0f4" vertical={false} /><XAxis dataKey="day" tickLine={false} axisLine={false} minTickGap={24} /><YAxis tickLine={false} axisLine={false} /><Tooltip content={<ChartTooltip />} /><Legend verticalAlign="bottom" height={32} iconType="circle" /><Area name="Production solaire (Wh)" dataKey="produced" type="monotone" stroke="#ff6a00" fill="#ff6a00" fillOpacity={0.12} strokeWidth={2} /><Area name="Charge DC (Wh)" dataKey="consumed" type="monotone" stroke="#3984f7" fill="#3984f7" fillOpacity={0.10} strokeWidth={2} /></AreaChart></ResponsiveContainer></div>}
+          </ChartCard>
         </div>
         <div className={`reports-bottom-grid${isCommercial ? ' commercial-only' : ''}`}>
           <section className="reports-card reports-status-card">
             <header className="reports-card-title"><div><h2>Répartition des installations par statut</h2><p>Statut contractuel des kits du parc filtré.</p></div></header>
             {kitsQuery.isPending ? <EmptyChart>Chargement du parc…</EmptyChart> : contractStatuses.length === 0 ? <EmptyChart>Aucune installation enregistrée pour ces filtres.</EmptyChart> : <div className="reports-status-content"><div className="reports-donut"><ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={contractStatuses} dataKey="value" nameKey="name" innerRadius="66%" outerRadius="92%" paddingAngle={2} stroke="none">{contractStatuses.map(item => <Cell key={item.name} fill={item.color} />)}</Pie><Tooltip content={<ChartTooltip />} /></PieChart></ResponsiveContainer><span><strong>{numberFormat.format(filteredKits.length)}</strong><small>installations</small></span></div><ul className="reports-legend-list">{contractStatuses.map(item => <li key={item.name}><i style={{ background: item.color }} /><span>{item.name}</span><strong>{numberFormat.format(item.value)}</strong><small>{filteredKits.length ? `${Math.round(item.value / filteredKits.length * 100)} %` : '0 %'}</small></li>)}</ul></div>}
           </section>
-          {!isCommercial && <section className="reports-card reports-list-card">
-            <header className="reports-card-title"><div><h2>Alertes les plus fréquentes</h2><p>Alertes ouvertes correspondant aux filtres.</p></div><button className="reports-inline-action" onClick={() => setTab('fleet')}>Voir le parc <ChevronRight size={14} /></button></header>
-            {alertsQuery.isPending ? <EmptyChart>Chargement des alertes…</EmptyChart> : anomalies.length === 0 ? <EmptyChart>Aucune alerte ouverte sur cette période.</EmptyChart> : <ul className="reports-data-list">{anomalies.map((item, index) => <li key={item.name}><span className="reports-rank">{index + 1}</span><span>{item.name}</span><strong>{numberFormat.format(item.count)}</strong></li>)}</ul>}
-          </section>}
+          <section className="reports-card reports-list-card">
+            <header className="reports-card-title"><div><h2>{isCommercial ? 'Priorités commerciales' : 'Alertes les plus fréquentes'}</h2><p>{isCommercial ? 'Devis nécessitant une action.' : 'Alertes ouvertes correspondant aux filtres.'}</p></div><button className="reports-inline-action" onClick={() => setTab(isCommercial ? 'sales' : 'fleet')}>Voir tout <ChevronRight size={14} /></button></header>
+            {(isCommercial ? quotesQuery.isPending : alertsQuery.isPending) ? <EmptyChart>Chargement des données…</EmptyChart> : anomalies.length === 0 ? <EmptyChart>{isCommercial ? 'Aucun devis prioritaire sur cette période.' : 'Aucune alerte ouverte sur cette période.'}</EmptyChart> : <ul className="reports-data-list">{anomalies.map((item, index) => <li key={item.name}><span className="reports-rank">{index + 1}</span><span>{item.name}</span><strong>{numberFormat.format(item.count)}</strong></li>)}</ul>}
+          </section>
           <section className="reports-card reports-list-card">
             <header className="reports-card-title"><div><h2>Équipements les plus dimensionnés</h2><p>Quantités issues des devis de la période.</p></div><button className="reports-inline-action" onClick={() => setTab('sales')}>Voir les ventes <ChevronRight size={14} /></button></header>
             {quotesQuery.isPending ? <EmptyChart>Chargement des devis…</EmptyChart> : products.length === 0 ? <EmptyChart>Aucun équipement dans les devis de cette période.</EmptyChart> : <div className="reports-mini-table"><div><span>Équipement</span><span>Catégorie</span><span>Qté</span></div>{products.map(item => <div key={item.name}><strong title={item.name}>{item.name}</strong><span>{item.category}</span><b>{numberFormat.format(item.count)}</b></div>)}</div>}

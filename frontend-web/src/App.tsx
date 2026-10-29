@@ -21,6 +21,35 @@ import Step11Error       from './pages/Step11Error';
 // L'étape spéciale 'kit-exists' est un état terminal non numéroté.
 type Step = number | 'kit-exists';
 
+function IdentityPage({ onNext, onKitExists }: { onNext: () => void; onKitExists: () => void }) {
+  const [detected, setDetected] = useState(false);
+  return detected
+    ? <Step02Detected onNext={onNext} />
+    : <Step01Scan onNext={() => setDetected(true)} onKitExists={onKitExists} />;
+}
+
+function AssociationPage({ onNext }: { onNext: () => void }) {
+  const [phase, setPhase] = useState<'source' | 'search' | 'verify' | 'manual'>('source');
+  if (phase === 'source') return <Step03Source onNext={(target) => setPhase(target === 4 ? 'search' : 'manual')} />;
+  if (phase === 'search') return <Step04Search onNext={() => setPhase('verify')} />;
+  if (phase === 'verify') return <Step05Verify onNext={onNext} onBack={() => setPhase('search')} />;
+  return <Step06Manual onNext={onNext} />;
+}
+
+function InstallationPage({ onNext, onError }: { onNext: () => void; onError: () => void }) {
+  const [phase, setPhase] = useState<'location' | 'diagnostic'>('location');
+  return phase === 'location'
+    ? <Step07Location onNext={() => setPhase('diagnostic')} />
+    : <Step08Diagnostic onNext={onNext} onError={onError} />;
+}
+
+function FinalizationPage({ errorMessage, onRetry, onFinish, onError }: { errorMessage: string; onRetry: () => void; onFinish: () => void; onError: (message: string) => void }) {
+  const [phase, setPhase] = useState<'preview' | 'success' | 'error'>(errorMessage ? 'error' : 'preview');
+  if (phase === 'error') return <Step11Error onRetry={onRetry} onForceContinue={() => setPhase('preview')} errorType="diagnostic" errorMessage={errorMessage} />;
+  if (phase === 'success') return <Step10Success onFinish={onFinish} onError={(message) => { onError(message); setPhase('error'); }} />;
+  return <Step09Preview onNext={() => setPhase('success')} onBack={() => undefined} />;
+}
+
 export default function App() {
   const [step, setStep]           = useState<Step>(1);
   const [errorMsg, setErrorMsg]   = useState('');
@@ -154,40 +183,10 @@ export default function App() {
     }
 
     switch (step) {
-      case 1:
-        return (
-          <Step01Scan
-            onNext={next}
-            onKitExists={() => goTo('kit-exists')}
-          />
-        );
-      case 2:  return <Step02Detected onNext={next} />;
-      case 3:  return <Step03Source onNext={(s) => s ? goTo(s) : next()} />;
-      case 4:  return <Step04Search onNext={next} />;
-      case 5:  return <Step05Verify onNext={() => goTo(7)} onBack={() => goTo(4)} />;
-      case 6:  return <Step06Manual onNext={next} />;
-      case 7:  return <Step07Location onNext={next} />;
-      case 8:  return (
-        <Step08Diagnostic
-          onNext={next}
-          onError={() => { setErrorType('diagnostic'); goTo(11); }}
-        />
-      );
-      case 9:  return <Step09Preview onNext={next} onBack={goTo} />;
-      case 10: return (
-        <Step10Success
-          onFinish={handleFinish}
-          onError={(msg) => { setErrorMsg(msg); setErrorType('submit'); goTo(11); }}
-        />
-      );
-      case 11: return (
-        <Step11Error
-          onRetry={() => goTo(errorType === 'submit' ? 9 : 8)}
-          onForceContinue={() => goTo(9)}
-          errorType={errorType}
-          errorMessage={errorMsg}
-        />
-      );
+      case 1: return <IdentityPage onNext={() => goTo(2)} onKitExists={() => goTo('kit-exists')} />;
+      case 2: return <AssociationPage onNext={() => goTo(3)} />;
+      case 3: return <InstallationPage onNext={() => goTo(4)} onError={() => { setErrorType('diagnostic'); setErrorMsg('Le diagnostic du kit n’a pas pu être validé.'); goTo(4); }} />;
+      case 4: return <FinalizationPage errorMessage={errorMsg} onRetry={() => { setErrorMsg(''); goTo(3); }} onFinish={handleFinish} onError={(msg) => { setErrorType('submit'); setErrorMsg(msg); }} />;
       default: return <Step01Scan onNext={next} onKitExists={() => goTo('kit-exists')} />;
     }
   };

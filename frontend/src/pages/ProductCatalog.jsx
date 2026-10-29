@@ -1,170 +1,60 @@
 import { useMemo, useRef, useState } from 'react';
-import { ImagePlus, PackagePlus, Pencil, Plus, Search, Trash2, X } from 'lucide-react';
+import { ArrowLeft, ArrowUpRight, Battery, Box, Check, ChevronDown, FileText, ImagePlus, MoreHorizontal, PackagePlus, Pencil, Plus, Search, Settings2, SlidersHorizontal, Sparkles, Sun, Trash2, Upload, X, Zap } from 'lucide-react';
 import { toast } from 'sonner';
 import PageEntrance from '../components/PageEntrance';
 import useAuthStore from '../hooks/Zustand/useAuthStore';
 import { useCatalogProducts, useDeleteCatalogProduct, useSaveCatalogProduct } from '../hooks/tanstack/useCatalogProducts';
 import './ProductCatalog.css';
 
-const categories = ['Éclairage', 'Multimédia', 'Cuisine', 'Climatisation', 'Pompage', 'Autres'];
-const emptyProducts = [];
-const emptyProduct = {
-  name: '', category: 'Multimédia', brand: '', model: '', watts: '100', hours: '5',
-  period: 'both', diversity: '0.8', price: '0', currency: 'USD', imageData: '', active: true,
-};
+const categories = [
+  { id: 'Panneau solaire', label: 'Panneaux solaires', icon: Sun },
+  { id: 'Batterie', label: 'Batteries', icon: Battery },
+  { id: 'Onduleur', label: 'Onduleurs', icon: Zap },
+  { id: 'Accessoire', label: 'Accessoires', icon: Box },
+];
+const formCategories = categories.map(item => item.id).concat(['Éclairage', 'Multimédia', 'Cuisine', 'Climatisation', 'Pompage', 'Autres']);
+const emptyProduct = { name: '', category: 'Panneau solaire', brand: '', model: '', watts: '100', hours: '5', period: 'both', diversity: '0.8', price: '0', currency: 'USD', imageData: '', active: true };
+const iconFor = category => categories.find(item => item.id === category)?.icon || Settings2;
 
 async function prepareImage(file) {
   if (!file.type.startsWith('image/')) throw new Error('Choisissez un fichier image.');
-  if (file.size > 8 * 1024 * 1024) throw new Error('L’image doit faire moins de 8 Mo avant compression.');
   const source = await createImageBitmap(file);
   const scale = Math.min(1, 1200 / Math.max(source.width, source.height));
   const canvas = document.createElement('canvas');
   canvas.width = Math.max(1, Math.round(source.width * scale));
   canvas.height = Math.max(1, Math.round(source.height * scale));
   const context = canvas.getContext('2d');
-  if (!context) {
-    source.close();
-    throw new Error('Impossible de préparer cette image dans le navigateur.');
-  }
-  context.fillStyle = '#ffffff';
-  context.fillRect(0, 0, canvas.width, canvas.height);
-  context.drawImage(source, 0, 0, canvas.width, canvas.height);
-  source.close();
-  const result = canvas.toDataURL('image/jpeg', 0.78);
-  if (result.length > 1_450_000) throw new Error('Image trop volumineuse après compression. Choisissez une image plus légère.');
-  return result;
+  if (!context) throw new Error('Impossible de préparer cette image.');
+  context.fillStyle = '#fff'; context.fillRect(0, 0, canvas.width, canvas.height); context.drawImage(source, 0, 0, canvas.width, canvas.height); source.close();
+  return canvas.toDataURL('image/jpeg', 0.78);
 }
 
-function ProductEditor({ product, saving, onClose, onSave }) {
-  const [form, setForm] = useState(() => product
-    ? Object.fromEntries(Object.keys(emptyProduct).map(key => [key, product[key] ?? emptyProduct[key]]))
-    : emptyProduct);
-  const [imageBusy, setImageBusy] = useState(false);
-  const fileInput = useRef(null);
-  const update = event => {
-    const { name, value, type, checked } = event.target;
-    setForm(previous => ({ ...previous, [name]: type === 'checkbox' ? checked : value }));
-  };
-  const selectImage = async event => {
-    const file = event.target.files?.[0];
-    event.target.value = '';
-    if (!file) return;
-    setImageBusy(true);
-    try {
-      const imageData = await prepareImage(file);
-      setForm(previous => ({ ...previous, imageData }));
-    } catch (error) {
-      toast.error(error.message);
-    } finally {
-      setImageBusy(false);
-    }
-  };
-  const submit = event => {
-    event.preventDefault();
-    onSave({
-      id: product?._id,
-      ...form,
-      watts: Number(form.watts),
-      hours: Number(form.hours),
-      diversity: Number(form.diversity),
-      price: Number(form.price),
-    });
-  };
+function ProductForm({ product, saving, onClose, onSave }) {
+  const [form, setForm] = useState(() => ({ ...emptyProduct, ...(product || {}) }));
+  const [busy, setBusy] = useState(false);
+  const inputRef = useRef(null);
+  const update = event => { const { name, value, type, checked } = event.target; setForm(previous => ({ ...previous, [name]: type === 'checkbox' ? checked : value })); };
+  const chooseImage = async event => { const file = event.target.files?.[0]; event.target.value = ''; if (!file) return; setBusy(true); try { const imageData = await prepareImage(file); setForm(previous => ({ ...previous, imageData })); } catch (error) { toast.error(error.message); } finally { setBusy(false); } };
+  const submit = event => { event.preventDefault(); onSave({ id: product?._id, ...form, watts: Number(form.watts), hours: Number(form.hours), diversity: Number(form.diversity), price: Number(form.price) }); };
+  return <div className="catalog-dialog-backdrop" onMouseDown={event => event.target === event.currentTarget && onClose()}><section className="catalog-editor-modal" role="dialog" aria-modal="true"><header className="catalog-modal-heading"><div><span className="catalog-eyebrow">{product ? 'MODIFICATION' : 'NOUVELLE RÉFÉRENCE'}</span><h2>{product ? 'Modifier le produit' : 'Ajouter un produit'}</h2><p>Ajoutez un produit qui sera utilisé par Djùa pour construire les recommandations.</p></div><button className="catalog-close" type="button" onClick={onClose} aria-label="Fermer"><X size={18}/></button></header><form onSubmit={submit}>
+    <section className="catalog-form-section"><div className="catalog-section-heading"><span>1</span><div><strong>Catégorie du produit</strong><small>Sélectionnez la catégorie à laquelle appartient ce produit.</small></div></div><div className="catalog-category-choices">{categories.map(item => { const Icon = item.icon; return <button type="button" key={item.id} className={form.category === item.id ? 'is-selected' : ''} onClick={() => setForm(previous => ({ ...previous, category: item.id }))}><Icon size={20}/><span><b>{item.label}</b><small>{item.id === 'Panneau solaire' ? 'Modules photovoltaïques' : item.id === 'Batterie' ? 'Stockage d’énergie' : item.id === 'Onduleur' ? 'Conversion DC / AC' : 'Câbles, fixations, etc.'}</small></span>{form.category === item.id && <Check size={16}/>}</button>; })}</div></section>
+    <section className="catalog-form-section"><div className="catalog-section-heading"><span>2</span><div><strong>Informations générales</strong><small>Renseignez les informations principales du produit.</small></div></div><div className="catalog-form-grid"><label>Nom du produit *<input name="name" value={form.name} onChange={update} required placeholder="Ex. Panneau solaire 600 W" /></label><label>Marque *<input name="brand" value={form.brand} onChange={update} required placeholder="Ex. Orange Solar" /></label><label>Référence / Modèle *<input name="model" value={form.model} onChange={update} required placeholder="Ex. PS600" /></label><label>Catégorie<select name="category" value={form.category} onChange={update}>{formCategories.map(item => <option key={item}>{item}</option>)}</select></label><label>Prix de vente<input name="price" type="number" min="0" step="any" value={form.price} onChange={update} /></label><label>Puissance nominale (W)<input name="watts" type="number" min="0" value={form.watts} onChange={update} required /></label><label>Utilisation estimée (h/jour)<input name="hours" type="number" min="0" max="24" step="0.5" value={form.hours} onChange={update} /></label><label>Période d’utilisation<select name="period" value={form.period} onChange={update}><option value="day">Jour</option><option value="night">Nuit</option><option value="both">Jour et nuit</option><option value="continuous">Continue</option></select></label></div><div className="catalog-image-picker"><input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={chooseImage}/><div className="catalog-upload-preview">{form.imageData ? <img src={form.imageData} alt="Aperçu"/> : <ImagePlus size={25}/>}</div><div><strong>Photo du produit</strong><small>Ajoutez une image claire du produit.</small><button type="button" className="catalog-secondary-button" onClick={() => inputRef.current?.click()} disabled={busy}><Upload size={14}/>{busy ? 'Préparation…' : 'Ajouter une photo'}</button></div></div></section>
+    <section className="catalog-form-section"><div className="catalog-section-heading"><span>3</span><div><strong>Disponibilité</strong><small>Contrôlez la visibilité de ce produit dans les devis.</small></div></div><label className="catalog-switch-row"><input name="active" type="checkbox" checked={form.active} onChange={update}/><span><b>Utilisé pour les recommandations</b><small>Les produits actifs apparaissent dans le parcours de devis.</small></span><i/></label></section><footer className="catalog-modal-footer"><button type="button" className="catalog-secondary-button" onClick={onClose}>Annuler</button><button type="submit" className="catalog-primary-button" disabled={saving || busy}>{saving ? 'Enregistrement…' : product ? 'Enregistrer les changements' : 'Ajouter au catalogue'}</button></footer>
+  </form></section></div>;
+}
 
-  return (
-    <div className="catalog-dialog-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) onClose(); }}>
-      <section className="catalog-dialog" role="dialog" aria-modal="true" aria-labelledby="catalog-editor-title">
-        <header><div><p className="ops-eyebrow">{product ? 'MODIFICATION' : 'NOUVELLE RÉFÉRENCE'}</p><h2 id="catalog-editor-title">{product ? 'Modifier le produit' : 'Ajouter un produit'}</h2></div><button type="button" className="ops-icon-button" onClick={onClose} aria-label="Fermer"><X size={18}/></button></header>
-        <form onSubmit={submit}>
-          <div className="catalog-form-grid">
-            <label>Nom du produit<input name="name" value={form.name} onChange={update} placeholder="Ex. Télévision LED 32 pouces" maxLength={100} required /></label>
-            <label>Catégorie<select name="category" value={form.category} onChange={update}>{categories.map(category => <option key={category}>{category}</option>)}</select></label>
-            <label>Marque<input name="brand" value={form.brand} onChange={update} maxLength={80} placeholder="Ex. Samsung" /></label>
-            <label>Modèle / référence<input name="model" value={form.model} onChange={update} maxLength={80} placeholder="Ex. UA32T" /></label>
-            <label>Puissance nominale (W)<input name="watts" type="number" min="0" max="10000000" step="any" value={form.watts} onChange={update} required /></label>
-            <label>Utilisation estimée (h/jour)<input name="hours" type="number" min="0" max="24" step="0.5" value={form.hours} onChange={update} required /></label>
-            <label>Période d’utilisation<select name="period" value={form.period} onChange={update}><option value="day">Jour</option><option value="night">Nuit</option><option value="both">Jour et nuit</option><option value="continuous">Continue</option></select></label>
-            <label className="catalog-price-field"><span>Prix indicatif</span><span><input name="price" type="number" min="0" step="any" value={form.price} onChange={update} /><select aria-label="Devise" name="currency" value={form.currency} onChange={update}><option>USD</option><option>CDF</option></select></span></label>
-          </div>
-          <div className="catalog-image-field">
-            <input ref={fileInput} className="catalog-file-input" type="file" accept="image/jpeg,image/png,image/webp" onChange={selectImage} aria-label="Choisir une image produit" />
-            {form.imageData ? <img src={form.imageData} alt="Aperçu du produit" /> : <span className="catalog-image-placeholder"><ImagePlus size={22}/></span>}
-            <div><strong>Photo du produit</strong><small>JPEG, PNG ou WebP. L’image est réduite avant envoi.</small><button className="ops-button" type="button" disabled={imageBusy} onClick={() => fileInput.current?.click()}>{imageBusy ? 'Préparation…' : form.imageData ? 'Changer la photo' : 'Choisir une photo'}</button>{form.imageData && <button className="catalog-remove-image" type="button" onClick={() => setForm(previous => ({ ...previous, imageData: '' }))}>Retirer la photo</button>}</div>
-          </div>
-          <label className="catalog-active-toggle"><input name="active" type="checkbox" checked={form.active} onChange={update}/><span><strong>Disponible pour les devis</strong><small>Le produit sera visible aux commerciaux lorsqu’il est actif.</small></span></label>
-          <footer><button className="ops-button" type="button" onClick={onClose}>Annuler</button><button className="ops-button primary" type="submit" disabled={saving || imageBusy}>{saving ? 'Enregistrement…' : product ? 'Enregistrer les changements' : 'Ajouter au catalogue'}</button></footer>
-        </form>
-      </section>
-    </div>
-  );
+function ProductDetail({ product, isAdmin, onBack, onEdit }) {
+  const Icon = iconFor(product.category); const price = product.price ? `${Number(product.price).toLocaleString('fr-FR')} ${product.currency}` : 'À préciser';
+  return <PageEntrance className="catalog-detail-page"><button className="catalog-back-link" onClick={onBack}><ArrowLeft size={15}/>Retour au catalogue</button><header className="catalog-detail-heading"><div><span className="catalog-eyebrow">DÉTAIL DU PRODUIT</span><h1>{product.name}</h1><p>{product.brand || 'Marque non renseignée'} <b>·</b> {product.model || 'Référence non renseignée'} <span className={`catalog-status ${product.active ? 'active' : ''}`}><i/>{product.active ? 'Actif' : 'Inactif'}</span></p></div>{isAdmin && <button className="catalog-primary-button" onClick={onEdit}><Pencil size={14}/>Modifier</button>}</header><div className="catalog-detail-layout"><main><section className="catalog-spec-strip"><div className="catalog-detail-image">{product.imageData ? <img src={product.imageData} alt={product.name}/> : <Icon size={50}/>}</div><div><small>Puissance nominale</small><strong>{product.watts || 0} W</strong></div><div><small>Utilisation</small><strong>{product.hours || 0} h/jour</strong></div><div><small>Catégorie</small><strong>{product.category}</strong></div><div><small>Prix de vente</small><strong>{price}</strong></div></section><nav className="catalog-detail-tabs"><button className="active">Vue d’ensemble</button><button>Caractéristiques techniques</button><button>Utilisation dans Djùa</button><button>Historique</button></nav><section className="catalog-detail-card"><h2><FileText size={17}/>Informations générales</h2><dl><div><dt>Nom du produit</dt><dd>{product.name}</dd></div><div><dt>Marque</dt><dd>{product.brand || '—'}</dd></div><div><dt>Référence / Modèle</dt><dd>{product.model || '—'}</dd></div><div><dt>Prix de vente</dt><dd>{price}</dd></div></dl></section><section className="catalog-detail-card"><h2><Settings2 size={17}/>Caractéristiques techniques</h2><dl><div><dt>Puissance nominale</dt><dd>{product.watts || 0} W</dd></div><div><dt>Durée d’utilisation</dt><dd>{product.hours || 0} h/jour</dd></div><div><dt>Période</dt><dd>{product.period || '—'}</dd></div><div><dt>Facteur de diversité</dt><dd>{Math.round((product.diversity || 0) * 100)} %</dd></div></dl></section></main><aside><section className="catalog-summary-card"><h2><Icon size={17}/>Résumé du produit</h2><p>Catégorie <b>{product.category}</b></p><p>Marque <b>{product.brand || '—'}</b></p><p>Référence <b>{product.model || '—'}</b></p><p>Prix de vente <b>{price}</b></p><p>Recommandations <b>{product.active ? 'Oui' : 'Non'}</b></p></section><section className="catalog-advice-card"><Sparkles size={18}/><strong>Conseil Djùa</strong><p>Gardez les caractéristiques techniques à jour pour garantir des recommandations fiables.</p></section></aside></div></PageEntrance>;
 }
 
 export default function ProductCatalog() {
-  const user = useAuthStore(state => state.user);
-  const isAdmin = ['admin', 'administration'].includes(user?.role);
-  const query = useCatalogProducts();
-  const save = useSaveCatalogProduct();
-  const remove = useDeleteCatalogProduct();
-  const [search, setSearch] = useState('');
-  const [category, setCategory] = useState('Tous');
-  const [editor, setEditor] = useState(null);
-  const products = Array.isArray(query.data) ? query.data : emptyProducts;
-  const visibleProducts = useMemo(() => products.filter(product => (
-    (category === 'Tous' || product.category === category)
-    && [product.name, product.brand, product.model].join(' ').toLowerCase().includes(search.trim().toLowerCase())
-  )), [products, category, search]);
-  const usedProducts = [...products].filter(product => product.active).sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || '')).slice(0, 5);
-
-  const saveProduct = values => save.mutate(values, {
-    onSuccess: () => {
-      toast.success(values.id ? 'Produit mis à jour.' : 'Produit ajouté au catalogue.');
-      setEditor(null);
-    },
-    onError: error => toast.error(error.response?.data?.message || 'Impossible d’enregistrer ce produit.'),
-  });
-  const deleteProduct = product => {
-    if (!window.confirm(`Supprimer « ${product.name} » du catalogue ?`)) return;
-    remove.mutate(product._id, {
-      onSuccess: () => toast.success('Produit supprimé.'),
-      onError: error => toast.error(error.response?.data?.message || 'Impossible de supprimer ce produit.'),
-    });
-  };
-
-  return (
-    <PageEntrance className="catalog-page">
-      <header className="catalog-page-heading">
-        <div><p className="ops-eyebrow">RÉFÉRENTIEL DES APPAREILS</p><h1>Catalogue de produits</h1><p>Gérez les équipements proposés aux commerciaux pour préparer les recommandations solaires.</p></div>
-        {isAdmin && <button className="ops-button primary" onClick={() => setEditor({ ...emptyProduct })}><Plus size={15}/>Ajouter un produit</button>}
-      </header>
-
-      {query.isError && <div className="ops-notice" role="alert">Impossible de charger le catalogue depuis le serveur. Vérifiez la connexion et réessayez.<button onClick={() => query.refetch()}>Réessayer</button></div>}
-
-      <div className="catalog-layout">
-        <main className="catalog-main">
-          <div className="catalog-categories" aria-label="Filtrer par catégorie">
-            {['Tous', ...categories].map(item => <button key={item} className={category === item ? 'is-active' : ''} aria-pressed={category === item} onClick={() => setCategory(item)}>{item}<span>{item === 'Tous' ? products.length : products.filter(product => product.category === item).length}</span></button>)}
-          </div>
-          <div className="catalog-toolbar">
-            <label className="ops-input-wrap"><Search size={16}/><input aria-label="Rechercher un produit" placeholder="Produit, marque ou référence…" value={search} onChange={event => setSearch(event.target.value)}/></label>
-            <span>{query.isSuccess ? `${visibleProducts.length} produit${visibleProducts.length === 1 ? '' : 's'}` : 'Catalogue'}</span>
-          </div>
-          {query.isPending ? <div className="catalog-empty">Chargement du catalogue…</div> : query.isError ? null : visibleProducts.length === 0 ? (
-            <div className="catalog-empty"><PackagePlus size={25}/><strong>{products.length ? 'Aucun produit trouvé' : 'Le catalogue est vide'}</strong><p>{products.length ? 'Changez de recherche ou de catégorie.' : isAdmin ? 'Ajoutez les premiers appareils pour les partager avec les commerciaux.' : 'L’administrateur n’a pas encore ajouté de produits.'}</p></div>
-          ) : (
-            <div className="catalog-product-grid">
-              {visibleProducts.map(product => <article className={`catalog-product-card ${!product.active ? 'is-inactive' : ''}`} key={product._id}>
-                <div className="catalog-product-photo">{product.imageData ? <img src={product.imageData} alt={product.name} /> : <PackagePlus size={27}/>}<span className={`catalog-product-status ${product.active ? 'is-active' : ''}`}>{product.active ? 'Actif' : 'Masqué'}</span></div>
-                <div className="catalog-product-content"><span className="catalog-product-category">{product.category}</span><h2>{product.name}</h2><p>{[product.brand, product.model].filter(Boolean).join(' · ') || 'Marque non renseignée'}</p><div className="catalog-product-specs"><strong>{product.watts} W</strong><span>{product.hours} h/j</span></div><div className="catalog-product-bottom"><strong>{product.price ? `${Number(product.price).toLocaleString('fr-FR')} ${product.currency}` : 'Prix à préciser'}</strong>{isAdmin && <div><button type="button" aria-label={`Modifier ${product.name}`} onClick={() => setEditor({ ...product })}><Pencil size={14}/></button><button type="button" aria-label={`Supprimer ${product.name}`} onClick={() => deleteProduct(product)} disabled={remove.isPending}><Trash2 size={14}/></button></div>}</div></div>
-              </article>)}
-            </div>
-          )}
-        </main>
-        <aside className="catalog-aside">
-          <section className="catalog-aside-card"><header><h2>Produits actifs</h2><small>Catalogue partagé</small></header>{query.isPending ? <p>Chargement…</p> : <ol>{usedProducts.map((product,index) => <li key={product._id}><span className="catalog-rank">{index + 1}</span>{product.imageData ? <img src={product.imageData} alt="" /> : <span className="catalog-thumb-empty"><PackagePlus size={15}/></span>}<span><strong>{product.name}</strong><small>{product.brand || product.category} · {product.watts} W</small></span></li>)}</ol>}</section>
-          <section className="catalog-help-card"><h2>Catalogue partagé</h2><p>Les produits actifs et leurs photos sont disponibles au commercial dans le parcours de devis.</p></section>
-        </aside>
-      </div>
-      {editor && <ProductEditor product={editor._id ? editor : null} saving={save.isPending} onClose={() => setEditor(null)} onSave={saveProduct}/>}
-    </PageEntrance>
-  );
+  const user = useAuthStore(state => state.user); const isAdmin = ['admin', 'administration'].includes(user?.role); const query = useCatalogProducts(); const save = useSaveCatalogProduct(); const remove = useDeleteCatalogProduct();
+  const [search, setSearch] = useState(''); const [category, setCategory] = useState('Tous'); const [editor, setEditor] = useState(null); const [detail, setDetail] = useState(null); const products = Array.isArray(query.data) ? query.data : [];
+  const visibleProducts = useMemo(() => products.filter(product => (category === 'Tous' || product.category === category) && [product.name, product.brand, product.model].join(' ').toLowerCase().includes(search.trim().toLowerCase())), [products, category, search]);
+  const usedProducts = products.filter(product => product.active).slice(0, 5);
+  const saveProduct = values => save.mutate(values, { onSuccess: saved => { toast.success(values.id ? 'Produit mis à jour.' : 'Produit ajouté au catalogue.'); setEditor(null); if (saved) setDetail(saved); }, onError: error => toast.error(error.response?.data?.message || 'Impossible d’enregistrer ce produit.') });
+  const deleteProduct = product => { if (!window.confirm(`Supprimer « ${product.name} » du catalogue ?`)) return; remove.mutate(product._id, { onSuccess: () => { toast.success('Produit supprimé.'); setDetail(null); }, onError: error => toast.error(error.response?.data?.message || 'Impossible de supprimer ce produit.') }); };
+  if (detail) return <ProductDetail product={detail} isAdmin={isAdmin} onBack={() => setDetail(null)} onEdit={() => setEditor(detail)} />;
+  return <PageEntrance className="catalog-page"><header className="catalog-page-heading"><div><span className="catalog-eyebrow">RÉFÉRENTIEL DES APPAREILS</span><h1>Catalogue de produits</h1><p>Gérez les équipements utilisés par Djùa pour construire les recommandations.</p></div><div className="catalog-heading-actions">{isAdmin && <button className="catalog-secondary-button"><Upload size={14}/>Importer (CSV)</button>}{isAdmin && <button className="catalog-primary-button" onClick={() => setEditor({ ...emptyProduct })}><Plus size={15}/>Ajouter un produit</button>}</div></header>{query.isError && <div className="catalog-notice">Impossible de charger le catalogue.<button onClick={() => query.refetch()}>Réessayer</button></div>}<div className="catalog-layout"><main className="catalog-main"><div className="catalog-categories"><button className={category === 'Tous' ? 'is-active' : ''} onClick={() => setCategory('Tous')}><SlidersHorizontal size={15}/>Tous<span>{products.length}</span></button>{categories.map(item => { const Icon = item.icon; return <button key={item.id} className={category === item.id ? 'is-active' : ''} onClick={() => setCategory(item.id)}><Icon size={15}/>{item.label}<span>{products.filter(product => product.category === item.id).length}</span></button>; })}</div><div className="catalog-toolbar"><label className="catalog-search"><Search size={16}/><input aria-label="Rechercher un produit" placeholder="Rechercher un produit, une marque…" value={search} onChange={event => setSearch(event.target.value)}/></label><button className="catalog-filter-button">Filtres<ChevronDown size={13}/></button><button className="catalog-filter-button">Nom (A → Z)<ChevronDown size={13}/></button></div>{query.isPending ? <div className="catalog-empty">Chargement du catalogue…</div> : <div className="catalog-table-wrap"><table className="catalog-table"><thead><tr><th><input type="checkbox" aria-label="Tout sélectionner"/></th><th>Produit</th><th>Catégorie</th><th>Caractéristiques clés</th><th>Prix</th><th>Statut</th><th>Recommandations</th><th>Actions</th></tr></thead><tbody>{visibleProducts.map(product => { const Icon = iconFor(product.category); return <tr key={product._id} onClick={() => setDetail(product)}><td onClick={event => event.stopPropagation()}><input type="checkbox" aria-label={`Sélectionner ${product.name}`}/></td><td><div className="catalog-product-cell">{product.imageData ? <img src={product.imageData} alt=""/> : <span><Icon size={18}/></span>}<div><strong>{product.name}</strong><small>{product.brand || 'Marque non renseignée'} · {product.model || '—'}</small></div></div></td><td><span className="catalog-category-pill"><Icon size={12}/>{product.category}</span></td><td><strong>{product.watts || 0} W</strong><small>{product.hours || 0} h/j · {product.period === 'both' ? 'Jour & nuit' : product.period || 'Jour'}</small></td><td><strong>{product.price ? `${Number(product.price).toLocaleString('fr-FR')} ${product.currency}` : '—'}</strong></td><td><span className={`catalog-status ${product.active ? 'active' : ''}`}><i/>{product.active ? 'Actif' : 'Inactif'}</span></td><td><label className="catalog-toggle" onClick={event => event.stopPropagation()}><input type="checkbox" checked={Boolean(product.active)} onChange={() => isAdmin && saveProduct({ id: product._id, ...product, active: !product.active })} disabled={!isAdmin}/><span/></label></td><td><button className="catalog-more" onClick={event => { event.stopPropagation(); setDetail(product); }} aria-label={`Détails de ${product.name}`}><MoreHorizontal size={17}/></button></td></tr>; })}</tbody></table>{!visibleProducts.length && <div className="catalog-empty">Aucun produit trouvé.</div>}</div>}</main><aside className="catalog-aside"><section className="catalog-aside-card"><header><h2>Produits les plus utilisés</h2><small>30 derniers jours</small></header><ol>{usedProducts.map((product, index) => <li key={product._id}><span className="catalog-rank">{index + 1}</span>{product.imageData ? <img src={product.imageData} alt=""/> : <span className="catalog-thumb-empty"><PackagePlus size={15}/></span>}<span><strong>{product.name}</strong><small>{product.brand || product.category}</small></span><b>{product.hours || 0} fois</b></li>)}</ol></section><section className="catalog-help-card"><Sparkles size={18}/><div><strong>Besoin d’aide ?</strong><p>Découvrez comment bien renseigner vos produits dans notre guide.</p><button>Voir le guide <ArrowUpRight size={13}/></button></div></section></aside></div>{editor && <ProductForm product={editor._id ? editor : null} saving={save.isPending} onClose={() => setEditor(null)} onSave={saveProduct}/>}</PageEntrance>;
 }

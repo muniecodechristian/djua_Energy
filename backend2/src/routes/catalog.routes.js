@@ -8,7 +8,7 @@ import {
 } from '../controllers/catalog.controller.js';
 
 const router = Router();
-router.use(protect, authorizeRoles('admin', 'commercial'));
+router.use(protect, authorizeRoles('admin', 'administration', 'commercial', 'shop_manager'));
 router.get('/', listCatalogProducts);
 router.post('/', authorizeRoles('admin'), createCatalogProduct);
 router.patch('/:productId', authorizeRoles('admin'), updateCatalogProduct);

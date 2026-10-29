@@ -6,7 +6,7 @@ import { Server } from 'socket.io';
 import jwt from 'jsonwebtoken';
 import config from '../config/env.config.js';
 import User from '../models/user.model.js';
-import cookie from 'cookie';
+import * as cookie from 'cookie';
 
 /** @type {Server | null} */
 let io = null;
