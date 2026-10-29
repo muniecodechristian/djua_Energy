@@ -66,6 +66,7 @@ export function useSolarRecommend() {
         housing_type:  buildingType || clientInfo.selectedType || clientInfo.housing_type || undefined,
         site_details:  site.details || undefined,
         people_count:  projectForm.occupants ? parseInt(projectForm.occupants, 10) : undefined,
+        budget:        clientInfo.budget ? Number(clientInfo.budget) : undefined,
         autonomy_hours: 10,
         preference:    'balanced',
         customer_id:   phone || clientInfo.email || 'djua-client',

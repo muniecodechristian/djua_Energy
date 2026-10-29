@@ -41,7 +41,7 @@ export const teamUserSchema = z.object({
     identifier: identifierSchema,
     whatsapp: z.string().trim().min(6, 'Le numéro WhatsApp est requis (ex: +243...)').optional(),
     password: passwordStrengthSchema,
-    role: z.enum(['shop_manager', 'technician', 'commercial']),
+    role: z.enum(['admin', 'shop_manager', 'technician', 'commercial']),
     zone: z.string().trim().optional(),
   }),
 });

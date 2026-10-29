@@ -9,7 +9,7 @@ interface Props { onNext: () => void; }
 const MOCK_BOX_ID = 'DJB-00482';
 
 export default function Step02Detected({ onNext }: Props) {
-  const { boxId, setBoxId } = useInstallStore();
+  const { boxId, clientName, setBoxId, setClientName } = useInstallStore();
 
   useEffect(() => {
     if (!boxId) setBoxId(MOCK_BOX_ID);
@@ -32,8 +32,11 @@ export default function Step02Detected({ onNext }: Props) {
           <Cpu size={56} color="var(--text-muted)" strokeWidth={1.2} />
         </div>
 
-        <h1 className="screen-title" style={{ textAlign: 'center' }}>Boîtier détecté</h1>
+        <h1 className="screen-title" style={{ textAlign: 'center' }}>Boîtier prêt à l’enregistrement</h1>
         <p className="device-id-badge">{id}</p>
+        <p className="screen-desc" style={{ textAlign: 'center', marginBottom: 20 }}>
+          Identifiant confirmé. Ajoutez le nom du client pour retrouver facilement cette installation.
+        </p>
 
         <div className="card" style={{ width: '100%' }}>
           <div className="info-row">
@@ -46,6 +49,20 @@ export default function Step02Detected({ onNext }: Props) {
               <span className="status-dot" />
               Non associé
             </span>
+          </div>
+        </div>
+
+        <div style={{ width: '100%', marginTop: 20 }}>
+          <label className="label-text" htmlFor="client-name">Nom du client <span>(facultatif)</span></label>
+          <div className="input-wrap">
+            <input
+              id="client-name"
+              type="text"
+              autoComplete="name"
+              placeholder="Ex. Marie Kabeya"
+              value={clientName}
+              onChange={event => setClientName(event.target.value)}
+            />
           </div>
         </div>
       </div>

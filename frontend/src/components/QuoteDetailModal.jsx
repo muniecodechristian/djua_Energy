@@ -52,6 +52,12 @@ function todayKinshasa() {
          parts.find(p => p.type === 'day').value;
 }
 
+function addKinshasaDays(days) {
+  const date = new Date(`${todayKinshasa()}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
 export default function QuoteDetailModal({ quote, onClose }) {
   const [plannedDate, setPlannedDate] = useState(quote?.plannedDate || '');
   const queryClient = useQueryClient();
@@ -83,6 +89,12 @@ export default function QuoteDetailModal({ quote, onClose }) {
   const system = quote.system || {};
   const appliances = Array.isArray(quote.appliances) ? quote.appliances : [];
   const status = quote.status || 'draft';
+  const today = todayKinshasa();
+  const quickDates = [
+    { label: 'Aujourd’hui', value: today },
+    { label: 'Demain', value: addKinshasaDays(1) },
+    { label: 'Dans une semaine', value: addKinshasaDays(7) },
+  ];
 
   // Calculs totaux des appareils
   const totalDailyWh = appliances.reduce((sum, item) => sum + (Number(item.quantity || 1) * Number(item.watts || 0) * Number(item.hours || 0)), 0);
@@ -376,21 +388,24 @@ export default function QuoteDetailModal({ quote, onClose }) {
                 approveMutation.mutate();
               }}
             >
-              <label style={{ fontSize: 11, color: 'var(--muted-foreground)' }}>
-                Date d'installation prévue (Kinshasa) :
-                <input
-                  type="date"
-                  required
-                  min={todayKinshasa()}
-                  value={plannedDate}
-                  onChange={(e) => setPlannedDate(e.target.value)}
-                  style={{ marginLeft: 8 }}
-                />
-              </label>
+              <div className="quote-modal-approval-copy">
+                <span>PROCHAINE ÉTAPE</span>
+                <strong>Planifier l’installation</strong>
+                <small>Choisissez une date à confirmer avec le client.</small>
+              </div>
+              <div className="quote-modal-date-controls">
+                <div className="quote-modal-date-quick" role="group" aria-label="Choix rapides de date">
+                  {quickDates.map(option => <button key={option.value} type="button" className={plannedDate === option.value ? 'is-selected' : ''} aria-pressed={plannedDate === option.value} onClick={() => setPlannedDate(option.value)}>{option.label}</button>)}
+                </div>
+                <label className="quote-modal-date-field" htmlFor="quote-planned-date">
+                  <span><Calendar size={14} />Date prévue · Kinshasa</span>
+                  <input id="quote-planned-date" type="date" required min={today} value={plannedDate} onChange={(e) => setPlannedDate(e.target.value)} />
+                </label>
+              </div>
               <button
                 type="submit"
                 className="quote-modal-btn primary"
-                disabled={!plannedDate || plannedDate < todayKinshasa() || approveMutation.isPending}
+                disabled={!plannedDate || plannedDate < today || approveMutation.isPending}
               >
                 <Check size={15} />
                 {approveMutation.isPending ? 'Validation en cours…' : 'Valider ce devis'}

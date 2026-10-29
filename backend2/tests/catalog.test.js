@@ -7,6 +7,7 @@ import connectDB from '../src/config/db.config.js';
 import config from '../src/config/env.config.js';
 import User from '../src/models/user.model.js';
 import CatalogProduct from '../src/models/CatalogProduct.model.js';
+import Quote from '../src/models/Quote.model.js';
 
 let admin;
 let commercial;
@@ -41,10 +42,14 @@ describe('Shared solar equipment catalogue', () => {
     ]);
   });
 
-  beforeEach(async () => CatalogProduct.deleteMany({}));
+  beforeEach(async () => {
+    await CatalogProduct.deleteMany({});
+    await Quote.deleteMany({});
+  });
 
   afterAll(async () => {
     await CatalogProduct.deleteMany({});
+    await Quote.deleteMany({});
     await User.deleteMany({ identifier: /^catalog-(admin|commercial|manager)@test\.local$/ });
     await mongoose.connection.close();
   });
@@ -66,11 +71,41 @@ describe('Shared solar equipment catalogue', () => {
     expect(adminList.body.data).toHaveLength(2);
   });
 
-  it('rejects anonymous and shop-manager access and prevents commercial mutations', async () => {
+  it('rejects anonymous access and prevents unauthorized catalogue mutations', async () => {
     expect((await request(app).get('/api/catalog')).status).toBe(401);
-    expect((await request(app).get('/api/catalog').set('Cookie', cookie(shopManager))).status).toBe(403);
+    expect((await request(app).get('/api/catalog').set('Cookie', cookie(shopManager))).status).toBe(200);
     expect((await request(app).post('/api/catalog').set('Cookie', cookie(commercial)).send(product())).status).toBe(403);
     expect((await request(app).post('/api/catalog').set('Cookie', cookie(admin)).send(product({ imageData: 'data:image/svg+xml;base64,PHN2Zz4=' }))).status).toBe(400);
+  });
+
+  it('counts product appearances in quotes from the last 30 days', async () => {
+    const television = await CatalogProduct.create({ ...product(), createdBy: admin._id });
+    const refrigerator = await CatalogProduct.create({ ...product({ name: 'Réfrigérateur', model: 'FR-1' }), createdBy: admin._id });
+    const quote = (number, createdAt, name) => ({
+      number,
+      requestKey: number,
+      owner: admin._id,
+      client: new mongoose.Types.ObjectId(),
+      customer: { name: 'Client test' },
+      site: {},
+      system: {},
+      appliances: [{ name, quantity: 1, watts: 85, hours: 5 }],
+      amount: 100,
+      currency: 'USD',
+      createdAt,
+      updatedAt: createdAt,
+    });
+    await Quote.create([
+      quote('Q-CATALOG-RECENT-1', new Date(), 'Télévision LED'),
+      quote('Q-CATALOG-RECENT-2', new Date(), 'télévision led'),
+      quote('Q-CATALOG-OLD', new Date(Date.now() - 31 * 24 * 60 * 60 * 1000), 'Télévision LED'),
+      quote('Q-CATALOG-OTHER', new Date(), 'Autre appareil'),
+    ]);
+
+    const response = await request(app).get('/api/catalog').set('Cookie', cookie(admin));
+    const counts = new Map(response.body.data.map(item => [item._id, item.usageCount]));
+    expect(counts.get(String(television._id))).toBe(2);
+    expect(counts.get(String(refrigerator._id))).toBe(0);
   });
 
   it('lets only administrators update and delete existing catalogue products', async () => {

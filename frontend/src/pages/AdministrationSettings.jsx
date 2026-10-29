@@ -37,6 +37,7 @@ const sections = [
   { id: 'dimensionnement', label: 'Dimensionnement', icon: Gauge },
   { id: 'monitoring', label: 'Monitoring & alertes', icon: Activity },
   { id: 'notifications', label: 'Notifications', icon: Bell },
+  { id: 'interventions', label: 'Maintenances & interventions', icon: Wrench },
   { id: 'devis', label: 'Devis', icon: FileText },
   { id: 'compte', label: 'Mon compte', icon: LockKeyhole },
 ];
@@ -44,6 +45,7 @@ const sections = [
 const sectionDescriptions = {
   acces: 'Consultez votre session et les rôles disponibles dans l’espace.',
   equipes: 'Créez les comptes responsables qui pourront gérer leurs équipes de terrain.',
+  interventions: 'Consultez les maintenances, les interventions planifiées et leurs comptes-rendus.',
   dimensionnement: 'Retrouvez le parcours de dimensionnement et les recommandations solaires.',
   monitoring: 'Accédez au parc connecté et aux alertes techniques.',
   notifications: 'Consultez les alertes et événements remontés par la plateforme.',
@@ -168,8 +170,9 @@ function SettingsSectionContent({ activeSection, user, onSelectSection }) {
           <header className="admin-settings-card-heading">
             <div><h2><Users size={17} />Créer un responsable shop</h2><p>Le responsable pourra créer les comptes technicien et commercial de sa zone.</p></div>
           </header>
-          <div className="admin-settings-card-body"><TeamAccountForm /></div>
+          <div className="admin-settings-card-body"><TeamAccountForm initialRole="shop_manager" allowedRoles={["shop_manager"]} /></div>
         </section>
+        <SectionLink to="/equipe">Voir la liste complète des équipes</SectionLink>
         <SettingsNotice>
           Le serveur permet la création de comptes responsables. Il ne propose pas encore à l’administrateur
           une liste centralisée des shops et des équipes existants.
@@ -239,6 +242,13 @@ function SettingsSectionContent({ activeSection, user, onSelectSection }) {
       link: '/notification',
       linkLabel: 'Consulter les alertes',
     },
+    interventions: {
+      icon: Wrench,
+      title: 'Maintenance & interventions',
+      description: 'Consultez les interventions, leurs statuts, les responsables et les rapports terrain.',
+      link: '/InterventionWizard',
+      linkLabel: 'Voir les maintenances et interventions',
+    },
     devis: {
       icon: FileText,
       title: 'Gestion des devis',
@@ -273,6 +283,7 @@ export default function AdministrationSettings() {
   const [activeSection, setActiveSection] = useState('organisation');
   const [preferences, setPreferences] = useState(readPreferences);
   const [isCreateUserModalOpen, setIsCreateUserModalOpen] = useState(false);
+  const [createUserRole, setCreateUserRole] = useState(null);
 
   if (!isAdmin) return <Navigate to={user?.role === 'shop_manager' ? '/equipe' : '/dashboard'} replace />;
 
@@ -336,7 +347,7 @@ export default function AdministrationSettings() {
       <button
         type="button"
         className="admin-fab-create-user"
-        onClick={() => setIsCreateUserModalOpen(true)}
+        onClick={() => { setCreateUserRole(null); setIsCreateUserModalOpen(true); }}
         aria-label="Créer un utilisateur"
         title="Créer un utilisateur"
       >
@@ -353,18 +364,38 @@ export default function AdministrationSettings() {
                 <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center">
                   <UserPlus size={18} />
                 </div>
-                <h2 id="modal-create-user-title" className="text-base font-bold text-zinc-900 dark:text-white">Créer un utilisateur</h2>
+                <h2 id="modal-create-user-title" className="text-base font-bold text-zinc-900 dark:text-white">{createUserRole ? `Créer ${createUserRole === 'admin' ? 'un administrateur' : 'un responsable de shop'}` : 'Quel compte souhaitez-vous créer ?'}</h2>
               </div>
               <button
                 type="button"
-                onClick={() => setIsCreateUserModalOpen(false)}
+                onClick={() => { setIsCreateUserModalOpen(false); setCreateUserRole(null); }}
                 className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                 aria-label="Fermer"
               >
                 <X size={18} />
               </button>
             </header>
-            <TeamAccountForm onCreated={() => setIsCreateUserModalOpen(false)} />
+            {!createUserRole ? (
+              <div className="admin-create-role-grid">
+                <button type="button" className="admin-create-role-option" onClick={() => setCreateUserRole('admin')}>
+                  <span><ShieldCheck size={19} /></span>
+                  <strong>Administrateur</strong>
+                  <small>Accès complet à la plateforme</small>
+                  <ChevronRight size={16} />
+                </button>
+                <button type="button" className="admin-create-role-option" onClick={() => setCreateUserRole('shop_manager')}>
+                  <span><Users size={19} /></span>
+                  <strong>Responsable de shop</strong>
+                  <small>Gère l’équipe et sa zone</small>
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            ) : (
+              <>
+                <button type="button" className="admin-create-role-back" onClick={() => setCreateUserRole(null)}>← Changer le type de compte</button>
+                <TeamAccountForm key={createUserRole} initialRole={createUserRole} allowedRoles={[createUserRole]} onCreated={() => { setIsCreateUserModalOpen(false); setCreateUserRole(null); }} />
+              </>
+            )}
           </div>
         </div>
       )}

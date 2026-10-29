@@ -17,7 +17,7 @@ export default function Step10Success({ onFinish, onError }: Props) {
   useEffect(() => {
     const {
       boxId, location, hasQuote, quoteId, quoteData, manualData,
-      clientPhone, installedBy, diagnosticStatus, diagnosticChecks,
+      clientPhone, clientName, installedBy, diagnosticStatus, diagnosticChecks,
     } = store;
 
     // ── Validation des données obligatoires ─────────────────────────────────
@@ -45,7 +45,7 @@ export default function Step10Success({ onFinish, onError }: Props) {
       // Champs wizard supplémentaires (stockés via strict:false sur le backend)
       source:           hasQuote ? 'quote' : 'manual',
       quoteId:          quoteId ?? undefined,
-      clientName:       quoteData?.client ?? undefined,
+      clientName:       quoteData?.client?.trim() || clientName.trim() || undefined,
       diagnosticStatus: diagnosticStatus,
       system,
     }).then(res => {
@@ -68,7 +68,7 @@ export default function Step10Success({ onFinish, onError }: Props) {
   }
 
   // ─── Écran de succès ─────────────────────────────────────────────────────
-  const { boxId, location, hasQuote, quoteData, manualData } = store;
+  const { boxId, clientName, location, hasQuote, quoteData, manualData } = store;
   const system = hasQuote && quoteData ? quoteData.system : manualData;
   const totalPower = system ? ((system.panels * system.panelPower) / 1000).toFixed(1) : '0';
 
@@ -89,6 +89,12 @@ export default function Step10Success({ onFinish, onError }: Props) {
             <p style={{ fontSize: 24, fontWeight: 800, color: 'var(--text)' }}>{boxId}</p>
           </div>
           <div style={{ padding: '16px 20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+              <Home size={18} color="var(--text-muted)" />
+              <p style={{ fontSize: 14, fontWeight: 500, color: 'var(--text)' }}>
+                Client : {quoteData?.client || clientName.trim() || `Boîtier ${boxId}`}
+              </p>
+            </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
               <Home size={18} color="var(--text-muted)" />
               <p style={{ fontSize: 14, fontWeight: 500, color: 'var(--text)' }}>

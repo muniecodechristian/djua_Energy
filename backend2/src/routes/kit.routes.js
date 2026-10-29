@@ -30,6 +30,13 @@ router.get(
   controller.getKitScanHistory,
 );
 
+router.patch(
+  '/kits/:kitId/status',
+  protect,
+  authorizeRoles('admin'),
+  controller.updateKitStatus,
+);
+
 /**
  * POST /api/kits
  * Crée un nouveau Kit après que le technicien a complété l'onboarding.

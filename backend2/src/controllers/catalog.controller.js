@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import CatalogProduct from '../models/CatalogProduct.model.js';
+import Quote from '../models/Quote.model.js';
 
 const productSchema = z.object({
   name: z.string().trim().min(1).max(100),
@@ -32,8 +33,21 @@ export async function listCatalogProducts(req, res) {
         { model: new RegExp(safeSearch, 'i') },
       ];
     }
-    const products = await CatalogProduct.find(filter).sort({ category: 1, name: 1 }).lean();
-    return res.json({ success: true, data: products });
+    const [products, usageRows] = await Promise.all([
+      CatalogProduct.find(filter).sort({ category: 1, name: 1 }).lean(),
+      Quote.aggregate([
+        { $match: { createdAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } } },
+        { $unwind: '$appliances' },
+        { $match: { 'appliances.name': { $type: 'string' } } },
+        { $group: { _id: { $toLower: { $trim: { input: '$appliances.name' } } }, usageCount: { $sum: 1 } } },
+      ]),
+    ]);
+    const usageByName = new Map(usageRows.map(row => [row._id, row.usageCount]));
+    const productsWithUsage = products.map(product => ({
+      ...product,
+      usageCount: usageByName.get(product.name.trim().toLowerCase()) || 0,
+    }));
+    return res.json({ success: true, data: productsWithUsage });
   } catch (error) {
     console.error('[Catalog] list failed:', error.message);
     return fail(res, 500, 'Impossible de charger le catalogue.');

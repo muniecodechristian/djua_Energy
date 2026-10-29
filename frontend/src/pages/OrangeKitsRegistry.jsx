@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { CircleMarker, MapContainer, TileLayer, Tooltip, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
-import { ArrowDownToLine, ArrowUpRight, CircleAlert, Layers3, MapPin, RefreshCw, Search, ShieldAlert, Wifi } from 'lucide-react';
+import { ArrowDownToLine, ArrowUpRight, CircleAlert, Layers3, MapPin, Pause, Play, RefreshCw, Search, ShieldAlert, Wifi } from 'lucide-react';
+import { toast } from 'sonner';
 import PageEntrance from '../components/PageEntrance';
-import { useKitsQuery, useAlertsQuery } from '../hooks/tanstack/useKitQueries';
+import { useKitsQuery, useAlertsQuery, useUpdateKitStatus } from '../hooks/tanstack/useKitQueries';
+import useAuthStore from '../hooks/Zustand/useAuthStore';
 import { activeAlerts, asList, coordinates, detailUrl, prioritize, severityLabels } from '../lib/operations';
 import { useNavigate } from 'react-router-dom';
 import { TableSkeleton } from '../components/PageSkeleton';
@@ -43,7 +45,7 @@ function ParkMap({ kits, onOpenKit }) {
 function exportKits(kits) {
   const columns = ['Identifiant', 'Client', 'Offre', 'Région', 'Statut du contrat', 'Date d’installation', 'Latitude', 'Longitude'];
   const rows = kits.map(kit => [
-    kit.kitId, kit.clientName, kit.offerName, kit.province || kit.region,
+    kit.kitId, kit.clientName || `Boîtier ${kit.kitId}`, kit.offerName, kit.province || kit.region,
     contractLabels[kit.status] || kit.status, kit.installationDate,
     kit.gpsCoordinates?.latitude, kit.gpsCoordinates?.longitude,
   ]);
@@ -62,6 +64,9 @@ function exportKits(kits) {
 export default function OrangeKitsRegistry() {
   const query = useKitsQuery();
   const alertsQuery = useAlertsQuery();
+  const user = useAuthStore(state => state.user);
+  const isAdmin = ['admin', 'administration'].includes(user?.role);
+  const updateKitStatus = useUpdateKitStatus();
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('all');
@@ -72,6 +77,14 @@ export default function OrangeKitsRegistry() {
     && [kit.kitId, kit.offerName, kit.region, kit.province, kit.clientName].join(' ').toLowerCase().includes(search.trim().toLowerCase())
   )), [all, status, search]);
   const criticalAlerts = alerts.filter(alert => alert.severity === 'critical').length;
+  const changeKitStatus = kit => {
+    const nextStatus = kit.status === 'suspended' ? 'active' : 'suspended';
+    if (nextStatus === 'suspended' && !window.confirm(`Suspendre le kit ${kit.kitId} ?`)) return;
+    updateKitStatus.mutate({ kitId: kit.kitId, status: nextStatus }, {
+      onSuccess: () => toast.success(nextStatus === 'suspended' ? 'Kit suspendu.' : 'Kit réactivé.'),
+      onError: error => toast.error(error.response?.data?.message || 'Impossible de modifier le statut du kit.'),
+    });
+  };
   const stats = [
     { label: 'Installations', value: query.isSuccess ? all.length : '—', icon: Layers3, tone: 'neutral' },
     { label: 'Contrats actifs', value: query.isSuccess ? all.filter(kit => kit.status === 'active').length : '—', icon: Wifi, tone: 'good' },
@@ -115,7 +128,7 @@ export default function OrangeKitsRegistry() {
           ].map(([key, label]) => <button key={key} className={status === key ? 'is-active' : ''} aria-pressed={status === key} onClick={() => setStatus(key)}>{label}</button>)}
         </div>
         {query.isPending ? <TableSkeleton/> : visible.length === 0 ? <div className="ops-empty"><span className="ops-empty-icon"><Layers3 size={24}/></span><h3>{query.isError ? 'Inventaire indisponible' : all.length ? 'Aucun résultat' : 'Aucune installation enregistrée'}</h3><p>{all.length ? 'Modifiez les filtres ou votre recherche.' : 'Les installations enregistrées apparaîtront ici.'}</p></div> : (
-          <div className="ops-table-scroll"><table className="ops-table park-table"><thead><tr><th>Installation</th><th>Client / Site</th><th>Région</th><th>Contrat</th><th>Position</th><th>Date d’installation</th><th>Fiche</th></tr></thead><tbody>{visible.map((kit,index) => <tr key={kit._id || kit.kitId || index} onClick={() => kit.kitId && navigate(detailUrl(kit.kitId))}><td><strong>{kit.kitId || 'Identifiant manquant'}</strong><small>{kit.offerName || 'Offre non renseignée'}</small></td><td>{kit.clientName || 'Client non renseigné'}<small>{kit.clientPhone || 'Coordonnée non renseignée'}</small></td><td>{kit.province || kit.region || 'Non renseignée'}</td><td><span className={`ops-badge ${kit.status === 'active' ? 'contract-active' : 'contract-inactive'}`}>{contractLabels[kit.status] || 'Non renseigné'}</span></td><td>{coordinates(kit) ? <span className="park-gps"><MapPin size={13}/>GPS confirmé</span> : 'Non renseignée'}</td><td>{kit.installationDate || 'Non renseignée'}</td><td><button className="ops-text-link" onClick={event => { event.stopPropagation(); navigate(detailUrl(kit.kitId)); }}>Examiner <ArrowUpRight size={14}/></button></td></tr>)}</tbody></table></div>
+          <div className="ops-table-scroll"><table className="ops-table park-table"><thead><tr><th>Installation</th><th>Client / Site</th><th>Région</th><th>Contrat</th><th>Position</th><th>Date d’installation</th><th>Fiche</th>{isAdmin && <th>Action</th>}</tr></thead><tbody>{visible.map((kit,index) => <tr key={kit._id || kit.kitId || index} onClick={() => kit.kitId && navigate(detailUrl(kit.kitId))}><td><strong>{kit.kitId || 'Identifiant manquant'}</strong><small>{kit.offerName || 'Offre non renseignée'}</small></td><td>{kit.clientName || (kit.kitId ? `Boîtier ${kit.kitId}` : 'Client non renseigné')}<small>{kit.clientPhone || 'Coordonnée non renseignée'}</small></td><td>{kit.province || kit.region || 'Non renseignée'}</td><td><span className={`ops-badge ${kit.status === 'active' ? 'contract-active' : 'contract-inactive'}`}>{contractLabels[kit.status] || 'Non renseigné'}</span></td><td>{coordinates(kit) ? <span className="park-gps"><MapPin size={13}/>GPS confirmé</span> : 'Non renseignée'}</td><td>{kit.installationDate || 'Non renseignée'}</td><td><button className="ops-text-link" onClick={event => { event.stopPropagation(); navigate(detailUrl(kit.kitId)); }}>Examiner <ArrowUpRight size={14}/></button></td>{isAdmin && <td><button className="ops-icon-button" type="button" title={kit.status === 'suspended' ? 'Réactiver le kit' : 'Suspendre le kit'} aria-label={`${kit.status === 'suspended' ? 'Réactiver' : 'Suspendre'} ${kit.kitId}`} disabled={updateKitStatus.isPending || kit.status === 'terminated'} onClick={event => { event.stopPropagation(); changeKitStatus(kit); }}>{kit.status === 'suspended' ? <Play size={14}/> : <Pause size={14}/>}</button></td>}</tr>)}</tbody></table></div>
         )}
       </section>
     </PageEntrance>

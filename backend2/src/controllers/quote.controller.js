@@ -5,7 +5,10 @@ import Client from '../models/SalesClient.model.js';
 import Notice from '../models/InstallationNotice.model.js';
 import { quoteScope, salesScope, normalizeSalesPhone, foldName, validPlannedDate, QUOTE_TIMEZONE } from '../services/quote.service.js';
 const text = z.string().trim().max(250);
-const details = z.object(Object.fromEntries(['fullName','companyName','contactName','contactPref','rccm','idNationale','tva','secteur','adresse','ville','province'].map(key=>[key,text.optional()])));
+const details = z.object({
+  ...Object.fromEntries(['fullName','postNom','companyName','contactName','contactPostNom','contactPref','budgetPeriod','budgetCurrency','rccm','idNationale','tva','secteur','adresse','ville','province'].map(key => [key, text.optional()])),
+  budget: z.union([text, z.number().nonnegative()]).optional(),
+});
 const schema = z.object({
   requestKey: z.string().min(8).max(100),
   customer: z.object({ name: text.min(2), phone: text.min(7), email: z.union([z.email(), z.literal('')]).optional(), address: text.optional(), profile: z.enum(['personne', 'entreprise']).optional(), details:details.optional() }),

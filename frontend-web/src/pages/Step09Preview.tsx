@@ -6,7 +6,7 @@ import { useInstallStore } from '../store/useInstallStore';
 interface Props { onNext: () => void; onBack: (step: number) => void; }
 
 export default function Step09Preview({ onNext, onBack }: Props) {
-  const { boxId, hasQuote, quoteId, quoteData, manualData, location, clientPhone, setClientPhone } = useInstallStore();
+  const { boxId, clientName, hasQuote, quoteId, quoteData, manualData, location, clientPhone, setClientPhone } = useInstallStore();
   
   const system = hasQuote && quoteData ? quoteData.system : manualData;
   const isComplete = boxId && system && location && clientPhone?.trim();
@@ -30,6 +30,10 @@ export default function Step09Preview({ onNext, onBack }: Props) {
           <div className="info-row">
             <span className="info-label">Identifiant</span>
             <span className="info-value">{boxId || 'Non défini'}</span>
+          </div>
+          <div className="info-row">
+            <span className="info-label">Client</span>
+            <span className="info-value">{quoteData?.client || clientName.trim() || `Boîtier ${boxId || ''}`}</span>
           </div>
         </div>
 

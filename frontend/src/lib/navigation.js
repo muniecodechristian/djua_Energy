@@ -24,11 +24,10 @@ export function navigationForRole(role) {
   
   // L’administrateur accède aux écrans globaux de gestion et de supervision.
   if (normalizedRole === 'admin') {
-    const adminPaths = new Set(['/rapports', '/devis', '/parc', '/catalogue', '/AdministrationSettings']);
-    const adminOrder = ['/rapports', '/devis', '/parc', '/catalogue', '/AdministrationSettings'];
+    const adminPaths = ['/rapports', '/devis', '/parc', '/catalogue', '/AdministrationSettings'];
     return navigation
-      .filter(item => adminPaths.has(item.path))
-      .sort((left, right) => adminOrder.indexOf(left.path) - adminOrder.indexOf(right.path))
+      .filter(item => adminPaths.includes(item.path))
+      .sort((left, right) => adminPaths.indexOf(left.path) - adminPaths.indexOf(right.path))
       .map(item => ({ ...item, label: item.path === '/devis' ? 'Devis' : item.label, section: 'Administration' }));
   }
   

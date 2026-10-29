@@ -70,8 +70,8 @@ export const createTeamUser = async (req, res) => {
   const { nom, prenom, postNom = '', identifier, whatsapp, password, role, zone } = req.body;
   const actorRole = req.user.role === 'administration' ? 'admin' : req.user.role;
 
-  if (actorRole === 'admin' && role !== 'shop_manager') {
-    return sendError(res, 'An admin can create only shop managers', [], 403);
+  if (actorRole === 'admin' && !['admin', 'shop_manager', 'technician', 'commercial'].includes(role)) {
+    return sendError(res, 'Rôle de compte non autorisé', [], 403);
   }
   if (actorRole === 'shop_manager' && !['technician', 'commercial'].includes(role)) {
     return sendError(res, 'A shop manager can create only technicians or commercial users', [], 403);
@@ -82,7 +82,7 @@ export const createTeamUser = async (req, res) => {
   }
 
   const assignedZone = actorRole === 'admin' ? zone?.trim() : req.user.zone?.trim();
-  if (!assignedZone) {
+  if (!assignedZone && role !== 'admin') {
     return sendError(res, 'A zone is required for this account', [], 400);
   }
 
@@ -128,10 +128,11 @@ export const createTeamUser = async (req, res) => {
 
 export const getTeamUsers = async (req, res) => {
   try {
-    const users = await User.find({
-      createdBy: req.user._id,
-      role: { $in: ['technician', 'commercial'] },
-    })
+    const actorRole = req.user.role === 'administration' ? 'admin' : req.user.role;
+    const filter = actorRole === 'admin'
+      ? { role: { $in: ['shop_manager', 'technician', 'commercial'] } }
+      : { createdBy: req.user._id, role: { $in: ['technician', 'commercial'] } };
+    const users = await User.find(filter)
       .select('nom prenom postNom identifier whatsapp role zone status mustChangePassword createdAt')
       .sort({ createdAt: -1 })
       .lean();
@@ -177,7 +178,9 @@ export const updateTeamUser = async (req, res) => {
       }
       user.whatsapp = String(whatsapp).trim();
     }
-    if (role && ['technician', 'commercial'].includes(role)) {
+    if (role && (actorRole === 'admin'
+      ? ['shop_manager', 'technician', 'commercial'].includes(role)
+      : ['technician', 'commercial'].includes(role))) {
       user.role = role;
     }
     if (zone && actorRole === 'admin') {
@@ -221,11 +224,11 @@ export const updateTeamUser = async (req, res) => {
 
 export const updateTeamUserStatus = async (req, res) => {
   try {
-    const user = await User.findOne({
-      _id: req.params.userId,
-      createdBy: req.user._id,
-      role: { $in: ['technician', 'commercial'] },
-    });
+    const actorRole = req.user.role === 'administration' ? 'admin' : req.user.role;
+    const filter = actorRole === 'admin'
+      ? { _id: req.params.userId, role: { $in: ['shop_manager', 'technician', 'commercial'] } }
+      : { _id: req.params.userId, createdBy: req.user._id, role: { $in: ['technician', 'commercial'] } };
+    const user = await User.findOne(filter);
     if (!user) return sendError(res, 'Team member not found', [], 404);
 
     user.status = req.body.status;
@@ -242,11 +245,11 @@ export const updateTeamUserStatus = async (req, res) => {
 
 export const deleteTeamUser = async (req, res) => {
   try {
-    const user = await User.findOneAndDelete({
-      _id: req.params.userId,
-      createdBy: req.user._id,
-      role: { $in: ['technician', 'commercial'] },
-    });
+    const actorRole = req.user.role === 'administration' ? 'admin' : req.user.role;
+    const filter = actorRole === 'admin'
+      ? { _id: req.params.userId, role: { $in: ['shop_manager', 'technician', 'commercial'] } }
+      : { _id: req.params.userId, createdBy: req.user._id, role: { $in: ['technician', 'commercial'] } };
+    const user = await User.findOneAndDelete(filter);
     if (!user) return sendError(res, 'Team member not found', [], 404);
     return sendSuccess(res, 'Team member deleted successfully', { _id: user._id });
   } catch (error) {

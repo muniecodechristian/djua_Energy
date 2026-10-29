@@ -44,6 +44,7 @@ export interface InstallPayload {
   quoteId?: string;                      // Référence devis Orange Energy
   system: SystemData;                    // Spécifications du système installé
   location: GeoLocation;                // Position GPS de l'installation
+  clientName?: string;                  // Nom associé au boîtier
   diagnosticStatus: DiagnosticStatus;   // Résultat du diagnostic boîtier
   diagnosticChecks: DiagnosticCheck[];  // Détail de chaque vérification
   installedAt: string;                  // ISO timestamp de l'installation
@@ -91,6 +92,7 @@ export interface KitRecord {
   kitId: string;
   clientPhone: string;
   offerName: string;
+  clientName?: string;
   installationDate?: string;
   subscriptionFeePaid: boolean;
   periodicAmountUSD?: number;

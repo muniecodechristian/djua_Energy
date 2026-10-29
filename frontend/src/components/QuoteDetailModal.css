@@ -317,21 +317,28 @@
 }
 
 .quote-modal-approve-box {
-  display: flex;
+  flex: 1;
+  min-width: min(100%, 620px);
+  display: grid;
+  grid-template-columns: minmax(150px, .75fr) minmax(280px, 1.4fr) auto;
   align-items: center;
-  gap: 10px;
+  gap: 16px;
   flex-wrap: wrap;
 }
 
-.quote-modal-approve-box input[type="date"] {
-  min-height: 36px;
-  padding: 4px 10px;
-  border-radius: 8px;
-  border: 1px solid var(--panel-border, #374151);
-  background: var(--panel-alt, #242935);
-  color: var(--app-foreground, #fff);
-  font-size: 12px;
-}
+.quote-modal-approval-copy { display:grid; gap:4px; }
+.quote-modal-approval-copy>span { color:#f59e0b; font-size:9px; font-weight:750; letter-spacing:.08em; }
+.quote-modal-approval-copy>strong { font-size:14px; }
+.quote-modal-approval-copy>small { color:var(--muted-foreground,#9ca3af); font-size:10px; line-height:1.4; }
+.quote-modal-date-controls { display:grid; gap:8px; }
+.quote-modal-date-quick { display:flex; flex-wrap:wrap; gap:6px; }
+.quote-modal-date-quick button { min-height:28px; padding:0 9px; border:1px solid var(--panel-border,#374151); border-radius:6px; background:var(--panel-alt,#242935); color:var(--muted-foreground,#c4c8d0); font-size:10px; cursor:pointer; }
+.quote-modal-date-quick button:hover,.quote-modal-date-quick button.is-selected { border-color:#f59e0b; background:rgba(245,158,11,.12); color:#fbbf24; }
+.quote-modal-date-field { display:grid; grid-template-columns:1fr auto; align-items:center; gap:8px; min-height:38px; padding:0 10px; border:1px solid var(--panel-border,#374151); border-radius:7px; background:var(--panel-alt,#242935); }
+.quote-modal-date-field>span { display:flex; align-items:center; gap:6px; color:var(--muted-foreground,#c4c8d0); font-size:10px; white-space:nowrap; }
+.quote-modal-date-field>span svg { color:#f59e0b; }
+.quote-modal-date-field input { min-width:118px; border:0; outline:0; background:transparent; color:var(--app-foreground,#fff); font:inherit; font-size:11px; }
+@media(max-width:760px) { .quote-modal-approve-box { grid-template-columns:1fr; min-width:0; }.quote-modal-date-field { grid-template-columns:1fr; padding-block:8px; }.quote-modal-date-field input { width:100%; } }
 
 @keyframes qm-fade-in {
   from { opacity: 0; }

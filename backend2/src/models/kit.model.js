@@ -31,6 +31,11 @@ const KitSchema = new mongoose.Schema({
     enum: ['active', 'suspended', 'terminated'],
     default: 'active',
   },
+  adminStatusOverride: {
+    type: String,
+    enum: ['active', 'suspended'],
+    default: null,
+  },
   paidMonthsCount: {
     type: Number,
     default: 0,

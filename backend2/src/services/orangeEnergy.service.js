@@ -5,6 +5,21 @@ import Kit from '../models/kit.model.js';
 import ScoringData from '../models/scoringData.model.js';
 import Payment from '../models/payment.model.js';
 
+async function syncKitRecord(kitData) {
+  const existing = await Kit.findOne({ kitId: kitData.kitId }).select('adminStatusOverride clientName').lean();
+  const status = existing?.adminStatusOverride || kitData.status;
+  const syncedData = {
+    ...kitData,
+    status,
+    ...(kitData.clientName || !existing?.clientName ? {} : { clientName: existing.clientName }),
+  };
+  return Kit.findOneAndUpdate(
+    { kitId: kitData.kitId },
+    { $set: syncedData },
+    { upsert: true, returnDocument: 'after' },
+  );
+}
+
 class OrangeEnergyService {
   constructor() {
     this.client = axios.create({
@@ -44,7 +59,7 @@ class OrangeEnergyService {
             const kitDetails = detailResponse.data?.data;
             if (kitDetails) {
               // Mettre à jour le kit dans MongoDB
-              await Kit.findOneAndUpdate({ kitId: kit.kitId }, { $set: kitDetails }, { upsert: true });
+              const syncedKit = await syncKitRecord(kitDetails);
 
               // Insérer/Mettre à jour le client de façon sécurisée (uniquement les détails non-sensibles liés au kit)
               await Client.findOneAndUpdate(
@@ -56,7 +71,7 @@ class OrangeEnergyService {
                     offerName: kitDetails.offerName,
                     installationDate: kitDetails.installationDate,
                     subscriptionFeePaid: kitDetails.subscriptionFeePaid,
-                    status: kitDetails.status,
+                    status: syncedKit.status,
                     gpsCoordinates: kitDetails.gpsCoordinates
                   }
                 },
@@ -65,7 +80,7 @@ class OrangeEnergyService {
             }
           } catch (err) {
             console.error(`[OrangeEnergy Service] Échec sync détails du kit ${kit.kitId} (utilisation infos basiques) :`, err.message);
-            await Kit.findOneAndUpdate({ kitId: kit.kitId }, { $set: kit }, { upsert: true });
+            await syncKitRecord(kit);
           }
         }));
       }
@@ -86,7 +101,7 @@ class OrangeEnergyService {
       if (kitDetails) {
         console.log(`[OrangeEnergy Service] Synchronisation individuelle du kit ${kitId}...`);
         
-        await Kit.findOneAndUpdate({ kitId }, { $set: kitDetails }, { upsert: true });
+        const syncedKit = await syncKitRecord(kitDetails);
 
         await Client.findOneAndUpdate(
           { kitId: kitDetails.kitId },
@@ -97,7 +112,7 @@ class OrangeEnergyService {
               offerName: kitDetails.offerName,
               installationDate: kitDetails.installationDate,
               subscriptionFeePaid: kitDetails.subscriptionFeePaid,
-              status: kitDetails.status,
+              status: syncedKit.status,
               gpsCoordinates: kitDetails.gpsCoordinates
             }
           },

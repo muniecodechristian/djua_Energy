@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Tech+ RDC | Agence de communication & conseil stratégique",
-  description: "Tech+ accompagne les marques, institutions et entrepreneurs congolais avec une communication stratégique, du branding, des relations publiques et de la production audiovisuelle. Basée à Kinshasa, RDC.",
+  title: "Djua Energy | Solutions solaires en RDC",
+  description: "Djua Energy étudie, installe et entretient des systèmes solaires pour les maisons, commerces et entreprises en RDC.",
   icons: {
     icon: "/tech-plus-logo.jpg",
   },

@@ -3,104 +3,54 @@ import Link from "next/link";
 
 export function SiteFooter() {
   return (
-    <footer id="contact" className="w-full bg-[#ffffff] pt-10">
-      <div className="w-full overflow-hidden bg-[#171518] text-white">
-        <div className="border-b border-white/10 px-6 py-14 text-center sm:px-12">
-          <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-[#fbbf24]">
-            {" "}
-            Parlons de votre projet
+    <footer id="contact" className="bg-[#17211e] text-white">
+      <div className="border-b border-white/10 px-6 py-14 sm:px-12">
+        <div className="mx-auto flex max-w-7xl flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#c9e06d]">Parlons de votre installation</p>
+            <h2 className="mt-3 max-w-2xl text-3xl font-semibold leading-tight sm:text-4xl">
+              Votre projet solaire commence par une conversation.
+            </h2>
+          </div>
+          <a href="tel:+243995424606" className="inline-flex min-h-12 items-center gap-2 self-start rounded-md bg-[#d9e8a7] px-5 text-sm font-bold text-[#17211e] hover:bg-white sm:self-auto">
+            <Phone size={15} /> Appeler Djua
+          </a>
+        </div>
+      </div>
+
+      <div className="mx-auto grid max-w-7xl gap-10 px-6 py-12 sm:px-12 md:grid-cols-3">
+        <div>
+          <Link href="/" className="text-lg font-bold tracking-tight">Djua Energy</Link>
+          <p className="mt-4 max-w-sm text-sm leading-6 text-white/65">
+            Étude, installation et suivi de systèmes solaires pour les foyers et les activités en RDC.
           </p>
-          <h2 className="mx-auto mt-4 max-w-2xl text-3xl font-semibold tracking-tight sm:text-5xl">
-            Transformer votre idée en une marque qui fait de l&apos;impact.
-          </h2>
         </div>
 
-        <div className="grid gap-10 px-6 py-12 sm:px-12 lg:grid-cols-[1.4fr_1fr_1fr_1fr]">
-          <div>
-            <Link
-              href="/"
-              className="inline-flex items-center rounded-md bg-white px-2 py-1"
-            >
-              <img
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuBjEVP6WMcrEsv2nLYSgS9v4WfV711u6ne8fa0aJHDt8jAPuumn7dzikn8PIFEYq7whxH5iUZF0Hp4b92Z9SI44LG4uRnir7pr0-ES6zx8j0xpVv2pEq-x2t_pioe64Plt7nSVa8R3qmC0HbNrrXrNmnwO6NR6nrr80S_g0KTAAhwU7TLDwQxylz9da34eGd7zyXiuyuz5ah02oKZx3i2MRdZVu6H3tfwGv5hNcm8A_UvHUSZdbWh7He3c3Alx5dlSJzww"
-                alt="Djua"
-                className="h-10 w-auto object-contain"
-              />
-            </Link>
-            <p className="mt-5 max-w-xs text-xs leading-5 text-white/55">
-              Agence de communication stratégique pour les marques, institutions
-              et entrepreneurs en RDC. Basée à Kinshasa.
-            </p>
-            <div className="mt-5 flex gap-2">
-              <a
-                href="#"
-                aria-label="LinkedIn"
-                className="grid size-8 place-items-center rounded-md bg-white/10 text-[11px] font-black transition-colors hover:bg-[#f59e0b]"
-              >
-                in
-              </a>
-              <a
-                href="#"
-                aria-label="X"
-                className="grid size-8 place-items-center rounded-md bg-white/10 text-[10px] font-black transition-colors hover:bg-[#f59e0b]"
-              >
-                X
-              </a>
-              <a
-                href="#"
-                aria-label="Instagram"
-                className="grid size-8 place-items-center rounded-md bg-white/10 text-xs font-black transition-colors hover:bg-[#f59e0b]"
-              >
-                ◎
-              </a>
-            </div>
-          </div>
-
-          <div>
-            <h3 className="text-xs font-bold">Navigation</h3>
-            <div className="mt-5 flex flex-col gap-3 text-xs text-white/55">
-              <Link href="/">Accueil</Link>
-              <Link href="/about">À propos</Link>
-              <Link href="/services">Services</Link>
-              <Link href="/#insights">Actualités</Link>
-            </div>
-          </div>
-          <div>
-            <h3 className="text-xs font-bold">Expertises</h3>
-            <div className="mt-5 flex flex-col gap-3 text-xs text-white/55">
-              <span>Stratégie de marque</span>
-              <span>Communication digitale</span>
-              <span>Création de contenu</span>
-              <span>Relations publiques</span>
-            </div>
-          </div>
-          <div>
-            <h3 className="text-xs font-bold">Nous trouver</h3>
-            <div className="mt-5 flex flex-col gap-3 text-xs leading-5 text-white/55">
-              <p>
-                <MapPin className="mr-1 inline size-3 text-[#fbbf24]" />
-                Kinshasa, RDC
-              </p>
-              <p>
-                <Phone className="mr-1 inline size-3 text-[#fbbf24]" />
-                <a href="tel:+243995424606" className="text-[#fbbf24] hover:text-white">0995424606</a>
-                <span className="mx-1">/</span>
-                <a href="tel:+243837807301" className="text-[#fbbf24] hover:text-white">+243 837 807 301</a>
-              </p>
-              <a href="mailto:Techplus643@gmail.com" className="text-[#fbbf24]">
-                <Mail className="mr-1 inline size-3" />
-                Techplus643@gmail.com
-              </a>
-            </div>
-          </div>
+        <div>
+          <h3 className="text-sm font-semibold">Découvrir</h3>
+          <nav className="mt-4 flex flex-col gap-3 text-sm text-white/65" aria-label="Liens de pied de page">
+            <Link href="/#solutions" className="hover:text-white">Nos solutions</Link>
+            <Link href="/#approche" className="hover:text-white">Notre approche</Link>
+            <Link href="/about" className="hover:text-white">À propos de Djua</Link>
+            <Link href="/services" className="hover:text-white">Services</Link>
+          </nav>
         </div>
 
-        <div className="flex flex-col justify-between gap-3 border-t border-white/10 px-6 py-5 text-[10px] text-white/35 sm:flex-row sm:px-12">
-          <span>© 2025 Tech+ RDC. Tous droits réservés.</span>
-          <div className="flex gap-5">
-            <a href="#">Confidentialité</a>
-            <a href="#">Mentions légales</a>
+        <div>
+          <h3 className="text-sm font-semibold">Nous contacter</h3>
+          <div className="mt-4 grid gap-3 text-sm text-white/65">
+            <p><MapPin className="mr-2 inline size-4 text-[#c9e06d]" />Kinshasa, RDC</p>
+            <a href="tel:+243995424606" className="hover:text-white"><Phone className="mr-2 inline size-4 text-[#c9e06d]" />099 542 4606</a>
+            <a href="tel:+243837807301" className="hover:text-white"><Phone className="mr-2 inline size-4 text-[#c9e06d]" />+243 837 807 301</a>
+            <a href="mailto:Techplus643@gmail.com" className="hover:text-white"><Mail className="mr-2 inline size-4 text-[#c9e06d]" />Techplus643@gmail.com</a>
           </div>
+        </div>
+      </div>
+
+      <div className="border-t border-white/10 px-6 py-5 text-xs text-white/45 sm:px-12">
+        <div className="mx-auto flex max-w-7xl flex-col justify-between gap-2 sm:flex-row">
+          <span>© {new Date().getFullYear()} Djua Energy. Tous droits réservés.</span>
+          <Link href="/#contact" className="inline-flex items-center gap-1 hover:text-white">Demander une étude <ArrowUpRight size={13} /></Link>
         </div>
       </div>
     </footer>

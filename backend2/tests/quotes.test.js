@@ -40,6 +40,13 @@ describe('Customer quotations and installation lifecycle',()=>{
   }
   expect(second.customer.details.contactPref).toBe('WhatsApp');
  });
+ it('stores the client postnom and indicative budget in quote details',async()=>{
+  const payload=body('client-details-budget-001');
+  payload.customer.details={postNom:'Mukendi',budget:120,budgetPeriod:'month',budgetCurrency:'USD'};
+  const response=await request(app).post('/api/quotes').set('Cookie',cookie(commercial)).send(payload);
+  expect(response.status).toBe(201);
+  expect(response.body.data.customer.details).toMatchObject({postNom:'Mukendi',budget:120,budgetPeriod:'month',budgetCurrency:'USD'});
+ });
  it('returns a role-scoped dashboard summary with follow-up quotes and installed kit ids',async()=>{
   const quote=await save('dashboard-summary-001');
   const createdAt=new Date(Date.now()-4*24*60*60*1000);
@@ -89,9 +96,9 @@ describe('Customer quotations and installation lifecycle',()=>{
   expect((await request(app).get('/api/quotes').set('Cookie',cookie(other))).body.data.total).toBe(0);
   expect((await request(app).get('/api/quotes').set('Cookie',cookie(manager))).body.data.total).toBe(1);
   expect((await request(app).get('/api/quotes').set('Cookie',cookie(admin))).body.data.total).toBe(1);
-  expect((await request(app).get(`/api/quotes/${quote.number}`).set('Cookie',cookie(outsider))).status).toBe(404);
+    expect((await request(app).get(`/api/quotes/${quote.number}`).set('Cookie',cookie(outsider))).status).toBe(403);
   expect((await request(app).post('/api/quotes').set('Cookie',cookie(technician)).send(body())).status).toBe(403);
-  expect((await request(app).patch(`/api/quotes/${quote.number}/approve`).set('Cookie',cookie(other)).send({plannedDate:businessDay()})).status).toBe(409);
+  expect((await request(app).patch(`/api/quotes/${quote.number}/approve`).set('Cookie',cookie(other)).send({plannedDate:businessDay()})).status).toBe(404);
  });
  it('requires a real date today or later and blocks installation before approval',async()=>{
   const quote=await save('date-quote-001');

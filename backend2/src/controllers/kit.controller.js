@@ -5,6 +5,7 @@ import { createQuoteKit } from './quoteInstallation.controller.js';
 //   POST /api/kits          — créer un nouveau kit après l'onboarding technicien
 
 import Kit from '../models/kit.model.js';
+import Client from '../models/client.model.js';
 import { Intervention } from '../models/Intervention.model.js';
 import Alert from '../models/Alert.model.js';
 import Telemetry from '../models/Telemetry.js';
@@ -224,5 +225,27 @@ export async function createKit(req, res) {
     }
 
     return res.status(500).json({ success: false, message: 'Erreur serveur interne' });
+  }
+}
+
+export async function updateKitStatus(req, res) {
+  const { status } = req.body || {};
+  if (!['active', 'suspended'].includes(status)) {
+    return sendError(res, 'Le statut doit être active ou suspended', [], 400);
+  }
+
+  try {
+    const kit = await Kit.findOneAndUpdate(
+      { kitId: req.params.kitId },
+      { $set: { status, adminStatusOverride: status } },
+      { returnDocument: 'after', runValidators: true },
+    );
+    if (!kit) return sendError(res, 'Kit non trouvé', [], 404);
+
+    await Client.updateOne({ kitId: kit.kitId }, { $set: { status } });
+    return sendSuccess(res, status === 'suspended' ? 'Kit suspendu' : 'Kit réactivé', kit);
+  } catch (error) {
+    console.error('[Kit Controller] updateKitStatus error:', error);
+    return sendError(res, 'Impossible de modifier le statut du kit', [], 500);
   }
 }

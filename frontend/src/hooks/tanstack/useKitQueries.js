@@ -31,6 +31,17 @@ export const useKitsQuery = (options = {}) => {
   });
 };
 
+export const useUpdateKitStatus = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ kitId, status }) => {
+      const response = await api.patch(`/api/kits/${encodeURIComponent(kitId)}/status`, { status });
+      return response.data.data;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['kits'] }),
+  });
+};
+
 // ─── 2. Liste des clients Orange Energy ───────────────────────────────────────
 /**
  * Récupère tous les clients depuis le backend (GET /users/orange/clients).

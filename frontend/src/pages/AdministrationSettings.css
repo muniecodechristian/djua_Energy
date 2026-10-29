@@ -145,4 +145,12 @@
   padding: 24px;
   position: relative;
 }
+.admin-create-role-grid { display:grid; gap:10px; }
+.admin-create-role-option { display:grid; grid-template-columns:38px minmax(0,1fr) 18px; align-items:center; gap:2px 12px; padding:14px; border:1px solid var(--ops-line); border-radius:9px; background:var(--ops-canvas); color:var(--ops-ink); text-align:left; cursor:pointer; }
+.admin-create-role-option:hover { border-color:#f59e0b; background:color-mix(in srgb,var(--ops-surface) 85%,#f59e0b 15%); }
+.admin-create-role-option>span { grid-row:span 2; display:grid; width:36px; height:36px; place-items:center; border-radius:8px; background:#fff1df; color:#c45c13; }
+.admin-create-role-option>strong { font-size:13px; }
+.admin-create-role-option>small { color:var(--ops-muted); font-size:11px; }
+.admin-create-role-option>svg { grid-column:3; grid-row:1 / span 2; color:var(--ops-muted); }
+.admin-create-role-back { margin-bottom:14px; border:0; background:transparent; color:var(--ops-muted); font-size:12px; cursor:pointer; }
 

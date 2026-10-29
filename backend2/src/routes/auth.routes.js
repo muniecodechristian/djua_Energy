@@ -25,7 +25,7 @@ router.post('/register', authLimiter, validate(registerSchema), register);
 
 // POST /auth/team-users — hiérarchie admin -> responsable -> équipe de zone
 router.post('/team-users', protect, authorizeRoles('admin', 'shop_manager'), validate(teamUserSchema), createTeamUser);
-router.get('/team-users', protect, authorizeRoles('shop_manager'), getTeamUsers);
+router.get('/team-users', protect, authorizeRoles('shop_manager', 'admin'), getTeamUsers);
 router.patch('/team-users/:userId', protect, authorizeRoles('shop_manager', 'admin'), validate(updateTeamUserSchema), updateTeamUser);
 router.patch('/team-users/:userId/status', protect, authorizeRoles('shop_manager'), validate(teamMemberStatusSchema), updateTeamUserStatus);
 router.delete('/team-users/:userId', protect, authorizeRoles('shop_manager'), validate(teamMemberParamsSchema), deleteTeamUser);

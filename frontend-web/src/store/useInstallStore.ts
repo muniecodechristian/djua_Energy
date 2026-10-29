@@ -20,6 +20,7 @@ interface InstallState {
   diagnosticStatus: DiagnosticStatus;
   diagnosticChecks: DiagnosticCheck[];
   // ── Champs du modèle Kit backend ──────────────────────────────────────
+  clientName: string;
   clientPhone: string | null;   // N° Orange du client (clientPhone dans Kit)
   installedBy: string | null;   // Identifiant du technicien installateur
   // ── Kit existant trouvé lors du scan ──────────────────────────────────
@@ -33,6 +34,7 @@ interface InstallState {
   setLocation: (loc: GeoLocation) => void;
   setDiagnostic: (status: DiagnosticStatus, checks: DiagnosticCheck[]) => void;
   setClientPhone: (phone: string) => void;
+  setClientName: (name: string) => void;
   setInstalledBy: (tech: string) => void;
   setKitRecord: (kit: KitRecord | null) => void;
 
@@ -52,6 +54,7 @@ const initialState = {
   location: null,
   diagnosticStatus: 'pending' as DiagnosticStatus,
   diagnosticChecks: [],
+  clientName: '',
   clientPhone: null,
   installedBy: null,
   kitRecord: null,
@@ -62,12 +65,13 @@ export const useInstallStore = create<InstallState>((set, get) => ({
 
   setBoxId: (id) => set({ boxId: id }),
   setHasQuote: (has) => set({ hasQuote: has, quoteId:null, quoteData:null, clientPhone:null }),
-  setQuoteData: (id, data) => set({ hasQuote:true, quoteId: id, quoteData: data, clientPhone:data.phone, manualData:null }),
+  setQuoteData: (id, data) => set({ hasQuote:true, quoteId: id, quoteData: data, clientPhone:data.phone, clientName:data.client || get().clientName, manualData:null }),
   setManualData: (data) => set({ manualData: data }),
   setLocation: (loc) => set({ location: loc }),
   setDiagnostic: (status, checks) =>
     set({ diagnosticStatus: status, diagnosticChecks: checks }),
   setClientPhone: (phone) => set({ clientPhone: phone }),
+  setClientName: (name) => set({ clientName: name }),
   setInstalledBy: (tech) => set({ installedBy: tech }),
   setKitRecord: (kit) => set({ kitRecord: kit }),
 
@@ -79,7 +83,7 @@ export const useInstallStore = create<InstallState>((set, get) => ({
     const {
       boxId, hasQuote, quoteId, quoteData, manualData,
       location, diagnosticStatus, diagnosticChecks,
-      clientPhone, installedBy,
+      clientPhone, clientName, installedBy,
     } = get();
 
     if (!boxId || !location) return null;
@@ -98,7 +102,7 @@ export const useInstallStore = create<InstallState>((set, get) => ({
       diagnosticStatus,
       diagnosticChecks,
       installedAt: new Date().toISOString(),
-      ...(quoteData?.client ? { clientName: quoteData.client } : {}),
+      ...((quoteData?.client || clientName.trim()) ? { clientName: quoteData?.client?.trim() || clientName.trim() } : {}),
       // ── Champs du modèle Kit backend ──
       ...(clientPhone ? { clientPhone } : {}),
       ...(installedBy ? { installedBy } : {}),

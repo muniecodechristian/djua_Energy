@@ -12,11 +12,12 @@ const roleLabels = { technician: 'Technicien', commercial: 'Commercial', shop_ma
 
 export default function TeamManagement() {
   const user = useAuthStore(state => state.user);
+  const isAdmin = ['admin', 'administration'].includes(user?.role);
   const [members, setMembers] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [pendingId, setPendingId] = useState('');
   const [editingMember, setEditingMember] = useState(null);
-  const [editForm, setEditForm] = useState({ prenom: '', nom: '', postNom: '', role: 'technician', identifier: '', whatsapp: '', password: '' });
+  const [editForm, setEditForm] = useState({ prenom: '', nom: '', postNom: '', role: 'technician', identifier: '', whatsapp: '', password: '', zone: '' });
   const [isSavingEdit, setIsSavingEdit] = useState(false);
 
   useEffect(() => {
@@ -38,6 +39,7 @@ export default function TeamManagement() {
       identifier: member.identifier || '',
       whatsapp: member.whatsapp || '',
       password: '',
+      zone: member.zone || '',
     });
   };
 
@@ -60,6 +62,7 @@ export default function TeamManagement() {
         role: editForm.role,
         identifier: editForm.identifier.trim(),
         whatsapp: editForm.whatsapp.trim(),
+        ...(isAdmin ? { zone: editForm.zone.trim() } : {}),
       };
       if (editForm.password) {
         payload.password = editForm.password;
@@ -104,12 +107,12 @@ export default function TeamManagement() {
     }
   };
 
-  if (user?.role !== 'shop_manager') return <Navigate to={user?.role === 'admin' || user?.role === 'administration' ? '/AdministrationSettings' : '/dashboard'} replace/>;
+  if (user?.role !== 'shop_manager' && !isAdmin) return <Navigate to="/dashboard" replace/>;
 
   return <PageEntrance className="ops-page">
-    <div className="ops-page-heading"><div><p className="ops-eyebrow">ÉQUIPE DE TERRAIN</p><h1>Gestion de l’équipe</h1><p>Créez et gérez les comptes des techniciens et commerciaux affectés à votre zone.</p></div></div>
+    <div className="ops-page-heading"><div><p className="ops-eyebrow">ÉQUIPE DE TERRAIN</p><h1>Gestion de l’équipe</h1><p>{isAdmin ? 'Gérez les comptes et les affectations de toutes les zones.' : 'Créez et gérez les comptes des techniciens et commerciaux affectés à votre zone.'}</p></div></div>
     <section className="ops-card">
-      <div className="ops-card-heading"><h2 className="inline-flex items-center gap-2"><Users size={17}/>Nouveau membre</h2><small>Zone : {user.zone || 'Non attribuée'}</small></div>
+      <div className="ops-card-heading"><h2 className="inline-flex items-center gap-2"><Users size={17}/>Nouveau membre</h2><small>{isAdmin ? 'Toutes les fonctions et toutes les zones' : `Zone : ${user.zone || 'Non attribuée'}`}</small></div>
       <div className="ops-form"><TeamAccountForm onCreated={member => setMembers(previous => [member, ...previous])}/></div>
     </section>
     <section className="ops-card" style={{ marginTop: 18 }}>
@@ -142,7 +145,8 @@ export default function TeamManagement() {
               <label>Nom<input name="nom" value={editForm.nom} onChange={handleEditChange} minLength={2} required /></label>
             </div>
             <label>Post-nom <span>(facultatif)</span><input name="postNom" value={editForm.postNom} onChange={handleEditChange} /></label>
-            <label>Fonction<select name="role" value={editForm.role} onChange={handleEditChange}><option value="technician">Technicien</option><option value="commercial">Commercial</option></select></label>
+            <label>Fonction<select name="role" value={editForm.role} onChange={handleEditChange}><option value="technician">Technicien</option><option value="commercial">Commercial</option>{isAdmin && <option value="shop_manager">Responsable shop</option>}</select></label>
+            {isAdmin && <label>Zone d’affectation<input name="zone" value={editForm.zone} onChange={handleEditChange} required/></label>}
             <label>Numéro WhatsApp <span style={{ color: '#ea580c' }}>*</span><input name="whatsapp" type="tel" placeholder="+243…" value={editForm.whatsapp} onChange={handleEditChange} required /><small>Requis pour joindre le membre par WhatsApp.</small></label>
             <label>Email ou téléphone<input name="identifier" type="text" value={editForm.identifier} onChange={handleEditChange} required /></label>
             <label>Nouveau mot de passe <span>(laisser vide pour ne pas modifier)</span><input name="password" type="password" placeholder="••••••••" value={editForm.password} onChange={handleEditChange} minLength={8} /><small>8 caractères min, majuscule, chiffre et symbole.</small></label>

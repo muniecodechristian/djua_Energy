@@ -8,10 +8,12 @@ import 'leaflet-defaulticon-compatibility';
 import {
   ArrowLeft,
   ArrowRight,
+  Battery,
   BriefcaseBusiness,
   Building2,
   Check,
   CheckCircle2,
+  ChevronDown,
   CookingPot,
   Droplets,
   Factory,
@@ -30,6 +32,7 @@ import {
   MoonStar,
   PencilLine,
   Plus,
+  Plug,
   Printer,
   RotateCcw,
   Search,
@@ -135,6 +138,10 @@ const CSS = `
    DONNÉES
 ──────────────────────────────────────────────────────────────────────────── */
 const CATEGORIES = {
+  'Panneau solaire': { icon: SunMedium },
+  Batterie: { icon: Battery },
+  Onduleur: { icon: Zap },
+  Accessoire: { icon: Box },
   Éclairage: { icon: Lightbulb },
   Cuisine: { icon: CookingPot },
   Multimédia: { icon: MonitorSmartphone },
@@ -182,14 +189,12 @@ const profileOptions = {
 };
 
 const profileCards = [
-  { id: 'personne', title: 'Particulier', description: 'Une maison, un appartement, un foyer', icon: UserRound },
-  { id: 'entreprise', title: 'Entreprise', description: 'Un commerce, un bureau, un site industriel', icon: Building2 },
+  { id: 'personne', title: 'Maison', description: 'Une villa, un appartement ou un foyer', icon: Home },
+  { id: 'entreprise', title: 'Entreprise', description: 'Un commerce, un bureau ou un site professionnel', icon: Building2 },
 ];
 
-const STEP_LABELS = { profile: 'Profil', details: 'Client', type: 'Bâtiment', site: 'Site', equipment: 'Équipements', summary: 'Résumé' };
-const getStepOrder = (profile) => (profile === 'entreprise'
-  ? ['profile', 'type', 'details', 'site', 'equipment', 'summary']
-  : ['profile', 'details', 'type', 'site', 'equipment', 'summary']);
+const STEP_LABELS = { profile: 'Projet', type: 'Bâtiment', equipment: 'Besoins', details: 'Client', site: 'Localisation', summary: 'Résumé' };
+const getStepOrder = () => ['profile', 'type', 'equipment', 'details', 'site', 'summary'];
 
 /* ─── Détails du bâtiment : ce qu'on demande dépend du type choisi ─── */
 const ROOF = {
@@ -287,10 +292,10 @@ const summarizeDetails = (kind, details) => [...DETAIL_SCHEMA[kind].fields, GRID
 const STORAGE_KEY = 'djua-devis-onboarding-state';
 const KINSHASA = [-4.3217, 15.3126];
 
-const initialCompanyForm = { companyName: '', rccm: '', idNationale: '', tva: '', secteur: '', adresse: '', ville: '', province: '', contactName: '', phone: '', email: '' };
-const initialClientForm = { fullName: '', phone: '', email: '', contactPref: '', adresse: '', ville: '', province: '' };
+const initialCompanyForm = { companyName: '', rccm: '', idNationale: '', tva: '', secteur: '', adresse: '', ville: '', province: '', contactName: '', contactPostNom: '', phone: '', email: '' };
+const initialClientForm = { fullName: '', postNom: '', phone: '', email: '', contactPref: '', adresse: '', ville: '', province: '' };
 const initialSiteForm = { adresse: '', quartier: '', commune: '', ville: 'Kinshasa', province: 'Kinshasa', lat: null, lng: null, confirmed: false, reference: '', details: {} };
-const initialProjectForm = { name: '', location: '', occupants: 4, targetConsumption: 0 };
+const initialProjectForm = { name: '', location: '', occupants: 4, targetConsumption: 0, budget: '', budgetPeriod: 'month', budgetCurrency: 'USD' };
 
 const getDefaultDraft = () => ({
   currentStep: 'profile',
@@ -774,7 +779,7 @@ function ApplianceRow({ item, onUpdate, onRemove }) {
   return (
     <motion.div layout initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, x: 40 }} transition={{ duration: 0.2 }} className="dv-card flex flex-col gap-3 p-3 sm:flex-row sm:items-center" style={{ background: 'var(--panel)' }}>
       <div className="flex min-w-0 flex-1 items-center gap-3">
-        <span className="dv-ic overflow-hidden">{item.imageData ? <img src={item.imageData} alt="" className="h-full w-full object-cover" /> : <Icon size={19} />}</span>
+        <span className="dv-ic overflow-hidden">{item.imageData ? <img src={item.imageData} alt="" className="h-full w-full object-contain" /> : <Icon size={19} />}</span>
         <div className="min-w-0">
           <p className="truncate text-sm font-bold">{item.name}</p>
           <p className="dv-muted text-xs">{fmtPower(item.watts)} · {Number(item.hours.toFixed(1))} h/jour · {periodLabel(item.period)}</p>
@@ -824,10 +829,10 @@ function ApplianceList({ appliances, onUpdate, onRemove, onAddClick }) {
   return (
     <section>
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h3 className="text-lg font-bold">Vos appareils <span className="dv-muted text-sm font-medium">({appliances.reduce((s, i) => s + i.quantity, 0)})</span></h3>
+        <h3 className="text-lg font-bold">Appareils à couvrir <span className="dv-muted text-sm font-medium">({appliances.reduce((s, i) => s + i.quantity, 0)})</span></h3>
         <div className="flex gap-2">
-          <div className="dv-field" style={{ minHeight: 40 }}><Search size={15} /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Rechercher" style={{ padding: '8px 0', fontSize: 14 }} /></div>
-          <button type="button" onClick={() => onAddClick('Multimédia')} className="dv-btn dv-btn-primary dv-btn-sm"><Plus size={15} />Autre</button>
+          <div className="dv-field" style={{ minHeight: 40 }}><Search size={15} /><input aria-label="Rechercher un appareil" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Rechercher un appareil" style={{ padding: '8px 0', fontSize: 14 }} /></div>
+          <button type="button" onClick={() => onAddClick('Multimédia')} className="dv-btn dv-btn-primary dv-btn-sm"><Plus size={15} /><span className="hidden sm:inline">Ajouter un appareil</span><span className="sm:hidden">Ajouter</span></button>
         </div>
       </div>
       <div className="space-y-4">
@@ -846,7 +851,15 @@ function ApplianceList({ appliances, onUpdate, onRemove, onAddClick }) {
             </div>
           );
         })}
-        {filtered.length === 0 && <p className="dv-muted py-4 text-center text-sm">Aucun appareil ne correspond à « {search} ».</p>}
+        {filtered.length === 0 && appliances.length === 0 && (
+          <div className="dv-card flex min-h-[300px] flex-col items-center justify-center px-6 py-10 text-center" style={{ borderStyle: 'dashed', borderColor: 'var(--line)' }}>
+            <span className="mb-4 grid size-14 place-items-center rounded-full" style={{ background: 'var(--or-soft)', color: 'var(--or)' }}><Plug size={23} /></span>
+            <h4 className="text-base font-bold">Commencez par ajouter un appareil</h4>
+            <p className="dv-muted mt-2 max-w-sm text-sm">Ajoutez les appareils que le client souhaite alimenter. Une liste approximative suffit pour démarrer.</p>
+            <button type="button" onClick={() => onAddClick('Multimédia')} className="dv-btn dv-btn-primary dv-btn-sm mt-5"><Plus size={15} />Ajouter un appareil</button>
+          </div>
+        )}
+        {filtered.length === 0 && appliances.length > 0 && <p className="dv-muted py-4 text-center text-sm">Aucun appareil ne correspond à « {search} ».</p>}
       </div>
     </section>
   );
@@ -854,7 +867,9 @@ function ApplianceList({ appliances, onUpdate, onRemove, onAddClick }) {
 
 function AddModal({ onClose, onAdd, defaultCategory = 'Multimédia', presets = PRESETS }) {
   const [deviceName, setDeviceName] = useState('');
+  const [imageData, setImageData] = useState('');
   const [nameError, setNameError] = useState('');
+  const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   const [category, setCategory] = useState(defaultCategory);
   const [quantity, setQuantity] = useState(1);
   const [watts, setWatts] = useState(100);
@@ -869,11 +884,15 @@ function AddModal({ onClose, onAdd, defaultCategory = 'Multimédia', presets = P
   const dayShare = getDayShare(usageWindows);
   const period = dayShare >= 0.99 ? 'day' : dayShare <= 0.01 ? 'night' : 'both';
   const estimatedDaily = watts * hours * quantity;
+  const suggestions = presets
+    .filter(preset => !deviceName.trim() || preset.name.toLowerCase().includes(deviceName.trim().toLowerCase()))
+    .slice(0, 8);
 
   useEffect(() => { const handler = (e) => e.key === 'Escape' && onClose(); window.addEventListener('keydown', handler); return () => window.removeEventListener('keydown', handler); }, [onClose]);
 
   const applyPreset = (preset) => {
     setDeviceName(preset.name);
+    setImageData(preset.imageData || '');
     setNameError('');
     setCategory(preset.category);
     setWatts(preset.watts);
@@ -891,7 +910,7 @@ function AddModal({ onClose, onAdd, defaultCategory = 'Multimédia', presets = P
   const handleAdd = () => {
     const name = deviceName.trim();
     if (!name) { setNameError('Donnez un nom à l’appareil'); toast.error('Le nom de l’appareil est obligatoire.'); nameInputRef.current?.focus(); return; }
-    onAdd({ id: Date.now(), name, category, watts, hours, quantity, period, dayShare, diversity: 0.8 });
+    onAdd({ id: Date.now(), name, category, watts, hours, quantity, period, dayShare, diversity: 0.8, imageData });
   };
 
   return (
@@ -904,25 +923,46 @@ function AddModal({ onClose, onAdd, defaultCategory = 'Multimédia', presets = P
 
         <div className="grid flex-1 gap-5 overflow-y-auto p-5 lg:grid-cols-[1.6fr_1fr]">
           <div className="space-y-5">
-            <div>
-              <span className="dv-label">Modèles courants</span>
-              <div className="dv-scroll-x">
-                {presets.map((p) => <button type="button" key={p.name} onClick={() => applyPreset(p)} className={`dv-pill ${deviceName === p.name ? 'or' : ''}`} style={{ cursor: 'pointer', whiteSpace: 'nowrap' }}>{p.imageData ? <img src={p.imageData} alt="" className="h-5 w-5 rounded object-cover" /> : <CircleCheck size={14} />}{p.name}</button>)}
+            <div className="relative">
+              <span className="dv-label">Quel appareil souhaitez-vous ajouter ?</span>
+              <div className={`dv-field ${nameError ? 'is-error' : ''}`}>
+                <Search size={17} />
+                <input
+                  ref={nameInputRef}
+                  role="combobox"
+                  aria-label="Rechercher ou saisir un appareil"
+                  aria-expanded={suggestionsOpen}
+                  aria-controls="appliance-suggestions"
+                  value={deviceName}
+                  autoFocus
+                  onFocus={() => setSuggestionsOpen(true)}
+                  onChange={(event) => { setDeviceName(event.target.value); setImageData(''); setSuggestionsOpen(true); if (nameError) setNameError(''); }}
+                  placeholder="Rechercher ou saisir un appareil"
+                />
+                <button type="button" aria-label={suggestionsOpen ? 'Masquer les suggestions' : 'Afficher les suggestions'} onClick={() => setSuggestionsOpen(open => !open)}><ChevronDown size={16} /></button>
               </div>
+              {nameError && <p className="mt-1 text-xs" style={{ color: 'var(--err)' }}>{nameError}</p>}
+              {suggestionsOpen && (
+                <div id="appliance-suggestions" className="dv-dropdown" role="listbox" aria-label="Appareils suggérés">
+                  {suggestions.map(preset => {
+                    const PresetIcon = resolveCategoryIcon(preset.category);
+                    return <button key={preset.name} type="button" role="option" aria-selected={deviceName === preset.name} onClick={() => { applyPreset(preset); setSuggestionsOpen(false); }}>
+                      <span className="grid size-9 shrink-0 place-items-center overflow-hidden rounded-md" style={{ background: 'var(--card2)' }}>{preset.imageData ? <img src={preset.imageData} alt="" className="h-full w-full object-contain" /> : <PresetIcon size={16} style={{ color: 'var(--or)' }} />}</span>
+                      <span className="min-w-0 flex-1"><strong className="block truncate text-sm">{preset.name}</strong><small className="dv-muted">{preset.category} · {preset.watts} W · {preset.hours} h/j</small></span>
+                      <ArrowRight size={14} />
+                    </button>;
+                  })}
+                  {suggestions.length === 0 && <p className="dv-muted p-4 text-sm">Aucune suggestion. L’appareil sera ajouté sous ce nom.</p>}
+                </div>
+              )}
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Nom de l’appareil" required error={nameError}>
-                <div className={`dv-field ${nameError ? 'is-error' : ''}`}>
-                  <input ref={nameInputRef} value={deviceName} onChange={(e) => { setDeviceName(e.target.value); if (nameError) setNameError(''); }} placeholder="Ex : Machine à laver" />
-                </div>
-              </Field>
               <Field label="Catégorie">
                 <div className="dv-field"><SelectedIcon size={17} style={{ color: 'var(--or)' }} /><select value={category} onChange={(e) => setCategory(e.target.value)}>{Object.keys(CATEGORIES).map((n) => <option key={n} value={n}>{n}</option>)}</select></div>
               </Field>
+              <StepperRow label="Quantité" value={quantity} min={1} max={99} onChange={setQuantity} />
             </div>
-
-            <StepperRow label="Quantité" value={quantity} min={1} max={99} onChange={setQuantity} />
 
             <div className="dv-card space-y-4 p-4">
               <div className="flex items-center justify-between">
@@ -966,7 +1006,7 @@ function AddModal({ onClose, onAdd, defaultCategory = 'Multimédia', presets = P
           </div>
 
           <aside className="dv-card h-fit p-5 lg:sticky lg:top-0">
-            <div className="grid h-20 w-20 place-items-center rounded-2xl" style={{ background: 'var(--or-soft)', border: '1px solid var(--or-line)' }}><SelectedIcon size={34} style={{ color: 'var(--or)' }} /></div>
+            <div className="grid h-20 w-20 place-items-center overflow-hidden rounded-2xl" style={{ background: 'var(--or-soft)', border: '1px solid var(--or-line)' }}>{imageData ? <img src={imageData} alt="" className="h-full w-full object-contain" /> : <SelectedIcon size={34} style={{ color: 'var(--or)' }} />}</div>
             <h4 className="mt-4 text-xl font-bold">{deviceName || 'Nouvel appareil'}</h4>
             <p className="dv-muted mt-1 text-sm">{quantity} × {watts} W · {Number(hours.toFixed(1))} h/jour</p>
             <div className="mt-5 rounded-xl p-4" style={{ background: 'var(--panel)', border: '1px solid var(--line)' }}>
@@ -994,17 +1034,17 @@ function SummaryCard({ selectedProfile, selectedType, customType, projectForm, s
   const totalDevices = appliances.reduce((s, i) => s + i.quantity, 0);
   const checks = [
     { label: 'Profil choisi', ok: !!selectedProfile },
+    { label: 'Appareils ajoutés', ok: totalDevices > 0 },
     { label: 'Nom du client', ok: hasName },
     { label: 'Type de bâtiment', ok: !!typeLabel },
     { label: 'Position confirmée', ok: site.confirmed },
-    { label: 'Au moins un appareil', ok: totalDevices > 0 },
   ];
   const done = checks.filter((c) => c.ok).length;
 
   return (
     <aside className="dv-panel p-5 xl:sticky xl:top-5 xl:self-start">
       <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-lg font-bold">Votre devis</h3>
+        <h3 className="text-lg font-bold">Estimation des besoins</h3>
         <span className="dv-pill or">{done}/{checks.length}</span>
       </div>
 
@@ -1017,10 +1057,11 @@ function SummaryCard({ selectedProfile, selectedType, customType, projectForm, s
         ))}
       </ul>
 
-      <div className="space-y-3 rounded-xl p-4" style={{ background: 'var(--or-soft)', border: '1px solid var(--or-line)' }}>
-        <div className="flex items-center justify-between text-sm"><span className="dv-muted">Appareils</span><strong><AnimatedNumber value={totalDevices} /></strong></div>
-        <div className="flex items-center justify-between text-sm"><span className="dv-muted">Consommation</span><strong><AnimatedNumber value={calc.dailyWh / 1000} decimals={2} suffix=" kWh/j" /></strong></div>
-        <div className="flex items-center justify-between text-sm"><span className="dv-muted">Puissance max.</span><strong><AnimatedNumber value={calc.simultaneousWatts / 1000} decimals={2} suffix=" kW" /></strong></div>
+      <div className="space-y-3">
+        <div className="dv-card min-h-[92px] p-4"><p className="dv-muted text-xs">Consommation quotidienne</p><p className="mt-3 text-2xl font-black"><AnimatedNumber value={calc.dailyWh} decimals={0} /> <span className="text-sm font-bold">Wh / jour</span></p></div>
+        <div className="dv-card min-h-[92px] p-4"><p className="dv-muted text-xs">Puissance nécessaire estimée</p><p className="mt-3 text-2xl font-black"><AnimatedNumber value={calc.solarKw} decimals={2} /> <span className="text-sm font-bold">kWc</span></p></div>
+        <div className="dv-card min-h-[92px] p-4"><p className="dv-muted text-xs">Pic de puissance</p><p className="mt-3 text-2xl font-black"><AnimatedNumber value={calc.simultaneousWatts / 1000} decimals={2} /> <span className="text-sm font-bold">kW</span></p></div>
+        <p className="dv-muted text-xs">{totalDevices} appareil(s) recensé(s)</p>
       </div>
 
       <AnimatePresence>
@@ -1046,8 +1087,8 @@ function SummaryCard({ selectedProfile, selectedType, customType, projectForm, s
 /* ────────────────────────────────────────────────────────────────────────────
    DEVIS IMPRIMABLE
 ──────────────────────────────────────────────────────────────────────────── */
-function QuotePreview({ selectedProfile, selectedType, customType, companyForm, clientForm, site, appliances, calc, onClose }) {
-  const customerName = selectedProfile === 'entreprise' ? (companyForm.companyName || companyForm.contactName || 'Client professionnel') : (clientForm.fullName || 'Client particulier');
+function QuotePreview({ selectedProfile, selectedType, customType, companyForm, clientForm, projectForm, site, appliances, calc, onClose }) {
+  const customerName = selectedProfile === 'entreprise' ? (companyForm.companyName || [companyForm.contactName, companyForm.contactPostNom].filter(Boolean).join(' ') || 'Client professionnel') : ([clientForm.fullName, clientForm.postNom].filter(Boolean).join(' ') || 'Client particulier');
   const typeLabel = selectedType === 'Autre' ? (customType || 'Autre') : selectedType;
   const quoteNumber = useMemo(() => `DJ-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`, []);
   const address = [site.adresse, site.quartier, site.commune, site.ville].filter(Boolean).join(', ');
@@ -1090,7 +1131,7 @@ function QuotePreview({ selectedProfile, selectedType, customType, companyForm, 
           </div>
           <div className="grid gap-4 border-b border-slate-200 py-7 sm:grid-cols-2">
             <div><p className="mb-2 text-xs font-bold text-slate-500">Émis par</p><p className="font-bold">Djua Energy</p><p className="text-sm text-slate-600">Solutions solaires intelligentes</p><p className="text-sm text-slate-600">Kinshasa, République démocratique du Congo</p></div>
-            <div className="sm:text-right"><p className="mb-2 text-xs font-bold text-slate-500">Destinataire</p><p className="font-bold">{customerName}</p><p className="text-sm text-slate-600">{typeLabel || 'Projet énergétique'}</p><p className="text-sm text-slate-600">{address || 'Adresse à confirmer'}</p>{site.confirmed && <p className="text-xs font-semibold text-emerald-700">Position GPS confirmée</p>}</div>
+              <div className="sm:text-right"><p className="mb-2 text-xs font-bold text-slate-500">Destinataire</p><p className="font-bold">{customerName}</p><p className="text-sm text-slate-600">{typeLabel || 'Projet énergétique'}</p><p className="text-sm text-slate-600">{address || 'Adresse à confirmer'}</p>{projectForm.budget && <p className="mt-1 text-sm text-slate-600">Budget indicatif : {Number(projectForm.budget).toLocaleString('fr-FR')} {projectForm.budgetCurrency} / {projectForm.budgetPeriod === 'month' ? 'mois' : projectForm.budgetPeriod === 'year' ? 'an' : 'en une fois'}</p>}{site.confirmed && <p className="text-xs font-semibold text-emerald-700">Position GPS confirmée</p>}</div>
           </div>
           <div className="mt-8 overflow-hidden border border-slate-200">
             <div className="hidden grid-cols-[1fr_220px] gap-4 bg-black px-5 py-3 text-xs font-bold text-white sm:grid"><span>Désignation</span><span className="text-right">Montant estimatif</span></div>
@@ -1132,7 +1173,7 @@ export default function Devis() {
     if (typeof window === 'undefined') return 'dark';
     const saved = window.localStorage.getItem('djua-theme');
     if (saved === 'dark' || saved === 'light') return saved;
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    return 'light';
   });
   const [currentStep, setCurrentStep] = useState(savedDraft?.currentStep || 'profile');
   const [selectedProfile, setSelectedProfile] = useState(savedDraft?.selectedProfile || '');
@@ -1168,7 +1209,7 @@ export default function Devis() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     if (isValidated || isSubmitting) { window.localStorage.removeItem(STORAGE_KEY); return; }
-    const isEmptyDraft = currentStep === 'profile' && !selectedProfile && !selectedType && !customType && !companyForm.companyName && !companyForm.contactName && !clientForm.fullName && !clientForm.phone && !siteForm.adresse && appliances.length === 0;
+    const isEmptyDraft = currentStep === 'profile' && !selectedProfile && !selectedType && !customType && !companyForm.companyName && !companyForm.contactName && !clientForm.fullName && !clientForm.postNom && !clientForm.phone && !siteForm.adresse && appliances.length === 0;
     if (isEmptyDraft) { window.localStorage.removeItem(STORAGE_KEY); return; }
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ currentStep, selectedProfile, selectedType, customType, companyForm, clientForm, siteForm, projectForm, appliances, defaultApplianceCategory, isValidated: false }));
   }, [currentStep, selectedProfile, selectedType, customType, companyForm, clientForm, siteForm, projectForm, appliances, defaultApplianceCategory, isValidated, isSubmitting]);
@@ -1186,21 +1227,24 @@ export default function Devis() {
   const progress = ((stepIndex + 1) / stepOrder.length) * 100;
 
   const typeIsValid = Boolean(selectedType) && (selectedType !== 'Autre' || customType.trim().length > 1);
-  const hasName = selectedProfile === 'entreprise' ? (companyForm.companyName.trim().length > 1 || companyForm.contactName.trim().length > 1) : clientForm.fullName.trim().length > 1;
+  const hasName = selectedProfile === 'entreprise'
+    ? companyForm.companyName.trim().length > 1
+    : clientForm.fullName.trim().length > 1 && clientForm.postNom.trim().length > 1;
   const activePhone = selectedProfile === 'entreprise' ? companyForm.phone : clientForm.phone;
   const phoneInvalid = activePhone.trim().length > 0 && activePhone.replace(/\D/g, '').length < 9;
+  const phoneValid = activePhone.replace(/\D/g, '').length >= 9;
   const siteIsValid = siteForm.confirmed || siteForm.adresse.trim().length > 2;
 
   const stepValidity = {
     profile: Boolean(selectedProfile),
-    details: hasName && !phoneInvalid,
+    details: hasName && phoneValid && !phoneInvalid,
     type: typeIsValid,
     site: siteIsValid,
     equipment: appliances.length > 0,
     summary: true,
   };
   const stepErrors = {
-    details: phoneInvalid ? 'Le numéro de téléphone semble incomplet.' : 'Indiquez au moins le nom du client.',
+    details: phoneInvalid ? 'Vérifiez le numéro de téléphone.' : 'Renseignez le nom, le postnom et le téléphone du client.',
     type: 'Choisissez un type de bâtiment.',
     site: 'Tapez l’adresse du client pour continuer.',
     equipment: 'Ajoutez au moins un appareil.',
@@ -1277,10 +1321,29 @@ export default function Devis() {
   };
 
   const handleAIRecommend = () => {
+    const budget = projectForm.budget === '' ? undefined : Number(projectForm.budget);
+    const contactInfo = selectedProfile === 'entreprise'
+      ? { ...companyForm, budget, budgetPeriod: projectForm.budgetPeriod, budgetCurrency: projectForm.budgetCurrency }
+      : {
+          ...clientForm,
+          fullName: [clientForm.fullName, clientForm.postNom].filter(Boolean).join(' '),
+          budget,
+          budgetPeriod: projectForm.budgetPeriod,
+          budgetCurrency: projectForm.budgetCurrency,
+        };
     recommendSolar(
-      { appliances, clientInfo: selectedProfile === 'entreprise' ? companyForm : clientForm, projectForm, site: siteForm, buildingType: selectedType === 'Autre' ? customType : selectedType },
+      { appliances, clientInfo: contactInfo, projectForm, site: siteForm, buildingType: selectedType === 'Autre' ? customType : selectedType },
       {
-        onSuccess: (data) => { setMlResult(data); toast.success('Recommandation générée par l’IA Djua.'); },
+        onSuccess: (data) => {
+          setMlResult({
+            ...data,
+            clientInfo: { ...(data.clientInfo || {}), ...contactInfo },
+            site: { ...(data.site || {}), ...siteForm },
+            sourceAppliances: data.sourceAppliances || appliances,
+            buildingType: data.buildingType || typeLabel,
+          });
+          toast.success('Recommandation générée par l’IA Djua.');
+        },
         onError: () => toast.error('L’IA n’est pas disponible. Utilisez le devis standard.'),
       },
     );
@@ -1288,11 +1351,11 @@ export default function Devis() {
 
   const typeLabel = selectedType === 'Autre' ? customType : selectedType;
   const titles = {
-    profile: 'Qui est le client ?',
+    profile: 'Quel type de projet préparez-vous ?',
     details: selectedProfile === 'entreprise' ? 'Informations de l’entreprise' : 'Informations du client',
     type: selectedProfile === 'entreprise' ? 'Quel type d’entreprise ?' : 'Quel type de logement ?',
-    site: 'Adresse et bâtiment',
-    equipment: 'Quels appareils sont utilisés ?',
+    site: 'Localisation de l’installation',
+    equipment: 'Besoins à couvrir',
     summary: 'Vérifiez avant de valider',
   };
 
@@ -1302,18 +1365,19 @@ export default function Devis() {
   return (
     <div className="devis-shell min-h-screen px-3 py-5 sm:px-4 md:px-8 lg:px-10">
       <style>{CSS}</style>
-      {isQuoteOpen && <QuotePreview selectedProfile={selectedProfile} selectedType={selectedType} customType={customType} companyForm={companyForm} clientForm={clientForm} site={siteForm} appliances={appliances} calc={calc} onClose={() => setIsQuoteOpen(false)} />}
+      {isQuoteOpen && <QuotePreview selectedProfile={selectedProfile} selectedType={selectedType} customType={customType} companyForm={companyForm} clientForm={clientForm} projectForm={projectForm} site={siteForm} appliances={appliances} calc={calc} onClose={() => setIsQuoteOpen(false)} />}
 
       <div className="mx-auto max-w-7xl">
         {/* ── En-tête ── */}
         <header className="mb-6 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="grid h-14 w-14 flex-none place-items-center" style={{ background: 'var(--or)', color: '#000' }}><Zap size={28} strokeWidth={2.6} /></div>
-            <div>
-              <h1 className="text-2xl font-black tracking-tight md:text-3xl">Créer un devis solaire</h1>
-              <p className="dv-muted text-sm">Point de vente Orange RDC</p>
+          {currentStep === 'equipment' ? (
+            <button type="button" onClick={goBack} className="inline-flex min-h-10 items-center gap-2 text-sm font-semibold"><ArrowLeft size={17} />Retour au choix du projet</button>
+          ) : (
+            <div className="flex items-center gap-4">
+              <div className="grid h-14 w-14 flex-none place-items-center" style={{ background: 'var(--or)', color: '#000' }}><Zap size={28} strokeWidth={2.6} /></div>
+              <div><h1 className="text-2xl font-black tracking-tight md:text-3xl">Créer un devis solaire</h1><p className="dv-muted text-sm">Point de vente Orange RDC</p></div>
             </div>
-          </div>
+          )}
           <div className="flex items-center gap-2">
             <button type="button" onClick={() => (confirmReset ? resetDraft() : setConfirmReset(true))} className={`dv-btn dv-btn-sm ${confirmReset ? 'dv-btn-primary' : 'dv-btn-ghost'}`}><RotateCcw size={14} /><span className="hidden sm:inline">{confirmReset ? 'Confirmer ?' : 'Recommencer'}</span></button>
             <motion.button type="button" whileTap={{ scale: 0.9, rotate: 20 }} onClick={() => setTheme((c) => (c === 'dark' ? 'light' : 'dark'))} className="dv-step-btn" aria-label="Changer de thème">
@@ -1350,7 +1414,7 @@ export default function Devis() {
                 {/* PROFIL */}
                 {currentStep === 'profile' && (
                   <>
-                    <StepHeader eyebrow="Commençons" title={titles.profile} subtitle="Choisissez le type de client. Les questions suivantes s’adapteront." />
+                    <StepHeader eyebrow="Votre projet" title={titles.profile} subtitle="Choisissez ce que vous souhaitez équiper." />
                     <div className="grid gap-4 md:grid-cols-2">
                       {profileCards.map((profile) => {
                         const Icon = profile.icon;
@@ -1389,14 +1453,15 @@ export default function Devis() {
                 {/* DÉTAILS CLIENT */}
                 {currentStep === 'details' && (
                   <>
-                    <StepHeader eyebrow={selectedProfile === 'entreprise' ? 'L’entreprise' : 'Le client'} title={titles.details} subtitle="Seul le nom est obligatoire. Le reste peut être complété plus tard." />
+                    <StepHeader eyebrow={selectedProfile === 'entreprise' ? 'L’entreprise' : 'Le client'} title={titles.details} subtitle="Identifiez le client et notez son budget avant de localiser l’installation." />
                     {selectedProfile === 'entreprise' ? (
                       <div className="space-y-5">
                         <div className="grid gap-4 md:grid-cols-2">
                           <Field label="Nom de l’entreprise" required><Input icon={Building2} value={companyForm.companyName} onChange={setCompany('companyName')} placeholder="Ex : Boutique Mbala & Fils" /></Field>
                           <Field label="Secteur d’activité"><Input value={companyForm.secteur} onChange={setCompany('secteur')} placeholder="Ex : commerce, restauration" /></Field>
-                          <Field label="Personne à contacter"><Input icon={UserRound} value={companyForm.contactName} onChange={setCompany('contactName')} placeholder="Ex : Jean Mbala" /></Field>
-                          <Field label="Téléphone" error={phoneInvalid ? 'Numéro trop court' : undefined}><Input prefix="+243" inputMode="tel" invalid={phoneInvalid} value={companyForm.phone} onChange={setCompany('phone')} placeholder="850 000 000" /></Field>
+                          <Field label="Nom du contact"><Input icon={UserRound} value={companyForm.contactName} onChange={setCompany('contactName')} placeholder="Ex : Jean" /></Field>
+                          <Field label="Postnom du contact"><Input value={companyForm.contactPostNom} onChange={setCompany('contactPostNom')} placeholder="Ex : Mbala" /></Field>
+                          <Field label="Téléphone" required error={phoneInvalid ? 'Numéro trop court' : undefined}><Input prefix="+243" inputMode="tel" invalid={phoneInvalid} value={companyForm.phone} onChange={setCompany('phone')} placeholder="850 000 000" /></Field>
                           <Field label="Email" className="md:col-span-2"><Input type="email" value={companyForm.email} onChange={setCompany('email')} placeholder="contact@entreprise.com" /></Field>
                         </div>
                         <div className="dv-card overflow-hidden">
@@ -1420,8 +1485,9 @@ export default function Devis() {
                     ) : (
                       <div className="space-y-5">
                         <div className="grid gap-4 md:grid-cols-2">
-                          <Field label="Nom complet" required className="md:col-span-2"><Input icon={UserRound} value={clientForm.fullName} onChange={setClient('fullName')} placeholder="Ex : Christian Mukendi" autoFocus /></Field>
-                          <Field label="Téléphone" error={phoneInvalid ? 'Numéro trop court' : undefined}><Input prefix="+243" inputMode="tel" invalid={phoneInvalid} value={clientForm.phone} onChange={setClient('phone')} placeholder="850 000 000" /></Field>
+                          <Field label="Nom" required><Input icon={UserRound} value={clientForm.fullName} onChange={setClient('fullName')} placeholder="Ex : Christian" autoFocus /></Field>
+                          <Field label="Postnom" required><Input value={clientForm.postNom} onChange={setClient('postNom')} placeholder="Ex : Mukendi" /></Field>
+                          <Field label="Téléphone" required error={phoneInvalid ? 'Numéro trop court' : undefined}><Input prefix="+243" inputMode="tel" invalid={phoneInvalid} value={clientForm.phone} onChange={setClient('phone')} placeholder="850 000 000" /></Field>
                           <Field label="Email"><Input type="email" value={clientForm.email} onChange={setClient('email')} placeholder="client@email.com" /></Field>
                         </div>
                         <div>
@@ -1434,6 +1500,14 @@ export default function Devis() {
                         </div>
                       </div>
                     )}
+                    <section className="mt-5 rounded-xl border p-4" style={{ borderColor: 'var(--line)', background: 'var(--card)' }}>
+                      <div className="mb-3"><h3 className="text-sm font-bold">Budget indicatif <span className="dv-muted font-normal">· facultatif</span></h3><p className="dv-muted mt-1 text-xs">Une estimation suffit pour adapter la proposition.</p></div>
+                      <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_150px_100px]">
+                        <div className="dv-field"><input type="number" min="0" step="any" value={projectForm.budget} onChange={event => setProjectForm(previous => ({ ...previous, budget: event.target.value }))} placeholder="Ex. 120" aria-label="Budget estimé" /></div>
+                        <div className="dv-field"><select value={projectForm.budgetPeriod} onChange={event => setProjectForm(previous => ({ ...previous, budgetPeriod: event.target.value }))} aria-label="Période du budget"><option value="month">Par mois</option><option value="once">En une fois</option><option value="year">Par an</option></select></div>
+                        <div className="dv-field"><select value={projectForm.budgetCurrency} onChange={event => setProjectForm(previous => ({ ...previous, budgetCurrency: event.target.value }))} aria-label="Devise du budget"><option value="USD">USD</option><option value="CDF">CDF</option></select></div>
+                      </div>
+                    </section>
                     <NavBar onBack={goBack} onNext={goToNext} nextDisabled={!stepValidity.details} onDisabledClick={blocked} />
                   </>
                 )}
@@ -1450,18 +1524,8 @@ export default function Devis() {
                 {/* ÉQUIPEMENTS */}
                 {currentStep === 'equipment' && (
                   <>
-                    <StepHeader eyebrow="La consommation" title={titles.equipment} subtitle="Touchez les appareils du client. Plus la liste est complète, plus le devis sera juste." />
-                    <QuickAdd appliances={appliances} onQuickAdd={handleQuickAdd} presets={presets} />
-                    {appliances.length === 0 ? (
-                      <div className="dv-card flex flex-col items-center px-6 py-10 text-center" style={{ borderStyle: 'dashed', borderColor: 'var(--or-line)' }}>
-                        <span className="dv-ping mb-4 grid h-14 w-14 place-items-center rounded-full" style={{ background: 'var(--or-soft)', color: 'var(--or)' }}><Plus size={26} /></span>
-                        <h3 className="text-lg font-bold">Aucun appareil pour le moment</h3>
-                        <p className="dv-muted mt-1 max-w-sm text-sm">Touchez un modèle ci-dessus, ou ajoutez un appareil précis.</p>
-                        <button type="button" onClick={() => { setDefaultApplianceCategory('Multimédia'); setIsAdding(true); }} className="dv-btn dv-btn-primary mt-5"><Plus size={16} />Ajouter un appareil</button>
-                      </div>
-                    ) : (
-                      <ApplianceList appliances={appliances} onUpdate={handleUpdateAppliance} onRemove={handleRemoveAppliance} onAddClick={(category) => { setDefaultApplianceCategory(category || 'Multimédia'); setIsAdding(true); }} />
-                    )}
+                    <StepHeader eyebrow="La consommation" title={titles.equipment} subtitle="Avec le client, ajoutez les appareils que le système doit alimenter. Djùa met l’estimation à jour au fur et à mesure." />
+                    <ApplianceList appliances={appliances} onUpdate={handleUpdateAppliance} onRemove={handleRemoveAppliance} onAddClick={(category) => { setDefaultApplianceCategory(category || 'Multimédia'); setIsAdding(true); }} />
                     <div className="mt-6 flex flex-col gap-4 rounded-xl p-4 sm:flex-row sm:items-center sm:justify-between" style={{ background: 'var(--or-soft)', border: '1px solid var(--or-line)' }}>
                       <div><p className="dv-muted text-xs">Consommation totale</p><p className="text-2xl font-black"><AnimatedNumber value={calc.dailyWh / 1000} decimals={2} /> <span className="text-base font-bold">kWh / jour</span></p></div>
                       <div className="flex gap-3"><button type="button" onClick={goBack} className="dv-btn dv-btn-ghost"><ArrowLeft size={16} />Retour</button><button type="button" onClick={goToNext} disabled={appliances.length === 0} className="dv-btn dv-btn-primary">Voir le résumé<ArrowRight size={16} /></button></div>
@@ -1479,7 +1543,7 @@ export default function Devis() {
                           <p className="dv-muted text-xs">Client</p>
                           <div className="mt-3 flex items-center gap-3">
                             <span className="dv-ic" style={{ background: 'var(--or)', color: '#000' }}>{selectedProfile === 'personne' ? <UserRound size={19} /> : <Building2 size={19} />}</span>
-                            <div className="min-w-0"><p className="truncate text-base font-bold">{selectedProfile === 'entreprise' ? (companyForm.companyName || companyForm.contactName) : clientForm.fullName}</p><p className="dv-muted truncate text-sm">{typeLabel}</p></div>
+                            <div className="min-w-0"><p className="truncate text-base font-bold">{selectedProfile === 'entreprise' ? (companyForm.companyName || [companyForm.contactName, companyForm.contactPostNom].filter(Boolean).join(' ')) : [clientForm.fullName, clientForm.postNom].filter(Boolean).join(' ')}</p><p className="dv-muted truncate text-sm">{typeLabel}</p></div>
                           </div>
                           <div className="dv-muted mt-3 space-y-1 text-sm">
                             {(selectedProfile === 'entreprise' ? companyForm.phone : clientForm.phone) && <p>+243 {selectedProfile === 'entreprise' ? companyForm.phone : clientForm.phone}</p>}

@@ -101,6 +101,7 @@ describe('Authentication API - Integration Tests', () => {
       nom: 'Equipe',
       prenom: 'Djua',
       identifier,
+      whatsapp: '+243812345678',
       password: 'Password123!',
       role,
       zone,
@@ -117,6 +118,64 @@ describe('Authentication API - Integration Tests', () => {
       expect(res.body.data.role).toBe('shop_manager');
       expect(res.body.data.zone).toBe('Kinshasa');
       expect(res.body.data).not.toHaveProperty('password');
+    });
+
+    it('should allow an admin to create another admin without assigning a zone', async () => {
+      const { cookie } = await createSession('admin');
+      const res = await request(app)
+        .post('/auth/team-users')
+        .set('Cookie', cookie)
+        .send(newTeamUser('admin', `second-admin-${Date.now()}@example.com`, ''));
+
+      expect(res.status).toBe(201);
+      expect(res.body.data.role).toBe('admin');
+      expect(res.body.data.zone).toBe('');
+    });
+
+    it('should allow an admin to create a technician directly', async () => {
+      const { cookie } = await createSession('administration');
+      const res = await request(app)
+        .post('/auth/team-users')
+        .set('Cookie', cookie)
+        .send(newTeamUser('technician', `admin-tech-${Date.now()}@example.com`, 'Goma'));
+
+      expect(res.status).toBe(201);
+      expect(res.body.data.role).toBe('technician');
+      expect(res.body.data.zone).toBe('Goma');
+    });
+
+    it('should let an admin manage non-admin team accounts without suspending admins', async () => {
+      const { cookie } = await createSession('admin');
+      const identifier = `admin-manager-${Date.now()}@example.com`;
+      const created = await request(app)
+        .post('/auth/team-users')
+        .set('Cookie', cookie)
+        .send(newTeamUser('shop_manager', identifier, 'Kinshasa'));
+      expect(created.status).toBe(201);
+
+      const listed = await request(app).get('/auth/team-users').set('Cookie', cookie);
+      expect(listed.status).toBe(200);
+      expect(listed.body.data.map(member => member._id)).toContain(created.body.data._id);
+
+      const suspended = await request(app)
+        .patch(`/auth/team-users/${created.body.data._id}/status`)
+        .set('Cookie', cookie)
+        .send({ status: 'suspended' });
+      expect(suspended.status).toBe(200);
+
+      const protectedAdmin = await User.create({
+        nom: 'Protected',
+        prenom: 'Admin',
+        identifier: `protected-admin-${Date.now()}@example.com`,
+        password: 'Password123!',
+        role: 'admin',
+      });
+      const protectedStatus = await request(app)
+        .patch(`/auth/team-users/${protectedAdmin._id}/status`)
+        .set('Cookie', cookie)
+        .send({ status: 'suspended' });
+      expect(protectedStatus.status).toBe(404);
+      expect((await User.findById(protectedAdmin._id)).status).toBe('active');
     });
 
     it('should assign a manager zone to technicians and commercial users', async () => {
