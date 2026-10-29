@@ -122,8 +122,13 @@ export default function InterventionWizard() {
         scheduledDate: date ? new Date(date).toISOString() : new Date().toISOString(),
       },
       {
-        onSuccess: () => {
-          setFormMessage('Intervention enregistrée et technicien notifié en temps réel.');
+        onSuccess: (response) => {
+          const whatsapp = response?.data;
+          setFormMessage(
+            whatsapp?.whatsappSent
+              ? 'Intervention enregistrée et message WhatsApp envoyé au technicien.'
+              : `Intervention enregistrée, mais WhatsApp n’a pas été envoyé${whatsapp?.whatsappError ? ` : ${whatsapp.whatsappError}` : '.'}`,
+          );
           setTimeout(() => {
             setIsCreateModalOpen(false);
             setFormMessage('');

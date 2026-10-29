@@ -62,7 +62,11 @@ export const createIntervention = async (req, res) => {
     // ── Envoi WhatsApp (message + intervention) au technicien pointé ─────────
     const whatsapp = await sendInterventionToWhatsApp(populated.assignedTo, populated);
 
-    const responseData = { ...populated, whatsappLink: whatsapp.link, whatsappSent: whatsapp.sent };
+    const responseData = {
+      ...populated,
+      whatsappSent: whatsapp.sent,
+      whatsappError: whatsapp.error || null,
+    };
 
     return sendSuccess(res, 'Intervention créée et technicien notifié', responseData, 201);
   } catch (error) {

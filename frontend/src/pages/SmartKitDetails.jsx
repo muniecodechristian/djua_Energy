@@ -564,10 +564,12 @@ const technicians = useTeamTechnicians();
       ...(interventionForm.assignedTo ? { assignedTo: interventionForm.assignedTo } : {}),
     }, {
       onSuccess: (data) => {
-        showToast('Intervention créée et stockée en BD pour 2 semaines');
-        if (data?.data?.whatsappLink) {
-          window.open(data.data.whatsappLink, '_blank', 'noopener,noreferrer');
-        }
+        const whatsapp = data?.data;
+        showToast(
+          whatsapp?.whatsappSent
+            ? 'Intervention créée et message WhatsApp envoyé au technicien.'
+            : `Intervention créée, mais WhatsApp n’a pas été envoyé${whatsapp?.whatsappError ? ` : ${whatsapp.whatsappError}` : '.'}`,
+        );
         setIsModalOpen(false);
         setInterventionForm({ title: '', description: '', priority: 'Moyenne', assignedTo: '' });
       },
