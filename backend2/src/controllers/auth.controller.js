@@ -76,12 +76,15 @@ export const createTeamUser = async (req, res) => {
   if (actorRole === 'shop_manager' && !['technician', 'commercial'].includes(role)) {
     return sendError(res, 'A shop manager can create only technicians or commercial users', [], 403);
   }
+  if (actorRole === 'commercial' && role !== 'technician') {
+    return sendError(res, 'Un commercial ne peut créer que des techniciens.', [], 403);
+  }
 
   if (['technician', 'commercial'].includes(role) && (!whatsapp || String(whatsapp).trim().length < 6)) {
     return sendError(res, 'Le numéro WhatsApp est obligatoire pour créer un technicien ou un commercial', [], 400);
   }
 
-  const assignedZone = actorRole === 'admin' ? zone?.trim() : req.user.zone?.trim();
+  const assignedZone = actorRole === 'admin' ? zone?.trim() : (req.user.zone?.trim() || 'Kinshasa');
   if (!assignedZone && role !== 'admin') {
     return sendError(res, 'A zone is required for this account', [], 400);
   }
@@ -143,6 +146,43 @@ export const getTeamUsers = async (req, res) => {
     })));
   } catch (error) {
     return sendError(res, `Could not load team members: ${error.message}`, [], 500);
+  }
+};
+
+/**
+ * GET /auth/technicians
+ * Récupère la liste des techniciens selon le rôle de l'utilisateur demandeur :
+ * - Admin / Administration : Vision totale sur TOUS les techniciens
+ * - Commercial : STRICTEMENT les techniciens qu'il a créés lui-même
+ * - Shop Manager : Techniciens de sa zone ou créés par lui
+ */
+export const getTechnicians = async (req, res) => {
+  try {
+    const actorRole = req.user.role === 'administration' ? 'admin' : req.user.role;
+    let filter = { role: 'technician' };
+
+    if (actorRole === 'admin') {
+      filter = { role: 'technician' };
+    } else if (actorRole === 'commercial') {
+      filter = { role: 'technician', createdBy: req.user._id };
+    } else if (actorRole === 'shop_manager') {
+      filter = {
+        role: 'technician',
+        $or: [
+          { createdBy: req.user._id },
+          ...(req.user.zone ? [{ zone: req.user.zone }] : [])
+        ]
+      };
+    }
+
+    const technicians = await User.find(filter)
+      .select('nom prenom postNom identifier whatsapp phone role zone seniority status createdBy createdAt')
+      .sort({ prenom: 1, nom: 1 })
+      .lean();
+
+    return sendSuccess(res, 'Techniciens récupérés avec succès', technicians);
+  } catch (error) {
+    return sendError(res, `Impossible de charger les techniciens: ${error.message}`, [], 500);
   }
 };
 

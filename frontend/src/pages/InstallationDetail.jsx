@@ -97,15 +97,15 @@ export default function InstallationDetail() {
   // Query dossier d'installation
   const { data: folder, isLoading, error, refetch } = useGetInstallationDetail(id);
 
-  // Query techniciens (pour assignation)
+  // Query techniciens (pour assignation : vision totale admin, ou techniciens créés par le commercial)
   const { data: teamUsers } = useQuery({
-    queryKey: ['team-technicians'],
+    queryKey: ['team-technicians', currentUser?._id, currentUser?.role],
     queryFn: async () => {
-      const res = await api.get('/users/all-users');
-      const list = res.data?.users || res.data?.data || [];
-      return list.filter(u => u.role === 'technician');
+      const res = await api.get('/auth/technicians');
+      const list = res.data?.data || res.data?.users || [];
+      return list;
     },
-    enabled: Boolean(currentUser?.role === 'admin' || currentUser?.role === 'administration' || currentUser?.role === 'shop_manager'),
+    enabled: Boolean(currentUser?.role === 'admin' || currentUser?.role === 'administration' || currentUser?.role === 'shop_manager' || currentUser?.role === 'commercial'),
   });
 
   // Mutations
@@ -159,9 +159,11 @@ export default function InstallationDetail() {
 
   const isAdmin = ['admin', 'administration'].includes(currentUser?.role);
   const isManager = currentUser?.role === 'shop_manager';
+  const isCommercial = currentUser?.role === 'commercial';
+  const isFolderOwner = isCommercial && (String(folder.createdBy?._id || folder.createdBy) === String(currentUser?._id));
   const isAssignedTech = currentUser?.role === 'technician' && String(folder.assignedTechnician?._id) === String(currentUser?._id);
-  const canManage = isAdmin || isManager;
-  const canOperate = isAdmin || isManager || isAssignedTech;
+  const canManage = isAdmin || isManager || isFolderOwner;
+  const canOperate = isAdmin || isManager || isAssignedTech || isFolderOwner;
 
   const status = STATUS_CONFIG[folder.status] || { label: folder.status, tone: 'pending', desc: '' };
   const customer = folder.customer || {};

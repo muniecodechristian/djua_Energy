@@ -237,7 +237,7 @@ export async function getInstallationDetail(req, res) {
 /**
  * PATCH /api/installations/:id/assign
  * Affecter un technicien et définir/modifier la date d'installation
- * Autorisé pour : admin, administration, shop_manager
+ * Autorisé pour : admin, administration, shop_manager, commercial
  */
 export async function assignTechnician(req, res) {
   try {
@@ -253,6 +253,12 @@ export async function assignTechnician(req, res) {
       if (!tech || tech.role !== 'technician') {
         return fail(res, 400, 'Technicien sélectionné invalide.');
       }
+
+      // Si le demandeur est commercial, vérifier que le technicien a bien été créé par lui
+      if (req.user.role === 'commercial' && String(tech.createdBy) !== String(req.user._id)) {
+        return fail(res, 403, 'Vous ne pouvez assigner que des techniciens que vous avez créés.');
+      }
+
       folder.assignedTechnician = tech._id;
     }
 

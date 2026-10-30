@@ -1,7 +1,12 @@
 import express from 'express';
 import { getClients, getKits, getScoringData, getKitById, getPayments, getPaymentsByPhone } from '../controllers/orangeEnergy.controller.js';
+import { getTechnicians } from '../controllers/auth.controller.js';
+import { protect } from '../middlewares/auth.middleware.js';
 
 const router = express.Router();
+
+router.get('/all-users', protect, getTechnicians);
+router.get('/technicians', protect, getTechnicians);
 
 /**
  * @swagger

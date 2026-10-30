@@ -23,8 +23,8 @@ router.use(protect);
 router.get('/', listInstallations);
 router.get('/:id', getInstallationDetail);
 
-// Assignation technicien + date (Admin & Shop Manager)
-router.patch('/:id/assign', authorizeRoles('admin', 'administration', 'shop_manager'), assignTechnician);
+// Assignation technicien + date (Admin, Shop Manager & Commercial)
+router.patch('/:id/assign', authorizeRoles('admin', 'administration', 'shop_manager', 'commercial'), assignTechnician);
 
 // Acceptation de mission par le technicien
 router.patch('/:id/accept', authorizeRoles('technician', 'admin', 'administration', 'shop_manager'), acceptInstallation);
