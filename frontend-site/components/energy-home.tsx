@@ -196,27 +196,24 @@ export default function EnergyHome() {
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true, amount: 0.3 }}
             transition={{ duration: 0.6 }}
-            className="relative flex min-h-[330px] items-center justify-center overflow-hidden rounded-md border border-[#17211e]/10 bg-white p-8 sm:min-h-[390px]"
-            aria-label="Illustration du boîtier connecté Djua"
+            className="relative flex min-h-[340px] items-center justify-center overflow-hidden rounded-2xl border border-[#17211e]/10 bg-[#0d1311] p-6 shadow-xl sm:min-h-[420px]"
+            aria-label="Interface de suivi Djua"
           >
-            <div className="absolute inset-0 opacity-50" style={{ backgroundImage: 'linear-gradient(#ff8a0012 1px, transparent 1px), linear-gradient(90deg, #ff8a0012 1px, transparent 1px)', backgroundSize: '28px 28px' }} />
-            <div className="relative w-full max-w-[330px] rounded-[26px] border border-[#d6d9d4] bg-gradient-to-br from-white via-[#f7f8f6] to-[#e9ece8] p-6 shadow-[0_28px_70px_rgba(23,25,27,.16)]">
-              <div className="flex items-center justify-between">
-                <span className="grid size-10 place-items-center rounded-lg bg-[#ff8a00] text-[#17191b]"><Cpu size={21} /></span>
-                <span className="inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#4c5d4f]"><i className="size-2 rounded-full bg-[#39a96b]" /> En ligne</span>
-              </div>
-              <div className="mt-8 flex items-end justify-between gap-5">
-                <div><p className="text-[10px] font-bold uppercase tracking-[0.13em] text-[#78827a]">Djua Energy</p><p className="mt-1 text-xl font-bold text-[#202622]">Boîtier connecté</p></div>
-                <div className="flex h-14 items-end gap-1.5" aria-hidden="true">{[22, 36, 27, 44, 32, 49, 39, 55].map((height, index) => <span key={index} className="w-2 rounded-t-sm bg-[#ff8a00]" style={{ height }} />)}</div>
-              </div>
-              <div className="mt-6 grid grid-cols-3 gap-2 border-t border-[#dfe2de] pt-4 text-center">
-                {[['PV', Sun], ['Batterie', BatteryCharging], ['Alertes', ShieldCheck]].map(([label, Icon]) => {
-                  const StatusIcon = Icon as typeof Sun;
-                  return <div key={label as string} className="grid justify-items-center gap-2 text-[9px] font-medium text-[#68736b]"><StatusIcon className="size-4 text-[#ff8a00]" strokeWidth={1.8} />{label as string}</div>;
-                })}
-              </div>
+            <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'linear-gradient(#ff8a0015 1px, transparent 1px), linear-gradient(90deg, #ff8a0015 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
+            <div className="relative w-full h-[300px] sm:h-[380px] flex items-center justify-center">
+              <Image
+                src="/Djua_Pr.png"
+                alt="Interface du boîtier connecté Djua"
+                fill
+                className="object-contain object-center drop-shadow-2xl"
+                sizes="(max-width: 768px) 100vw, 50vw"
+                priority
+              />
             </div>
-            <div className="absolute bottom-5 left-5 inline-flex items-center gap-2 rounded-full border border-[#17211e]/10 bg-white/90 px-3 py-2 text-[10px] font-semibold text-[#465248]"><span className="size-2 rounded-full bg-[#39a96b]" />Suivi de l’installation</div>
+            <div className="absolute bottom-4 left-4 inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/60 px-3.5 py-1.5 text-[11px] font-medium text-white backdrop-blur-md shadow-lg">
+              <span className="size-2 rounded-full bg-[#39a96b] animate-pulse" />
+              Suivi de l&apos;installation en direct
+            </div>
           </motion.div>
           <motion.div
             initial={reducedMotion ? false : { opacity: 0, x: 24 }}

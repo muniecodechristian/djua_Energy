@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   ArrowDownToLine, ArrowRight, BellRing, CalendarClock, CheckCircle2, ChevronDown,
   ChevronLeft, ChevronRight, CircleDollarSign, FilePlus2, FileText,
@@ -117,7 +117,11 @@ function QuoteRow({ quote, focusQuote, currentUser, onViewDetails }) {
   const status = statusConfig[quote.status] || { label: 'Statut inconnu', tone: 'unknown' };
 
   return <>
-    <tr className={`quotes-table-row${expanded ? ' is-expanded' : ''}`}>
+    <tr 
+      className={`quotes-table-row${expanded ? ' is-expanded' : ''}`}
+      style={{ cursor: 'pointer' }}
+      onClick={() => onViewDetails()}
+    >
       <td><button className="quotes-row-expand" aria-label={`${expanded ? 'Réduire' : 'Afficher'} le devis ${quote.number}`} aria-expanded={expanded} onClick={event => { event.stopPropagation(); setExpanded(value => !value); }}><ChevronDown size={14} /></button></td>
       <td><strong>{quote.number || 'Devis'}</strong><small>{formatDate(quote.createdAt)}</small></td>
       <td><strong>{quoteCustomer(quote)}</strong><small>{quote.customer?.profile === 'entreprise' ? 'Entreprise' : 'Client'}</small></td>
@@ -181,6 +185,7 @@ function QuoteRow({ quote, focusQuote, currentUser, onViewDetails }) {
 export default function QuotesDashboard() {
   const user = useAuthStore(state => state.user);
   const location = useLocation();
+  const navigate = useNavigate();
   const focusQuote = location.state?.focusQuote || '';
   const [search, setSearch] = useState(focusQuote);
   const [term, setTerm] = useState(focusQuote);
@@ -268,7 +273,7 @@ export default function QuotesDashboard() {
         {query.isPending && <div className="quotes-table-state"><RefreshCw size={18} className="ops-spin" />Chargement des devis…</div>}
         {query.isError && <div className="quotes-table-state is-error" role="alert"><FileText size={19} /><strong>Impossible de charger les devis.</strong><span>Vérifiez votre connexion puis réessayez.</span><button type="button" onClick={() => query.refetch()}>Réessayer</button></div>}
         {query.isSuccess && data.quotes.length === 0 && <div className="quotes-table-state"><FileText size={20} /><strong>{term ? 'Aucun résultat pour cette recherche.' : followUpsOnly ? 'Aucune relance à effectuer.' : status ? `Aucun devis au statut « ${status === 'validated' ? 'Validés' : statusConfig[status]?.tab} ».` : 'Aucun devis enregistré pour le moment.'}</strong><span>{!term && !followUpsOnly && !status ? 'Créez votre première proposition pour commencer le suivi.' : 'Modifiez vos filtres ou votre recherche.'}</span>{!term && !followUpsOnly && !status && <Link to="/devis/nouveau">Créer un devis solaire <ArrowRight size={14} /></Link>}</div>}
-        {query.isSuccess && data.quotes.length > 0 && <div className="quotes-table-scroll"><table className="quotes-table"><thead><tr><th aria-label="Détails" /><th>Devis</th><th>Client</th><th>Montant estimé</th><th>Statut</th><th>Prochaine action</th><th>Installation prévue</th><th>Détails</th></tr></thead><tbody>{data.quotes.map(quote => <QuoteRow key={quote._id || quote.number} quote={quote} focusQuote={focusQuote} currentUser={user} onViewDetails={() => setActiveDetailQuote(quote)} />)}</tbody></table></div>}
+        {query.isSuccess && data.quotes.length > 0 && <div className="quotes-table-scroll"><table className="quotes-table"><thead><tr><th aria-label="Détails" /><th>Devis</th><th>Client</th><th>Montant estimé</th><th>Statut</th><th>Prochaine action</th><th>Installation prévue</th><th>Détails</th></tr></thead><tbody>{data.quotes.map(quote => <QuoteRow key={quote._id || quote.number} quote={quote} focusQuote={focusQuote} currentUser={user} onViewDetails={() => navigate(`/devis/${encodeURIComponent(quote.number)}`)} />)}</tbody></table></div>}
 
         {query.isSuccess && data.total > 0 && <footer className="quotes-pagination"><span>{nf.format(Math.min((page - 1) * (data.pageSize || 30) + 1, data.total))}–{nf.format(Math.min(page * (data.pageSize || 30), data.total))} sur {nf.format(data.total)} devis</span><div><button type="button" aria-label="Page précédente" disabled={page === 1 || query.isFetching} onClick={() => setPage(value => value - 1)}><ChevronLeft size={15} /></button><span>Page {page} sur {pages}</span><button type="button" aria-label="Page suivante" disabled={page >= pages || query.isFetching} onClick={() => setPage(value => value + 1)}><ChevronRight size={15} /></button></div></footer>}
       </section>

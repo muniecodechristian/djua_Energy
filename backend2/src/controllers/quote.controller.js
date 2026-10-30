@@ -3,6 +3,7 @@ import { z } from 'zod';
 import Quote from '../models/Quote.model.js';
 import Client from '../models/SalesClient.model.js';
 import Notice from '../models/InstallationNotice.model.js';
+import { createInstallationFromQuote } from './installation.controller.js';
 import { quoteScope, salesScope, normalizeSalesPhone, foldName, validPlannedDate, QUOTE_TIMEZONE } from '../services/quote.service.js';
 const text = z.string().trim().max(250);
 const details = z.object({
@@ -155,6 +156,14 @@ export async function approveQuote(req, res) {
     quote.validatedBy = req.user._id;
     await quote.save();
 
-    return res.json({ success: true, data: quote });
+    // Création automatique du dossier d'installation (Module 2) par le validateur
+    let installationFolder = null;
+    try {
+      installationFolder = await createInstallationFromQuote(quote, req.user, req.body.plannedDate);
+    } catch (installErr) {
+      console.error('[quote.controller] Erreur création dossier installation:', installErr);
+    }
+
+    return res.json({ success: true, data: quote, installationFolder });
   } catch { return fail(res,500,'Impossible de valider le devis.'); }
 }

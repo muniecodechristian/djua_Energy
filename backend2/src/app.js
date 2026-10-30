@@ -1,5 +1,6 @@
 import quoteRoutes from './routes/quote.routes.js';
 import catalogRoutes from './routes/catalog.routes.js';
+import installationRoutes from './routes/installation.routes.js';
 // src/app.js
 // Configuration Express : middlewares globaux + montage des routes.
 // N'écoute pas sur un port — responsabilité exclusive de server.js.
@@ -116,6 +117,7 @@ if (swaggerEnabled) {
 app.use("/auth", authRoutes);
 
 app.use("/api/quotes", quoteRoutes);
+app.use("/api/installations", installationRoutes);
 app.use("/api/catalog", catalogRoutes);
 app.use("/api/alerts", alertRoutes);
 app.use("/api/interventions", interventionRoutes);

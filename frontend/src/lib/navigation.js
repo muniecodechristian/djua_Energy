@@ -1,9 +1,10 @@
-import { LayoutDashboard, PanelsTopLeft, Bell, Wrench, FileText, Settings, Users, ChartNoAxesColumn, PackageSearch } from 'lucide-react';
+import { LayoutDashboard, PanelsTopLeft, Bell, Wrench, FileText, Settings, Users, ChartNoAxesColumn, PackageSearch, ClipboardCheck } from 'lucide-react';
 
 export const navigation = [
   { section: 'Supervision', label: 'Vue d’ensemble', path: '/dashboard', icon: LayoutDashboard, description: 'Les signaux essentiels pour piloter votre parc solaire.' },
   { section: 'Supervision', label: 'Parc solaire', path: '/parc', icon: PanelsTopLeft, description: 'Équipements, contrats et accès aux fiches techniques.' },
   { section: 'Supervision', label: 'Alertes', path: '/notification', icon: Bell, description: 'Priorisez les anomalies et examinez les faits observés.' },
+  { section: 'Exploitation', label: 'Suivi Installations', path: '/installations', icon: ClipboardCheck, description: 'Traçabilité, assignation et mise en service des kits solaires.' },
   { section: 'Exploitation', label: 'Maintenance & Interventions', path: '/InterventionWizard', icon: Wrench, description: 'Créez vos interventions, assignez vos techniciens et consultez les rapports.' },
   { section: 'Exploitation', label: 'Équipe', path: '/equipe', icon: Users, description: 'Gérez les techniciens et commerciaux de votre zone.' },
   { section: 'Gestion', label: 'Devis solaires', path: '/devis', icon: FileText, description: 'Dimensionnement et préparation des offres.' },
@@ -13,6 +14,7 @@ export const navigation = [
 ];
 
 export function pageInfo(path) {
+  if (path.toLowerCase() === '/installations') return { label: 'Suivi des Installations', description: 'Module 2 : Traçabilité, planification et mise en service.' };
   if (path.toLowerCase() === '/devis/nouveau') return { label: 'Nouveau devis solaire', description: 'Dimensionnement et préparation d’une offre.' };
   if (path.toLowerCase() === '/equipe') return { label: 'Gestion de l’équipe', description: 'Techniciens et commerciaux de votre zone.' };
   if (path.toLowerCase() === '/technicien') return { label: 'Espace Technicien', description: 'Missions, scan et rapports de maintenance.' };
@@ -22,9 +24,9 @@ export function pageInfo(path) {
 export function navigationForRole(role) {
   const normalizedRole = role === 'administration' ? 'admin' : role;
   
-  // L’administrateur accède aux écrans globaux de gestion et de supervision.
+  // L’administrateur accède aux écrans globaux de gestion et de supervision avec vision complète.
   if (normalizedRole === 'admin') {
-    const adminPaths = ['/rapports', '/devis', '/parc', '/catalogue', '/AdministrationSettings'];
+    const adminPaths = ['/installations', '/rapports', '/devis', '/parc', '/catalogue', '/AdministrationSettings'];
     return navigation
       .filter(item => adminPaths.includes(item.path))
       .sort((left, right) => adminPaths.indexOf(left.path) - adminPaths.indexOf(right.path))

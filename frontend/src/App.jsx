@@ -23,6 +23,9 @@ const TechnicianApp = lazy(() => import('./pages/TechnicianApp'));
 const AdminReports = lazy(() => import('./pages/AdminReports'));
 const ProductCatalog = lazy(() => import('./pages/ProductCatalog'));
 const QuotesDashboard = lazy(() => import('./pages/QuotesDashboard'));
+const QuoteDetail = lazy(() => import('./pages/QuoteDetail'));
+const InstallationsTracker = lazy(() => import('./pages/InstallationsTracker'));
+const InstallationDetail = lazy(() => import('./pages/InstallationDetail'));
 
 function DashboardHome() {
   const user = useAuthStore(state => state.user);
@@ -71,6 +74,7 @@ function App() {
           <Route path="/dashboard"            element={<DashboardHome />} />
           <Route path="/devis"                element={<QuotesDashboard />} />
           <Route path="/devis/nouveau"        element={<Devis />} />
+          <Route path="/devis/:id"            element={<QuoteDetail />} />
           <Route path="/notification"         element={<FleetStatusFeed />} />
           <Route path="/decision"             element={<Navigate to="/notification" replace />} />
           <Route path="/SmartKitdetails"      element={<SmartKitDetails />} />
@@ -79,6 +83,8 @@ function App() {
           <Route path="/CustomerProfile"      element={<CustomerProfile />} />
           <Route path="/OperationsOverview"   element={<OperationsOverview />} />
           <Route path="/AdministrationSettings" element={<AdministrationSettings />} />
+          <Route path="/installations"        element={<InstallationsTracker />} />
+          <Route path="/installations/:id"    element={<InstallationDetail />} />
           <Route path="/equipe"                element={<TeamManagement />} />
           <Route path="/parc"                 element={<OrangeKitsRegistry />} />
           <Route path="/rapports"             element={<AdminReports />} />

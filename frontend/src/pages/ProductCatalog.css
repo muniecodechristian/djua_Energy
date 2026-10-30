@@ -46,9 +46,9 @@
 .catalog-aside-card li strong,.catalog-aside-card li small { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .catalog-aside-card li strong { font-size:8px; font-weight:650; }
 .catalog-aside-card li small { margin-top:4px; color:var(--ops-muted); font-size:7px; }
-.catalog-help-card { padding:13px; border-color:#fde68a; background:#fffbeb; }
-.catalog-help-card h2 { color:#b45309; }
-.catalog-help-card p { margin:6px 0 0; color:#78350f; font-size:8px; line-height:1.65; }
+.catalog-help-card { padding:13px; border: 1px solid var(--ops-line); border-radius:9px; background:var(--ops-surface); }
+.catalog-help-card h2 { color:var(--ops-ink); }
+.catalog-help-card p { margin:6px 0 0; color:var(--ops-muted); font-size:8px; line-height:1.65; }
 .catalog-empty { display:flex; min-height:220px; flex-direction:column; align-items:center; justify-content:center; gap:8px; padding:25px; color:var(--ops-muted); text-align:center; }
 .catalog-empty strong { color:var(--ops-ink); font-size:12px; }
 .catalog-empty p { max-width:340px; margin:0; font-size:9px; line-height:1.6; }

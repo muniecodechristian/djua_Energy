@@ -20,16 +20,16 @@
 .commercial-kpi { display:flex; min-width:0; min-height:150px; align-items:center; gap:16px; padding:22px 20px; border:1px solid var(--ops-line); border-radius:9px; background:var(--ops-surface); color:var(--ops-ink); text-align:left; transition:border-color .15s,background .15s; }
 button.commercial-kpi { width:100%; cursor:pointer; }
 button.commercial-kpi:hover { border-color:#f59e0b; background:var(--ops-canvas); }
-.commercial-kpi-icon { display:grid; width:54px; height:54px; flex:none; place-items:center; border-radius:14px; background:#fef3c7; color:#d97706; }
-.commercial-kpi-icon.amber { background:#fff6e5; color:#d98a05; }
-.commercial-kpi-icon.red { background:#fff0f1; color:#e44954; }
+.commercial-kpi-icon,
+.commercial-kpi-icon.amber,
+.commercial-kpi-icon.red { display:grid; width:54px; height:54px; flex:none; place-items:center; border-radius:14px; background:rgba(0,0,0,0.05); color:#0f172a; border:1px solid rgba(0,0,0,0.08); }
 .commercial-kpi-copy { display:grid; min-width:0; flex:1; gap:5px; }
 .commercial-kpi-copy small { color:var(--ops-muted); font-size:12px; line-height:1.35; }
 .commercial-kpi-copy strong { color:var(--ops-ink); font-size:32px; font-weight:650; letter-spacing:-.9px; line-height:1.1; font-variant-numeric:tabular-nums; }
 .commercial-kpi-copy em { overflow:hidden; color:var(--ops-muted); font-size:11px; font-style:normal; text-overflow:ellipsis; white-space:nowrap; }
-.commercial-kpi-arrow { display:grid; width:36px; height:36px; flex:none; place-items:center; border-radius:50%; background:#fef3c7; color:#d97706; }
-.commercial-kpi:nth-child(3) .commercial-kpi-arrow { background:#fff7e8; color:#d98a05; }
-.commercial-kpi:nth-child(4) .commercial-kpi-arrow { background:#fff0f1; color:#e44954; }
+.commercial-kpi-arrow,
+.commercial-kpi:nth-child(3) .commercial-kpi-arrow,
+.commercial-kpi:nth-child(4) .commercial-kpi-arrow { display:grid; width:36px; height:36px; flex:none; place-items:center; border-radius:50%; background:rgba(0,0,0,0.05); color:#0f172a; border:1px solid rgba(0,0,0,0.08); }
 .commercial-panels { display:grid; grid-template-columns:minmax(0,.97fr) minmax(0,1fr); gap:14px; align-items:start; }
 .commercial-panel { min-width:0; overflow:hidden; border:1px solid var(--ops-line); border-radius:9px; background:var(--ops-surface); box-shadow:var(--ops-shadow); }
 .commercial-panel-heading { display:flex; min-height:74px; align-items:center; justify-content:space-between; gap:12px; padding:16px 18px; border-bottom:1px solid var(--ops-line); }
@@ -42,11 +42,24 @@ button.commercial-kpi:hover { border-color:#f59e0b; background:var(--ops-canvas)
 .commercial-task-list li:last-child,.commercial-install-list li:last-child { border-bottom:0; }
 .commercial-task-dot { width:8px; height:8px; border-radius:50%; background:#f59e0b; }
 .commercial-task-dot.red { background:#e44c57; }.commercial-task-dot.amber { background:#efa91b; }.commercial-task-dot.green { background:#2da66b; }
-.commercial-task-icon,.commercial-install-icon { display:grid; width:40px; height:40px; place-items:center; border-radius:10px; background:#fef3c7; color:#d97706; }
-.commercial-task-icon.red,.commercial-install-icon.red { background:#fff0f1; color:#e44d58; }
-.commercial-task-icon.amber,.commercial-install-icon.amber { background:#fff6e6; color:#e39a09; }
-.commercial-task-icon.green { background:#eaf8ef; color:#299d62; }
-.commercial-task-icon.slate,.commercial-install-icon.slate { background:#f0f3f7; color:#7d8ba0; }
+.commercial-task-icon,
+.commercial-install-icon,
+.commercial-task-icon.red,
+.commercial-install-icon.red,
+.commercial-task-icon.amber,
+.commercial-install-icon.amber,
+.commercial-task-icon.green,
+.commercial-task-icon.slate,
+.commercial-install-icon.slate { display:grid; width:40px; height:40px; place-items:center; border-radius:10px; background:rgba(0,0,0,0.05); color:#0f172a; border:1px solid rgba(0,0,0,0.08); }
+
+:root[data-theme='dark'] .commercial-kpi-icon,
+:root[data-theme='dark'] .commercial-kpi-arrow,
+:root[data-theme='dark'] .commercial-task-icon,
+:root[data-theme='dark'] .commercial-install-icon,
+.dark .commercial-kpi-icon,
+.dark .commercial-kpi-arrow,
+.dark .commercial-task-icon,
+.dark .commercial-install-icon { background:rgba(255,255,255,0.08); color:#ffffff; border-color:rgba(255,255,255,0.12); }
 .commercial-task-copy,.commercial-install-copy { display:grid; min-width:0; gap:4px; }
 .commercial-task-copy strong,.commercial-install-copy strong { overflow:hidden; color:var(--ops-ink); font-size:12px; font-weight:650; text-overflow:ellipsis; white-space:nowrap; }
 .commercial-task-copy b { overflow:hidden; color:var(--ops-ink); font-size:12px; font-weight:500; text-overflow:ellipsis; white-space:nowrap; }

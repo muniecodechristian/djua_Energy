@@ -1,0 +1,1049 @@
+/* ==========================================================================
+   InstallationsTracker.css - Dashboard de Suivi des Installations Djua Energy
+   Header "Up Tabs" : Dossiers Djua • Suivi des Installations • Étapes du Cycle de Vie
+   Charte graphique Djua Energy (Ambre #F59E0B, Ardoise sombre #0f172a / #111827)
+   Icônes STRICTEMENT MONOCHROMES (Noir en mode clair, Blanc en mode sombre)
+   ========================================================================== */
+
+.djua-tracker-page {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 70px);
+  background: var(--bg-main, #f8fafc);
+  color: var(--text-primary, #0f172a);
+  padding: 24px 32px 60px;
+  gap: 20px;
+}
+
+:root[data-theme='dark'] .djua-tracker-page,
+.dark .djua-tracker-page {
+  background: #0b0f17;
+  color: #f1f5f9;
+}
+
+/* --------------------------------------------------------------------------
+   1. BANDEAU HAUT : "UP TABS" DOSSIERS DJUA & ÉTAPES DU CYCLE DE VIE
+   -------------------------------------------------------------------------- */
+.djua-uptabs-card {
+  background: var(--surface-primary, #ffffff);
+  border: 1px solid var(--border-color, rgba(0, 0, 0, 0.08));
+  border-radius: 16px;
+  padding: 20px 24px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
+}
+
+:root[data-theme='dark'] .djua-uptabs-card,
+.dark .djua-uptabs-card {
+  background: #111724;
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+}
+
+.djua-uptabs-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.djua-uptabs-brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+/* Icône STRICTEMENT MONOCHROME */
+.djua-brand-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  color: #0f172a;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+:root[data-theme='dark'] .djua-brand-icon,
+.dark .djua-brand-icon {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+.djua-brand-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #64748b;
+  margin-bottom: 2px;
+}
+
+:root[data-theme='dark'] .djua-brand-badge,
+.dark .djua-brand-badge {
+  color: #94a3b8;
+}
+
+.djua-brand-dot {
+  font-size: 8px;
+  opacity: 0.5;
+}
+
+.djua-brand-title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text-primary, #0f172a);
+}
+
+:root[data-theme='dark'] .djua-brand-title,
+.dark .djua-brand-title {
+  color: #ffffff;
+}
+
+.djua-uptabs-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.djua-cycle-label {
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b;
+}
+
+:root[data-theme='dark'] .djua-cycle-label,
+.dark .djua-cycle-label {
+  color: #94a3b8;
+}
+
+.djua-cycle-count {
+  font-size: 13px;
+  font-weight: 700;
+  color: #d97706;
+}
+
+:root[data-theme='dark'] .djua-cycle-count,
+.dark .djua-cycle-count {
+  color: #fbbf24;
+}
+
+/* --------------------------------------------------------------------------
+   NAVIGATION HORIZONTALE PAR ONGLETS (UP TABS)
+   -------------------------------------------------------------------------- */
+.djua-uptabs-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: thin;
+}
+
+.djua-uptab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border-color, rgba(0, 0, 0, 0.08));
+  background: var(--surface-secondary, #f8fafc);
+  color: #475569;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+:root[data-theme='dark'] .djua-uptab-btn,
+.dark .djua-uptab-btn {
+  background: #182030;
+  border-color: rgba(255, 255, 255, 0.08);
+  color: #94a3b8;
+}
+
+.djua-uptab-btn:hover {
+  background: var(--surface-hover, #f1f5f9);
+  color: #0f172a;
+}
+
+:root[data-theme='dark'] .djua-uptab-btn:hover,
+.dark .djua-uptab-btn:hover {
+  background: #202b40;
+  color: #ffffff;
+}
+
+.djua-uptab-btn.is-active {
+  background: #0f172a;
+  border-color: #0f172a;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
+}
+
+:root[data-theme='dark'] .djua-uptab-btn.is-active,
+.dark .djua-uptab-btn.is-active {
+  background: #f59e0b;
+  border-color: #f59e0b;
+  color: #0b0f17;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.25);
+}
+
+.djua-uptab-icon {
+  flex-shrink: 0;
+}
+
+.djua-uptab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  background: rgba(0, 0, 0, 0.06);
+  color: #475569;
+}
+
+.djua-uptab-btn.is-active .djua-uptab-badge {
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+}
+
+:root[data-theme='dark'] .djua-uptab-btn.is-active .djua-uptab-badge,
+.dark .djua-uptab-btn.is-active .djua-uptab-badge {
+  background: rgba(11, 15, 23, 0.25);
+  color: #0b0f17;
+}
+
+/* Onglet Échéance Dépassée (Alerte rouge) */
+.djua-uptab-btn.is-alert-tab {
+  border-color: rgba(239, 68, 68, 0.35);
+  color: #dc2626;
+}
+
+:root[data-theme='dark'] .djua-uptab-btn.is-alert-tab,
+.dark .djua-uptab-btn.is-alert-tab {
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+.djua-uptab-badge.is-alert-badge {
+  background: #dc2626;
+  color: #ffffff;
+}
+
+/* --------------------------------------------------------------------------
+   2. BARRE D'ACTIONS & OUTILS (Recherche, Liste / Grille, Refresh)
+   -------------------------------------------------------------------------- */
+.djua-tracker-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.djua-toolbar-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface-primary, #ffffff);
+  border: 1px solid var(--border-color, rgba(0, 0, 0, 0.1));
+  border-radius: 10px;
+  padding: 8px 14px;
+  min-width: 320px;
+  transition: all 0.15s ease;
+  color: #64748b;
+}
+
+.djua-toolbar-search:focus-within {
+  border-color: #f59e0b;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15);
+  color: #0f172a;
+}
+
+:root[data-theme='dark'] .djua-toolbar-search,
+.dark .djua-toolbar-search {
+  background: #151b28;
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #94a3b8;
+}
+
+:root[data-theme='dark'] .djua-toolbar-search:focus-within,
+.dark .djua-toolbar-search:focus-within {
+  border-color: #f59e0b;
+  color: #f8fafc;
+}
+
+.djua-toolbar-search input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 13px;
+  color: inherit;
+  width: 100%;
+}
+
+.djua-toolbar-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.djua-view-switch {
+  display: inline-flex;
+  background: var(--surface-secondary, #f1f5f9);
+  padding: 3px;
+  border-radius: 9px;
+  border: 1px solid var(--border-color, rgba(0, 0, 0, 0.06));
+}
+
+:root[data-theme='dark'] .djua-view-switch,
+.dark .djua-view-switch {
+  background: #151b28;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.djua-view-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.djua-view-btn.is-active {
+  background: #ffffff;
+  color: #0f172a;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+:root[data-theme='dark'] .djua-view-btn.is-active,
+.dark .djua-view-btn.is-active {
+  background: #1f293d;
+  color: #f8fafc;
+}
+
+.djua-btn-refresh {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  border: 1px solid var(--border-color, rgba(0, 0, 0, 0.1));
+  background: var(--surface-primary, #ffffff);
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.djua-btn-refresh:hover {
+  color: #0f172a;
+  border-color: #cbd5e1;
+}
+
+:root[data-theme='dark'] .djua-btn-refresh,
+.dark .djua-btn-refresh {
+  background: #151b28;
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #94a3b8;
+}
+
+/* --------------------------------------------------------------------------
+   3. DOSSIERS RÉCENTS
+   -------------------------------------------------------------------------- */
+.djua-recent-row {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.djua-recent-header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.djua-recent-header h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary, #0f172a);
+}
+
+:root[data-theme='dark'] .djua-recent-header h3,
+.dark .djua-recent-header h3 {
+  color: #ffffff;
+}
+
+.djua-recent-meta {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.djua-recent-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.djua-recent-card {
+  background: var(--surface-primary, #ffffff);
+  border: 1px solid var(--border-color, rgba(0, 0, 0, 0.08));
+  border-radius: 12px;
+  padding: 16px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.djua-recent-card:hover {
+  transform: translateY(-2px);
+  border-color: #f59e0b;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+}
+
+:root[data-theme='dark'] .djua-recent-card,
+.dark .djua-recent-card {
+  background: #151b28;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+:root[data-theme='dark'] .djua-recent-card:hover,
+.dark .djua-recent-card:hover {
+  border-color: #f59e0b;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.djua-recent-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.djua-folder-badge {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  color: #0f172a;
+  display: grid;
+  place-items: center;
+}
+
+:root[data-theme='dark'] .djua-folder-badge,
+.dark .djua-folder-badge {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+.djua-recent-client {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary, #0f172a);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+:root[data-theme='dark'] .djua-recent-client,
+.dark .djua-recent-client {
+  color: #f8fafc;
+}
+
+.djua-recent-folder-num {
+  font-size: 11.5px;
+  color: #64748b;
+  letter-spacing: 0.02em;
+}
+
+.djua-recent-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 6px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-color, rgba(0, 0, 0, 0.05));
+  font-size: 11.5px;
+  color: #64748b;
+}
+
+:root[data-theme='dark'] .djua-recent-footer,
+.dark .djua-recent-footer {
+  border-top-color: rgba(255, 255, 255, 0.06);
+  color: #94a3b8;
+}
+
+/* --------------------------------------------------------------------------
+   4. TABLEAU DE SUIVI (VUE LISTE)
+   -------------------------------------------------------------------------- */
+.djua-table-card {
+  background: var(--surface-primary, #ffffff);
+  border: 1px solid var(--border-color, rgba(0, 0, 0, 0.08));
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+:root[data-theme='dark'] .djua-table-card,
+.dark .djua-table-card {
+  background: #151b28;
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+}
+
+.djua-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.djua-table thead tr {
+  background: var(--surface-secondary, #f8fafc);
+  border-bottom: 1px solid var(--border-color, rgba(0, 0, 0, 0.08));
+}
+
+:root[data-theme='dark'] .djua-table thead tr,
+.dark .djua-table thead tr {
+  background: #111622;
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+.djua-table th {
+  padding: 13px 18px;
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+}
+
+:root[data-theme='dark'] .djua-table th,
+.dark .djua-table th {
+  color: #94a3b8;
+}
+
+.djua-table-row {
+  border-bottom: 1px solid var(--border-color, rgba(0, 0, 0, 0.05));
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+:root[data-theme='dark'] .djua-table-row,
+.dark .djua-table-row {
+  border-bottom-color: rgba(255, 255, 255, 0.05);
+}
+
+.djua-table-row:hover {
+  background: var(--surface-hover, #f8fafc);
+}
+
+:root[data-theme='dark'] .djua-table-row:hover,
+.dark .djua-table-row:hover {
+  background: #192131;
+}
+
+.djua-table td {
+  padding: 14px 18px;
+  font-size: 13px;
+  vertical-align: middle;
+}
+
+.djua-cell-folder {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.djua-folder-icon {
+  color: #0f172a;
+}
+
+:root[data-theme='dark'] .djua-folder-icon,
+.dark .djua-folder-icon {
+  color: #ffffff;
+}
+
+.djua-cell-folder strong,
+.djua-table td strong {
+  display: block;
+  font-weight: 700;
+  color: var(--text-primary, #0f172a);
+}
+
+:root[data-theme='dark'] .djua-cell-folder strong,
+:root[data-theme='dark'] .djua-table td strong,
+.dark .djua-cell-folder strong,
+.dark .djua-table td strong {
+  color: #f8fafc;
+}
+
+.djua-cell-folder small,
+.djua-table td small {
+  display: block;
+  font-size: 11.5px;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+:root[data-theme='dark'] .djua-cell-folder small,
+:root[data-theme='dark'] .djua-table td small,
+.dark .djua-cell-folder small,
+.dark .djua-table td small {
+  color: #94a3b8;
+}
+
+.djua-tech-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 12.5px;
+  color: var(--text-primary, #0f172a);
+}
+
+:root[data-theme='dark'] .djua-tech-chip,
+.dark .djua-tech-chip {
+  color: #f1f5f9;
+}
+
+.djua-tech-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  background: #0f172a;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+}
+
+:root[data-theme='dark'] .djua-tech-avatar,
+.dark .djua-tech-avatar {
+  background: #f59e0b;
+  color: #0b0f17;
+}
+
+.djua-unassigned {
+  font-size: 12px;
+  color: #94a3b8;
+  font-style: italic;
+}
+
+.djua-date-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: #475569;
+}
+
+:root[data-theme='dark'] .djua-date-cell,
+.dark .djua-date-cell {
+  color: #cbd5e1;
+}
+
+.djua-status-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* --------------------------------------------------------------------------
+   5. PILLS DE STATUT & ÉCHÉANCE DÉPASSÉE
+   -------------------------------------------------------------------------- */
+.djua-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  width: fit-content;
+}
+
+.djua-pill-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.djua-status-pill.pending {
+  background: rgba(100, 116, 139, 0.12);
+  color: #475569;
+}
+:root[data-theme='dark'] .djua-status-pill.pending,
+.dark .djua-status-pill.pending {
+  background: rgba(148, 163, 184, 0.15);
+  color: #cbd5e1;
+}
+
+.djua-status-pill.info {
+  background: rgba(59, 130, 246, 0.12);
+  color: #2563eb;
+}
+:root[data-theme='dark'] .djua-status-pill.info,
+.dark .djua-status-pill.info {
+  background: rgba(59, 130, 246, 0.2);
+  color: #93c5fd;
+}
+
+.djua-status-pill.progress {
+  background: rgba(245, 158, 11, 0.15);
+  color: #d97706;
+}
+:root[data-theme='dark'] .djua-status-pill.progress,
+.dark .djua-status-pill.progress {
+  background: rgba(245, 158, 11, 0.22);
+  color: #fbbf24;
+}
+
+.djua-status-pill.danger {
+  background: rgba(239, 68, 68, 0.12);
+  color: #dc2626;
+}
+:root[data-theme='dark'] .djua-status-pill.danger,
+.dark .djua-status-pill.danger {
+  background: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+}
+
+.djua-status-pill.success {
+  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
+}
+:root[data-theme='dark'] .djua-status-pill.success,
+.dark .djua-status-pill.success {
+  background: rgba(16, 185, 129, 0.2);
+  color: #6ee7b7;
+}
+
+.djua-status-pill.verified {
+  background: #0f172a;
+  color: #ffffff;
+}
+:root[data-theme='dark'] .djua-status-pill.verified,
+.dark .djua-status-pill.verified {
+  background: #f59e0b;
+  color: #0b0f17;
+}
+
+.djua-overdue-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid rgba(220, 38, 38, 0.3);
+  font-size: 11px;
+  font-weight: 700;
+  width: fit-content;
+  animation: djua-overdue-pulse 2s infinite ease-in-out;
+}
+
+:root[data-theme='dark'] .djua-overdue-tag,
+.dark .djua-overdue-tag {
+  background: rgba(185, 28, 28, 0.25);
+  color: #fca5a5;
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+@keyframes djua-overdue-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.85; transform: scale(0.98); }
+}
+
+.djua-blocked-reason {
+  font-size: 11px;
+  color: #dc2626;
+  font-style: italic;
+}
+
+.djua-table-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color, rgba(0, 0, 0, 0.1));
+  background: var(--surface-primary, #ffffff);
+  color: #0f172a;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.djua-table-action-btn:hover {
+  background: #0f172a;
+  color: #ffffff;
+  border-color: #0f172a;
+}
+
+:root[data-theme='dark'] .djua-table-action-btn,
+.dark .djua-table-action-btn {
+  background: #1e2638;
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #f1f5f9;
+}
+
+:root[data-theme='dark'] .djua-table-action-btn:hover,
+.dark .djua-table-action-btn:hover {
+  background: #f59e0b;
+  color: #0b0f17;
+  border-color: #f59e0b;
+}
+
+/* --------------------------------------------------------------------------
+   6. VUE GRILLE CARTES
+   -------------------------------------------------------------------------- */
+.djua-grid-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 18px;
+}
+
+.djua-grid-card {
+  background: var(--surface-primary, #ffffff);
+  border: 1px solid var(--border-color, rgba(0, 0, 0, 0.08));
+  border-radius: 14px;
+  padding: 20px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.djua-grid-card:hover {
+  transform: translateY(-3px);
+  border-color: #f59e0b;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.07);
+}
+
+:root[data-theme='dark'] .djua-grid-card,
+.dark .djua-grid-card {
+  background: #151b28;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+:root[data-theme='dark'] .djua-grid-card:hover,
+.dark .djua-grid-card:hover {
+  border-color: #f59e0b;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
+}
+
+.djua-grid-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.djua-grid-client {
+  margin: 0;
+  font-size: 15.5px;
+  font-weight: 700;
+  color: var(--text-primary, #0f172a);
+}
+
+:root[data-theme='dark'] .djua-grid-client,
+.dark .djua-grid-client {
+  color: #ffffff;
+}
+
+.djua-grid-folder {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.djua-grid-location {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin: 0;
+  font-size: 12px;
+  color: #64748b;
+}
+
+:root[data-theme='dark'] .djua-grid-location,
+.dark .djua-grid-location {
+  color: #94a3b8;
+}
+
+.djua-grid-specs-box {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 9px;
+  background: var(--surface-secondary, #f8fafc);
+  margin-top: 4px;
+}
+
+:root[data-theme='dark'] .djua-grid-specs-box,
+.dark .djua-grid-specs-box {
+  background: #111622;
+}
+
+.djua-grid-specs-box small {
+  display: block;
+  font-size: 11px;
+  color: #64748b;
+}
+
+.djua-grid-specs-box strong {
+  display: block;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text-primary, #0f172a);
+  margin-top: 2px;
+}
+
+:root[data-theme='dark'] .djua-grid-specs-box strong,
+.dark .djua-grid-specs-box strong {
+  color: #f8fafc;
+}
+
+.djua-grid-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-color, rgba(0, 0, 0, 0.05));
+}
+
+:root[data-theme='dark'] .djua-grid-card-footer,
+.dark .djua-grid-card-footer {
+  border-top-color: rgba(255, 255, 255, 0.06);
+}
+
+.djua-grid-date {
+  font-size: 11.5px;
+  color: #64748b;
+}
+
+/* --------------------------------------------------------------------------
+   7. ÉTATS VIDES & CHARGEMENT
+   -------------------------------------------------------------------------- */
+.djua-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 60px 20px;
+  background: var(--surface-primary, #ffffff);
+  border: 1px dashed var(--border-color, rgba(0, 0, 0, 0.12));
+  border-radius: 14px;
+  gap: 12px;
+  color: #64748b;
+}
+
+:root[data-theme='dark'] .djua-empty-state,
+.dark .djua-empty-state {
+  background: #151b28;
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #94a3b8;
+}
+
+.djua-empty-state h4 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text-primary, #0f172a);
+}
+
+:root[data-theme='dark'] .djua-empty-state h4,
+.dark .djua-empty-state h4 {
+  color: #ffffff;
+}
+
+.djua-empty-state p {
+  margin: 0;
+  font-size: 13.5px;
+  max-width: 440px;
+  line-height: 1.5;
+}
+
+.djua-link-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 8px 16px;
+  background: #0f172a;
+  color: #ffffff;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.djua-link-cta:hover {
+  background: #f59e0b;
+  color: #0b0f17;
+}
+
+:root[data-theme='dark'] .djua-link-cta,
+.dark .djua-link-cta {
+  background: #f59e0b;
+  color: #0b0f17;
+}
+
+.ops-spin {
+  animation: ops-spin-anim 1s linear infinite;
+}
+
+@keyframes ops-spin-anim {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 768px) {
+  .djua-tracker-page {
+    padding: 16px;
+  }
+  .djua-toolbar-search {
+    min-width: 100%;
+  }
+  .djua-uptabs-top {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .djua-uptabs-meta {
+    align-items: flex-start;
+  }
+}

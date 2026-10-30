@@ -241,10 +241,68 @@ export async function sendNotificationToWhatsApp(user, title, message) {
 }
 
 
+/**
+ * Envoie une notification WhatsApp au technicien lors de l'assignation d'un dossier d'installation solaire.
+ */
+export async function sendInstallationToWhatsApp(technician, folder) {
+  try {
+    const techName = technician ? `${technician.prenom || ''} ${technician.nom || ''}`.trim() : 'Technicien';
+    const phone = technician?.whatsapp || technician?.phone || technician?.identifier || '';
+    const system = folder.system || {};
+    const customer = folder.customer || {};
+    const site = folder.site || {};
+    const power = ((Number(system.panels || 0) * Number(system.panelPower || 0)) / 1000).toFixed(1);
+
+    const lines = [
+      `⚡ *DJUA ENERGY — NOUVELLE INSTALLATION ASSIGNÉE* ⚡`,
+      ``,
+      `Bonjour *${techName}*, une mission d'installation solaire vous a été confiée :`,
+      ``,
+      `📋 *Dossier* : ${folder.folderNumber} (Devis ${folder.quoteNumber})`,
+      `👤 *Client* : ${customer.name || 'Client Djua'} (${customer.phone || 'Non renseigné'})`,
+      `📍 *Site* : ${[site.adresse, site.quartier, site.ville || 'Kinshasa'].filter(Boolean).join(', ')}`,
+      `☀️ *Système* : ${power} kWc (${system.panels || 0} panneaux de ${system.panelPower || 0}W)`,
+      `🔋 *Stockage* : ${system.batteryCapacity || 0} kWh LiFePO4 • Onduleur ${system.inverterPower || 0} kVA`,
+      `📅 *Date d'intervention prévue* : ${folder.plannedDate || 'À confirmer'}`,
+      ``,
+      `👉 *Connectez-vous à votre espace technicien pour accuser réception et démarrer l'installation.*`,
+      `Lien portail : https://app.djua.energy/technicien`,
+    ];
+
+    const text = lines.join('\n');
+    const link = buildWhatsAppLink(phone, text);
+
+    if ((WHATSAPP_PROVIDER === 'meta' && isMetaConfigured())
+      || (WHATSAPP_PROVIDER === 'twilio' && isTwilioConfigured())) {
+      try {
+        await sendConfiguredMessage(
+          phone,
+          text,
+          META_TEMPLATE_NAME,
+          [techName, folder.folderNumber, customer.name || 'Client', folder.plannedDate || 'Immédiat']
+        );
+        console.log(`[WhatsApp ${WHATSAPP_PROVIDER}] Installation ${folder.folderNumber} envoyée au technicien ${technician?._id || technician}`);
+        return { sent: true, link };
+      } catch (err) {
+        const apiError = err.response?.data?.error?.message || err.message;
+        console.error(`[WhatsApp ${WHATSAPP_PROVIDER}] Échec envoi WhatsApp installation:`, apiError);
+        return { sent: false, link, error: apiError };
+      }
+    }
+
+    console.log(`[WhatsApp Link] Installation ${folder.folderNumber} prête pour WhatsApp: ${link}`);
+    return { sent: false, link, error: `WhatsApp ${WHATSAPP_PROVIDER} non configuré.` };
+  } catch (error) {
+    console.error('[WhatsApp] Erreur sendInstallationToWhatsApp:', error.message);
+    return { sent: false, link: null, error: error.message };
+  }
+}
+
 export default {
   normalizePhone,
   buildInterventionMessage,
   buildWhatsAppLink,
   sendInterventionToWhatsApp,
   sendNotificationToWhatsApp,
+  sendInstallationToWhatsApp,
 };

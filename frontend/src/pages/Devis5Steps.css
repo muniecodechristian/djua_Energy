@@ -1,0 +1,1199 @@
+/* Devis5Steps.css — Reproduction fidèle des 5 étapes de la maquette */
+
+.devis-v2-container {
+  min-height: 100vh;
+  background-color: #f8fafc;
+  color: #1e293b;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  padding-bottom: 60px;
+}
+
+:root[data-theme='dark'] .devis-v2-container {
+  background-color: #0f172a;
+  color: #f8fafc;
+}
+
+/* En-tête supérieur */
+.devis-v2-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 32px;
+  background: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+:root[data-theme='dark'] .devis-v2-topbar {
+  background: #1e293b;
+  border-bottom-color: #334155;
+}
+
+.devis-v2-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #475569;
+  text-decoration: none;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 6px 0;
+  transition: color 0.15s ease;
+}
+
+:root[data-theme='dark'] .devis-v2-back-btn {
+  color: #cbd5e1;
+}
+
+.devis-v2-back-btn:hover {
+  color: #0f172a;
+}
+
+:root[data-theme='dark'] .devis-v2-back-btn:hover {
+  color: #ffffff;
+}
+
+.devis-v2-search-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 6px 12px;
+  width: 280px;
+  font-size: 13px;
+  color: #64748b;
+}
+
+:root[data-theme='dark'] .devis-v2-search-box {
+  background: #0f172a;
+  border-color: #334155;
+  color: #94a3b8;
+}
+
+.devis-v2-search-box input {
+  background: transparent;
+  border: none;
+  outline: none;
+  width: 100%;
+  font-size: 13px;
+  color: inherit;
+}
+
+/* Structure principale */
+.devis-v2-content {
+  max-width: 1240px;
+  margin: 32px auto 0;
+  padding: 0 24px;
+}
+
+.devis-v2-page-header {
+  margin-bottom: 24px;
+}
+
+.devis-v2-title {
+  font-size: 26px;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+}
+
+:root[data-theme='dark'] .devis-v2-title {
+  color: #ffffff;
+}
+
+.devis-v2-subtitle {
+  font-size: 14px;
+  color: #64748b;
+  margin-top: 6px;
+  line-height: 1.5;
+}
+
+:root[data-theme='dark'] .devis-v2-subtitle {
+  color: #94a3b8;
+}
+
+/* Layout 2 colonnes (Main + Sidebar) */
+.devis-v2-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 28px;
+  align-items: start;
+}
+
+@media (max-width: 960px) {
+  .devis-v2-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.devis-v2-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 28px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+:root[data-theme='dark'] .devis-v2-card {
+  background: #1e293b;
+  border-color: #334155;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.devis-v2-sidebar-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 22px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+:root[data-theme='dark'] .devis-v2-sidebar-card {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+/* ────────────── ÉTAPE 1 : PROJETS ────────────── */
+.devis-v2-projects-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-top: 20px;
+}
+
+@media (max-width: 768px) {
+  .devis-v2-projects-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.devis-v2-project-card {
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 24px 18px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+:root[data-theme='dark'] .devis-v2-project-card {
+  background: #0f172a;
+  border-color: #334155;
+}
+
+.devis-v2-project-card:hover {
+  border-color: #cbd5e1;
+  transform: translateY(-2px);
+}
+
+.devis-v2-project-card.is-selected {
+  border-color: #ea580c;
+  box-shadow: 0 0 0 1px #ea580c;
+  background: #ffffff;
+}
+
+:root[data-theme='dark'] .devis-v2-project-card.is-selected {
+  border-color: #ea580c;
+  box-shadow: 0 0 0 1px #ea580c;
+  background: #1e293b;
+}
+
+.devis-v2-project-img {
+  width: 90px;
+  height: 90px;
+  object-fit: contain;
+  margin-bottom: 16px;
+  border-radius: 10px;
+}
+
+.devis-v2-project-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 8px;
+}
+
+:root[data-theme='dark'] .devis-v2-project-name {
+  color: #ffffff;
+}
+
+.devis-v2-project-desc {
+  font-size: 12px;
+  color: #64748b;
+  line-height: 1.5;
+}
+
+:root[data-theme='dark'] .devis-v2-project-desc {
+  color: #94a3b8;
+}
+
+/* Encadré d'information Djúa */
+.devis-v2-info-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: #fff7ed;
+  border: 1px solid #ffedd5;
+  border-radius: 12px;
+  padding: 16px;
+  margin-top: 24px;
+  font-size: 13px;
+  color: #9a3412;
+}
+
+:root[data-theme='dark'] .devis-v2-info-box {
+  background: rgba(234, 88, 12, 0.1);
+  border-color: rgba(234, 88, 12, 0.25);
+  color: #fdba74;
+}
+
+.devis-v2-action-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 28px;
+}
+
+.devis-v2-btn-orange {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #ea580c;
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 14px;
+  padding: 10px 22px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.devis-v2-btn-orange:hover {
+  background: #c2410c;
+}
+
+.devis-v2-btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: 1px solid #cbd5e1;
+  color: #475569;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 10px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+:root[data-theme='dark'] .devis-v2-btn-ghost {
+  border-color: #475569;
+  color: #cbd5e1;
+}
+
+/* ────────────── ÉTAPE 2 : BESOINS ────────────── */
+.devis-v2-appliance-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  margin-bottom: 12px;
+}
+
+:root[data-theme='dark'] .devis-v2-appliance-item {
+  background: #0f172a;
+  border-color: #334155;
+}
+
+.devis-v2-stepper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 4px 10px;
+}
+
+:root[data-theme='dark'] .devis-v2-stepper {
+  background: #1e293b;
+  border-color: #475569;
+}
+
+.devis-v2-stepper button {
+  background: none;
+  border: none;
+  color: #475569;
+  cursor: pointer;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+:root[data-theme='dark'] .devis-v2-stepper button {
+  color: #cbd5e1;
+}
+
+/* ────────────── ÉTAPE 3 : FORMULAIRE CLIENT & MAP ────────────── */
+.devis-v2-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.devis-v2-input-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+  margin-bottom: 6px;
+}
+
+:root[data-theme='dark'] .devis-v2-input-label {
+  color: #cbd5e1;
+}
+
+.devis-v2-input-field {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+:root[data-theme='dark'] .devis-v2-input-field {
+  background: #0f172a;
+  border-color: #334155;
+  color: #ffffff;
+}
+
+.devis-v2-input-field:focus {
+  border-color: #ea580c;
+}
+
+.devis-v2-map-box {
+  height: 240px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid #cbd5e1;
+  margin-top: 12px;
+}
+
+/* ────────────── ÉTAPE 4 : PROPOSITION SOLAIRE ────────────── */
+.devis-v2-options-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin: 20px 0;
+}
+
+.devis-v2-option-card {
+  border: 1.5px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 20px;
+  background: #ffffff;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+:root[data-theme='dark'] .devis-v2-option-card {
+  background: #0f172a;
+  border-color: #334155;
+}
+
+.devis-v2-option-card.is-selected {
+  border-color: #ea580c;
+  box-shadow: 0 0 0 1px #ea580c;
+}
+
+.devis-v2-kpis-bar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px;
+  margin-top: 20px;
+}
+
+:root[data-theme='dark'] .devis-v2-kpis-bar {
+  background: #0f172a;
+  border-color: #334155;
+}
+
+/* ────────────── ÉTAPE 5 : TABLEAU ORANGE ENERGIE ────────────── */
+.devis-v2-invoice {
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  padding: 32px;
+}
+
+:root[data-theme='dark'] .devis-v2-invoice {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+.devis-v2-invoice-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 24px;
+}
+
+.devis-v2-invoice-table th {
+  text-align: left;
+  font-size: 13px;
+  font-weight: 600;
+  color: #64748b;
+  padding: 12px 14px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+:root[data-theme='dark'] .devis-v2-invoice-table th {
+  border-color: #334155;
+  color: #94a3b8;
+}
+
+.devis-v2-invoice-table td {
+  padding: 16px 14px;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 14px;
+}
+
+:root[data-theme='dark'] .devis-v2-invoice-table td {
+  border-color: #334155;
+}
+
+.devis-v2-badge-tag {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  background: #fff7ed;
+  color: #ea580c;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-bottom: 4px;
+}
+
+:root[data-theme='dark'] .devis-v2-badge-tag {
+  background: rgba(234, 88, 12, 0.2);
+  color: #fb923c;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   MODAL INTELLIGENT : AJOUTER UN APPAREIL (Reproduction fidèle capture)
+   ══════════════════════════════════════════════════════════════════════ */
+.devis-app-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(5px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: modal-fade-in 0.2s ease-out;
+}
+
+.devis-app-modal-card {
+  background: #ffffff;
+  width: 100%;
+  max-width: 860px;
+  max-height: 92vh;
+  border-radius: 20px;
+  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.35);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: modal-slide-up 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  border: 1px solid #e2e8f0;
+}
+
+:root[data-theme='dark'] .devis-app-modal-card {
+  background: #141a26;
+  border-color: #2e384d;
+  color: #f1f5f9;
+}
+
+.devis-app-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 22px 28px 16px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+:root[data-theme='dark'] .devis-app-modal-header {
+  border-bottom-color: #242e42;
+}
+
+.devis-app-modal-header h2 {
+  font-size: 20px;
+  font-weight: 800;
+  margin: 0;
+  color: #0f172a;
+}
+
+:root[data-theme='dark'] .devis-app-modal-header h2 {
+  color: #f8fafc;
+}
+
+.devis-app-modal-header p {
+  font-size: 13px;
+  color: #64748b;
+  margin: 4px 0 0;
+}
+
+:root[data-theme='dark'] .devis-app-modal-header p {
+  color: #94a3b8;
+}
+
+.devis-app-modal-close {
+  background: none;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.devis-app-modal-close:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+:root[data-theme='dark'] .devis-app-modal-close:hover {
+  background: #242e42;
+  color: #ffffff;
+}
+
+.devis-app-modal-body {
+  padding: 24px 28px;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: 1.35fr 1fr;
+  gap: 28px;
+}
+
+@media (max-width: 768px) {
+  .devis-app-modal-body {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+}
+
+.devis-app-section-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 3px;
+}
+
+:root[data-theme='dark'] .devis-app-section-title {
+  color: #f8fafc;
+}
+
+.devis-app-section-desc {
+  font-size: 11.5px;
+  color: #64748b;
+  margin-bottom: 10px;
+  line-height: 1.4;
+}
+
+:root[data-theme='dark'] .devis-app-section-desc {
+  color: #94a3b8;
+}
+
+/* Custom Search & Dropdown */
+.devis-app-search-wrap {
+  position: relative;
+  margin-bottom: 14px;
+}
+
+.devis-app-search-input {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1.5px solid #ea580c;
+  border-radius: 10px;
+  padding: 10px 14px;
+  background: #ffffff;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+:root[data-theme='dark'] .devis-app-search-input {
+  background: #1a2233;
+}
+
+.devis-app-search-input input {
+  border: none;
+  outline: none;
+  background: transparent;
+  width: 100%;
+  font-size: 13.5px;
+  color: inherit;
+  font-weight: 500;
+}
+
+.devis-app-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  max-height: 220px;
+  overflow-y: auto;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
+  z-index: 100;
+  padding: 6px;
+}
+
+:root[data-theme='dark'] .devis-app-dropdown-menu {
+  background: #1a2233;
+  border-color: #2e384d;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+}
+
+.devis-app-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.devis-app-dropdown-item:hover,
+.devis-app-dropdown-item.is-active {
+  background: #fff7ed;
+  color: #ea580c;
+}
+
+:root[data-theme='dark'] .devis-app-dropdown-item:hover,
+:root[data-theme='dark'] .devis-app-dropdown-item.is-active {
+  background: rgba(234, 88, 12, 0.2);
+  color: #fb923c;
+}
+
+.devis-app-dropdown-thumb {
+  width: 32px;
+  height: 32px;
+  object-fit: cover;
+  border-radius: 6px;
+  background: #f1f5f9;
+  flex-shrink: 0;
+}
+
+/* Stepper */
+.devis-app-stepper {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+:root[data-theme='dark'] .devis-app-stepper {
+  background: #1a2233;
+  border-color: #2e384d;
+}
+
+.devis-app-stepper button {
+  width: 34px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  color: #475569;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+:root[data-theme='dark'] .devis-app-stepper button {
+  color: #cbd5e1;
+}
+
+.devis-app-stepper button:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+:root[data-theme='dark'] .devis-app-stepper button:hover {
+  background: #242e42;
+  color: #ffffff;
+}
+
+.devis-app-stepper-val {
+  min-width: 32px;
+  text-align: center;
+  font-size: 13.5px;
+  font-weight: 700;
+}
+
+/* Power mode tabs */
+.devis-app-tabs-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.devis-app-tab-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1.5px solid #e2e8f0;
+  background: #ffffff;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+:root[data-theme='dark'] .devis-app-tab-btn {
+  background: #1a2233;
+  border-color: #2e384d;
+  color: #94a3b8;
+}
+
+.devis-app-tab-btn.is-active {
+  border-color: #ea580c;
+  color: #ea580c;
+  background: #fffaf5;
+}
+
+:root[data-theme='dark'] .devis-app-tab-btn.is-active {
+  border-color: #fb923c;
+  color: #fb923c;
+  background: rgba(234, 88, 12, 0.15);
+}
+
+.devis-app-unit-input {
+  display: flex;
+  align-items: center;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 8px 12px;
+}
+
+:root[data-theme='dark'] .devis-app-unit-input {
+  background: #1a2233;
+  border-color: #2e384d;
+}
+
+.devis-app-unit-input input {
+  border: none;
+  outline: none;
+  background: transparent;
+  width: 100%;
+  font-size: 14px;
+  font-weight: 600;
+  color: inherit;
+}
+
+.devis-app-unit-input span {
+  font-size: 13px;
+  font-weight: 600;
+  color: #64748b;
+  margin-left: 8px;
+}
+
+/* Time Slot selector */
+.devis-app-times-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 6px;
+}
+
+.devis-app-time-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 8px 12px;
+  background: #ffffff;
+  flex: 1;
+}
+
+:root[data-theme='dark'] .devis-app-time-pill {
+  background: #1a2233;
+  border-color: #2e384d;
+}
+
+.devis-app-time-pill input {
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 600;
+  color: inherit;
+  width: 60px;
+}
+
+.devis-app-badge-slot {
+  font-size: 11px;
+  font-weight: 600;
+  background: #f1f5f9;
+  color: #475569;
+  padding: 2px 8px;
+  border-radius: 6px;
+  margin-left: auto;
+}
+
+:root[data-theme='dark'] .devis-app-badge-slot {
+  background: #242e42;
+  color: #cbd5e1;
+}
+
+/* Colonne droite : Preview Card */
+.devis-app-preview-card {
+  border: 1.5px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 18px 20px;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+}
+
+:root[data-theme='dark'] .devis-app-preview-card {
+  background: #1a2233;
+  border-color: #2e384d;
+}
+
+.devis-app-preview-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.devis-app-preview-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+:root[data-theme='dark'] .devis-app-preview-name {
+  color: #f8fafc;
+}
+
+.devis-app-preview-qty-pill {
+  font-size: 11px;
+  font-weight: 600;
+  background: #f1f5f9;
+  color: #64748b;
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+
+:root[data-theme='dark'] .devis-app-preview-qty-pill {
+  background: #242e42;
+  color: #94a3b8;
+}
+
+.devis-app-preview-sub {
+  font-size: 12.5px;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+:root[data-theme='dark'] .devis-app-preview-sub {
+  color: #94a3b8;
+}
+
+.devis-app-preview-img {
+  width: 100%;
+  height: 110px;
+  object-fit: contain;
+  border-radius: 10px;
+  background: #f8fafc;
+  margin: 12px 0 6px;
+}
+
+:root[data-theme='dark'] .devis-app-preview-img {
+  background: #141a26;
+}
+
+.devis-app-preview-divider {
+  height: 1px;
+  background: #f1f5f9;
+  margin: 14px 0 12px;
+}
+
+:root[data-theme='dark'] .devis-app-preview-divider {
+  background: #242e42;
+}
+
+.devis-app-preview-calc-lbl {
+  font-size: 11px;
+  color: #64748b;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.devis-app-preview-calc-val {
+  font-size: 22px;
+  font-weight: 800;
+  color: #ea580c;
+  margin-top: 2px;
+}
+
+/* Tip Callout */
+.devis-app-tip-box {
+  margin-top: 14px;
+  border: 1px solid #fed7aa;
+  background: #fffaf5;
+  border-radius: 12px;
+  padding: 14px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+:root[data-theme='dark'] .devis-app-tip-box {
+  background: rgba(234, 88, 12, 0.08);
+  border-color: rgba(234, 88, 12, 0.25);
+}
+
+.devis-app-tip-icon {
+  color: #ea580c;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.devis-app-tip-title {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #9a3412;
+  margin-bottom: 2px;
+}
+
+:root[data-theme='dark'] .devis-app-tip-title {
+  color: #fdba74;
+}
+
+.devis-app-tip-text {
+  font-size: 11.5px;
+  color: #7c2d12;
+  line-height: 1.4;
+}
+
+:root[data-theme='dark'] .devis-app-tip-text {
+  color: #fed7aa;
+}
+
+/* Modal Footer */
+.devis-app-modal-footer {
+  padding: 16px 28px;
+  border-top: 1px solid #f1f5f9;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+:root[data-theme='dark'] .devis-app-modal-footer {
+  border-top-color: #242e42;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   ASSISTANT IA SOLAIRE & DISCUSSION APRÈS DEVIS
+   ══════════════════════════════════════════════════════════════════════ */
+.devis-ai-badge-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 14px 18px;
+  margin: 16px 0;
+}
+
+:root[data-theme='dark'] .devis-ai-badge-banner {
+  background: #141a26;
+  border-color: #2e384d;
+}
+
+.devis-ai-drawer {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 440px;
+  max-width: calc(100vw - 32px);
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: modal-slide-up 0.25s ease;
+}
+
+:root[data-theme='dark'] .devis-ai-drawer {
+  background: #141a26;
+  border-color: #2e384d;
+  color: #f1f5f9;
+}
+
+.devis-ai-drawer-header {
+  padding: 14px 18px;
+  background: #0f172a;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.devis-ai-drawer-messages {
+  padding: 14px;
+  max-height: 320px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.devis-ai-msg-bubble {
+  max-width: 85%;
+  padding: 10px 14px;
+  border-radius: 14px;
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+.devis-ai-msg-user {
+  align-self: flex-end;
+  background: #ea580c;
+  color: #ffffff;
+  border-bottom-right-radius: 3px;
+}
+
+.devis-ai-msg-assistant {
+  align-self: flex-start;
+  background: #f1f5f9;
+  color: #0f172a;
+  border-bottom-left-radius: 3px;
+}
+
+:root[data-theme='dark'] .devis-ai-msg-assistant {
+  background: #1e2638;
+  color: #f1f5f9;
+}
+
+.devis-ai-quick-questions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 6px 14px 10px;
+  border-top: 1px solid #f1f5f9;
+}
+
+:root[data-theme='dark'] .devis-ai-quick-questions {
+  border-top-color: #242e42;
+}
+
+.devis-ai-chip {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 4px 10px;
+  font-size: 11px;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+:root[data-theme='dark'] .devis-ai-chip {
+  background: #1e2638;
+  border-color: #2e384d;
+  color: #cbd5e1;
+}
+
+.devis-ai-chip:hover {
+  border-color: #ea580c;
+  color: #ea580c;
+}
+
+.devis-ai-input-bar {
+  display: flex;
+  align-items: center;
+  padding: 10px 14px;
+  gap: 8px;
+  border-top: 1px solid #f1f5f9;
+}
+
+:root[data-theme='dark'] .devis-ai-input-bar {
+  border-top-color: #242e42;
+}
+
+.devis-ai-input-bar input {
+  flex: 1;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 12.5px;
+  outline: none;
+  background: transparent;
+  color: inherit;
+}
+
+:root[data-theme='dark'] .devis-ai-input-bar input {
+  border-color: #2e384d;
+}
+
+@keyframes modal-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes modal-slide-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+

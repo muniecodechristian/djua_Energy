@@ -51,9 +51,9 @@
   width: 42px;
   height: 42px;
   border-radius: 12px;
-  background: rgba(245, 158, 11, 0.12);
-  border: 1px solid rgba(245, 158, 11, 0.25);
-  color: #f59e0b;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: var(--app-foreground, #fff);
   flex-shrink: 0;
 }
 
@@ -103,10 +103,16 @@
 }
 
 .quote-modal-btn.primary {
-  background: #f59e0b;
-  border-color: #d97706;
-  color: #000;
+  background: #ffffff;
+  border-color: #ffffff;
+  color: #0f172a;
   font-weight: 700;
+}
+
+:root[data-theme='light'] .quote-modal-btn.primary {
+  background: #0f172a;
+  border-color: #0f172a;
+  color: #ffffff;
 }
 
 .quote-modal-btn.primary:hover {
@@ -183,8 +189,8 @@
 }
 
 .quote-modal-kpi.accent {
-  background: linear-gradient(135deg, rgba(245, 158, 11, 0.12), rgba(245, 158, 11, 0.03));
-  border-color: rgba(245, 158, 11, 0.35);
+  background: var(--panel-alt, #1c202a);
+  border-color: var(--panel-border, #333);
 }
 
 .quote-modal-kpi-label {
