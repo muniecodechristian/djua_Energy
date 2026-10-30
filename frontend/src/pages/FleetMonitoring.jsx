@@ -117,7 +117,7 @@ export default function FleetMonitoring() {
 
     socket.on('geofence_alert', (alert) => {
       console.log('[FleetMonitoring] Alerte géofence reçue :', alert);
-      toast.error(`🛡️ ALERTE GÉOFENCE — ${alert.kitId}`, {
+      toast.error(`ALERTE GÉOFENCE — ${alert.kitId}`, {
         description: `Kit hors du périmètre autorisé. Distance : ${alert.metadata?.distanceMeters ?? '?'} m.`,
         duration: 9000,
       });
@@ -149,7 +149,7 @@ export default function FleetMonitoring() {
     {
       title: 'ALERTES GÉOFENCE',
       value: geofenceAlertCount.toString(),
-      sub: geofenceAlertCount > 0 ? '⚠ Kits hors périmètre' : 'Tous en zone',
+      sub: geofenceAlertCount > 0 ? 'Kits hors périmètre' : 'Tous en zone',
       color: geofenceAlertCount > 0 ? 'text-red-400' : 'text-amber-400',
       stroke: geofenceAlertCount > 0 ? '#ef4444' : '#F59E0B',
       spark: [0, 0, 0, 0, 0, 0, geofenceAlertCount],

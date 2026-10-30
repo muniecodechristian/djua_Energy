@@ -254,18 +254,18 @@ export async function sendInstallationToWhatsApp(technician, folder) {
     const power = ((Number(system.panels || 0) * Number(system.panelPower || 0)) / 1000).toFixed(1);
 
     const lines = [
-      `⚡ *DJUA ENERGY — NOUVELLE INSTALLATION ASSIGNÉE* ⚡`,
+      `*DJUA ENERGY — NOUVELLE INSTALLATION ASSIGNÉE*`,
       ``,
       `Bonjour *${techName}*, une mission d'installation solaire vous a été confiée :`,
       ``,
-      `📋 *Dossier* : ${folder.folderNumber} (Devis ${folder.quoteNumber})`,
-      `👤 *Client* : ${customer.name || 'Client Djua'} (${customer.phone || 'Non renseigné'})`,
-      `📍 *Site* : ${[site.adresse, site.quartier, site.ville || 'Kinshasa'].filter(Boolean).join(', ')}`,
-      `☀️ *Système* : ${power} kWc (${system.panels || 0} panneaux de ${system.panelPower || 0}W)`,
-      `🔋 *Stockage* : ${system.batteryCapacity || 0} kWh LiFePO4 • Onduleur ${system.inverterPower || 0} kVA`,
-      `📅 *Date d'intervention prévue* : ${folder.plannedDate || 'À confirmer'}`,
+      `• *Dossier* : ${folder.folderNumber} (Devis ${folder.quoteNumber})`,
+      `• *Client* : ${customer.name || 'Client Djua'} (${customer.phone || 'Non renseigné'})`,
+      `• *Site* : ${[site.adresse, site.quartier, site.ville || 'Kinshasa'].filter(Boolean).join(', ')}`,
+      `• *Système* : ${power} kWc (${system.panels || 0} panneaux de ${system.panelPower || 0}W)`,
+      `• *Stockage* : ${system.batteryCapacity || 0} kWh LiFePO4 • Onduleur ${system.inverterPower || 0} kVA`,
+      `• *Date d'intervention prévue* : ${folder.plannedDate || 'À confirmer'}`,
       ``,
-      `👉 *Connectez-vous à votre espace technicien pour accuser réception et démarrer l'installation.*`,
+      `*Connectez-vous à votre espace technicien pour accuser réception et démarrer l'installation.*`,
       `Lien portail : https://app.djua.energy/technicien`,
     ];
 

@@ -7,7 +7,7 @@ import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid
 } from 'recharts';
 import {
-  AlertTriangle, CheckCircle2, Minus, TrendingDown, TrendingUp
+  AlertTriangle, CheckCircle2, Minus, TrendingDown, TrendingUp, X
 } from 'lucide-react';
 import { useKitLiveTelemetry } from '../hooks/tanstack/useKitLiveTelemetry.js';
 import { useAlertsQuery, useKitsQuery } from '../hooks/tanstack/useKitQueries.js';
@@ -873,8 +873,9 @@ const technicians = useTeamTechnicians();
                 <button
                   onClick={() => setIsModalOpen(false)}
                   className={`p-1 rounded-md text-[var(--muted-foreground)] hover:text-[var(--app-foreground)] hover:bg-[var(--panel-alt)] transition-colors`}
+                  aria-label="Fermer la boîte de dialogue"
                 >
-                  ✕
+                  <X size={18} />
                 </button>
               </div>
               <form onSubmit={handleCreateIntervention} className="p-6 space-y-4">
@@ -923,7 +924,7 @@ const technicians = useTeamTechnicians();
                     <option value="">Auto (technicien senior de la zone)</option>
                     {(technicians.data || []).map((t) => (
                       <option key={t._id} value={t._id}>
-                        {t.prenom} {t.nom} {t.seniority === 'senior' ? '★' : ''}
+                        {t.prenom} {t.nom} {t.seniority === 'senior' ? '(Senior)' : ''}
                       </option>
                     ))}
                   </select>

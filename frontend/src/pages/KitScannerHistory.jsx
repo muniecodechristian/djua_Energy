@@ -316,8 +316,8 @@ export default function KitScannerHistory() {
                               <FileText size={14} /> Compte-rendu du technicien ({tech?.prenom ? `${tech.prenom} ${tech.nom}` : 'Technicien assigné'}) :
                             </span>
                             {tech?.seniority === 'senior' && (
-                              <span className="text-[#F59E0B] bg-[var(--ops-canvas)] px-2 py-0.5 rounded text-[10px]">
-                                ★ Technicien Senior
+                              <span className="text-[#F59E0B] bg-[var(--ops-canvas)] px-2 py-0.5 rounded text-[10px] font-semibold">
+                                Technicien Senior
                               </span>
                             )}
                           </div>

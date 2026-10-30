@@ -373,7 +373,7 @@ export default function InterventionWizard() {
                       <span>
                         {assignedTech?.prenom ? `${assignedTech.prenom} ${assignedTech.nom}` : 'Technicien assigné'}
                         {assignedTech?.seniority === 'senior' && (
-                          <span className="ml-1 maintenance-ink font-bold">★ Senior</span>
+                          <span className="ml-1 maintenance-ink font-bold">(Senior)</span>
                         )}
                         {assignedTech?.zone && (
                           <span className="ml-1 maintenance-muted font-normal">({assignedTech.zone})</span>
@@ -451,7 +451,7 @@ export default function InterventionWizard() {
                   </option>
                   {technicians.map((t) => (
                     <option key={t._id} value={t._id}>
-                      {t.prenom} {t.nom} {t.seniority === 'senior' ? '★ Senior' : ''} {t.zone ? `[Zone: ${t.zone}]` : ''}
+                      {t.prenom} {t.nom} {t.seniority === 'senior' ? '(Senior)' : ''} {t.zone ? `[Zone: ${t.zone}]` : ''}
                     </option>
                   ))}
                 </select>

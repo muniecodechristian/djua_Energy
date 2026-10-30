@@ -100,7 +100,7 @@ export function useFleetLiveStatus() {
       if (changed) {
         const alive = new Set(lastSeenRef.current.keys());
         setActiveKitIds(alive);
-        console.log(`[Fleet Socket] 🧹 Nettoyage — ${alive.size} kit(s) actifs restants`);
+        console.log(`[Fleet Socket] Nettoyage — ${alive.size} kit(s) actifs restants`);
       }
     }, 60_000);
 

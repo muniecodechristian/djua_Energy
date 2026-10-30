@@ -330,7 +330,7 @@ export default function InstallationDetail() {
           </button>
 
           {/* Action : Assigner / Reprogrammer */}
-          {canManage && ['a_planifier', 'planifiee', 'en_attente'].includes(folder.status) && (
+          {((canManage && ['a_planifier', 'planifiee', 'en_attente'].includes(folder.status)) || (isAdmin && folder.status !== 'validee')) && (
             <button
               type="button"
               className="inst-detail-btn-action"
@@ -342,7 +342,7 @@ export default function InstallationDetail() {
           )}
 
           {/* Action : Démarrer travaux */}
-          {canOperate && ['planifiee'].includes(folder.status) && (
+          {((canOperate && ['planifiee'].includes(folder.status)) || (isAdmin && ['a_planifier', 'planifiee'].includes(folder.status))) && (
             <button
               type="button"
               className="inst-detail-btn-action is-primary"
@@ -375,7 +375,7 @@ export default function InstallationDetail() {
           )}
 
           {/* Action : Mise en service */}
-          {canOperate && ['en_cours', 'installee'].includes(folder.status) && (
+          {((canOperate && ['en_cours', 'installee'].includes(folder.status)) || (isAdmin && ['planifiee', 'en_cours', 'installee'].includes(folder.status))) && (
             <button
               type="button"
               className="inst-detail-btn-action is-primary"
@@ -386,7 +386,7 @@ export default function InstallationDetail() {
           )}
 
           {/* Action : Validation Admin finale */}
-          {isAdmin && folder.status === 'mise_en_service' && (
+          {isAdmin && ['installee', 'mise_en_service'].includes(folder.status) && (
             <button
               type="button"
               className="inst-detail-btn-action is-success"
@@ -394,6 +394,12 @@ export default function InstallationDetail() {
             >
               <ShieldCheck size={15} /> Validation Conforme (Admin)
             </button>
+          )}
+
+          {folder.status === 'validee' && (
+            <span className="inst-detail-badge validated">
+              <ShieldCheck size={14} /> Dossier Validé & Actif
+            </span>
           )}
         </div>
       </header>
@@ -795,7 +801,9 @@ export default function InstallationDetail() {
                 </div>
                 <div className="inst-info-row">
                   <span>Statut de liaison</span>
-                  <strong>{folder.kitId ? '🟢 Connecté au cloud Djua' : '⚪ En attente d’association'}</strong>
+                  <strong className={folder.kitId ? 'text-green-600 font-semibold' : 'text-slate-500'}>
+                    {folder.kitId ? 'Connecté au cloud Djua' : 'En attente d’association'}
+                  </strong>
                 </div>
                 <div className="inst-info-row">
                   <span>Dernière synchronisation</span>

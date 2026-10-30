@@ -5,7 +5,7 @@ import {
   MapPin, Phone, User, Clock, Zap, Sun, Battery, 
   HelpCircle, Lightbulb, SlidersHorizontal, ChevronDown, 
   FileText, CheckCircle2, AlertCircle, ShieldCheck, X,
-  Sparkles, MessageSquare, Send, Bot, RefreshCw
+  Sparkles, MessageSquare, Send, Bot, RefreshCw, Edit3
 } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
@@ -1015,8 +1015,8 @@ export default function Devis() {
               <div className="devis-v2-sidebar-card">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
                   <h3 style={{ fontSize: 15, fontWeight: 700 }}>Besoins retenus</h3>
-                  <button onClick={() => setStep(2)} style={{ background: 'none', border: 'none', color: '#ea580c', fontSize: 12, cursor: 'pointer' }}>
-                    Modifier ✏️
+                  <button onClick={() => setStep(2)} style={{ background: 'none', border: 'none', color: '#ea580c', fontSize: 12, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                    <Edit3 size={12} /> Modifier
                   </button>
                 </div>
 
@@ -1229,8 +1229,8 @@ export default function Devis() {
               <div className="devis-v2-sidebar-card">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
                   <h3 style={{ fontSize: 15, fontWeight: 700 }}>Besoins retenus</h3>
-                  <button onClick={() => setStep(2)} style={{ background: 'none', border: 'none', color: '#ea580c', fontSize: 12, cursor: 'pointer' }}>
-                    Modifier ✏️
+                  <button onClick={() => setStep(2)} style={{ background: 'none', border: 'none', color: '#ea580c', fontSize: 12, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                    <Edit3 size={12} /> Modifier
                   </button>
                 </div>
 

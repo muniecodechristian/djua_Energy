@@ -108,17 +108,21 @@ export async function listQuotes(req, res) {
 }
 export async function getQuote(req, res) {
   try {
-    const number = String(req.params.number).toUpperCase();
-    let quote = await Quote.findOne({ ...quoteScope(req.user), number })
+    const rawParam = String(req.params.number || '').trim();
+    const isObjectId = /^[0-9a-fA-F]{24}$/.test(rawParam);
+    const filter = isObjectId
+      ? { ...quoteScope(req.user), $or: [{ number: rawParam.toUpperCase() }, { _id: rawParam }] }
+      : { ...quoteScope(req.user), number: rawParam.toUpperCase() };
+
+    let quote = await Quote.findOne(filter)
       .populate('owner', 'nom prenom email role phone')
       .populate('shopManager', 'nom prenom email phone')
       .populate('validatedBy', 'nom prenom email')
       .lean();
 
     if (!quote) {
-      // Distinguer "inexistant" d'"existe mais hors équipe" pour le technicien.
       if (req.user.role === 'technician') {
-        const any = await Quote.findOne({ number }).lean();
+        const any = await Quote.findOne(isObjectId ? { $or: [{ number: rawParam.toUpperCase() }, { _id: rawParam }] } : { number: rawParam.toUpperCase() }).lean();
         if (any) {
           return fail(res, 403, "Vous n'avez pas la permission d'utiliser ce devis parce que ce commercial ne fait pas partie de votre équipe.");
         }
@@ -141,13 +145,20 @@ export async function getQuote(req, res) {
 export async function approveQuote(req, res) {
   if(!validPlannedDate(req.body.plannedDate)) return fail(res,400,'Choisissez aujourd’hui ou une date future (heure de Kinshasa).');
   try {
-    const quote = await Quote.findOne({ ...quoteScope(req.user), number: String(req.params.number).toUpperCase() });
+    const rawParam = String(req.params.number || '').trim();
+    const isObjectId = /^[0-9a-fA-F]{24}$/.test(rawParam);
+    const filter = isObjectId
+      ? { ...quoteScope(req.user), $or: [{ number: rawParam.toUpperCase() }, { _id: rawParam }] }
+      : { ...quoteScope(req.user), number: rawParam.toUpperCase() };
+
+    const quote = await Quote.findOne(filter);
     if(!quote) return fail(res,404,'Devis introuvable.');
 
     const isAdmin = ['admin', 'administration'].includes(req.user.role);
     const isOwner = quote.owner && String(quote.owner) === String(req.user._id);
-    if (!isAdmin && !isOwner) {
-      return fail(res, 403, 'Seul le créateur du devis ou un administrateur peut définir la date d’installation et valider le devis.');
+    const isShopManager = req.user.role === 'shop_manager' && (!quote.shopManager || String(quote.shopManager) === String(req.user._id));
+    if (!isAdmin && !isOwner && !isShopManager) {
+      return fail(res, 403, 'Seul le créateur du devis, le responsable shop ou un administrateur peut définir la date d’installation et valider le devis.');
     }
 
     quote.status = 'approved';

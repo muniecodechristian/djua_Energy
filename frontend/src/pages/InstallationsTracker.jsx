@@ -18,8 +18,7 @@ const STATUS_TABS = [
   { id: 'en_attente', label: 'En attente / Bloqués', icon: AlertOctagon },
   { id: 'installee', label: 'Installées', icon: CheckCircle2 },
   { id: 'mise_en_service', label: 'Mises en service', icon: Zap },
-  { id: 'validee', label: 'Validées / Clôturées', icon: ShieldCheck },
-  { id: 'overdue', label: '⚠️ Échéances Dépassées', icon: AlertTriangle, isAlert: true },
+  { id: 'overdue', label: 'Échéances Dépassées', icon: AlertTriangle, isAlert: true },
 ];
 
 const STATUS_CONFIG = {
@@ -186,7 +185,7 @@ export default function InstallationsTracker() {
                       <Folder size={18} />
                     </div>
                     {item.isOverdue ? (
-                      <span className="djua-overdue-tag">⚠️ Retard</span>
+                      <span className="djua-overdue-tag"><AlertTriangle size={12} /> Retard</span>
                     ) : (
                       <span className={`djua-status-pill ${statusMeta.tone}`}>
                         {statusMeta.label}
@@ -315,7 +314,7 @@ export default function InstallationsTracker() {
                             {statusMeta.label}
                           </span>
                           {inst.isOverdue && (
-                            <span className="djua-overdue-tag">⚠️ Retard</span>
+                            <span className="djua-overdue-tag"><AlertTriangle size={12} /> Retard</span>
                           )}
                           {inst.blockedReason && (
                             <small className="djua-blocked-reason">
@@ -363,7 +362,7 @@ export default function InstallationsTracker() {
                     </div>
                     <div style={{ display: 'flex', gap: 6 }}>
                       {inst.isOverdue && (
-                        <span className="djua-overdue-tag">⚠️ Retard</span>
+                        <span className="djua-overdue-tag"><AlertTriangle size={12} /> Retard</span>
                       )}
                       <span className={`djua-status-pill ${statusMeta.tone}`}>
                         {statusMeta.label}

@@ -230,8 +230,8 @@ export default function TechnicianApp() {
                   <MapPin size={11} /> {user?.zone || 'Kinshasa'}
                 </span>
                 {overdueInstallations.length > 0 && (
-                  <span className="text-rose-400 font-bold ml-1 flex items-center gap-0.5">
-                    • ⚠️ {overdueInstallations.length} en retard
+                  <span className="text-rose-400 font-bold ml-1 flex items-center gap-1">
+                    • <AlertTriangle size={12} className="inline" /> {overdueInstallations.length} en retard
                   </span>
                 )}
               </p>
@@ -417,8 +417,8 @@ export default function TechnicianApp() {
                             <span className="text-slate-500">•</span>
                             <span className="text-xs text-slate-400">Devis #{inst.quoteNumber}</span>
                             {isOverdue && (
-                              <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-500/20 text-rose-400 border border-rose-500/40 animate-pulse">
-                                ⚠️ Échéance dépassée
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-500/20 text-rose-400 border border-rose-500/40 animate-pulse flex items-center gap-1">
+                                <AlertTriangle size={11} /> Échéance dépassée
                               </span>
                             )}
                             <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${

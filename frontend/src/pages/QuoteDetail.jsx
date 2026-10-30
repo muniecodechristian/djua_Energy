@@ -439,7 +439,7 @@ export default function QuoteDetail() {
               <div className="quote-info-row">
                 <span className="quote-info-label">Type de profil</span>
                 <span className="quote-info-value capitalize">
-                  {customer.profile === 'entreprise' ? '🏢 Entreprise / Commerce' : '👤 Particulier'}
+                  {customer.profile === 'entreprise' ? 'Entreprise / Commerce' : 'Particulier'}
                 </span>
               </div>
               <div className="quote-info-row">

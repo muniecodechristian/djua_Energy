@@ -63,7 +63,7 @@ export default function GeofencingAlerts() {
 
     socket.on('geofence_alert', (newAlert) => {
       console.log('[Socket] Nouvelle alerte geofence reçue :', newAlert);
-      toast.error(`⚠️ ALERTE CRITIQUE GEOFENCE`, {
+      toast.error(`ALERTE CRITIQUE GEOFENCE`, {
         description: `Le Kit ${newAlert.kitId} a dépassé les limites autorisées.`,
         duration: 8000,
       });

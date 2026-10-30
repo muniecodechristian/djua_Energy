@@ -286,7 +286,7 @@ export async function assignTechnician(req, res) {
       try {
         await sendInstallationToWhatsApp(tech, populated);
         notifyUser(String(tech._id), 'installation:assigned', {
-          title: '⚡ Nouvelle installation assignée',
+          title: 'Nouvelle installation assignée',
           message: `Le dossier ${populated.folderNumber} (${populated.customer?.name}) vous a été confié pour le ${populated.plannedDate || 'dès que possible'}.`,
           folderId: populated._id,
           folderNumber: populated.folderNumber,

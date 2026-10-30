@@ -88,7 +88,7 @@ export default function KitsInstallationsTab({ client }) {
             <div>
               <span className="text-[10px] text-zinc-500 block uppercase tracking-wider font-semibold">Frais d'activation (Orange)</span>
               <span className="text-sm font-bold text-zinc-200">
-                {client.subscriptionFeePaid ? '✅ Réglés et Synchronisés' : '❌ Non Payés'}
+                {client.subscriptionFeePaid ? 'Réglés et Synchronisés' : 'Non Payés'}
               </span>
             </div>
           </div>
