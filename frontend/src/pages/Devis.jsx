@@ -226,17 +226,6 @@ export default function Devis() {
   // ─── ÉTAPE 5 : DEVIS GÉNÉRÉ & ASSISTANT IA ─────────────────────
   const [quoteNumber] = useState(() => `OE-2026-${Math.floor(10000 + Math.random() * 90000)}`);
   const [isSaving, setIsSaving] = useState(false);
-  const [isApproved, setIsApproved] = useState(false);
-  const [installationFolderName, setInstallationFolderName] = useState('');
-  const [plannedInstallationDate, setPlannedInstallationDate] = useState(() => new Date().toISOString().slice(0, 10));
-
-  // Pré-remplir le nom du dossier d'installation avec le nom du client par défaut
-  useEffect(() => {
-    const clientFullName = `${clientForm.nom || ''} ${clientForm.postnom || ''}`.trim();
-    if (clientFullName) {
-      setInstallationFolderName(prev => prev || `Installation - ${clientFullName}`);
-    }
-  }, [clientForm.nom, clientForm.postnom]);
 
   // Drawer de discussion avec l'IA après devis
   const [isAIDiscussionOpen, setIsAIDiscussionOpen] = useState(false);
@@ -425,68 +414,10 @@ export default function Devis() {
       };
 
       await api.post('/api/quotes', payload);
-      toast.success('Devis enregistré comme brouillon avec succès !');
+      toast.success('Devis enregistré avec succès ! Il est maintenant en attente de validation.');
       navigate('/devis');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Erreur lors de l’enregistrement du devis.');
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleApproveQuote = async () => {
-    setIsSaving(true);
-    try {
-      const payload = {
-        requestKey: `req-${Date.now()}`,
-        customer: {
-          name: `${clientForm.nom} ${clientForm.postnom}`.trim() || 'Client',
-          phone: clientForm.phone,
-        },
-        site: {
-          adresse: clientForm.address,
-          ville: 'Kinshasa',
-          lat: clientForm.position.lat,
-          lng: clientForm.position.lng,
-        },
-        system: {
-          panels: recommendedPanelsCount,
-          panelPower: panelUnitWatt,
-          batteryCapacity: batteryKwh * 1000,
-          inverterPower: inverterKva * 1000,
-        },
-        appliances: appliances.map(a => ({
-          name: a.name,
-          quantity: a.quantity,
-          watts: a.watts,
-          hours: a.hours,
-          period: a.period,
-        })),
-        amount: totalSystemPrice,
-        currency: 'USD',
-      };
-
-      const res = await api.post('/api/quotes', payload);
-      const created = res.data?.data;
-
-      // Valider le devis pour déclencher la création automatique du dossier d'installation Module 2
-      const clientFullName = `${clientForm.nom || ''} ${clientForm.postnom || ''}`.trim() || 'Client';
-      const resolvedFolderName = (installationFolderName || '').trim() || `Installation - ${clientFullName}`;
-
-      if (created?.number) {
-        await api.patch(`/api/quotes/${encodeURIComponent(created.number)}/approve`, {
-          plannedDate: plannedInstallationDate || new Date().toISOString().slice(0, 10),
-          folderName: resolvedFolderName,
-        });
-      }
-
-      setIsApproved(true);
-      toast.success('Devis validé ! Le dossier d’installation a été créé automatiquement.');
-      setTimeout(() => {
-        navigate('/installations');
-      }, 1500);
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Erreur lors de la validation du devis.');
     } finally {
       setIsSaving(false);
     }
@@ -1423,144 +1354,42 @@ export default function Devis() {
               </div>
             </div>
 
-            {/* ── SECTION CONFIGURATION DU DOSSIER DE SUIVI D'INSTALLATION ── */}
+            {/* Callout information validation */}
             <div style={{
-              marginTop: 32,
-              padding: '20px 24px',
+              marginTop: 28,
+              padding: '16px 20px',
               background: '#f8fafc',
-              border: '1.5px solid #e2e8f0',
-              borderRadius: 14,
-              boxShadow: '0 2px 6px rgba(0,0,0,0.03)'
+              border: '1px solid #e2e8f0',
+              borderRadius: 12,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-                <div style={{
-                  width: 34,
-                  height: 34,
-                  borderRadius: 10,
-                  background: 'rgba(255, 121, 0, 0.12)',
-                  color: '#ff7900',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}>
-                  <FolderPlus size={18} />
-                </div>
-                <div>
-                  <h4 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#0f172a' }}>
-                    Dossier de suivi d'installation (Création automatique)
-                  </h4>
-                  <p style={{ margin: 0, fontSize: 13, color: '#64748b' }}>
-                    La validation crée le dossier d'installation sur le chantier. Nommez ce dossier ou conservez le nom du client par défaut.
-                  </p>
-                </div>
-              </div>
-
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-                gap: 16,
-                marginTop: 16
-              }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#334155', marginBottom: 6 }}>
-                    Nom du dossier d'installation
-                  </label>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#fff', border: '1px solid #cbd5e1', borderRadius: 8, padding: '8px 12px' }}>
-                    <FolderCheck size={16} color="#64748b" />
-                    <input
-                      type="text"
-                      value={installationFolderName}
-                      onChange={e => setInstallationFolderName(e.target.value)}
-                      placeholder={`Installation - ${clientForm.nom} ${clientForm.postnom}`.trim()}
-                      style={{
-                        border: 'none',
-                        outline: 'none',
-                        fontSize: 14,
-                        width: '100%',
-                        fontWeight: 500,
-                        color: '#0f172a'
-                      }}
-                    />
-                  </div>
-                  <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
-                    <button
-                      type="button"
-                      onClick={() => setInstallationFolderName(`${clientForm.nom} ${clientForm.postnom}`.trim())}
-                      style={{
-                        padding: '4px 10px',
-                        fontSize: 12,
-                        borderRadius: 6,
-                        border: '1px solid #e2e8f0',
-                        background: installationFolderName === `${clientForm.nom} ${clientForm.postnom}`.trim() ? '#ff7900' : '#fff',
-                        color: installationFolderName === `${clientForm.nom} ${clientForm.postnom}`.trim() ? '#fff' : '#475569',
-                        cursor: 'pointer',
-                        fontWeight: 600
-                      }}
-                    >
-                      Nom du client ({clientForm.nom} {clientForm.postnom})
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setInstallationFolderName(`Installation - ${clientForm.nom} ${clientForm.postnom}`.trim())}
-                      style={{
-                        padding: '4px 10px',
-                        fontSize: 12,
-                        borderRadius: 6,
-                        border: '1px solid #e2e8f0',
-                        background: installationFolderName === `Installation - ${clientForm.nom} ${clientForm.postnom}`.trim() ? '#ff7900' : '#fff',
-                        color: installationFolderName === `Installation - ${clientForm.nom} ${clientForm.postnom}`.trim() ? '#fff' : '#475569',
-                        cursor: 'pointer',
-                        fontWeight: 600
-                      }}
-                    >
-                      Installation - {clientForm.nom}
-                    </button>
-                  </div>
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#334155', marginBottom: 6 }}>
-                    Date d'intervention / installation prévue
-                  </label>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#fff', border: '1px solid #cbd5e1', borderRadius: 8, padding: '8px 12px' }}>
-                    <Calendar size={16} color="#64748b" />
-                    <input
-                      type="date"
-                      value={plannedInstallationDate}
-                      onChange={e => setPlannedInstallationDate(e.target.value)}
-                      style={{
-                        border: 'none',
-                        outline: 'none',
-                        fontSize: 14,
-                        width: '100%',
-                        fontWeight: 500,
-                        color: '#0f172a'
-                      }}
-                    />
-                  </div>
-                  <small style={{ display: 'block', marginTop: 8, fontSize: 12, color: '#64748b' }}>
-                    Permet de planifier la visite des techniciens certifiés Orange Énergie.
-                  </small>
-                </div>
+              <CheckCircle2 size={20} color="#ff7900" style={{ flexShrink: 0 }} />
+              <div style={{ fontSize: 13, color: '#475569', lineHeight: 1.5 }}>
+                Ce devis sera enregistré sous le statut <strong>« À valider »</strong>. Vous pourrez ensuite le consulter dans la liste des devis et cliquer sur <strong>« Valider »</strong> dans sa fiche détaillée pour créer le dossier d'installation sur mesure.
               </div>
             </div>
 
             {/* Boutons d'actions finales */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 36, paddingTop: 24, borderTop: '1px solid #e2e8f0' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 32, paddingTop: 20, borderTop: '1px solid #e2e8f0', flexWrap: 'wrap', gap: 14 }}>
               <button className="devis-v2-btn-ghost" onClick={() => setStep(4)}>
                 <ArrowLeft size={16} /> Modifier la proposition
               </button>
 
-              <div style={{ display: 'flex', gap: 12 }}>
+              <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
                 <button className="devis-v2-btn-ghost" onClick={() => window.print()}>
                   <FileText size={16} /> Imprimer / PDF
                 </button>
+
                 <button 
+                  type="button"
                   className="devis-v2-btn-orange" 
-                  onClick={handleApproveQuote}
-                  disabled={isSaving || isApproved}
+                  onClick={handleSaveDraft}
+                  disabled={isSaving}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '12px 26px', fontSize: 14, fontWeight: 700 }}
                 >
-                  <CheckCircle2 size={16} /> {isApproved ? 'Devis Validé' : 'Valider ce devis (Créer l’installation)'}
+                  <CheckCircle2 size={18} /> {isSaving ? 'Enregistrement en cours…' : 'Enregistrer le devis (À valider)'}
                 </button>
               </div>
             </div>

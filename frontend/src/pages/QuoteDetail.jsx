@@ -77,10 +77,9 @@ export default function QuoteDetail() {
   const currentUser = useAuthStore(state => state.user);
   const queryClient = useQueryClient();
 
-  const [plannedDate, setPlannedDate] = useState('');
+  const [plannedDate, setPlannedDate] = useState(() => todayKinshasa());
   const [folderName, setFolderName] = useState('');
   const [createdFolder, setCreatedFolder] = useState(null);
-
 
   // Charger le devis par son numéro ou son id
   const { data: quote, isLoading, error } = useQuery({
@@ -114,9 +113,11 @@ export default function QuoteDetail() {
   // Mutation validation devis -> crée automatiquement le dossier d'installation
   const approveMutation = useMutation({
     mutationFn: async () => {
+      const targetDate = plannedDate || todayKinshasa();
+      const targetName = folderName.trim() || `Installation - ${quote.customer?.name || 'Client'}`;
       const res = await api.patch(`/api/quotes/${encodeURIComponent(quote.number)}/approve`, {
-        plannedDate,
-        folderName: folderName.trim() || quote.customer?.name || 'Dossier Installation',
+        plannedDate: targetDate,
+        folderName: targetName,
       });
       return res.data;
     },
@@ -127,6 +128,12 @@ export default function QuoteDetail() {
       queryClient.invalidateQueries({ queryKey: ['quote-workspace'] });
       queryClient.invalidateQueries({ queryKey: ['sales-quotes'] });
       queryClient.invalidateQueries({ queryKey: ['installations'] });
+      const folderId = data?.installationFolder?._id;
+      if (folderId) {
+        setTimeout(() => {
+          navigate(`/installations/${folderId}`);
+        }, 1200);
+      }
     },
     onError: (err) => {
       toast.error(err.response?.data?.message || 'Erreur lors de la validation du devis.');
@@ -159,7 +166,8 @@ export default function QuoteDetail() {
   const isCreator = quote.owner && (
     String(quote.owner._id || quote.owner) === String(currentUser?._id)
   );
-  const canValidate = (isAdmin || isCreator) && quote.status === 'draft';
+  const isShopManager = currentUser?.role === 'shop_manager';
+  const canValidate = (isAdmin || isCreator || isShopManager) && quote.status === 'draft';
 
   const customer = quote.customer || {};
   const details = customer.details || {};

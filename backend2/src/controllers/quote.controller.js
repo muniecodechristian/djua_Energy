@@ -35,7 +35,14 @@ export async function saveQuote(req, res) {
     let client;
     try { client = await Client.findOneAndUpdate(clientFilter, { $set: { ...input.customer, searchName: foldName(input.customer.name) } }, { upsert: true, returnDocument: 'after', runValidators: true }); }
     catch (error) { if(error.code !== 11000) throw error; client = await Client.findOne(clientFilter); }
-    const quote = await Quote.create({ ...input, owner: req.user._id, shopManager, client: client._id, number: `DJ-${new Date().getFullYear()}-${randomBytes(3).toString('hex').toUpperCase()}` });
+    const quote = await Quote.create({
+      ...input,
+      status: 'draft',
+      owner: req.user._id,
+      shopManager,
+      client: client._id,
+      number: `DJ-${new Date().getFullYear()}-${randomBytes(3).toString('hex').toUpperCase()}`,
+    });
     return res.status(201).json({ success: true, data: quote });
   } catch (error) {
     if (error.code === 11000) {

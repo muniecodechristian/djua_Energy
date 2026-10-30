@@ -169,11 +169,19 @@ function QuoteRow({ quote, focusQuote, currentUser, onViewDetails }) {
         </button>
       </div>
       {quote.status === 'draft' && canManageInstallation && (
-        <form className="quotes-validation-form" onSubmit={event => { event.preventDefault(); validation.mutate(); }}>
-          <label>Date d’installation prévue<input type="date" required min={kinshasaToday()} value={date} onChange={event => setDate(event.target.value)} /></label>
-          <button type="submit" disabled={!date || date < kinshasaToday() || validation.isPending}>{validation.isPending ? 'Validation…' : 'Valider le devis'}</button>
-          <small>Heure de Kinshasa. En validant, le devis passe au statut validé et la date d'installation est enregistrée.</small>
-        </form>
+        <div style={{ marginTop: 12, padding: '12px 16px', background: 'rgba(255, 121, 0, 0.06)', border: '1px solid rgba(255, 121, 0, 0.2)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+          <div>
+            <strong style={{ fontSize: 13, color: '#0f172a', display: 'block' }}>Validation & Création du Dossier d'Installation</strong>
+            <span style={{ fontSize: 12, color: '#64748b' }}>Nommez le dossier de chantier (ou nom client par défaut) et confirmez la date d’intervention.</span>
+          </div>
+          <button
+            type="button"
+            style={{ background: '#ff7900', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+            onClick={() => onViewDetails()}
+          >
+            <CheckCircle2 size={15} /> Valider le devis <ArrowRight size={14} />
+          </button>
+        </div>
       )}
       {quote.status === 'draft' && !canManageInstallation && (
         <p className="text-xs text-zinc-500 italic mt-2">La validation du devis et la fixation de la date d’installation sont réservées à son créateur et à l'administrateur.</p>
