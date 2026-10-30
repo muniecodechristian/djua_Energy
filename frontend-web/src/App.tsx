@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { ChevronLeft, KeyRound, LogOut, ShieldCheck } from 'lucide-react';
+import { ChevronLeft, KeyRound, LogOut, ShieldCheck, QrCode, Bell, MessageSquare } from 'lucide-react';
 import { useInstallStore } from './store/useInstallStore';
-import { authApi, type TechnicianProfile } from './services/api';
+import { authApi, installationApi, type TechnicianProfile } from './services/api';
 
 import Step01Scan        from './pages/Step01Scan';
 import StepKitExists     from './pages/StepKitExists';
@@ -15,6 +15,8 @@ import Step08Diagnostic  from './pages/Step08Diagnostic';
 import Step09Preview     from './pages/Step09Preview';
 import Step10Success     from './pages/Step10Success';
 import Step11Error       from './pages/Step11Error';
+import TechnicianNotifications from './pages/TechnicianNotifications';
+import TechnicianMessages      from './pages/TechnicianMessages';
 
 // ─── Étapes ───────────────────────────────────────────────────────────────────
 // Les étapes numérotées suivent le wizard normal.
@@ -51,6 +53,10 @@ function FinalizationPage({ errorMessage, onRetry, onFinish, onError }: { errorM
 }
 
 export default function App() {
+  const [activeMainTab, setActiveMainTab] = useState<'scan' | 'notifications' | 'messages'>('notifications');
+  const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
+  const [unacknowledgedCount, setUnacknowledgedCount] = useState(0);
+
   const [step, setStep]           = useState<Step>(1);
   const [errorMsg, setErrorMsg]   = useState('');
   const [errorType, setErrorType] = useState<'network' | 'diagnostic' | 'submit'>('diagnostic');
@@ -83,6 +89,11 @@ export default function App() {
           setUser(profile);
           setInstalledBy(profile.identifier);
           setPasswordPromptDismissed(sessionStorage.getItem(`djua-password-reminder-dismissed:${profile._id}`) === 'true');
+          // Charger le nombre de missions en attente d'accusé de réception
+          installationApi.getAssignedInstallations().then(list => {
+            const pending = list.filter(i => !i.technicianAcknowledgedAt).length;
+            setUnacknowledgedCount(pending);
+          }).catch(() => undefined);
         }
       } catch {
         if (active) setUser(null);
@@ -215,40 +226,191 @@ export default function App() {
 
   return (
     <div className="app-shell">
-      <div className="app-card">
-        <header className="technician-toolbar"><div><strong>Djua Équipe</strong><small>{user.identifier}{user.zone ? ` · ${user.zone}` : ''}</small></div><button className="btn btn-ghost btn-sm" type="button" onClick={handleLogout}><LogOut size={16}/>Déconnexion</button></header>
-        {user.mustChangePassword && !passwordPromptDismissed && <section className="technician-password-reminder" aria-label="Mot de passe temporaire">
-          <div className="technician-reminder-heading"><KeyRound size={18}/><div><strong>Mot de passe initial</strong><p>Changez-le maintenant ou plus tard. Vous pouvez continuer votre travail sans interruption.</p></div></div>
-          {!showPasswordForm ? <div className="technician-reminder-actions"><button className="btn btn-primary btn-sm" type="button" onClick={() => setShowPasswordForm(true)}>Changer le mot de passe</button><button className="btn btn-ghost btn-sm" type="button" onClick={dismissPasswordReminder}>Plus tard</button></div> : <form className="technician-password-form" onSubmit={handlePasswordChange}>
-            <label className="technician-login-label">Mot de passe actuel<div className="input-wrap"><input type="password" autoComplete="current-password" value={currentPassword} onChange={event => setCurrentPassword(event.target.value)} required/></div></label>
-            <label className="technician-login-label">Nouveau mot de passe<div className="input-wrap"><input type="password" autoComplete="new-password" minLength={8} pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&_\-#:;.]).{8,}" value={newPassword} onChange={event => setNewPassword(event.target.value)} required/></div></label>
-            <label className="technician-login-label">Confirmer le mot de passe<div className="input-wrap"><input type="password" autoComplete="new-password" value={confirmPassword} onChange={event => setConfirmPassword(event.target.value)} required/></div></label>
-            <small>8 caractères minimum, avec majuscule, minuscule, chiffre et caractère spécial.</small>
-            {passwordError && <div className="alert alert-error" role="alert">{passwordError}</div>}
-            <div className="technician-reminder-actions"><button className="btn btn-primary btn-sm" type="submit" disabled={isChangingPassword}>{isChangingPassword ? 'Mise à jour…' : 'Enregistrer'}</button><button className="btn btn-ghost btn-sm" type="button" onClick={() => { setShowPasswordForm(false); dismissPasswordReminder(); }}>Plus tard</button></div>
-          </form>}
-        </section>}
-        {showBackButton && (
-          <header style={{
-            height: 56, display: 'flex', alignItems: 'center', padding: '0 16px',
-            background: 'var(--bg)', borderBottom: '1px solid var(--border)',
-          }}>
-            <button
-              onClick={back}
-              style={{
-                background: 'none', border: 'none', cursor: 'pointer',
-                display: 'flex', alignItems: 'center', gap: 4,
-                color: 'var(--text-3)', fontSize: 15, fontWeight: 600,
-                padding: 8, marginLeft: -8,
-              }}
-            >
-              <ChevronLeft size={20} />
-              Retour
-            </button>
-          </header>
+      <div className="app-card" style={{ paddingBottom: 68 }}>
+        <header className="technician-toolbar">
+          <div>
+            <strong>Djua Équipe</strong>
+            <small>{user.identifier}{user.zone ? ` · ${user.zone}` : ''}</small>
+          </div>
+          <button className="btn btn-ghost btn-sm" type="button" onClick={handleLogout}>
+            <LogOut size={16}/> Déconnexion
+          </button>
+        </header>
+
+        {/* ─── BARRE D'ONGLETS PRINCIPALE DU TECHNICIEN (3 TABS) ─── */}
+        <nav style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(3, 1fr)',
+          background: '#FFFFFF',
+          borderBottom: '1px solid var(--border)',
+          position: 'sticky',
+          top: 0,
+          zIndex: 40
+        }}>
+          <button
+            type="button"
+            onClick={() => setActiveMainTab('scan')}
+            style={{
+              padding: '12px 6px',
+              border: 'none',
+              background: 'none',
+              cursor: 'pointer',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 4,
+              fontSize: 12,
+              fontWeight: activeMainTab === 'scan' ? 700 : 500,
+              color: activeMainTab === 'scan' ? 'var(--brand)' : 'var(--text-muted)',
+              borderBottom: activeMainTab === 'scan' ? '2.5px solid var(--brand)' : '2.5px solid transparent'
+            }}
+          >
+            <QrCode size={18} />
+            <span>Scannage Kit</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveMainTab('notifications')}
+            style={{
+              padding: '12px 6px',
+              border: 'none',
+              background: 'none',
+              cursor: 'pointer',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 4,
+              fontSize: 12,
+              fontWeight: activeMainTab === 'notifications' ? 700 : 500,
+              color: activeMainTab === 'notifications' ? 'var(--brand)' : 'var(--text-muted)',
+              borderBottom: activeMainTab === 'notifications' ? '2.5px solid var(--brand)' : '2.5px solid transparent',
+              position: 'relative'
+            }}
+          >
+            <div style={{ position: 'relative' }}>
+              <Bell size={18} />
+              {unacknowledgedCount > 0 && (
+                <span style={{
+                  position: 'absolute',
+                  top: -4,
+                  right: -8,
+                  background: '#EF4444',
+                  color: '#FFF',
+                  fontSize: 10,
+                  fontWeight: 800,
+                  width: 16,
+                  height: 16,
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  {unacknowledgedCount}
+                </span>
+              )}
+            </div>
+            <span>Missions & Notifs</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveMainTab('messages')}
+            style={{
+              padding: '12px 6px',
+              border: 'none',
+              background: 'none',
+              cursor: 'pointer',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 4,
+              fontSize: 12,
+              fontWeight: activeMainTab === 'messages' ? 700 : 500,
+              color: activeMainTab === 'messages' ? 'var(--brand)' : 'var(--text-muted)',
+              borderBottom: activeMainTab === 'messages' ? '2.5px solid var(--brand)' : '2.5px solid transparent'
+            }}
+          >
+            <MessageSquare size={18} />
+            <span>Discussions</span>
+          </button>
+        </nav>
+
+        {user.mustChangePassword && !passwordPromptDismissed && (
+          <section className="technician-password-reminder" aria-label="Mot de passe temporaire">
+            <div className="technician-reminder-heading">
+              <KeyRound size={18}/>
+              <div>
+                <strong>Mot de passe initial</strong>
+                <p>Changez-le maintenant ou plus tard. Vous pouvez continuer votre travail sans interruption.</p>
+              </div>
+            </div>
+            {!showPasswordForm ? (
+              <div className="technician-reminder-actions">
+                <button className="btn btn-primary btn-sm" type="button" onClick={() => setShowPasswordForm(true)}>Changer le mot de passe</button>
+                <button className="btn btn-ghost btn-sm" type="button" onClick={dismissPasswordReminder}>Plus tard</button>
+              </div>
+            ) : (
+              <form className="technician-password-form" onSubmit={handlePasswordChange}>
+                <label className="technician-login-label">Mot de passe actuel<div className="input-wrap"><input type="password" autoComplete="current-password" value={currentPassword} onChange={event => setCurrentPassword(event.target.value)} required/></div></label>
+                <label className="technician-login-label">Nouveau mot de passe<div className="input-wrap"><input type="password" autoComplete="new-password" minLength={8} pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&_\-#:;.]).{8,}" value={newPassword} onChange={event => setNewPassword(event.target.value)} required/></div></label>
+                <label className="technician-login-label">Confirmer le mot de passe<div className="input-wrap"><input type="password" autoComplete="new-password" value={confirmPassword} onChange={event => setConfirmPassword(event.target.value)} required/></div></label>
+                <small>8 caractères minimum, avec majuscule, minuscule, chiffre et caractère spécial.</small>
+                {passwordError && <div className="alert alert-error" role="alert">{passwordError}</div>}
+                <div className="technician-reminder-actions">
+                  <button className="btn btn-primary btn-sm" type="submit" disabled={isChangingPassword}>{isChangingPassword ? 'Mise à jour…' : 'Enregistrer'}</button>
+                  <button className="btn btn-ghost btn-sm" type="button" onClick={() => { setShowPasswordForm(false); dismissPasswordReminder(); }}>Plus tard</button>
+                </div>
+              </form>
+            )}
+          </section>
         )}
 
-        {renderStep()}
+        {/* ── CONTENU DE L'ONGLET ACTIF ── */}
+        {activeMainTab === 'notifications' && (
+          <TechnicianNotifications
+            onOpenChat={(instId) => {
+              setSelectedChatId(instId);
+              setActiveMainTab('messages');
+            }}
+            onStartScan={() => {
+              setActiveMainTab('scan');
+            }}
+          />
+        )}
+
+        {activeMainTab === 'messages' && (
+          <TechnicianMessages
+            initialInstallationId={selectedChatId}
+            onBackToMissions={() => setActiveMainTab('notifications')}
+          />
+        )}
+
+        {activeMainTab === 'scan' && (
+          <>
+            {showBackButton && (
+              <header style={{
+                height: 56, display: 'flex', alignItems: 'center', padding: '0 16px',
+                background: 'var(--bg)', borderBottom: '1px solid var(--border)',
+              }}>
+                <button
+                  onClick={back}
+                  style={{
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', gap: 4,
+                    color: 'var(--text-3)', fontSize: 15, fontWeight: 600,
+                    padding: 8, marginLeft: -8,
+                  }}
+                >
+                  <ChevronLeft size={20} />
+                  Retour
+                </button>
+              </header>
+            )}
+
+            {renderStep()}
+          </>
+        )}
       </div>
     </div>
   );

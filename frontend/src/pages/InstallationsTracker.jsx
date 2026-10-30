@@ -194,10 +194,10 @@ export default function InstallationsTracker() {
                   </div>
 
                   <strong className="djua-recent-client">
-                    {item.customer?.name || 'Client sans nom'}
+                    {item.folderName || item.customer?.name || 'Dossier Installation'}
                   </strong>
                   <span className="djua-recent-folder-num font-mono">
-                    {item.folderNumber}
+                    {item.folderNumber} {item.customer?.name && item.folderName ? `• ${item.customer.name}` : ''}
                   </span>
 
                   <div className="djua-recent-footer">
@@ -271,8 +271,8 @@ export default function InstallationsTracker() {
                         <div className="djua-cell-folder">
                           <Folder size={16} className="djua-folder-icon" />
                           <div>
-                            <strong>{inst.folderNumber}</strong>
-                            <small>Devis {inst.quoteNumber}</small>
+                            <strong>{inst.folderName || inst.folderNumber}</strong>
+                            <small>{inst.folderNumber} • Devis {inst.quoteNumber}</small>
                           </div>
                         </div>
                       </td>
@@ -371,10 +371,10 @@ export default function InstallationsTracker() {
                   </div>
 
                   <h4 className="djua-grid-client">
-                    {inst.customer?.name || 'Client sans nom'}
+                    {inst.folderName || inst.customer?.name || 'Dossier Installation'}
                   </h4>
                   <span className="djua-grid-folder font-mono">
-                    {inst.folderNumber}
+                    {inst.folderNumber} {inst.customer?.name && inst.folderName ? `• ${inst.customer.name}` : ''}
                   </span>
 
                   <p className="djua-grid-location">

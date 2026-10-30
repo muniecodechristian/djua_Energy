@@ -170,7 +170,7 @@ export async function approveQuote(req, res) {
     // Création automatique du dossier d'installation (Module 2) par le validateur
     let installationFolder = null;
     try {
-      installationFolder = await createInstallationFromQuote(quote, req.user, req.body.plannedDate);
+      installationFolder = await createInstallationFromQuote(quote, req.user, req.body.plannedDate, req.body.folderName);
     } catch (installErr) {
       console.error('[quote.controller] Erreur création dossier installation:', installErr);
     }

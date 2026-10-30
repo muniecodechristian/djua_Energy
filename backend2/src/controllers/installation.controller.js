@@ -25,12 +25,15 @@ function emitInstallationEvent(event, data) {
  * Fonction helper appelée lors de la validation d'un devis pour créer automatiquement
  * le dossier d'installation associé.
  */
-export async function createInstallationFromQuote(quote, validatingUser, plannedDate = '') {
+export async function createInstallationFromQuote(quote, validatingUser, plannedDate = '', folderName = '') {
   const existing = await InstallationFolder.findOne({ quote: quote._id });
   if (existing) {
     if (plannedDate && existing.status === 'a_planifier') {
       existing.status = 'planifiee';
       existing.plannedDate = plannedDate;
+      if (folderName && !existing.folderName) {
+        existing.folderName = folderName.trim();
+      }
       existing.history.push({
         status: 'planifiee',
         changedBy: validatingUser._id,
@@ -47,9 +50,12 @@ export async function createInstallationFromQuote(quote, validatingUser, planned
   const folderNumber = `INST-${year}-${hex}`;
 
   const initialStatus = plannedDate ? 'planifiee' : 'a_planifier';
+  const customerName = quote.customer?.name || '';
+  const resolvedFolderName = (folderName || '').trim() || (customerName ? `Installation - ${customerName}` : `Dossier ${quote.number}`);
 
   const folder = await InstallationFolder.create({
     folderNumber,
+    folderName: resolvedFolderName,
     quote: quote._id,
     quoteNumber: quote.number,
     client: quote.client,
@@ -121,6 +127,7 @@ export async function listInstallations(req, res) {
       const term = String(req.query.search).trim();
       filter.$or = [
         { folderNumber: new RegExp(term, 'i') },
+        { folderName: new RegExp(term, 'i') },
         { quoteNumber: new RegExp(term, 'i') },
         { 'customer.name': new RegExp(term, 'i') },
         { 'customer.phone': new RegExp(term, 'i') },
@@ -869,6 +876,129 @@ export async function markInstallationMessagesRead(req, res) {
   } catch (error) {
     console.error('[InstallationController] markInstallationMessagesRead error:', error);
     return fail(res, 500, 'Erreur lors de la confirmation de lecture.');
+  }
+}
+
+/**
+ * POST /api/installations/:id/acknowledge
+ * Accusé de réception de la mission par le technicien de terrain.
+ * L'information remonte immédiatement au superviseur / créateur du dossier et dans l'audit trail.
+ */
+export async function acknowledgeInstallation(req, res) {
+  try {
+    const { id } = req.params;
+    const folder = await InstallationFolder.findById(id);
+    if (!folder) return fail(res, 404, 'Dossier d’installation introuvable.');
+
+    const isAssigned = String(folder.assignedTechnician) === String(req.user._id);
+    const isAdmin = ['admin', 'administration', 'shop_manager'].includes(req.user.role);
+    if (!isAssigned && !isAdmin) {
+      return fail(res, 403, 'Seul le technicien assigné à cette installation peut en accuser réception.');
+    }
+
+    folder.technicianAcknowledgedAt = new Date();
+    folder.technicianAcknowledgedBy = req.user._id;
+
+    folder.history.push({
+      status: folder.status,
+      changedBy: req.user._id,
+      note: `Mission reçue et confirmée sur le terrain par ${req.user.prenom || ''} ${req.user.nom || 'Technicien'}`.trim(),
+      timestamp: new Date()
+    });
+
+    await folder.save();
+
+    const populated = await InstallationFolder.findById(id)
+      .populate('assignedTechnician', 'nom prenom identifier seniority zone phone whatsapp')
+      .populate('createdBy', 'nom prenom identifier role')
+      .populate('shopManager', 'nom prenom identifier')
+      .populate('history.changedBy', 'nom prenom role');
+
+    emitInstallationEvent('installation:updated', populated);
+
+    // Notification instantanée vers le créateur / superviseur
+    if (folder.createdBy) {
+      notifyUser(String(folder.createdBy), 'installation:acknowledged', {
+        title: 'Prise en charge confirmée par le technicien',
+        message: `${req.user.prenom || ''} ${req.user.nom || 'Le technicien'} a confirmé la réception de la mission pour le dossier ${folder.folderNumber} (${folder.customer?.name || 'Client'}).`,
+        folderId: folder._id,
+        folderNumber: folder.folderNumber,
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    try {
+      const io = getIO();
+      if (io) {
+        io.to(`installation:${id}`).emit('installation:acknowledged', {
+          folderId: id,
+          acknowledgedAt: folder.technicianAcknowledgedAt,
+          technician: { id: req.user._id, nom: req.user.nom, prenom: req.user.prenom }
+        });
+      }
+    } catch (_) {}
+
+    return res.json({
+      success: true,
+      message: 'Prise en charge de la mission confirmée avec succès.',
+      data: populated
+    });
+  } catch (error) {
+    console.error('[InstallationController] acknowledgeInstallation error:', error);
+    return fail(res, 500, 'Erreur lors de la confirmation de réception de la mission.');
+  }
+}
+
+/**
+ * GET /api/installations/conversations
+ * Liste l'ensemble des canaux de discussion / chats des installations
+ * pour la surveillance en temps réel de l'administration et des superviseurs.
+ */
+export async function listInstallationConversations(req, res) {
+  try {
+    const { role, _id, zone } = req.user;
+    let folderFilter = {};
+
+    if (role === 'technician') {
+      folderFilter = { assignedTechnician: _id };
+    } else if (role === 'commercial') {
+      folderFilter = { createdBy: _id };
+    } else if (role === 'shop_manager') {
+      folderFilter = { $or: [{ shopManager: _id }, { zone: zone || '' }] };
+    }
+    // admin voit tout
+
+    let allowedInstallationIds = null;
+    if (Object.keys(folderFilter).length > 0) {
+      const folders = await InstallationFolder.find(folderFilter).select('_id').lean();
+      allowedInstallationIds = folders.map(f => f._id);
+    }
+
+    const convQuery = {};
+    if (allowedInstallationIds) {
+      convQuery.installation = { $in: allowedInstallationIds };
+    }
+
+    const conversations = await InstallationConversation.find(convQuery)
+      .populate({
+        path: 'installation',
+        select: 'folderNumber folderName customer status plannedDate assignedTechnician createdBy site',
+        populate: [
+          { path: 'assignedTechnician', select: 'nom prenom identifier phone zone' },
+          { path: 'createdBy', select: 'nom prenom identifier role' }
+        ]
+      })
+      .populate('participants.user', 'nom prenom role identifier')
+      .sort({ updatedAt: -1 })
+      .lean();
+
+    return res.json({
+      success: true,
+      data: conversations
+    });
+  } catch (error) {
+    console.error('[InstallationController] listInstallationConversations error:', error);
+    return fail(res, 500, 'Impossible de récupérer la liste des conversations.');
   }
 }
 

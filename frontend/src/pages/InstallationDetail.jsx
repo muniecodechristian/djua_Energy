@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import {
   ArrowLeft, CheckCircle2, Clock, Calendar, User, MapPin,
   Cpu, Wrench, ShieldCheck, AlertCircle, Play, Check,
@@ -68,7 +68,6 @@ export default function InstallationDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const currentUser = useAuthStore(state => state.user);
-  const queryClient = useQueryClient();
 
   const [activeTab, setActiveTab] = useState('summary'); // 'summary' | 'checklist' | 'iot' | 'history'
 
@@ -426,7 +425,7 @@ export default function InstallationDetail() {
           </div>
 
           <h1 className="inst-detail-title">
-            Installation Solaire • {customer.name || 'Client sans nom'}
+            {folder.folderName || `Installation Solaire • ${customer.name || 'Client sans nom'}`}
           </h1>
 
           <div className="inst-detail-meta-row">
@@ -445,10 +444,33 @@ export default function InstallationDetail() {
           </div>
         </div>
 
-        {/* Bloc Technicien & Planning */}
+        {/* Bloc Technicien & Planning — Toujours visible, interactif */}
         <div className="inst-detail-hero-assignment">
-          <div className="inst-assignment-box">
-            <span className="inst-assignment-lbl">Technicien assigné</span>
+          {/* Carte Technicien interactive */}
+          <div
+            className={`inst-assignment-box inst-assignment-tech-card ${!folder.assignedTechnician && canManage ? 'is-unassigned-cta' : ''}`}
+            onClick={() => {
+              if (canManage && !folder.assignedTechnician) setShowAssignModal(true);
+            }}
+            role={!folder.assignedTechnician && canManage ? 'button' : undefined}
+            tabIndex={!folder.assignedTechnician && canManage ? 0 : undefined}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !folder.assignedTechnician && canManage) setShowAssignModal(true);
+            }}
+          >
+            <div className="inst-assign-card-header">
+              <span className="inst-assignment-lbl">Technicien assigné</span>
+              {canManage && folder.assignedTechnician && (
+                <button
+                  type="button"
+                  className="inst-assign-change-btn"
+                  onClick={(e) => { e.stopPropagation(); setShowAssignModal(true); }}
+                >
+                  <Wrench size={12} /> Modifier
+                </button>
+              )}
+            </div>
+
             {folder.assignedTechnician ? (
               <div className="inst-tech-badge">
                 <div className="inst-tech-avatar">
@@ -456,8 +478,28 @@ export default function InstallationDetail() {
                 </div>
                 <div>
                   <strong>{folder.assignedTechnician.prenom} {folder.assignedTechnician.nom}</strong>
-                  <small>{folder.assignedTechnician.zone || 'Zone Kinshasa'}</small>
+                  <small>{folder.assignedTechnician.zone || 'Zone Kinshasa'} · {folder.assignedTechnician.phone || 'Opérationnel'}</small>
+                  <div style={{ marginTop: 4 }}>
+                    {folder.technicianAcknowledgedAt ? (
+                      <span style={{ fontSize: 11, color: '#16a34a', background: '#dcfce7', padding: '2px 8px', borderRadius: 12, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                        <Check size={11} /> Prise en charge confirmée ({formatDateShort(folder.technicianAcknowledgedAt)})
+                      </span>
+                    ) : (
+                      <span style={{ fontSize: 11, color: '#d97706', background: '#fef3c7', padding: '2px 8px', borderRadius: 12, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                        <Clock size={11} /> En attente de confirmation de réception
+                      </span>
+                    )}
+                  </div>
                 </div>
+              </div>
+            ) : canManage ? (
+              <div className="inst-unassigned-action">
+                <div className="inst-unassigned-icon"><User size={18} /></div>
+                <div>
+                  <strong>Aucun technicien assigné</strong>
+                  <small>Cliquez pour assigner et planifier l'intervention</small>
+                </div>
+                <span className="inst-assign-arrow"><ChevronRight size={16} /></span>
               </div>
             ) : (
               <span className="inst-unassigned">Non assigné pour le moment</span>
@@ -466,9 +508,18 @@ export default function InstallationDetail() {
 
           <div className="inst-assignment-box">
             <span className="inst-assignment-lbl">Date prévue d'intervention</span>
-            <div className="inst-date-badge">
+            <div className={`inst-date-badge ${!folder.plannedDate ? 'is-unplanned' : ''}`}>
               <Calendar size={15} />
               <strong>{folder.plannedDate ? formatDateShort(folder.plannedDate) : 'À planifier'}</strong>
+              {!folder.plannedDate && canManage && (
+                <button
+                  type="button"
+                  className="inst-assign-change-btn"
+                  onClick={() => setShowAssignModal(true)}
+                >
+                  Définir
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -576,10 +627,10 @@ export default function InstallationDetail() {
         </button>
         <button
           type="button"
-          className={`inst-tab-btn ${activeTab === 'chat' ? 'is-active' : ''}`}
+          className={`inst-tab-btn ${activeTab === 'chat' ? 'is-active' : ''} ${!folder.assignedTechnician ? 'is-locked-tab' : ''}`}
           onClick={() => setActiveTab('chat')}
         >
-          <MessageSquare size={15} /> Messagerie & Vocaux direct
+          <MessageSquare size={15} /> Messagerie & Vocaux direct {!folder.assignedTechnician && <small style={{ opacity: 0.7, fontSize: 11 }}>(Assignation requise)</small>}
         </button>
       </nav>
 
@@ -880,14 +931,60 @@ export default function InstallationDetail() {
           </div>
         )}
 
-        {/* Onglet 5 : Messagerie & Vocaux direct (Chat WhatsApp) */}
+        {/* Onglet 5 : Messagerie & Vocaux direct (Chat avec le technicien) */}
         {activeTab === 'chat' && (
           <div className="inst-chat-tab-wrap">
-            <InstallationChat
-              installationId={folder._id}
-              title={`Dossier ${folder.folderNumber}`}
-              recipientName={folder.assignedTechnician ? `${folder.assignedTechnician.prenom} ${folder.assignedTechnician.nom}` : 'Technicien'}
-            />
+            {!folder.assignedTechnician ? (
+              <div style={{
+                padding: '48px 24px',
+                textAlign: 'center',
+                background: '#fff',
+                borderRadius: 16,
+                border: '1.5px dashed #cbd5e1',
+                maxWidth: 580,
+                margin: '24px auto'
+              }}>
+                <div style={{
+                  width: 56,
+                  height: 56,
+                  borderRadius: '50%',
+                  background: '#f1f5f9',
+                  color: '#64748b',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto 16px'
+                }}>
+                  <User size={28} />
+                </div>
+                <h3 style={{ fontSize: 18, fontWeight: 700, color: '#0f172a', marginBottom: 8 }}>
+                  Assignation d'un technicien requise
+                </h3>
+                <p style={{ fontSize: 14, color: '#64748b', lineHeight: 1.5, marginBottom: 20 }}>
+                  Le canal de discussion direct (messages instantanés, photos terrain et notes vocales) s'active automatiquement dès qu'un technicien est assigné à ce dossier d'installation.
+                </p>
+                {canManage ? (
+                  <button
+                    type="button"
+                    className="inst-detail-btn-action is-primary"
+                    style={{ margin: '0 auto' }}
+                    onClick={() => setShowAssignModal(true)}
+                  >
+                    <Wrench size={16} /> Assigner un technicien maintenant
+                  </button>
+                ) : (
+                  <div style={{ fontSize: 13, color: '#94a3b8', fontStyle: 'italic' }}>
+                    En attente d’assignation par l’administrateur ou le responsable.
+                  </div>
+                )}
+              </div>
+            ) : (
+              <InstallationChat
+                installationId={folder._id}
+                title={`Dossier ${folder.folderName || folder.folderNumber}`}
+                recipientName={`${folder.assignedTechnician.prenom} ${folder.assignedTechnician.nom}`}
+              />
+            )}
           </div>
         )}
       </div>

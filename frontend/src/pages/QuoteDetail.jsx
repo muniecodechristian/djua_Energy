@@ -78,7 +78,9 @@ export default function QuoteDetail() {
   const queryClient = useQueryClient();
 
   const [plannedDate, setPlannedDate] = useState('');
+  const [folderName, setFolderName] = useState('');
   const [createdFolder, setCreatedFolder] = useState(null);
+
 
   // Charger le devis par son numéro ou son id
   const { data: quote, isLoading, error } = useQuery({
@@ -89,6 +91,13 @@ export default function QuoteDetail() {
     },
     enabled: Boolean(id),
   });
+
+  // Pré-remplir le nom du dossier avec le nom du client par défaut
+  React.useEffect(() => {
+    if (quote?.customer?.name && !folderName) {
+      setFolderName(`Installation - ${quote.customer.name}`);
+    }
+  }, [quote?.customer?.name]);
 
   // Charger le dossier d'installation associé si existant
   const { data: linkedInstallation } = useQuery({
@@ -107,6 +116,7 @@ export default function QuoteDetail() {
     mutationFn: async () => {
       const res = await api.patch(`/api/quotes/${encodeURIComponent(quote.number)}/approve`, {
         plannedDate,
+        folderName: folderName.trim() || quote.customer?.name || 'Dossier Installation',
       });
       return res.data;
     },
@@ -295,6 +305,38 @@ export default function QuoteDetail() {
               approveMutation.mutate();
             }}
           >
+            {/* Nom du dossier d'installation */}
+            <div className="quote-val-field quote-val-field-full">
+              <label htmlFor="quote-folder-name">Nom du dossier d’installation</label>
+              <div className="quote-val-input-group">
+                <FolderCheck size={17} />
+                <input
+                  id="quote-folder-name"
+                  type="text"
+                  placeholder={`Ex: ${quote.customer?.name || 'Client Kinshasa'}`}
+                  value={folderName}
+                  onChange={(e) => setFolderName(e.target.value)}
+                />
+              </div>
+              <div className="quote-val-chips" style={{ marginTop: '8px' }}>
+                <button
+                  type="button"
+                  className={folderName === (quote.customer?.name || '') ? 'is-active' : ''}
+                  onClick={() => setFolderName(quote.customer?.name || '')}
+                >
+                  Nom du client ({quote.customer?.name || 'Client'})
+                </button>
+                <button
+                  type="button"
+                  className={folderName === `Installation - ${quote.customer?.name || 'Client'}` ? 'is-active' : ''}
+                  onClick={() => setFolderName(`Installation - ${quote.customer?.name || 'Client'}`)}
+                >
+                  Installation - {quote.customer?.name || 'Client'}
+                </button>
+              </div>
+              <p className="quote-val-field-hint">Nom assigné au dossier de suivi dans le tableau de bord d’installation.</p>
+            </div>
+
             <div className="quote-val-field">
               <label htmlFor="quote-planned-date">Date d’intervention / installation prévue</label>
               <div className="quote-val-input-group">

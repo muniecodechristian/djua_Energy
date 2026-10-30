@@ -12,12 +12,17 @@ import {
   markInstalled,
   getInstallationMessages,
   sendInstallationMessage,
-  markInstallationMessagesRead
+  markInstallationMessagesRead,
+  acknowledgeInstallation,
+  listInstallationConversations
 } from '../controllers/installation.controller.js';
 
 const router = Router();
 
 router.use(protect);
+
+// Liste des conversations de chat pour la surveillance (Admin, Superviseur, Technicien)
+router.get('/conversations', listInstallationConversations);
 
 // Vision et listing selon rôles (admin a la vision totale)
 router.get('/', listInstallations);
@@ -25,6 +30,9 @@ router.get('/:id', getInstallationDetail);
 
 // Assignation technicien + date (Admin, Shop Manager & Commercial)
 router.patch('/:id/assign', authorizeRoles('admin', 'administration', 'shop_manager', 'commercial'), assignTechnician);
+
+// Accusé de réception de la mission par le technicien (l'information remonte immédiatement)
+router.post('/:id/acknowledge', authorizeRoles('technician', 'admin', 'administration', 'shop_manager'), acknowledgeInstallation);
 
 // Acceptation de mission par le technicien
 router.patch('/:id/accept', authorizeRoles('technician', 'admin', 'administration', 'shop_manager'), acceptInstallation);

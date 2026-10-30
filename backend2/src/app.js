@@ -131,8 +131,10 @@ app.use("/users/", orangeEnergyRoutes);
 
 // Routes pour relayer les requêtes vers l'API d'IA externe
 app.use("/ai", iaRoutes);
+app.use("/api/ai", iaRoutes);
 
 // Routes Solar Advisor — proxy vers l'API ML du modèle de recommandation
 app.use("/solar", solarRoutes);
+app.use("/api/solar", solarRoutes);
 
 export default app;

@@ -34,6 +34,12 @@ const InstallationFolderSchema = new mongoose.Schema({
     trim: true,
     index: true
   },
+  folderName: {
+    type: String,
+    trim: true,
+    default: '',
+    index: true
+  },
   // Référence vers le devis d'origine
   quote: {
     type: mongoose.Schema.Types.ObjectId,
@@ -123,6 +129,10 @@ const InstallationFolderSchema = new mongoose.Schema({
   commissionedAt: { type: Date, default: null },
   validatedAt: { type: Date, default: null },
   validatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+
+  // Accusé de réception & confirmation de mission par le technicien
+  technicianAcknowledgedAt: { type: Date, default: null },
+  technicianAcknowledgedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
 
   // Matériel IoT & Coordonnées de terrain
   kitId: {

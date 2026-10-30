@@ -48,7 +48,6 @@ export interface InstallPayload {
   diagnosticStatus: DiagnosticStatus;   // Résultat du diagnostic boîtier
   diagnosticChecks: DiagnosticCheck[];  // Détail de chaque vérification
   installedAt: string;                  // ISO timestamp de l'installation
-  clientName?: string;                  // Nom du client (si devis)
   // ── Champs du modèle Kit backend (obligatoires) ──
   clientPhone?: string;                 // N° Orange du client (à saisir si présent)
   installedBy?: string;                 // Identifiant du technicien installateur

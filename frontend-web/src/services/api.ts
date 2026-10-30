@@ -225,3 +225,61 @@ export const kitsApi = {
   },
 };
 
+export interface InstallationItem {
+  _id: string;
+  folderNumber: string;
+  folderName?: string;
+  quoteNumber: string;
+  customer?: {
+    name?: string;
+    phone?: string;
+  };
+  site?: {
+    adresse?: string;
+    ville?: string;
+    quartier?: string;
+  };
+  system?: {
+    panels?: number;
+    panelPower?: number;
+    batteryCapacity?: number;
+    inverterPower?: number;
+  };
+  plannedDate?: string;
+  status: string;
+  technicianAcknowledgedAt?: string;
+  createdBy?: {
+    nom?: string;
+    prenom?: string;
+    role?: string;
+  };
+  createdAt: string;
+}
+
+export const installationApi = {
+  getAssignedInstallations: async (): Promise<InstallationItem[]> => {
+    const { data } = await api.get('/installations');
+    return data?.data?.installations || [];
+  },
+
+  acknowledgeInstallation: async (id: string): Promise<InstallationItem> => {
+    const { data } = await api.post(`/installations/${id}/acknowledge`);
+    return data?.data;
+  },
+
+  getMessages: async (id: string): Promise<{ conversation: any; messages: any[] }> => {
+    const { data } = await api.get(`/installations/${id}/messages`);
+    return data?.data;
+  },
+
+  sendMessage: async (id: string, payload: { content?: string; type?: string; mediaUrl?: string; audioDuration?: number }) => {
+    const { data } = await api.post(`/installations/${id}/messages`, payload);
+    return data?.data;
+  },
+
+  getConversations: async (): Promise<any[]> => {
+    const { data } = await api.get('/installations/conversations');
+    return data?.data || [];
+  },
+};
+
