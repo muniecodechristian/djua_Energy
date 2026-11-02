@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import {
   AlertTriangle, ArrowRight, BellRing, CalendarDays, CheckCircle2, ChevronRight,
   ClipboardList, FileText, PanelsTopLeft, RefreshCw, Wifi, Wrench,
-  Eye, Clock, Zap, AlertOctagon, ShieldCheck, Layers, Search, Folder, User, MapPin
+  Eye, Clock, ShieldCheck, Search, Folder, User
 } from 'lucide-react';
 import api from '../api/axios';
 import PageEntrance from '../components/PageEntrance';
@@ -76,7 +76,7 @@ function quoteCustomer(quote) {
 }
 
 function openQuote(navigate, quote) {
-  navigate('/devis', { state: { focusQuote: quote.number } });
+  navigate(`/devis/${encodeURIComponent(quote.number)}`);
 }
 
 function DashboardKpi({ title, value, note, icon: Icon, tone, onClick }) {
@@ -137,6 +137,7 @@ export default function CommercialDashboard() {
   const toFollowUp = asList(quotesQuery.data?.followUps);
   const criticalAlerts = scopedAlerts.filter(alert => alert.severity === 'critical' || alert.severity === 'high');
   const installationsUnderWatch = new Set(scopedAlerts.map(alert => alert.kitId)).size;
+  const criticalInstallations = new Set(criticalAlerts.map(alert => alert.kitId)).size;
 
   const todoItems = useMemo(() => {
     const followUps = toFollowUp.slice(0, 2).map(quote => ({
@@ -194,6 +195,7 @@ export default function CommercialDashboard() {
   const failedSources = [
     quotesQuery.isError && 'devis',
     alertsQuery.isError && 'alertes',
+    installationsQuery.isError && 'installations',
   ].filter(Boolean);
   const displayName = user?.prenom || user?.name || 'Commercial';
 
@@ -201,33 +203,32 @@ export default function CommercialDashboard() {
     <PageEntrance className="ops-page commercial-dashboard">
       <header className="commercial-heading">
         <div>
-          <p className="ops-eyebrow">VOTRE ESPACE COMMERCIAL</p>
           <h1>Bonjour {displayName}</h1>
           <p>Voici ce qui se passe aujourd’hui sur Djua.</p>
         </div>
-        <div className="commercial-date"><CalendarDays size={16} /><span>{formatKinshasaDate()}<small>Kinshasa, RDC</small></span><button type="button" aria-label="Actualiser le tableau de bord" title="Actualiser" disabled={isRefreshing} onClick={() => { quotesQuery.refetch(); alertsQuery.refetch(); }}><RefreshCw size={15} className={isRefreshing ? 'ops-spin' : ''} /></button></div>
+        <div className="commercial-date"><CalendarDays size={16} /><span>{formatKinshasaDate()}<small>Kinshasa, RDC</small></span><button type="button" aria-label="Actualiser le tableau de bord" title="Actualiser" disabled={isRefreshing || installationsQuery.isFetching} onClick={() => { quotesQuery.refetch(); alertsQuery.refetch(); installationsQuery.refetch(); }}><RefreshCw size={15} className={isRefreshing || installationsQuery.isFetching ? 'ops-spin' : ''} /></button></div>
       </header>
 
-      {failedSources.length > 0 && <div className="ops-notice commercial-notice" role="alert">Certaines données sont indisponibles : {failedSources.join(', ')}.<button onClick={() => { quotesQuery.refetch(); alertsQuery.refetch(); }}>Réessayer</button></div>}
+      {failedSources.length > 0 && <div className="ops-notice commercial-notice" role="alert">Certaines données sont indisponibles : {failedSources.join(', ')}.<button type="button" onClick={() => { quotesQuery.refetch(); alertsQuery.refetch(); installationsQuery.refetch(); }}>Réessayer</button></div>}
 
       {reportNotices.map(notice => <Link className="commercial-install-notice" key={notice._id} to="/devis"><AlertTriangle size={17} /><span><strong>Installation enregistrée à une date différente · {notice.number}</strong><small>{notice.clientName} · Prévue le {notice.plannedDate}, enregistrée le {notice.installedDay} · Kit {notice.kitId}</small></span><ChevronRight size={16} /></Link>)}
 
       <section className="commercial-kpis" aria-label="Indicateurs commerciaux">
         <DashboardKpi title="Dimensionnements en cours" value={quotesQuery.isSuccess ? numberFormat.format(stats.draft || 0) : '—'} note={`${numberFormat.format(draftsToday)} commencé${draftsToday === 1 ? '' : 's'} aujourd’hui`} icon={ClipboardList} tone="orange" onClick={() => navigate('/devis')} />
         <DashboardKpi title="Devis à relancer" value={quotesQuery.isSuccess ? numberFormat.format(stats.draftsToFollowUp || 0) : '—'} note="Sans validation depuis 3 jours" icon={FileText} tone="orange" onClick={() => navigate('/devis')} />
-        <DashboardKpi title="Installations à surveiller" value={alertsQuery.isSuccess ? numberFormat.format(installationsUnderWatch) : '—'} note="Installations avec au moins une alerte ouverte" icon={Wifi} tone="amber" onClick={() => navigate('/parc')} />
-        <DashboardKpi title="Alertes critiques" value={alertsQuery.isSuccess ? numberFormat.format(criticalAlerts.length) : '—'} note="Priorité haute ou critique" icon={AlertTriangle} tone="red" onClick={() => navigate('/parc')} />
+        <DashboardKpi title="Installations à surveiller" value={alertsQuery.isSuccess ? numberFormat.format(installationsUnderWatch) : '—'} note="Avec au moins une alerte ouverte" icon={Wifi} tone="amber" onClick={() => navigate('/parc')} />
+        <DashboardKpi title="Installations critiques" value={alertsQuery.isSuccess ? numberFormat.format(criticalInstallations) : '—'} note="Avec une alerte haute ou critique" icon={AlertTriangle} tone="red" onClick={() => navigate('/parc')} />
       </section>
 
       <div className="commercial-panels">
         <section className="commercial-panel">
-          <header className="commercial-panel-heading"><div><h2>À faire aujourd’hui</h2><p>Vos prochaines actions commerciales et opérationnelles.</p></div><Link to="/devis">Tous les devis <ArrowRight size={14} /></Link></header>
-          {quotesQuery.isPending || alertsQuery.isPending ? <div className="commercial-state"><RefreshCw size={17} className="ops-spin" />Chargement de vos actions…</div> : todoItems.length === 0 ? <div className="commercial-state">Aucune action à afficher pour le moment.</div> : <ul className="commercial-task-list">{todoItems.map(item => { const Icon = item.icon; return <li key={item.key}><i className={`commercial-task-dot ${item.tone}`} /><span className={`commercial-task-icon ${item.tone}`}><Icon size={17} /></span><span className="commercial-task-copy"><strong>{item.title}</strong><b>{item.subject}</b><small>{item.detail}</small></span><button type="button" onClick={item.onClick}>{item.action}</button></li>; })}</ul>}
+          <header className="commercial-panel-heading"><div><h2>À faire aujourd’hui</h2></div><Link to="/devis">Voir tout <ArrowRight size={14} /></Link></header>
+          {quotesQuery.isPending || alertsQuery.isPending ? <div className="commercial-state"><RefreshCw size={17} className="ops-spin" />Chargement de vos actions…</div> : quotesQuery.isError || alertsQuery.isError ? <div className="commercial-state" role="alert">Impossible de charger les actions. Utilisez « Réessayer » pour actualiser les données.</div> : todoItems.length === 0 ? <div className="commercial-state">Aucune action à afficher pour le moment.</div> : <ul className="commercial-task-list">{todoItems.map(item => { const Icon = item.icon; return <li key={item.key}><i className={`commercial-task-dot ${item.tone}`} /><span className={`commercial-task-icon ${item.tone}`}><Icon size={17} /></span><span className="commercial-task-copy"><strong>{item.title}</strong><b>{item.subject}</b><small>{item.detail}</small></span><button type="button" onClick={item.onClick}>{item.action}</button></li>; })}</ul>}
         </section>
 
         <section className="commercial-panel">
-          <header className="commercial-panel-heading"><div><h2>Installations à surveiller</h2><p>Alertes ouvertes sur les installations associées à vos devis.</p></div><Link to="/parc">Voir le parc <ArrowRight size={14} /></Link></header>
-          {alertsQuery.isPending || quotesQuery.isPending ? <div className="commercial-state"><RefreshCw size={17} className="ops-spin" />Chargement des alertes…</div> : installations.length === 0 ? <div className="commercial-state commercial-empty"><CheckCircle2 size={20} /><strong>Aucune installation ne nécessite votre attention</strong><span>Les alertes de vos installations apparaîtront ici dès leur réception.</span><Link to="/parc">Consulter le parc solaire <ArrowRight size={14} /></Link></div> : <ul className="commercial-install-list">{installations.map(alert => {
+          <header className="commercial-panel-heading"><div><h2>Installations à surveiller</h2><p>Les installations nécessitant votre attention.</p></div><Link to="/parc">Voir toutes <ArrowRight size={14} /></Link></header>
+          {alertsQuery.isPending || quotesQuery.isPending ? <div className="commercial-state"><RefreshCw size={17} className="ops-spin" />Chargement des alertes…</div> : alertsQuery.isError || quotesQuery.isError ? <div className="commercial-state" role="alert">Impossible de charger les alertes. Utilisez « Réessayer » pour actualiser les données.</div> : installations.length === 0 ? <div className="commercial-state commercial-empty"><CheckCircle2 size={20} /><strong>Aucune installation ne nécessite votre attention</strong><span>Les alertes de vos installations apparaîtront ici dès leur réception.</span><Link to="/parc">Consulter le parc solaire <ArrowRight size={14} /></Link></div> : <ul className="commercial-install-list">{installations.map(alert => {
             const tone = alert.severity === 'critical' ? 'red' : ['high', 'medium'].includes(alert.severity) ? 'amber' : 'slate';
             return <li key={alert._id || alert.id || alert.kitId + alert.type}>
               <span className={`commercial-install-icon ${tone}`}><BellRing size={15} /></span>
@@ -338,6 +339,11 @@ export default function CommercialDashboard() {
             <div className="commercial-state">
               <RefreshCw size={18} className="ops-spin" />
               <span>Chargement du suivi de vos installations...</span>
+            </div>
+          ) : installationsQuery.isError ? (
+            <div className="commercial-state" role="alert">
+              <AlertTriangle size={18} />
+              <span>Impossible de charger le suivi des installations. Utilisez « Réessayer » pour actualiser les données.</span>
             </div>
           ) : commercialInstallations.length === 0 ? (
             <div className="commercial-state commercial-empty">

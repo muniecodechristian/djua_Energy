@@ -274,6 +274,56 @@ export default function Devis() {
   const mountingPrice = 20;
 
   const totalSystemPrice = panelsTotal + batteryPrice + inverterPrice + installPrice + cablesPrice + mountingPrice;
+  const quoteLineItems = [
+    {
+      category: 'Panneaux solaires',
+      name: `Panneau photovoltaïque ${panelUnitWatt} Wc`,
+      description: 'Production solaire adaptée à la consommation estimée du client.',
+      quantity: recommendedPanelsCount,
+      unit: 'piece',
+      unitPrice: panelUnitPrice,
+    },
+    {
+      category: 'Batterie',
+      name: `Batterie solaire lithium ${batteryKwh} kWh`,
+      description: 'Stockage de l’énergie produite pour alimenter les appareils en soirée et la nuit.',
+      quantity: 1,
+      unit: 'piece',
+      unitPrice: batteryPrice,
+    },
+    {
+      category: 'Onduleur',
+      name: `Onduleur hybride ${inverterKva} kVA`,
+      description: 'Conversion et distribution de l’énergie solaire vers les équipements du client.',
+      quantity: 1,
+      unit: 'piece',
+      unitPrice: inverterPrice,
+    },
+    {
+      category: 'Main-d’œuvre',
+      name: 'Installation et mise en service',
+      description: 'Pose, raccordement et vérification de l’installation.',
+      quantity: 1,
+      unit: 'forfait',
+      unitPrice: installPrice,
+    },
+    {
+      category: 'Câblage',
+      name: 'Câbles et connecteurs solaires',
+      description: 'Raccordement des équipements du système solaire.',
+      quantity: 1,
+      unit: 'forfait',
+      unitPrice: cablesPrice,
+    },
+    {
+      category: 'Fixation',
+      name: 'Support de fixation pour toiture',
+      description: 'Supports nécessaires à la fixation des panneaux.',
+      quantity: 1,
+      unit: 'forfait',
+      unitPrice: mountingPrice,
+    },
+  ];
 
   // Actions liste appareils
   const updateQuantity = (id, delta) => {
@@ -411,6 +461,10 @@ export default function Devis() {
         })),
         amount: totalSystemPrice,
         currency: 'USD',
+        lineItems: quoteLineItems.map(item => ({
+          ...item,
+          currency: 'USD',
+        })),
       };
 
       await api.post('/api/quotes', payload);
@@ -1264,83 +1318,22 @@ export default function Devis() {
                 </tr>
               </thead>
               <tbody>
-                <tr>
-                  <td>
-                    <span className="devis-v2-badge-tag">Panneau solaire</span>
-                    <strong style={{ display: 'block' }}>Panneau photovoltaïque {panelUnitWatt}Wc</strong>
-                  </td>
-                  <td style={{ fontSize: 12, color: '#64748b' }}>
-                    Capte la lumière du soleil pour produire l’électricité.
-                  </td>
-                  <td style={{ textAlign: 'center', fontWeight: 600 }}>{recommendedPanelsCount}</td>
-                  <td style={{ textAlign: 'right', color: '#64748b' }}>{panelUnitPrice} $</td>
-                  <td style={{ textAlign: 'right', fontWeight: 700 }}>{panelsTotal} $</td>
-                </tr>
-
-                <tr>
-                  <td>
-                    <span className="devis-v2-badge-tag">Batterie</span>
-                    <strong style={{ display: 'block' }}>Batterie solaire lithium {batteryKwh} kWh</strong>
-                  </td>
-                  <td style={{ fontSize: 12, color: '#64748b' }}>
-                    Stocke l’énergie produite le jour pour alimenter vos appareils le soir et la nuit.
-                  </td>
-                  <td style={{ textAlign: 'center', fontWeight: 600 }}>1</td>
-                  <td style={{ textAlign: 'right', color: '#64748b' }}>{batteryPrice} $</td>
-                  <td style={{ textAlign: 'right', fontWeight: 700 }}>{batteryPrice} $</td>
-                </tr>
-
-                <tr>
-                  <td>
-                    <span className="devis-v2-badge-tag">Onduleur</span>
-                    <strong style={{ display: 'block' }}>Onduleur hybride {inverterKva} kVA</strong>
-                  </td>
-                  <td style={{ fontSize: 12, color: '#64748b' }}>
-                    Convertit l’énergie solaire en électricité compatible avec vos appareils habituels.
-                  </td>
-                  <td style={{ textAlign: 'center', fontWeight: 600 }}>1</td>
-                  <td style={{ textAlign: 'right', color: '#64748b' }}>{inverterPrice} $</td>
-                  <td style={{ textAlign: 'right', fontWeight: 700 }}>{inverterPrice} $</td>
-                </tr>
-
-                <tr>
-                  <td>
-                    <span className="devis-v2-badge-tag">Main-d’œuvre</span>
-                    <strong style={{ display: 'block' }}>Installation et mise en service</strong>
-                  </td>
-                  <td style={{ fontSize: 12, color: '#64748b' }}>
-                    Pose, raccordement et vérification par un installateur certifié Orange Énergie.
-                  </td>
-                  <td style={{ textAlign: 'center', color: '#64748b', fontSize: 12 }}>forfait</td>
-                  <td style={{ textAlign: 'right', color: '#64748b' }}>-</td>
-                  <td style={{ textAlign: 'right', fontWeight: 700 }}>{installPrice} $</td>
-                </tr>
-
-                <tr>
-                  <td>
-                    <span className="devis-v2-badge-tag">Câblage</span>
-                    <strong style={{ display: 'block' }}>Câbles et connecteurs solaires</strong>
-                  </td>
-                  <td style={{ fontSize: 12, color: '#64748b' }}>
-                    Relient les panneaux, la batterie et l’onduleur en toute sécurité.
-                  </td>
-                  <td style={{ textAlign: 'center', color: '#64748b', fontSize: 12 }}>forfait</td>
-                  <td style={{ textAlign: 'right', color: '#64748b' }}>-</td>
-                  <td style={{ textAlign: 'right', fontWeight: 700 }}>{cablesPrice} $</td>
-                </tr>
-
-                <tr>
-                  <td>
-                    <span className="devis-v2-badge-tag">Fixation</span>
-                    <strong style={{ display: 'block' }}>Support de fixation pour toiture</strong>
-                  </td>
-                  <td style={{ fontSize: 12, color: '#64748b' }}>
-                    Maintient les panneaux solidement fixés sur le toit.
-                  </td>
-                  <td style={{ textAlign: 'center', color: '#64748b', fontSize: 12 }}>forfait</td>
-                  <td style={{ textAlign: 'right', color: '#64748b' }}>-</td>
-                  <td style={{ textAlign: 'right', fontWeight: 700 }}>{mountingPrice} $</td>
-                </tr>
+                {quoteLineItems.map(item => (
+                  <tr key={item.category}>
+                    <td>
+                      <span className="devis-v2-badge-tag">{item.category}</span>
+                      <strong style={{ display: 'block' }}>{item.name}</strong>
+                    </td>
+                    <td style={{ fontSize: 12, color: '#64748b' }}>{item.description}</td>
+                    <td style={{ textAlign: 'center', color: item.unit === 'forfait' ? '#64748b' : undefined, fontWeight: 600 }}>
+                      {item.unit === 'forfait' ? 'forfait' : item.quantity}
+                    </td>
+                    <td style={{ textAlign: 'right', color: '#64748b' }}>
+                      {item.unit === 'forfait' ? '—' : `${item.unitPrice} $`}
+                    </td>
+                    <td style={{ textAlign: 'right', fontWeight: 700 }}>{item.quantity * item.unitPrice} $</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
 
@@ -1367,7 +1360,7 @@ export default function Devis() {
             }}>
               <CheckCircle2 size={20} color="#ff7900" style={{ flexShrink: 0 }} />
               <div style={{ fontSize: 13, color: '#475569', lineHeight: 1.5 }}>
-                Ce devis sera enregistré sous le statut <strong>« À valider »</strong>. Vous pourrez ensuite le consulter dans la liste des devis et cliquer sur <strong>« Valider »</strong> dans sa fiche détaillée pour créer le dossier d'installation sur mesure.
+                Ce devis sera enregistré en attente de la réponse du client. Après acceptation dans sa fiche détaillée, vous pourrez créer le dossier d’installation à partir des données enregistrées.
               </div>
             </div>
 

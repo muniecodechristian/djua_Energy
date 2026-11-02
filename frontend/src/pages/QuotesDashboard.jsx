@@ -1,12 +1,11 @@
 import { useEffect, useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   ArrowDownToLine, ArrowRight, BellRing, CalendarClock, CheckCircle2, ChevronDown,
   ChevronLeft, ChevronRight, CircleDollarSign, FilePlus2, FileText,
   RefreshCw, Search, Users, Eye, Maximize2,
 } from 'lucide-react';
-import { toast } from 'sonner';
 import api from '../api/axios';
 import PageEntrance from '../components/PageEntrance';
 import useAuthStore from '../hooks/Zustand/useAuthStore';
@@ -14,12 +13,13 @@ import QuoteDetailModal from '../components/QuoteDetailModal';
 import './QuotesDashboard.css';
 
 const statusConfig = {
-  draft: { label: 'À valider', tone: 'draft', tab: 'Brouillons' },
-  approved: { label: 'Validé · installation prévue', tone: 'approved', tab: 'Validés' },
+  draft: { label: 'En attente', tone: 'draft', tab: 'En attente' },
+  approved: { label: 'Accepté', tone: 'approved', tab: 'Acceptés' },
+  rejected: { label: 'Refusé', tone: 'rejected', tab: 'Refusés' },
   installing: { label: 'Installation en cours', tone: 'installing', tab: 'En installation' },
   installed: { label: 'Installé', tone: 'installed', tab: 'Installés' },
 };
-const statusTabs = ['', 'draft', 'validated', 'installing', 'installed'];
+const statusTabs = ['', 'draft', 'approved', 'installing', 'installed', 'rejected'];
 const nf = new Intl.NumberFormat('fr-FR');
 
 function kinshasaToday() {
@@ -93,27 +93,16 @@ function MetricCard({ icon: Icon, label, value, note, tone, progress, onClick })
     {onClick && <span className={`quotes-metric-action ${tone}`}><ArrowRight size={15} /></span>}
   </>;
   return onClick
-    ? <button type="button" className="quotes-metric" onClick={onClick}>{content}</button>
-    : <article className="quotes-metric">{content}</article>;
+    ? <button type="button" className={`quotes-metric ${tone}`} onClick={onClick}>{content}</button>
+    : <article className={`quotes-metric ${tone}`}>{content}</article>;
 }
 
 function QuoteRow({ quote, focusQuote, currentUser, onViewDetails }) {
   const [expanded, setExpanded] = useState(quote.number === focusQuote);
-  const [date, setDate] = useState('');
-  const cache = useQueryClient();
   const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'administration';
   const isCreator = quote.owner && (String(quote.owner) === String(currentUser?._id) || String(quote.owner?._id) === String(currentUser?._id));
   const canManageInstallation = isAdmin || isCreator;
 
-  const validation = useMutation({
-    mutationFn: async () => api.patch(`/api/quotes/${encodeURIComponent(quote.number)}/approve`, { plannedDate: date }),
-    onSuccess: () => {
-      toast.success('Devis validé. La date prévue est enregistrée.');
-      cache.invalidateQueries({ queryKey: ['quote-workspace'] });
-      cache.invalidateQueries({ queryKey: ['sales-quotes'] });
-    },
-    onError: error => toast.error(error.response?.data?.message || 'Impossible de valider ce devis.'),
-  });
   const status = statusConfig[quote.status] || { label: 'Statut inconnu', tone: 'unknown' };
 
   return <>
@@ -129,10 +118,10 @@ function QuoteRow({ quote, focusQuote, currentUser, onViewDetails }) {
       <td><span className={`quotes-status ${status.tone}`}><i />{status.label}</span></td>
       <td>
         <span className="quotes-next-action">
-          {quote.status === 'draft' ? (canManageInstallation ? 'Relancer / valider' : 'En attente de validation') : quote.status === 'installed' ? 'Installation terminée' : 'Suivre l’installation'}
+          {quote.status === 'draft' ? (canManageInstallation ? 'Enregistrer la réponse' : 'En attente de réponse') : quote.status === 'rejected' ? 'Devis refusé' : quote.status === 'installed' ? 'Installation terminée' : 'Suivre l’installation'}
         </span>
         <small>
-          {quote.status === 'draft' ? 'Proposition en attente' : (canManageInstallation && quote.plannedDate) ? `Prévue le ${formatDate(quote.plannedDate)}` : quote.kitId || 'Étape suivante à confirmer'}
+          {quote.status === 'draft' ? 'Réponse client attendue' : (canManageInstallation && quote.plannedDate) ? `Prévue le ${formatDate(quote.plannedDate)}` : quote.kitId || 'Étape suivante à confirmer'}
         </small>
       </td>
       <td>{(canManageInstallation && quote.plannedDate) ? formatDate(quote.plannedDate) : '—'}</td>
@@ -171,20 +160,20 @@ function QuoteRow({ quote, focusQuote, currentUser, onViewDetails }) {
       {quote.status === 'draft' && canManageInstallation && (
         <div style={{ marginTop: 12, padding: '12px 16px', background: 'rgba(255, 121, 0, 0.06)', border: '1px solid rgba(255, 121, 0, 0.2)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
           <div>
-            <strong style={{ fontSize: 13, color: '#0f172a', display: 'block' }}>Validation & Création du Dossier d'Installation</strong>
-            <span style={{ fontSize: 12, color: '#64748b' }}>Nommez le dossier de chantier (ou nom client par défaut) et confirmez la date d’intervention.</span>
+            <strong style={{ fontSize: 13, color: '#0f172a', display: 'block' }}>Réponse du client attendue</strong>
+            <span style={{ fontSize: 12, color: '#64748b' }}>Enregistrez d’abord son acceptation ; le dossier sera créé ensuite.</span>
           </div>
           <button
             type="button"
             style={{ background: '#ff7900', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
             onClick={() => onViewDetails()}
           >
-            <CheckCircle2 size={15} /> Valider le devis <ArrowRight size={14} />
+            <CheckCircle2 size={15} /> Ouvrir le suivi <ArrowRight size={14} />
           </button>
         </div>
       )}
       {quote.status === 'draft' && !canManageInstallation && (
-        <p className="text-xs text-zinc-500 italic mt-2">La validation du devis et la fixation de la date d’installation sont réservées à son créateur et à l'administrateur.</p>
+        <p className="text-xs text-zinc-500 italic mt-2">L’enregistrement de la réponse du client est réservé au créateur du devis et à l’administration.</p>
       )}
     </div></td></tr>}
   </>;
@@ -227,10 +216,9 @@ export default function QuotesDashboard() {
   const stats = data?.stats || {};
   const quotes = data?.quotes || [];
   const drafts = Number(stats.draft) || 0;
-  const validated = (Number(stats.approved) || 0) + (Number(stats.installing) || 0) + (Number(stats.installed) || 0);
+  const accepted = Number(stats.approved) || 0;
   const total = Number(stats.total) || 0;
   const followUpCount = Number(stats.draftsToFollowUp) || 0;
-  const maxCount = Math.max(drafts, validated, 1);
   const pages = Math.max(1, Math.ceil((data?.total || 0) / (data?.pageSize || 30)));
   const role = user?.role === 'admin' || user?.role === 'administration'
     ? 'de l’ensemble des espaces'
@@ -250,18 +238,18 @@ export default function QuotesDashboard() {
   return (
     <PageEntrance className="ops-page quotes-workspace">
       <header className="quotes-workspace-heading">
-        <div><p className="ops-eyebrow">SUIVI COMMERCIAL</p><h1>Devis</h1><p>Suivez vos propositions, retrouvez vos clients et reprenez les actions en attente.</p></div>
+        <div><h1>Devis</h1><p>Suivez vos propositions commerciales et les clients à relancer.</p></div>
         <div className="quotes-workspace-actions">
-          <button className="quotes-export-button" type="button" disabled={!quotes.length} onClick={() => exportQuotes(quotes)}><ArrowDownToLine size={15} />Exporter cette page</button>
-          <Link className="quotes-create-button" to="/devis/nouveau"><FilePlus2 size={16} />Créer un devis solaire</Link>
+          <button className="quotes-export-button" type="button" disabled={!quotes.length} onClick={() => exportQuotes(quotes)}><ArrowDownToLine size={15} />Exporter <ChevronDown size={13} /></button>
+          <Link className="quotes-create-button" to="/devis/nouveau"><FilePlus2 size={15} />Nouveau devis</Link>
         </div>
       </header>
 
       <section className="quotes-metrics" aria-label="Indicateurs de devis">
-        <MetricCard icon={FileText} label="À valider" value={query.isSuccess ? nf.format(drafts) : '—'} note={`${nf.format(total)} proposition${total === 1 ? '' : 's'} ${role}`} tone="orange" progress={Math.min(100, drafts / maxCount * 100)} onClick={() => chooseStatus('draft')} />
-        <MetricCard icon={BellRing} label="À relancer" value={query.isSuccess ? nf.format(followUpCount) : '—'} note={`${data?.followUps?.length || 0} priorité(s) à traiter`} tone="amber" progress={total ? Math.min(100, followUpCount / total * 100) : 0} onClick={toggleFollowUps} />
-        <MetricCard icon={CheckCircle2} label="Validés" value={query.isSuccess ? nf.format(validated) : '—'} note={total ? `${Math.round(validated / total * 100)} % des devis enregistrés` : 'Aucun devis enregistré'} tone="green" progress={total ? Math.min(100, validated / total * 100) : 0} onClick={() => chooseStatus('validated')} />
-        <MetricCard icon={CircleDollarSign} label="Montant en attente" value={query.isSuccess ? formatPending(stats.valuePendingByCurrency) : '—'} note="Devis non encore installés · par devise" tone="value" />
+        <MetricCard icon={FileText} label="Devis en attente" value={query.isSuccess ? nf.format(drafts) : '—'} note={`${nf.format(total)} proposition${total === 1 ? '' : 's'} ${role}`} tone="orange" progress={total ? Math.min(100, drafts / total * 100) : 0} onClick={() => chooseStatus('draft')} />
+        <MetricCard icon={BellRing} label="À relancer" value={query.isSuccess ? nf.format(followUpCount) : '—'} note="Sans réponse depuis au moins 3 jours" tone="amber" progress={total ? Math.min(100, followUpCount / total * 100) : 0} onClick={toggleFollowUps} />
+        <MetricCard icon={CheckCircle2} label="Acceptés" value={query.isSuccess ? nf.format(accepted) : '—'} note={total ? `Taux d’acceptation · ${Math.round(accepted / total * 100)} %` : 'Aucun devis enregistré'} tone="green" progress={total ? Math.min(100, accepted / total * 100) : 0} onClick={() => chooseStatus('approved')} />
+        <MetricCard icon={CircleDollarSign} label="Valeur en attente" value={query.isSuccess ? formatPending(stats.valuePendingByCurrency) : '—'} note="Montants des devis actifs · par devise" tone="value" />
       </section>
 
       {query.isSuccess && followUpCount > 0 && <button type="button" className={`quotes-follow-up${followUpsOnly ? ' is-active' : ''}`} onClick={toggleFollowUps}>
@@ -275,17 +263,17 @@ export default function QuotesDashboard() {
         </header>
         <div className="quotes-status-tabs" role="tablist" aria-label="Filtrer les devis par statut">
           <button type="button" role="tab" aria-selected={!status && !followUpsOnly} className={!status && !followUpsOnly ? 'is-active' : ''} onClick={() => { setFollowUpsOnly(false); setStatus(''); setPage(1); }}>Tous <span>{query.isSuccess ? nf.format(total) : '—'}</span></button>
-          {statusTabs.slice(1).map(key => <button type="button" key={key} role="tab" aria-selected={status === key} className={status === key ? 'is-active' : ''} onClick={() => chooseStatus(key)}>{key === 'validated' ? 'Validés' : statusConfig[key].tab} <span>{query.isSuccess ? nf.format(key === 'validated' ? validated : stats[key] || 0) : '—'}</span></button>)}
+          {statusTabs.slice(1).map(key => <button type="button" key={key} role="tab" aria-selected={status === key} className={status === key ? 'is-active' : ''} onClick={() => chooseStatus(key)}>{statusConfig[key].tab} <span>{query.isSuccess ? nf.format(stats[key] || 0) : '—'}</span></button>)}
         </div>
 
         {query.isPending && <div className="quotes-table-state"><RefreshCw size={18} className="ops-spin" />Chargement des devis…</div>}
         {query.isError && <div className="quotes-table-state is-error" role="alert"><FileText size={19} /><strong>Impossible de charger les devis.</strong><span>Vérifiez votre connexion puis réessayez.</span><button type="button" onClick={() => query.refetch()}>Réessayer</button></div>}
-        {query.isSuccess && data.quotes.length === 0 && <div className="quotes-table-state"><FileText size={20} /><strong>{term ? 'Aucun résultat pour cette recherche.' : followUpsOnly ? 'Aucune relance à effectuer.' : status ? `Aucun devis au statut « ${status === 'validated' ? 'Validés' : statusConfig[status]?.tab} ».` : 'Aucun devis enregistré pour le moment.'}</strong><span>{!term && !followUpsOnly && !status ? 'Créez votre première proposition pour commencer le suivi.' : 'Modifiez vos filtres ou votre recherche.'}</span>{!term && !followUpsOnly && !status && <Link to="/devis/nouveau">Créer un devis solaire <ArrowRight size={14} /></Link>}</div>}
-        {query.isSuccess && data.quotes.length > 0 && <div className="quotes-table-scroll"><table className="quotes-table"><thead><tr><th aria-label="Détails" /><th>Devis</th><th>Client</th><th>Montant estimé</th><th>Statut</th><th>Prochaine action</th><th>Installation prévue</th><th>Détails</th></tr></thead><tbody>{data.quotes.map(quote => <QuoteRow key={quote._id || quote.number} quote={quote} focusQuote={focusQuote} currentUser={user} onViewDetails={() => navigate(`/devis/${encodeURIComponent(quote.number)}`)} />)}</tbody></table></div>}
+        {query.isSuccess && data.quotes.length === 0 && <div className="quotes-table-state"><FileText size={20} /><strong>{term ? 'Aucun résultat pour cette recherche.' : followUpsOnly ? 'Aucune relance à effectuer.' : status ? `Aucun devis au statut « ${statusConfig[status]?.tab} ».` : 'Aucun devis enregistré pour le moment.'}</strong><span>{!term && !followUpsOnly && !status ? 'Créez votre première proposition pour commencer le suivi.' : 'Modifiez vos filtres ou votre recherche.'}</span>{!term && !followUpsOnly && !status && <Link to="/devis/nouveau">Créer un devis solaire <ArrowRight size={14} /></Link>}</div>}
+        {query.isSuccess && data.quotes.length > 0 && <div className="quotes-table-scroll"><table className="quotes-table"><thead><tr><th aria-label="Développer les détails" /><th>Devis</th><th>Client</th><th>Montant</th><th>Statut</th><th>Prochaine action</th><th>Date</th><th aria-label="Consulter le devis" /></tr></thead><tbody>{data.quotes.map(quote => <QuoteRow key={quote._id || quote.number} quote={quote} focusQuote={focusQuote} currentUser={user} onViewDetails={() => navigate(`/devis/${encodeURIComponent(quote.number)}`)} />)}</tbody></table></div>}
 
         {query.isSuccess && data.total > 0 && <footer className="quotes-pagination"><span>{nf.format(Math.min((page - 1) * (data.pageSize || 30) + 1, data.total))}–{nf.format(Math.min(page * (data.pageSize || 30), data.total))} sur {nf.format(data.total)} devis</span><div><button type="button" aria-label="Page précédente" disabled={page === 1 || query.isFetching} onClick={() => setPage(value => value - 1)}><ChevronLeft size={15} /></button><span>Page {page} sur {pages}</span><button type="button" aria-label="Page suivante" disabled={page >= pages || query.isFetching} onClick={() => setPage(value => value + 1)}><ChevronRight size={15} /></button></div></footer>}
       </section>
-      <p className="quotes-data-note"><CalendarClock size={13} />Les relances sont calculées à partir des brouillons sans validation depuis au moins trois jours. Les montants sont exprimés en Franc Congolais (FC).</p>
+      <p className="quotes-data-note"><CalendarClock size={13} />Les relances sont calculées à partir des devis en attente de réponse depuis au moins trois jours. Les montants sont exprimés en Franc Congolais (FC).</p>
 
       {activeDetailQuote && (
         <QuoteDetailModal

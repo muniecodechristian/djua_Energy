@@ -1,11 +1,10 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  ArrowLeft, Printer, Download, Calendar, CheckCircle2,
-  Clock, MapPin, Phone, Mail, Building2, User, Sun,
-  Battery, Zap, ShieldCheck, FileText, ArrowRight,
-  FolderCheck, Sparkles, Check, ChevronRight, AlertTriangle
+  ArrowLeft, ArrowRight, Battery, Calendar, Check, CheckCircle2,
+  Clock3, FileText, FolderPlus, MapPin, Mail, Phone,
+  Printer, ShieldCheck, Sun, UserRound, X, Zap
 } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../api/axios';
@@ -13,44 +12,27 @@ import useAuthStore from '../hooks/Zustand/useAuthStore';
 import './QuoteDetail.css';
 
 const statusConfig = {
-  draft: { label: 'À valider', tone: 'draft', desc: 'En attente de validation commerciale' },
-  approved: { label: 'Validé · Installation créée', tone: 'approved', desc: 'Dossier d’installation planifié' },
-  installing: { label: 'Installation en cours', tone: 'installing', desc: 'Travaux sur le site client' },
-  installed: { label: 'Installé & Opérationnel', tone: 'installed', desc: 'Système mis en service avec succès' },
+  draft: { label: 'En attente', tone: 'draft' },
+  approved: { label: 'Accepté', tone: 'approved' },
+  rejected: { label: 'Refusé', tone: 'rejected' },
+  installing: { label: 'Installation en cours', tone: 'installing' },
+  installed: { label: 'Installé', tone: 'installed' },
 };
 
-function formatCurrency(amount, currency = 'CDF') {
+const formatCurrency = (amount, currency = 'CDF') => {
   if (amount == null) return '—';
-  const displayCurrency = (!currency || currency === 'XAF' || currency === 'CDF' || currency === 'FC') ? 'Francs' : currency;
-  return new Intl.NumberFormat('fr-CD', { maximumFractionDigits: 0 }).format(amount) + ' ' + displayCurrency;
-}
+  return `${new Intl.NumberFormat('fr-CD', { maximumFractionDigits: 0 }).format(Number(amount))} ${currency}`;
+};
 
-function formatDate(date) {
-  if (!date) return '—';
-  try {
-    return new Intl.DateTimeFormat('fr-FR', {
-      day: '2-digit',
-      month: 'long',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    }).format(new Date(date));
-  } catch {
-    return String(date);
-  }
-}
-
-function formatDateShort(date) {
-  if (!date) return '—';
-  try {
-    return new Intl.DateTimeFormat('fr-FR', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric'
-    }).format(new Date(date));
-  } catch {
-    return String(date);
-  }
+function formatDate(value, withTime = false) {
+  if (!value || !Number.isFinite(new Date(value).getTime())) return 'Non renseignée';
+  return new Intl.DateTimeFormat('fr-FR', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'Africa/Kinshasa',
+    ...(withTime ? { hour: '2-digit', minute: '2-digit' } : {}),
+  }).format(new Date(value));
 }
 
 function todayKinshasa() {
@@ -60,15 +42,12 @@ function todayKinshasa() {
     month: '2-digit',
     day: '2-digit',
   }).formatToParts(new Date());
-  return parts.find(p => p.type === 'year').value + '-' +
-         parts.find(p => p.type === 'month').value + '-' +
-         parts.find(p => p.type === 'day').value;
+  return parts.filter(part => ['year', 'month', 'day'].includes(part.type)).map(part => part.value).join('-');
 }
 
-function addDays(days) {
-  const date = new Date(`${todayKinshasa()}T00:00:00Z`);
-  date.setUTCDate(date.getUTCDate() + days);
-  return date.toISOString().slice(0, 10);
+function personName(person) {
+  if (!person || typeof person !== 'object') return 'Non renseigné';
+  return [person.prenom, person.nom].filter(Boolean).join(' ') || 'Non renseigné';
 }
 
 export default function QuoteDetail() {
@@ -76,643 +55,352 @@ export default function QuoteDetail() {
   const navigate = useNavigate();
   const currentUser = useAuthStore(state => state.user);
   const queryClient = useQueryClient();
-
-  const [plannedDate, setPlannedDate] = useState(() => todayKinshasa());
+  const [activeTab, setActiveTab] = useState('follow-up');
   const [folderName, setFolderName] = useState('');
+  const [plannedDate, setPlannedDate] = useState('');
   const [createdFolder, setCreatedFolder] = useState(null);
 
-  // Charger le devis par son numéro ou son id
   const { data: quote, isLoading, error } = useQuery({
     queryKey: ['quote-detail', id],
     queryFn: async () => {
-      const res = await api.get(`/api/quotes/${encodeURIComponent(id)}`);
-      return res.data?.data;
+      const response = await api.get(`/api/quotes/${encodeURIComponent(id)}`);
+      return response.data?.data;
     },
     enabled: Boolean(id),
   });
 
-  // Pré-remplir le nom du dossier avec le nom du client par défaut
-  React.useEffect(() => {
-    if (quote?.customer?.name && !folderName) {
-      setFolderName(`Installation - ${quote.customer.name}`);
-    }
-  }, [quote?.customer?.name]);
-
-  // Charger le dossier d'installation associé si existant
-  const { data: linkedInstallation } = useQuery({
+  const { data: linkedInstallation, isLoading: isLoadingInstallation, error: installationError, refetch: refetchInstallation } = useQuery({
     queryKey: ['quote-linked-installation', quote?.number],
     queryFn: async () => {
-      if (!quote?.number) return null;
-      const res = await api.get(`/api/installations?search=${encodeURIComponent(quote.number)}`);
-      const list = res.data?.data?.installations || [];
-      return list.find(item => item.quoteNumber === quote.number || item.quote?._id === quote._id) || null;
+      const response = await api.get(`/api/installations?search=${encodeURIComponent(quote.number)}`);
+      const installations = response.data?.data?.installations || [];
+      return installations.find(item => item.quoteNumber === quote.number || item.quote?._id === quote._id) || null;
     },
     enabled: Boolean(quote?.number),
   });
 
-  // Mutation validation devis -> crée automatiquement le dossier d'installation
-  const approveMutation = useMutation({
+  const refreshQuoteViews = () => {
+    queryClient.invalidateQueries({ queryKey: ['quote-detail', id] });
+    queryClient.invalidateQueries({ queryKey: ['quote-linked-installation', quote?.number] });
+    queryClient.invalidateQueries({ queryKey: ['quote-workspace'] });
+    queryClient.invalidateQueries({ queryKey: ['sales-quotes'] });
+    queryClient.invalidateQueries({ queryKey: ['admin-reports-quotes'] });
+    queryClient.invalidateQueries({ queryKey: ['installations'] });
+  };
+
+  const acceptMutation = useMutation({
     mutationFn: async () => {
-      const targetDate = plannedDate || todayKinshasa();
-      const targetName = folderName.trim() || `Installation - ${quote.customer?.name || 'Client'}`;
-      const res = await api.patch(`/api/quotes/${encodeURIComponent(quote.number)}/approve`, {
-        plannedDate: targetDate,
-        folderName: targetName,
+      const response = await api.patch(`/api/quotes/${encodeURIComponent(quote.number)}/approve`);
+      return response.data?.data;
+    },
+    onSuccess: () => {
+      toast.success('L’acceptation du devis a été enregistrée.');
+      refreshQuoteViews();
+    },
+    onError: errorResponse => toast.error(errorResponse.response?.data?.message || 'Impossible d’enregistrer l’acceptation.'),
+  });
+
+  const rejectMutation = useMutation({
+    mutationFn: async () => {
+      const response = await api.patch(`/api/quotes/${encodeURIComponent(quote.number)}/reject`);
+      return response.data?.data;
+    },
+    onSuccess: () => {
+      toast.success('Le refus du devis a été enregistré.');
+      refreshQuoteViews();
+    },
+    onError: errorResponse => toast.error(errorResponse.response?.data?.message || 'Impossible d’enregistrer le refus.'),
+  });
+
+  const createFolderMutation = useMutation({
+    mutationFn: async () => {
+      const response = await api.post(`/api/quotes/${encodeURIComponent(quote.number)}/installation`, {
+        folderName: folderName.trim() || `Installation - ${quote.customer?.name || quote.number}`,
+        ...(plannedDate ? { plannedDate } : {}),
       });
-      return res.data;
+      return response.data?.data;
     },
-    onSuccess: (data) => {
-      toast.success('Devis validé ! Le dossier d’installation a été créé automatiquement.');
-      setCreatedFolder(data?.installationFolder || true);
-      queryClient.invalidateQueries({ queryKey: ['quote-detail', id] });
-      queryClient.invalidateQueries({ queryKey: ['quote-workspace'] });
-      queryClient.invalidateQueries({ queryKey: ['sales-quotes'] });
-      queryClient.invalidateQueries({ queryKey: ['installations'] });
-      const folderId = data?.installationFolder?._id;
-      if (folderId) {
-        setTimeout(() => {
-          navigate(`/installations/${folderId}`);
-        }, 1200);
-      }
+    onSuccess: folder => {
+      setCreatedFolder(folder);
+      toast.success('Le dossier d’installation a été créé.');
+      refreshQuoteViews();
     },
-    onError: (err) => {
-      toast.error(err.response?.data?.message || 'Erreur lors de la validation du devis.');
-    },
+    onError: errorResponse => toast.error(errorResponse.response?.data?.message || 'Impossible de créer le dossier d’installation.'),
   });
 
   if (isLoading) {
-    return (
-      <div className="quote-detail-loading-screen">
-        <div className="quote-detail-spinner" />
-        <p>Chargement du devis en cours…</p>
-      </div>
-    );
+    return <div className="quote-detail-loading-screen"><div className="quote-detail-spinner" /><p>Chargement du devis…</p></div>;
   }
 
   if (error || !quote) {
     return (
       <div className="quote-detail-error-container">
-        <AlertTriangle size={48} className="quote-detail-error-icon" />
         <h2>Devis introuvable</h2>
         <p>Le devis demandé n'existe pas ou vous n'avez pas l'autorisation d'y accéder.</p>
-        <Link to="/devis" className="quote-detail-back-btn">
-          <ArrowLeft size={16} /> Retour à la liste des devis
-        </Link>
+        <Link to="/devis" className="quote-detail-back-btn"><ArrowLeft size={16} />Retour aux devis</Link>
       </div>
     );
   }
 
-  const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'administration';
-  const isCreator = quote.owner && (
-    String(quote.owner._id || quote.owner) === String(currentUser?._id)
-  );
-  const isShopManager = currentUser?.role === 'shop_manager';
-  const canValidate = (isAdmin || isCreator || isShopManager) && quote.status === 'draft';
-
+  const isAdmin = ['admin', 'administration'].includes(currentUser?.role);
+  const isCreator = quote.owner && String(quote.owner._id || quote.owner) === String(currentUser?._id);
+  const isShopManager = currentUser?.role === 'shop_manager' &&
+    (!quote.shopManager || String(quote.shopManager._id || quote.shopManager) === String(currentUser?._id));
+  const canManageQuote = isAdmin || isCreator || isShopManager;
+  const canRecordDecision = canManageQuote && quote.status === 'draft';
+  const isAccepted = ['approved', 'installing', 'installed'].includes(quote.status);
   const customer = quote.customer || {};
-  const details = customer.details || {};
+  const customerDetails = customer.details || {};
   const site = quote.site || {};
   const system = quote.system || {};
   const appliances = Array.isArray(quote.appliances) ? quote.appliances : [];
-  const status = statusConfig[quote.status] || { label: quote.status, tone: 'draft', desc: '' };
-
-  const totalWh = appliances.reduce((sum, item) => sum + (Number(item.quantity || 1) * Number(item.watts || 0) * Number(item.hours || 0)), 0);
-  const totalWatts = appliances.reduce((sum, item) => sum + (Number(item.quantity || 1) * Number(item.watts || 0)), 0);
-
-  const installationFolderId = linkedInstallation?._id || createdFolder?._id;
-  const installationFolderNumber = linkedInstallation?.folderNumber || createdFolder?.folderNumber;
+  const lineItems = Array.isArray(quote.lineItems) ? quote.lineItems : [];
+  const status = statusConfig[quote.status] || { label: quote.status || 'Statut inconnu', tone: 'draft' };
+  const installation = createdFolder || linkedInstallation;
+  const installationId = installation?._id;
+  const installationNumber = installation?.folderNumber;
+  const acceptedDate = quote.acceptedAt || quote.validatedAt;
+  const ownerName = personName(quote.owner);
+  const batteryCapacityKwh = Number(system.batteryCapacity || 0) > 100
+    ? Number(system.batteryCapacity) / 1000
+    : Number(system.batteryCapacity || 0);
+  const address = [site.adresse || customer.address, site.quartier, site.commune, site.ville, customerDetails.province]
+    .filter(Boolean)
+    .join(', ');
+  const totalDailyWh = appliances.reduce(
+    (total, appliance) => total + Number(appliance.quantity || 1) * Number(appliance.watts || 0) * Number(appliance.hours || 0),
+    0,
+  );
+  const panelPowerKw = Number(system.panels || 0) * Number(system.panelPower || 0) / 1000;
+  const actionPending = acceptMutation.isPending || rejectMutation.isPending;
 
   return (
-    <div className="quote-detail-page">
-      {/* Barre de navigation supérieure */}
-      <header className="quote-detail-nav">
-        <div className="quote-detail-nav-left">
-          <button
-            type="button"
-            className="quote-detail-back-link"
-            onClick={() => navigate('/devis')}
-          >
-            <ArrowLeft size={16} /> Retour aux devis
+    <main className="quote-detail-page">
+      <header className="quote-detail-nav no-print">
+        <button type="button" className="quote-detail-back-link" onClick={() => navigate('/devis')}>
+          <ArrowLeft size={16} />Retour aux devis
+        </button>
+        <div className="quote-detail-nav-actions">
+          <button type="button" className="quote-detail-btn-secondary" onClick={() => window.print()}>
+            <Printer size={16} />Imprimer / PDF
           </button>
-          <div className="quote-detail-breadcrumb">
-            <span>Devis</span>
-            <ChevronRight size={14} />
-            <strong>{quote.number}</strong>
-          </div>
-        </div>
-
-        <div className="quote-detail-nav-actions no-print">
-          <button
-            type="button"
-            className="quote-detail-btn-secondary"
-            onClick={() => window.print()}
-          >
-            <Printer size={16} /> Imprimer / PDF
-          </button>
-          {quote.status === 'approved' && installationFolderId && (
-            <button
-              type="button"
-              className="quote-detail-btn-primary"
-              onClick={() => navigate(`/installations/${installationFolderId}`)}
-            >
-              <FolderCheck size={16} /> Voir Dossier Installation <ArrowRight size={14} />
-            </button>
-          )}
         </div>
       </header>
 
-      {/* En-tête principal de la fiche */}
-      <section className="quote-detail-hero">
-        <div className="quote-detail-hero-main">
+      <section className="quote-detail-heading">
+        <div>
           <div className="quote-detail-title-row">
-            <span className={`quote-detail-badge ${status.tone}`}>
-              <span className="quote-badge-dot" />
-              {status.label}
-            </span>
-            <span className="quote-detail-number">{quote.number}</span>
-            <span className="quote-detail-created-date">Créé le {formatDateShort(quote.createdAt)}</span>
+            <h1>Devis {quote.number}</h1>
+            <span className={`quote-detail-badge ${status.tone}`}>{status.label}</span>
           </div>
-          <h1 className="quote-detail-client-headline">
-            {customer.name || 'Client sans nom'}
-          </h1>
-          <p className="quote-detail-site-sub">
-            <MapPin size={15} />
-            {[site.adresse, site.quartier, site.commune, site.ville || 'Kinshasa'].filter(Boolean).join(', ') || 'Adresse non renseignée'}
-          </p>
-        </div>
-
-        <div className="quote-detail-hero-financial">
-          <span className="quote-detail-amount-label">Montant Total TTC</span>
-          <div className="quote-detail-amount-val">
-            {formatCurrency(quote.amount, quote.currency)}
-          </div>
-          <span className="quote-detail-amount-sub">
-            Devise officielle : {quote.currency || 'USD'}
-          </span>
+          <p>Créé par {ownerName} · {formatDate(quote.createdAt, true)}</p>
         </div>
       </section>
 
-      {/* Bannière dossier installation si déjà validé */}
-      {(linkedInstallation || createdFolder) && (
-        <div className="quote-detail-installation-banner">
-          <div className="quote-banner-icon-wrap">
-            <FolderCheck size={22} />
-          </div>
-          <div className="quote-banner-info">
-            <span className="quote-banner-tag">Module 2 • Dossier d'Installation Actif</span>
-            <h4>
-              Dossier N° <strong>{installationFolderNumber}</strong>
-            </h4>
-            <p>
-              Créé par{' '}
-              <strong>
-                {quote.validatedBy?.prenom || currentUser?.prenom || 'Le validateur'} {quote.validatedBy?.nom || currentUser?.nom || ''}
-              </strong>
-              {quote.plannedDate && (
-                <> • Date d'intervention prévue : <strong>{formatDateShort(quote.plannedDate)}</strong></>
-              )}
-            </p>
-          </div>
-          {installationFolderId && (
-            <button
-              type="button"
-              className="quote-banner-action-btn"
-              onClick={() => navigate(`/installations/${installationFolderId}`)}
-            >
-              Accéder au suivi d'installation <ArrowRight size={15} />
-            </button>
-          )}
+      <section className="quote-summary-card" aria-label="Résumé du devis">
+        <div className="quote-summary-customer">
+          <span className="quote-summary-icon"><UserRound size={19} /></span>
+          <div><strong>{customer.name || 'Client non renseigné'}</strong><span>{customer.profile === 'entreprise' ? 'Entreprise' : customer.profile === 'personne' ? 'Particulier' : 'Profil non renseigné'}</span><small>{address || 'Adresse du site non renseignée'}</small></div>
         </div>
-      )}
-
-      {/* Panneau de validation et création de dossier (si statut draft et utilisateur autorisé) */}
-      {canValidate && (
-        <section className="quote-detail-validation-card">
-          <div className="quote-validation-header">
-            <div className="quote-val-icon">
-              <Sparkles size={20} />
-            </div>
-            <div>
-              <h3>Validation du Devis & Création du Dossier d'Installation</h3>
-              <p>
-                Conformément au cahier des charges, valider ce devis va créer officiellement le{' '}
-                <strong>dossier d'installation</strong> rattaché à votre compte (<strong>{currentUser?.prenom} {currentUser?.nom}</strong>)
-                avec visibilité complète pour l'administrateur.
-              </p>
-            </div>
-          </div>
-
-          <form
-            className="quote-validation-form-grid"
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (!plannedDate) {
-                toast.error('Veuillez sélectionner la date d’installation prévue.');
-                return;
-              }
-              approveMutation.mutate();
-            }}
-          >
-            {/* Nom du dossier d'installation */}
-            <div className="quote-val-field quote-val-field-full">
-              <label htmlFor="quote-folder-name">Nom du dossier d’installation</label>
-              <div className="quote-val-input-group">
-                <FolderCheck size={17} />
-                <input
-                  id="quote-folder-name"
-                  type="text"
-                  placeholder={`Ex: ${quote.customer?.name || 'Client Kinshasa'}`}
-                  value={folderName}
-                  onChange={(e) => setFolderName(e.target.value)}
-                />
-              </div>
-              <div className="quote-val-chips" style={{ marginTop: '8px' }}>
-                <button
-                  type="button"
-                  className={folderName === (quote.customer?.name || '') ? 'is-active' : ''}
-                  onClick={() => setFolderName(quote.customer?.name || '')}
-                >
-                  Nom du client ({quote.customer?.name || 'Client'})
-                </button>
-                <button
-                  type="button"
-                  className={folderName === `Installation - ${quote.customer?.name || 'Client'}` ? 'is-active' : ''}
-                  onClick={() => setFolderName(`Installation - ${quote.customer?.name || 'Client'}`)}
-                >
-                  Installation - {quote.customer?.name || 'Client'}
-                </button>
-              </div>
-              <p className="quote-val-field-hint">Nom assigné au dossier de suivi dans le tableau de bord d’installation.</p>
-            </div>
-
-            <div className="quote-val-field">
-              <label htmlFor="quote-planned-date">Date d’intervention / installation prévue</label>
-              <div className="quote-val-input-group">
-                <Calendar size={17} />
-                <input
-                  id="quote-planned-date"
-                  type="date"
-                  min={todayKinshasa()}
-                  value={plannedDate}
-                  onChange={(e) => setPlannedDate(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="quote-val-chips">
-                <button
-                  type="button"
-                  className={plannedDate === todayKinshasa() ? 'is-active' : ''}
-                  onClick={() => setPlannedDate(todayKinshasa())}
-                >
-                  Aujourd’hui
-                </button>
-                <button
-                  type="button"
-                  className={plannedDate === addDays(1) ? 'is-active' : ''}
-                  onClick={() => setPlannedDate(addDays(1))}
-                >
-                  Demain
-                </button>
-                <button
-                  type="button"
-                  className={plannedDate === addDays(3) ? 'is-active' : ''}
-                  onClick={() => setPlannedDate(addDays(3))}
-                >
-                  Dans 3 jours
-                </button>
-                <button
-                  type="button"
-                  className={plannedDate === addDays(7) ? 'is-active' : ''}
-                  onClick={() => setPlannedDate(addDays(7))}
-                >
-                  Dans 1 semaine
-                </button>
-              </div>
-            </div>
-
-            <div className="quote-val-submit-col">
-              <button
-                type="submit"
-                className="quote-val-submit-btn"
-                disabled={!plannedDate || approveMutation.isPending}
-              >
-                {approveMutation.isPending ? (
-                  <>Création du dossier en cours…</>
-                ) : (
-                  <>
-                    <CheckCircle2 size={17} /> Valider & Créer le Dossier d'Installation
-                  </>
-                )}
-              </button>
-              <span className="quote-val-help">
-                Action immédiate • Déclenche le flux opérationnel
-              </span>
-            </div>
-          </form>
-        </section>
-      )}
-
-      {/* 4 Métriques clés (icônes strictement monochromes) */}
-      <section className="quote-detail-kpis">
-        <div className="quote-kpi-card">
-          <div className="quote-kpi-icon">
-            <Sun size={19} />
-          </div>
-          <div className="quote-kpi-meta">
-            <span className="quote-kpi-label">Puissance Solaire</span>
-            <strong className="quote-kpi-value">
-              {((Number(system.panels || 0) * Number(system.panelPower || 0)) / 1000).toFixed(1)} kWc
-            </strong>
-            <span className="quote-kpi-sub">
-              {system.panels || 0} panneaux de {system.panelPower || 0} W
-            </span>
-          </div>
-        </div>
-
-        <div className="quote-kpi-card">
-          <div className="quote-kpi-icon">
-            <Battery size={19} />
-          </div>
-          <div className="quote-kpi-meta">
-            <span className="quote-kpi-label">Stockage Batterie</span>
-            <strong className="quote-kpi-value">
-              {system.batteryCapacity || 0} kWh
-            </strong>
-            <span className="quote-kpi-sub">Technologie Lithium LiFePO4</span>
-          </div>
-        </div>
-
-        <div className="quote-kpi-card">
-          <div className="quote-kpi-icon">
-            <Zap size={19} />
-          </div>
-          <div className="quote-kpi-meta">
-            <span className="quote-kpi-label">Puissance Onduleur</span>
-            <strong className="quote-kpi-value">
-              {system.inverterPower || 0} kVA
-            </strong>
-            <span className="quote-kpi-sub">Pur sinus Hybride</span>
-          </div>
-        </div>
-
-        <div className="quote-kpi-card">
-          <div className="quote-kpi-icon">
-            <Clock size={19} />
-          </div>
-          <div className="quote-kpi-meta">
-            <span className="quote-kpi-label">Consommation Estimée</span>
-            <strong className="quote-kpi-value">
-              {(totalWh / 1000).toFixed(1)} kWh/j
-            </strong>
-            <span className="quote-kpi-sub">
-              {appliances.length} appareil(s) recensé(s)
-            </span>
-          </div>
-        </div>
+        <div className="quote-summary-fact"><span><Calendar size={16} />Date du devis</span><strong>{formatDate(quote.createdAt)}</strong></div>
+        <div className="quote-summary-fact"><span><ShieldCheck size={16} />Réponse client</span><strong>{isAccepted ? `Accepté le ${formatDate(acceptedDate, true)}` : quote.rejectedAt ? `Refusé le ${formatDate(quote.rejectedAt, true)}` : 'En attente'}</strong></div>
+        <div className="quote-summary-amount"><span>Montant du devis</span><strong>{formatCurrency(quote.amount, quote.currency)}</strong></div>
       </section>
 
-      {/* Grille principale : Spécifications et Détails */}
-      <div className="quote-detail-grid">
-        {/* Colonne gauche : Client & Site */}
-        <div className="quote-detail-col">
-          {/* Fiche Client */}
-          <div className="quote-section-card">
-            <div className="quote-section-header">
-              <User size={18} className="quote-section-icon" />
-              <h3>Informations Client & Contact</h3>
-            </div>
-            <div className="quote-info-list">
-              <div className="quote-info-row">
-                <span className="quote-info-label">Nom complet / Raison sociale</span>
-                <span className="quote-info-value font-medium">{customer.name || '—'}</span>
-              </div>
-              <div className="quote-info-row">
-                <span className="quote-info-label">Type de profil</span>
-                <span className="quote-info-value capitalize">
-                  {customer.profile === 'entreprise' ? 'Entreprise / Commerce' : 'Particulier'}
-                </span>
-              </div>
-              <div className="quote-info-row">
-                <span className="quote-info-label">Téléphone de contact</span>
-                <span className="quote-info-value font-mono">
-                  <Phone size={13} style={{ display: 'inline', marginRight: 4 }} />
-                  {customer.phone || '—'}
-                </span>
-              </div>
-              {customer.email && (
-                <div className="quote-info-row">
-                  <span className="quote-info-label">Adresse Email</span>
-                  <span className="quote-info-value">
-                    <Mail size={13} style={{ display: 'inline', marginRight: 4 }} />
-                    {customer.email}
-                  </span>
-                </div>
-              )}
-              {details.companyName && (
-                <div className="quote-info-row">
-                  <span className="quote-info-label">Nom de la société</span>
-                  <span className="quote-info-value">{details.companyName}</span>
-                </div>
-              )}
-              {details.rccm && (
-                <div className="quote-info-row">
-                  <span className="quote-info-label">Numéro RCCM</span>
-                  <span className="quote-info-value font-mono">{details.rccm}</span>
-                </div>
-              )}
-              {details.idNationale && (
-                <div className="quote-info-row">
-                  <span className="quote-info-label">ID Nationale</span>
-                  <span className="quote-info-value font-mono">{details.idNationale}</span>
-                </div>
-              )}
-            </div>
-          </div>
+      <div className="quote-detail-layout">
+        <section className="quote-detail-main">
+          <nav className="quote-detail-tabs no-print" aria-label="Sections du devis">
+            <button type="button" className={activeTab === 'follow-up' ? 'is-active' : ''} onClick={() => setActiveTab('follow-up')}>Suivi du devis</button>
+            <button type="button" className={activeTab === 'details' ? 'is-active' : ''} onClick={() => setActiveTab('details')}>Détails du devis</button>
+          </nav>
 
-          {/* Fiche Site d'installation */}
-          <div className="quote-section-card">
-            <div className="quote-section-header">
-              <MapPin size={18} className="quote-section-icon" />
-              <h3>Site de l'Installation</h3>
-            </div>
-            <div className="quote-info-list">
-              <div className="quote-info-row">
-                <span className="quote-info-label">Adresse complète</span>
-                <span className="quote-info-value">{site.adresse || '—'}</span>
-              </div>
-              <div className="quote-info-row">
-                <span className="quote-info-label">Quartier & Commune</span>
-                <span className="quote-info-value">
-                  {[site.quartier, site.commune].filter(Boolean).join(', ') || '—'}
-                </span>
-              </div>
-              <div className="quote-info-row">
-                <span className="quote-info-label">Ville & Province</span>
-                <span className="quote-info-value">{site.ville || 'Kinshasa'}</span>
-              </div>
-              <div className="quote-info-row">
-                <span className="quote-info-label">Type de bâtiment</span>
-                <span className="quote-info-value capitalize">{quote.buildingType || 'Résidentiel'}</span>
-              </div>
-            </div>
-          </div>
+          {activeTab === 'follow-up' ? (
+            <div className="quote-followup-content">
+              {quote.status === 'draft' && (
+                <section className="quote-action-card">
+                  <div className="quote-action-card-heading">
+                    <span className="quote-action-icon pending"><Clock3 size={19} /></span>
+                    <div><h2>Réponse du client attendue</h2><p>Enregistrez la décision du client pour continuer le traitement du devis.</p></div>
+                  </div>
+                  {canRecordDecision ? (
+                    <div className="quote-decision-actions no-print">
+                      <button type="button" className="quote-decision-button accept" disabled={actionPending} onClick={() => acceptMutation.mutate()}>
+                        <Check size={16} />{acceptMutation.isPending ? 'Enregistrement…' : 'Marquer comme accepté'}
+                      </button>
+                      <button type="button" className="quote-decision-button reject" disabled={actionPending} onClick={() => rejectMutation.mutate()}>
+                        <X size={16} />{rejectMutation.isPending ? 'Enregistrement…' : 'Marquer comme refusé'}
+                      </button>
+                    </div>
+                  ) : <p className="quote-action-note">La décision du devis est réservée à son créateur, au responsable shop ou à l’administration.</p>}
+                </section>
+              )}
 
-          {/* Fiche Traçabilité commerciale */}
-          <div className="quote-section-card">
-            <div className="quote-section-header">
-              <ShieldCheck size={18} className="quote-section-icon" />
-              <h3>Gouvernance & Audit Trail</h3>
-            </div>
-            <div className="quote-info-list">
-              <div className="quote-info-row">
-                <span className="quote-info-label">Créé par l'agent</span>
-                <span className="quote-info-value font-medium">
-                  {quote.owner?.prenom} {quote.owner?.nom} ({quote.owner?.role || 'commercial'})
-                </span>
-              </div>
-              <div className="quote-info-row">
-                <span className="quote-info-label">Date de création</span>
-                <span className="quote-info-value">{formatDate(quote.createdAt)}</span>
-              </div>
-              {quote.validatedBy && (
-                <div className="quote-info-row">
-                  <span className="quote-info-label">Validé par</span>
-                  <span className="quote-info-value font-medium">
-                    {quote.validatedBy?.prenom} {quote.validatedBy?.nom}
-                  </span>
+              {quote.status === 'rejected' && (
+                <section className="quote-decision-result rejected">
+                  <span className="quote-action-icon rejected"><X size={20} /></span>
+                  <div><h2>Le devis a été refusé</h2><p>Réponse enregistrée le {formatDate(quote.rejectedAt, true)}.</p></div>
+                </section>
+              )}
+
+              {isAccepted && (
+                <section className="quote-installation-ready">
+                  <div className="quote-ready-heading">
+                    <span className="quote-action-icon accepted"><CheckCircle2 size={21} /></span>
+                    <div><h2>{installation ? 'Dossier d’installation prêt' : 'Le devis a été accepté !'}</h2><p>{installation ? `Le dossier ${installationNumber || ''} est rattaché à ce devis.` : 'Le client est prêt à passer à l’installation. Vous pouvez maintenant créer son dossier.'}</p></div>
+                  </div>
+                  <div className="quote-ready-facts">
+                    <div><span>Décision client</span><strong>Accepté</strong><small>{formatDate(acceptedDate, true)}</small></div>
+                    <div><span>Système proposé</span><strong>{panelPowerKw ? `${panelPowerKw.toLocaleString('fr-FR')} kWc` : 'Puissance non renseignée'} · {batteryCapacityKwh.toLocaleString('fr-FR')} kWh · {system.inverterPower ?? '—'} kVA</strong><small>{system.panels ?? 0} panneau(x) · {system.panelPower ?? 0} W par panneau</small></div>
+                    <div><span>Site d’installation</span><strong>{site.ville || 'Ville non renseignée'}{site.commune ? `, ${site.commune}` : ''}</strong><small>{address || 'Adresse non renseignée'}</small></div>
+                    <div><span>Montant du devis</span><strong>{formatCurrency(quote.amount, quote.currency)}</strong><small>{appliances.length} équipement(s) déclaré(s)</small></div>
+                  </div>
+                  {installationId ? (
+                    <Link className="quote-create-folder-button" to={`/installations/${installationId}`}>
+                      <FolderPlus size={16} />Accéder au dossier<ArrowRight size={15} />
+                    </Link>
+                  ) : installationError ? (
+                    <div className="quote-installation-error" role="alert">
+                      <p>Impossible de vérifier si un dossier existe déjà. Réessayez avant d’en créer un.</p>
+                      <button type="button" className="quote-decision-button" onClick={() => refetchInstallation()}>Réessayer</button>
+                    </div>
+                  ) : canManageQuote ? (
+                    <form className="quote-create-folder-form no-print" onSubmit={event => { event.preventDefault(); createFolderMutation.mutate(); }}>
+                      <label>
+                        Nom du dossier
+                        <input value={folderName} onChange={event => setFolderName(event.target.value)} placeholder={`Installation - ${customer.name || quote.number}`} maxLength={120} />
+                      </label>
+                      <label>
+                        Date d’installation <span>(facultative)</span>
+                        <input type="date" min={todayKinshasa()} value={plannedDate} onChange={event => setPlannedDate(event.target.value)} />
+                      </label>
+                      <button className="quote-create-folder-button" type="submit" disabled={createFolderMutation.isPending || isLoadingInstallation}>
+                        <FolderPlus size={16} />{createFolderMutation.isPending ? 'Création en cours…' : 'Créer le dossier'}
+                      </button>
+                    </form>
+                  ) : <p className="quote-action-note">La création du dossier est réservée au créateur du devis, au responsable shop ou à l’administration.</p>}
+                </section>
+              )}
+
+              {isAccepted && installation && (
+                <div className="quote-installation-notice">
+                  <FileText size={17} /><div><strong>Dossier créé à partir des données du devis</strong><span>Client, site, système et équipements sont repris automatiquement.</span></div>
                 </div>
               )}
-              {quote.validatedAt && (
-                <div className="quote-info-row">
-                  <span className="quote-info-label">Date de validation</span>
-                  <span className="quote-info-value">{formatDate(quote.validatedAt)}</span>
-                </div>
-              )}
             </div>
-          </div>
-        </div>
-
-        {/* Colonne droite : Dimensionnement et Appareils */}
-        <div className="quote-detail-col">
-          {/* Dimensionnement Technique */}
-          <div className="quote-section-card">
-            <div className="quote-section-header">
-              <Zap size={18} className="quote-section-icon" />
-              <h3>Dimensionnement & Équipements</h3>
-            </div>
-            <div className="quote-specs-grid">
-              <div className="quote-spec-box">
-                <span className="quote-spec-lbl">Nombre de panneaux</span>
-                <strong className="quote-spec-val">{system.panels || 0}</strong>
-                <span className="quote-spec-hint">Mono-cristallins</span>
-              </div>
-              <div className="quote-spec-box">
-                <span className="quote-spec-lbl">Puissance unitaire</span>
-                <strong className="quote-spec-val">{system.panelPower || 0} W</strong>
-                <span className="quote-spec-hint">Haute efficience</span>
-              </div>
-              <div className="quote-spec-box">
-                <span className="quote-spec-lbl">Stockage batterie</span>
-                <strong className="quote-spec-val">{system.batteryCapacity || 0} kWh</strong>
-                <span className="quote-spec-hint">BMS intégré</span>
-              </div>
-              <div className="quote-spec-box">
-                <span className="quote-spec-lbl">Puissance onduleur</span>
-                <strong className="quote-spec-val">{system.inverterPower || 0} kVA</strong>
-                <span className="quote-spec-hint">Réseau / Groupe / PV</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Liste des Appareils déclarés */}
-          <div className="quote-section-card">
-            <div className="quote-section-header">
-              <FileText size={18} className="quote-section-icon" />
-              <h3>Bilan Énergétique Client ({appliances.length} appareils)</h3>
-            </div>
-            {appliances.length === 0 ? (
-              <p className="quote-empty-text">Aucun appareil spécifié dans ce devis.</p>
-            ) : (
-              <div className="quote-appliances-table-wrap">
-                <table className="quote-appliances-table">
-                  <thead>
-                    <tr>
-                      <th>Appareil</th>
-                      <th>Quantité</th>
-                      <th>Puissance</th>
-                      <th>Usage</th>
-                      <th>Total / jour</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {appliances.map((app, idx) => {
-                      const dailyWh = Number(app.quantity || 1) * Number(app.watts || 0) * Number(app.hours || 0);
-                      return (
-                        <tr key={idx}>
-                          <td>
-                            <strong>{app.name}</strong>
-                            {app.period && (
-                              <span className="quote-period-pill">
-                                {app.period === 'day' ? 'Journée' : app.period === 'night' ? 'Nuit' : 'Continu'}
-                              </span>
-                            )}
-                          </td>
-                          <td>{app.quantity}</td>
-                          <td>{app.watts} W</td>
-                          <td>{app.hours} h/j</td>
-                          <td>
-                            <strong>{dailyWh >= 1000 ? `${(dailyWh / 1000).toFixed(2)} kWh` : `${dailyWh} Wh`}</strong>
-                          </td>
+          ) : (
+            <div className="quote-technical-details">
+              <section className="quote-detail-section quote-line-items-section">
+                <h2><FileText size={18} />Détail des équipements et prestations</h2>
+                {lineItems.length > 0 ? (
+                  <div className="quote-appliances-wrap">
+                    <table className="quote-appliances-table quote-line-items-table">
+                      <thead><tr><th>Élément</th><th>Détails</th><th>Qté</th><th>Prix unitaire</th><th>Total</th></tr></thead>
+                      <tbody>{lineItems.map((item, index) => (
+                        <tr key={`${item.category}-${item.name}-${index}`}>
+                          <td><span className="quote-line-item-category">{item.category}</span><strong>{item.name}</strong></td>
+                          <td className="quote-line-item-description">{item.description || '—'}</td>
+                          <td>{item.unit === 'forfait' ? 'Forfait' : item.quantity}</td>
+                          <td>{item.unit === 'forfait' ? '—' : formatCurrency(item.unitPrice, item.currency || quote.currency)}</td>
+                          <td><strong>{formatCurrency(item.total ?? Number(item.quantity || 0) * Number(item.unitPrice || 0), item.currency || quote.currency)}</strong></td>
                         </tr>
-                      );
-                    })}
-                  </tbody>
-                  <tfoot>
-                    <tr>
-                      <td colSpan="2"><strong>Total journalier</strong></td>
-                      <td><strong>{totalWatts} W</strong></td>
-                      <td>—</td>
-                      <td>
-                        <strong className="quote-total-highlight">
-                          {(totalWh / 1000).toFixed(2)} kWh/j
-                        </strong>
-                      </td>
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
-            )}
-          </div>
+                      ))}</tbody>
+                      <tfoot><tr><td colSpan="4">Total du devis</td><td><strong>{formatCurrency(quote.amount, quote.currency)}</strong></td></tr></tfoot>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="quote-line-items-unavailable">
+                    <p>La ventilation tarifaire n’a pas été enregistrée pour ce devis. Le montant total conservé en base est :</p>
+                    <strong>{formatCurrency(quote.amount, quote.currency)}</strong>
+                  </div>
+                )}
+              </section>
 
-          {/* Récapitulatif Financier */}
-          <div className="quote-section-card quote-financial-card">
-            <div className="quote-section-header">
-              <FileText size={18} className="quote-section-icon" />
-              <h3>Décomposition Financière</h3>
+              <section className="quote-detail-section">
+                <h2><UserRound size={18} />Informations client</h2>
+                <dl className="quote-detail-facts">
+                  <div><dt>Nom / raison sociale</dt><dd>{customer.name || 'Non renseigné'}</dd></div>
+                  <div><dt>Profil</dt><dd>{customer.profile === 'entreprise' ? 'Entreprise' : customer.profile === 'personne' ? 'Particulier' : 'Non renseigné'}</dd></div>
+                  <div><dt>Téléphone</dt><dd>{customer.phone || 'Non renseigné'}</dd></div>
+                  <div><dt>E-mail</dt><dd>{customer.email || 'Non renseigné'}</dd></div>
+                  {customerDetails.companyName && <div><dt>Société</dt><dd>{customerDetails.companyName}</dd></div>}
+                  {customerDetails.rccm && <div><dt>RCCM</dt><dd>{customerDetails.rccm}</dd></div>}
+                </dl>
+              </section>
+
+              <section className="quote-detail-section">
+                <h2><MapPin size={18} />Site d’installation</h2>
+                <dl className="quote-detail-facts">
+                  <div><dt>Adresse</dt><dd>{site.adresse || customer.address || 'Non renseignée'}</dd></div>
+                  <div><dt>Quartier</dt><dd>{site.quartier || 'Non renseigné'}</dd></div>
+                  <div><dt>Commune</dt><dd>{site.commune || 'Non renseignée'}</dd></div>
+                  <div><dt>Ville</dt><dd>{site.ville || 'Non renseignée'}</dd></div>
+                  <div><dt>Type de bâtiment</dt><dd>{quote.buildingType || 'Non renseigné'}</dd></div>
+                  {Number.isFinite(site.lat) && Number.isFinite(site.lng) && <div><dt>Coordonnées GPS</dt><dd>{site.lat}, {site.lng}</dd></div>}
+                </dl>
+              </section>
+
+              <section className="quote-detail-section">
+                <h2><Zap size={18} />Système proposé</h2>
+                <div className="quote-system-grid">
+                  <div><Sun size={17} /><span>Panneaux</span><strong>{system.panels ?? '—'} × {system.panelPower ?? '—'} W</strong><small>{panelPowerKw ? `${panelPowerKw.toLocaleString('fr-FR')} kWc` : 'Puissance totale non renseignée'}</small></div>
+                  <div><Battery size={17} /><span>Batterie</span><strong>{batteryCapacityKwh.toLocaleString('fr-FR')} kWh</strong></div>
+                  <div><Zap size={17} /><span>Onduleur</span><strong>{system.inverterPower ?? '—'} kVA</strong></div>
+                  <div><Clock3 size={17} /><span>Consommation calculée</span><strong>{(totalDailyWh / 1000).toLocaleString('fr-FR', { maximumFractionDigits: 2 })} kWh/j</strong></div>
+                </div>
+              </section>
+
+              <section className="quote-detail-section">
+                <h2><FileText size={18} />Équipements déclarés ({appliances.length})</h2>
+                {appliances.length ? (
+                  <div className="quote-appliances-wrap"><table className="quote-appliances-table">
+                    <thead><tr><th>Équipement</th><th>Quantité</th><th>Puissance</th><th>Utilisation</th><th>Énergie / jour</th></tr></thead>
+                    <tbody>{appliances.map((appliance, index) => {
+                      const dailyWh = Number(appliance.quantity || 1) * Number(appliance.watts || 0) * Number(appliance.hours || 0);
+                      return <tr key={`${appliance.name}-${index}`}><td>{appliance.name || 'Non renseigné'}</td><td>{appliance.quantity ?? '—'}</td><td>{appliance.watts ?? '—'} W</td><td>{appliance.hours ?? '—'} h/j</td><td>{(dailyWh / 1000).toLocaleString('fr-FR', { maximumFractionDigits: 2 })} kWh</td></tr>;
+                    })}</tbody>
+                    <tfoot><tr><td colSpan="4">Consommation journalière calculée</td><td>{(totalDailyWh / 1000).toLocaleString('fr-FR', { maximumFractionDigits: 2 })} kWh</td></tr></tfoot>
+                  </table></div>
+                ) : <p className="quote-detail-empty">Aucun équipement n’a été enregistré pour ce devis.</p>}
+              </section>
+
+              <section className="quote-detail-section">
+                <h2><ShieldCheck size={18} />Traçabilité</h2>
+                <dl className="quote-detail-facts">
+                  <div><dt>Créé par</dt><dd>{ownerName}</dd></div>
+                  <div><dt>Créé le</dt><dd>{formatDate(quote.createdAt, true)}</dd></div>
+                  {acceptedDate && <div><dt>Accepté le</dt><dd>{formatDate(acceptedDate, true)}</dd></div>}
+                  {quote.rejectedAt && <div><dt>Refusé le</dt><dd>{formatDate(quote.rejectedAt, true)}</dd></div>}
+                  {quote.kitId && <div><dt>Kit associé</dt><dd>{quote.kitId}</dd></div>}
+                </dl>
+              </section>
             </div>
-            <div className="quote-financial-list">
-              <div className="quote-financial-row">
-                <span>Fourniture des kits solaires & accessoires</span>
-                <span>{formatCurrency(Math.round(quote.amount * 0.82), quote.currency)}</span>
-              </div>
-              <div className="quote-financial-row">
-                <span>Main d'œuvre certifiée Djua & câblage</span>
-                <span>{formatCurrency(Math.round(quote.amount * 0.18), quote.currency)}</span>
-              </div>
-              <div className="quote-financial-row quote-financial-total">
-                <strong>Total TTC</strong>
-                <strong className="quote-financial-grand-total">
-                  {formatCurrency(quote.amount, quote.currency)}
-                </strong>
-              </div>
-            </div>
-            <div className="quote-financial-guarantee">
-              <ShieldCheck size={16} />
-              <span>Garantie équipement Djua 2 ans • Maintenance technique préventive incluse</span>
-            </div>
-          </div>
-        </div>
+          )}
+        </section>
+
+        <aside className="quote-detail-sidebar">
+          <section className="quote-sidebar-card">
+            <h2>Paiement</h2>
+            <div className="quote-sidebar-total">{formatCurrency(quote.amount, quote.currency)}</div>
+            <p>Montant total du devis</p>
+            <div className="quote-payment-unavailable"><span>Modalités de paiement</span><strong>Non renseignées</strong></div>
+            <small className="quote-payment-note">Aucune échéance ni durée de paiement n’est enregistrée pour ce devis.</small>
+          </section>
+          <section className="quote-sidebar-card">
+            <h2>Informations client</h2>
+            <strong className="quote-sidebar-customer">{customer.name || 'Client non renseigné'}</strong>
+            {customer.phone && <a href={`tel:${customer.phone}`}><Phone size={15} />{customer.phone}</a>}
+            {customer.email && <a href={`mailto:${customer.email}`}><Mail size={15} />{customer.email}</a>}
+            {customer.phone && <a href={`https://wa.me/${customer.phone.replace(/\D/g, '')}`} target="_blank" rel="noreferrer"><Phone size={15} />Contacter sur WhatsApp</a>}
+            <p><MapPin size={15} />{address || 'Adresse non renseignée'}</p>
+          </section>
+          {installationNumber && <section className="quote-sidebar-card">
+            <h2>Dossier d’installation</h2>
+            <p><FolderPlus size={15} />{installationNumber}</p>
+            {installation?.plannedDate && <p><Calendar size={15} />{formatDate(installation.plannedDate)}</p>}
+            {installationId && <Link className="quote-sidebar-link" to={`/installations/${installationId}`}>Ouvrir le dossier<ArrowRight size={14} /></Link>}
+          </section>}
+        </aside>
       </div>
-    </div>
+    </main>
   );
 }

@@ -76,6 +76,19 @@ const InstallationFolderSchema = new mongoose.Schema({
     type: [mongoose.Schema.Types.Mixed],
     default: []
   },
+  lineItems: {
+    type: [{
+      category: { type: String, required: true, trim: true },
+      name: { type: String, required: true, trim: true },
+      description: { type: String, trim: true, default: '' },
+      quantity: { type: Number, required: true, min: 0 },
+      unit: { type: String, enum: ['piece', 'forfait'], default: 'piece' },
+      unitPrice: { type: Number, required: true, min: 0 },
+      total: { type: Number, required: true, min: 0 },
+      currency: { type: String, enum: ['USD', 'CDF'], required: true },
+    }],
+    default: [],
+  },
   amount: { type: Number, default: 0 },
   currency: { type: String, enum: ['USD', 'CDF'], default: 'USD' },
 

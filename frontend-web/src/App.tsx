@@ -226,7 +226,7 @@ export default function App() {
 
   return (
     <div className="app-shell">
-      <div className="app-card" style={{ paddingBottom: 68 }}>
+      <div className="app-card" style={{ paddingBottom: 'calc(68px + env(safe-area-inset-bottom))' }}>
         <header className="technician-toolbar">
           <div>
             <strong>Djua Équipe</strong>
@@ -242,10 +242,16 @@ export default function App() {
           display: 'grid',
           gridTemplateColumns: 'repeat(3, 1fr)',
           background: '#FFFFFF',
-          borderBottom: '1px solid var(--border)',
-          position: 'sticky',
-          top: 0,
-          zIndex: 40
+          borderTop: '1px solid var(--border)',
+          position: 'fixed',
+          bottom: 0,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: '100%',
+          maxWidth: 'var(--max-w)',
+          paddingBottom: 'env(safe-area-inset-bottom)',
+          zIndex: 40,
+          boxShadow: '0 -4px 16px rgba(0,0,0,.06)'
         }}>
           <button
             type="button"
@@ -262,7 +268,7 @@ export default function App() {
               fontSize: 12,
               fontWeight: activeMainTab === 'scan' ? 700 : 500,
               color: activeMainTab === 'scan' ? 'var(--brand)' : 'var(--text-muted)',
-              borderBottom: activeMainTab === 'scan' ? '2.5px solid var(--brand)' : '2.5px solid transparent'
+              borderTop: activeMainTab === 'scan' ? '2.5px solid var(--brand)' : '2.5px solid transparent'
             }}
           >
             <QrCode size={18} />
@@ -284,7 +290,7 @@ export default function App() {
               fontSize: 12,
               fontWeight: activeMainTab === 'notifications' ? 700 : 500,
               color: activeMainTab === 'notifications' ? 'var(--brand)' : 'var(--text-muted)',
-              borderBottom: activeMainTab === 'notifications' ? '2.5px solid var(--brand)' : '2.5px solid transparent',
+              borderTop: activeMainTab === 'notifications' ? '2.5px solid var(--brand)' : '2.5px solid transparent',
               position: 'relative'
             }}
           >
@@ -328,7 +334,7 @@ export default function App() {
               fontSize: 12,
               fontWeight: activeMainTab === 'messages' ? 700 : 500,
               color: activeMainTab === 'messages' ? 'var(--brand)' : 'var(--text-muted)',
-              borderBottom: activeMainTab === 'messages' ? '2.5px solid var(--brand)' : '2.5px solid transparent'
+              borderTop: activeMainTab === 'messages' ? '2.5px solid var(--brand)' : '2.5px solid transparent'
             }}
           >
             <MessageSquare size={18} />

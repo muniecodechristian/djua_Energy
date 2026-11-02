@@ -63,6 +63,7 @@ export async function createInstallationFromQuote(quote, validatingUser, planned
     site: quote.site || {},
     system: quote.system,
     appliances: quote.appliances || [],
+    lineItems: quote.lineItems || [],
     amount: quote.amount || 0,
     currency: quote.currency || 'USD',
     createdBy: validatingUser._id, // Celui qui a validé le devis
@@ -1001,4 +1002,3 @@ export async function listInstallationConversations(req, res) {
     return fail(res, 500, 'Impossible de récupérer la liste des conversations.');
   }
 }
-

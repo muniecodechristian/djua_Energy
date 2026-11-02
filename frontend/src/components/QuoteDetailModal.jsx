@@ -1,17 +1,15 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   X, Printer, User, MapPin, Sun, Battery, Zap,
-  Layers, CheckCircle2, Calendar, FileText, Phone, Mail,
-  Building2, Hash, ShieldCheck, Check, Clock, TrendingUp
+  Layers, FileText, ShieldCheck, ArrowRight, TrendingUp
 } from 'lucide-react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
-import api from '../api/axios';
+import { useNavigate } from 'react-router-dom';
 import './QuoteDetailModal.css';
 
 const statusLabels = {
-  draft: 'À valider',
-  approved: 'Validé · Installation prévue',
+  draft: 'En attente',
+  approved: 'Accepté',
+  rejected: 'Refusé',
   installing: 'En cours d’installation',
   installed: 'Installé & Opérationnel',
 };
@@ -40,46 +38,8 @@ function formatDate(date) {
   }
 }
 
-function todayKinshasa() {
-  const parts = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Africa/Kinshasa',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).formatToParts(new Date());
-  return parts.find(p => p.type === 'year').value + '-' +
-         parts.find(p => p.type === 'month').value + '-' +
-         parts.find(p => p.type === 'day').value;
-}
-
-function addKinshasaDays(days) {
-  const date = new Date(`${todayKinshasa()}T00:00:00Z`);
-  date.setUTCDate(date.getUTCDate() + days);
-  return date.toISOString().slice(0, 10);
-}
-
 export default function QuoteDetailModal({ quote, onClose }) {
-  const [plannedDate, setPlannedDate] = useState(quote?.plannedDate || '');
-  const queryClient = useQueryClient();
-
-  const approveMutation = useMutation({
-    mutationFn: async () => {
-      const res = await api.patch(`/api/quotes/${encodeURIComponent(quote.number)}/approve`, {
-        plannedDate,
-      });
-      return res.data?.data;
-    },
-    onSuccess: () => {
-      toast.success('Le devis a été validé avec succès.');
-      queryClient.invalidateQueries({ queryKey: ['quote-workspace'] });
-      queryClient.invalidateQueries({ queryKey: ['sales-quotes'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-reports-quotes'] });
-      onClose();
-    },
-    onError: (err) => {
-      toast.error(err.response?.data?.message || 'Erreur lors de la validation du devis.');
-    },
-  });
+  const navigate = useNavigate();
 
   if (!quote) return null;
 
@@ -89,13 +49,6 @@ export default function QuoteDetailModal({ quote, onClose }) {
   const system = quote.system || {};
   const appliances = Array.isArray(quote.appliances) ? quote.appliances : [];
   const status = quote.status || 'draft';
-  const today = todayKinshasa();
-  const quickDates = [
-    { label: 'Aujourd’hui', value: today },
-    { label: 'Demain', value: addKinshasaDays(1) },
-    { label: 'Dans une semaine', value: addKinshasaDays(7) },
-  ];
-
   // Calculs totaux des appareils
   const totalDailyWh = appliances.reduce((sum, item) => sum + (Number(item.quantity || 1) * Number(item.watts || 0) * Number(item.hours || 0)), 0);
   const totalPowerW = appliances.reduce((sum, item) => sum + (Number(item.quantity || 1) * Number(item.watts || 0)), 0);
@@ -348,7 +301,7 @@ export default function QuoteDetailModal({ quote, onClose }) {
             <div className="quote-modal-details-grid">
               <div className="quote-modal-fact">
                 <dt>Date d'installation prévue</dt>
-                <dd>{quote.plannedDate ? formatDate(quote.plannedDate) : 'À fixer lors de la validation'}</dd>
+                <dd>{quote.plannedDate ? formatDate(quote.plannedDate) : 'À planifier après acceptation'}</dd>
               </div>
               <div className="quote-modal-fact">
                 <dt>Kit solaire associé</dt>
@@ -378,44 +331,24 @@ export default function QuoteDetailModal({ quote, onClose }) {
           </section>
         </div>
 
-        {/* Pied de page avec action de validation si brouillon */}
         <footer className="quote-modal-footer">
-          {status === 'draft' ? (
-            <form
-              className="quote-modal-approve-box"
-              onSubmit={(e) => {
-                e.preventDefault();
-                approveMutation.mutate();
-              }}
-            >
-              <div className="quote-modal-approval-copy">
-                <span>PROCHAINE ÉTAPE</span>
-                <strong>Planifier l’installation</strong>
-                <small>Choisissez une date à confirmer avec le client.</small>
-              </div>
-              <div className="quote-modal-date-controls">
-                <div className="quote-modal-date-quick" role="group" aria-label="Choix rapides de date">
-                  {quickDates.map(option => <button key={option.value} type="button" className={plannedDate === option.value ? 'is-selected' : ''} aria-pressed={plannedDate === option.value} onClick={() => setPlannedDate(option.value)}>{option.label}</button>)}
-                </div>
-                <label className="quote-modal-date-field" htmlFor="quote-planned-date">
-                  <span><Calendar size={14} />Date prévue · Kinshasa</span>
-                  <input id="quote-planned-date" type="date" required min={today} value={plannedDate} onChange={(e) => setPlannedDate(e.target.value)} />
-                </label>
-              </div>
-              <button
-                type="submit"
-                className="quote-modal-btn primary"
-                disabled={!plannedDate || plannedDate < today || approveMutation.isPending}
-              >
-                <Check size={15} />
-                {approveMutation.isPending ? 'Validation en cours…' : 'Valider ce devis'}
-              </button>
-            </form>
-          ) : (
-            <div style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>
-              Ce devis est au statut <strong>{statusLabels[status] || status}</strong>.
-            </div>
-          )}
+        <div className="quote-modal-approve-box">
+          <div className="quote-modal-approval-copy">
+            <span>{status === 'draft' ? 'PROCHAINE ÉTAPE' : 'SUIVI DU DEVIS'}</span>
+            <strong>{status === 'draft' ? 'Enregistrer la réponse du client' : `Devis ${statusLabels[status] || status}`}</strong>
+            <small>Ouvrez la fiche de suivi pour gérer l’acceptation et la création du dossier.</small>
+          </div>
+          <button
+            type="button"
+            className="quote-modal-btn primary"
+            onClick={() => {
+              onClose();
+              navigate(`/devis/${encodeURIComponent(quote.number)}`);
+            }}
+          >
+            Ouvrir le suivi<ArrowRight size={15} />
+          </button>
+        </div>
 
           <button type="button" className="quote-modal-btn" onClick={onClose}>
             Fermer

@@ -10,17 +10,19 @@ import Quote from '../src/models/Quote.model.js';
 import Client from '../src/models/SalesClient.model.js';
 import Notice from '../src/models/InstallationNotice.model.js';
 import Kit from '../src/models/kit.model.js';
+import InstallationFolder from '../src/models/InstallationFolder.model.js';
 import { businessDay, validPlannedDate } from '../src/services/quote.service.js';
 let manager,commercial,other,technician,admin,outsider;
 const cookie=user=>`token=${jwt.sign({id:String(user._id)},config.jwtSecret,{expiresIn:'1h'})}`;
 const body=(requestKey='test-request-001',phone='0812345678')=>({requestKey,customer:{name:'Équipe Kabeya',phone,email:'client@example.com',profile:'personne',details:{contactPref:'WhatsApp'}},site:{adresse:'Avenue du test',ville:'Kinshasa'},system:{panels:4,panelPower:450,batteryCapacity:4.8,inverterPower:3},appliances:[{name:'Télévision',quantity:2,watts:80,hours:5,period:'night'}],amount:2500,currency:'USD'});
 const save=async(key,phone)=>{const response=await request(app).post('/api/quotes').set('Cookie',cookie(commercial)).send(body(key,phone));expect(response.status).toBe(201);return response.body.data;};
-const approve=async(quote,date=businessDay())=>{const response=await request(app).patch(`/api/quotes/${quote.number}/approve`).set('Cookie',cookie(commercial)).send({plannedDate:date});expect(response.status).toBe(200);return response.body.data;};
+const approve=async quote=>{const response=await request(app).patch(`/api/quotes/${quote.number}/approve`).set('Cookie',cookie(commercial)).send({});expect(response.status).toBe(200);return response.body.data;};
+const createFolder=async(quote,plannedDate)=>request(app).post(`/api/quotes/${quote.number}/installation`).set('Cookie',cookie(commercial)).send({plannedDate});
 const install=(quote,kitId='KIT-QUOTE-001')=>request(app).post('/api/kits').set('Cookie',cookie(technician)).send({kitId,source:'quote',quoteId:quote.number,clientPhone:'00000000',installationDate:'2000-01-01',system:{panels:999},appliances:[],gpsCoordinates:{latitude:-4.32,longitude:15.31}});
 describe('Customer quotations and installation lifecycle',()=>{
  beforeAll(async()=>{
   await connectDB();
-  await Promise.all([Quote.init(),Client.init(),Notice.init(),Kit.init()]);
+  await Promise.all([Quote.init(),Client.init(),Notice.init(),Kit.init(),InstallationFolder.init()]);
   const make=(role,identifier,createdBy)=>User.create({nom:'Test',prenom:role,identifier,password:'TestPass123!',role,createdBy});
   manager=await make('shop_manager','quote-manager@test.local');
   commercial=await make('commercial','quote-sales@test.local',manager._id);
@@ -29,8 +31,8 @@ describe('Customer quotations and installation lifecycle',()=>{
   admin=await make('admin','quote-admin@test.local');
   outsider=await make('technician','quote-outside@test.local',admin._id);
  });
- beforeEach(async()=>{await Promise.all([Quote.deleteMany({}),Client.deleteMany({}),Notice.deleteMany({}),Kit.deleteMany({})]);});
- afterAll(async()=>{await Promise.all([Quote.deleteMany({}),Client.deleteMany({}),Notice.deleteMany({}),Kit.deleteMany({}),User.deleteMany({identifier:/quote-.*@test\.local$/})]);await mongoose.connection.close();});
+ beforeEach(async()=>{await Promise.all([Quote.deleteMany({}),Client.deleteMany({}),Notice.deleteMany({}),Kit.deleteMany({}),InstallationFolder.deleteMany({})]);});
+ afterAll(async()=>{await Promise.all([Quote.deleteMany({}),Client.deleteMany({}),Notice.deleteMany({}),Kit.deleteMany({}),InstallationFolder.deleteMany({}),User.deleteMany({identifier:/quote-.*@test\.local$/})]);await mongoose.connection.close();});
  it('reuses one customer for local and international phone formats and lists all their quotes',async()=>{
   const first=await save('customer-quote-001');const second=await save('customer-quote-002','+243 812 345 678');
   expect(first.client).toBe(second.client);expect(await Client.countDocuments()).toBe(1);
@@ -46,6 +48,25 @@ describe('Customer quotations and installation lifecycle',()=>{
   const response=await request(app).post('/api/quotes').set('Cookie',cookie(commercial)).send(payload);
   expect(response.status).toBe(201);
   expect(response.body.data.customer.details).toMatchObject({postNom:'Mukendi',budget:120,budgetPeriod:'month',budgetCurrency:'USD'});
+ });
+ it('stores validated quote line-item prices as a database snapshot',async()=>{
+  const payload=body('quote-line-items-001');
+  payload.lineItems=[
+   {category:'Panneaux solaires',name:'Panneau photovoltaïque 600 Wc',description:'Panneau proposé',quantity:2,unit:'piece',unitPrice:1000,currency:'USD'},
+   {category:'Installation',name:'Installation et mise en service',description:'Pose et raccordement',quantity:1,unit:'forfait',unitPrice:500,currency:'USD'},
+  ];
+  const response=await request(app).post('/api/quotes').set('Cookie',cookie(commercial)).send(payload);
+  expect(response.status).toBe(201);
+  expect(response.body.data.lineItems).toMatchObject([
+   {category:'Panneaux solaires',quantity:2,unitPrice:1000,total:2000,currency:'USD'},
+   {category:'Installation',quantity:1,unit:'forfait',unitPrice:500,total:500,currency:'USD'},
+  ]);
+  const accepted=await approve(response.body.data);
+  const folder=await createFolder(accepted);
+  expect(folder.status).toBe(201);
+  expect(folder.body.data.lineItems).toMatchObject(response.body.data.lineItems);
+  const invalid=await request(app).post('/api/quotes').set('Cookie',cookie(commercial)).send({...payload,requestKey:'quote-line-items-002',lineItems:[{...payload.lineItems[0],unitPrice:1},payload.lineItems[1]]});
+  expect(invalid.status).toBe(400);
  });
  it('returns a role-scoped dashboard summary with follow-up quotes and installed kit ids',async()=>{
   const quote=await save('dashboard-summary-001');
@@ -100,16 +121,37 @@ describe('Customer quotations and installation lifecycle',()=>{
   expect((await request(app).post('/api/quotes').set('Cookie',cookie(technician)).send(body())).status).toBe(403);
   expect((await request(app).patch(`/api/quotes/${quote.number}/approve`).set('Cookie',cookie(other)).send({plannedDate:businessDay()})).status).toBe(404);
  });
- it('requires a real date today or later and blocks installation before approval',async()=>{
+ it('records acceptance before installation-folder creation and validates optional planning dates',async()=>{
   const quote=await save('date-quote-001');
-  for(const plannedDate of [undefined,'2000-01-01','2027-02-30','tomorrow'])expect((await request(app).patch(`/api/quotes/${quote.number}/approve`).set('Cookie',cookie(commercial)).send({plannedDate})).status).toBe(400);
+  expect((await createFolder(quote)).status).toBe(409);
   expect((await install(quote)).status).toBe(409);
   expect((await request(app).get(`/api/quotes/${quote.number}`).set('Cookie',cookie(technician))).status).toBe(409);
-  await approve(quote);
+  const accepted=await approve(quote);
+  expect(accepted.status).toBe('approved');
+  expect(accepted.acceptedAt).toBeTruthy();
+  expect(await InstallationFolder.countDocuments({quote:quote._id})).toBe(0);
   expect((await request(app).get(`/api/quotes/${quote.number}`).set('Cookie',cookie(technician))).body.data.appliances[0].name).toBe('Télévision');
+  for(const plannedDate of ['2000-01-01','2027-02-30','tomorrow'])expect((await createFolder(quote,plannedDate)).status).toBe(400);
+  const folderResponse=await createFolder(quote);
+  expect(folderResponse.status).toBe(201);
+  expect(folderResponse.body.data.quoteNumber).toBe(quote.number);
+  expect(await InstallationFolder.countDocuments({quote:quote._id})).toBe(1);
+ });
+ it('persists client rejection and prevents creating an installation folder',async()=>{
+  const quote=await save('rejected-quote-001');
+  const response=await request(app).patch(`/api/quotes/${quote.number}/reject`).set('Cookie',cookie(commercial)).send({});
+  expect(response.status).toBe(200);
+  expect(response.body.data.status).toBe('rejected');
+  expect(response.body.data.rejectedAt).toBeTruthy();
+  expect((await createFolder(quote)).status).toBe(409);
+  expect((await request(app).patch(`/api/quotes/${quote.number}/approve`).set('Cookie',cookie(commercial)).send({})).status).toBe(409);
+  const rejected=await request(app).get('/api/quotes').query({status:'rejected'}).set('Cookie',cookie(commercial));
+  expect(rejected.body.data.quotes.map(item=>item.number)).toContain(quote.number);
+  expect(await InstallationFolder.countDocuments({quote:quote._id})).toBe(0);
  });
  it('uses server quote data and server installation date, preserves appliances and supports retries',async()=>{
   const quote=await approve(await save('install-quote-001'));
+  expect((await createFolder(quote,businessDay())).status).toBe(201);
   const response=await install(quote);expect(response.status).toBe(201);
   expect(response.body.data.system.panels).toBe(4);expect(response.body.data.appliances[0].quantity).toBe(2);
   expect(response.body.data.clientPhone).toBe('243812345678');expect(response.body.data.shopManager).toBe(String(manager._id));
@@ -125,7 +167,8 @@ describe('Customer quotations and installation lifecycle',()=>{
  });
  it('creates one seven-day alert visible only to the owner, manager and admin',async()=>{
   const tomorrow=businessDay(new Date(Date.now()+86400000));
-  const quote=await approve(await save('alert-quote-001'),tomorrow);
+  const quote=await approve(await save('alert-quote-001'));
+  expect((await createFolder(quote,tomorrow)).status).toBe(201);
   expect((await install(quote)).status).toBe(201);
   const notice=await Notice.findOne();expect(notice.plannedDate).toBe(tomorrow);expect(notice.installedDay).toBe(businessDay());
   expect(notice.expiresAt.getTime()-new Date((await Kit.findOne()).createdAt).getTime()).toBe(7*86400000);

@@ -29,7 +29,7 @@ export async function completeQuoteInstallation(quote, kit) {
   // Use the persisted kit creation time, never a client-supplied installation date.
   const installedAt = new Date(kit.createdAt);
   const installedDay = businessDay(installedAt);
-  const dateMatched = installedDay === quote.plannedDate;
+  const dateMatched = !quote.plannedDate || installedDay === quote.plannedDate;
   if (!dateMatched) {
     // Retries must never extend an alert's lifetime.
     await Notice.updateOne({ quote: quote._id }, { $setOnInsert: {

@@ -1,14 +1,15 @@
 import { useEffect, useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { Search, AlertTriangle, ChevronDown, RefreshCw, FileText, Maximize2 } from 'lucide-react';
 import api from '../api/axios';
 import useAuthStore from '../hooks/Zustand/useAuthStore';
-import QuoteDetailModal from './QuoteDetailModal';
 import './SalesQuotes.css';
 
 const labels = {
-  draft: 'À valider',
-  approved: 'Validé · installation prévue',
+  draft: 'En attente',
+  approved: 'Accepté',
+  rejected: 'Refusé',
   installing: 'Enregistrement du kit',
   installed: 'Installé',
 };
@@ -18,28 +19,8 @@ function formatCurrency(amount, code) {
   return `${Number(amount || 0).toLocaleString('fr-FR')} ${symbol}`;
 }
 
-function today() {
-  const parts = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Africa/Kinshasa',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).formatToParts(new Date());
-  return ['year', 'month', 'day'].map(type => parts.find(part => part.type === type).value).join('-');
-}
-
-function QuoteRow({ quote, onNewClientQuote, focusQuote, currentUser, onViewDetails }) {
+function QuoteRow({ quote, onNewClientQuote, focusQuote, onViewDetails }) {
   const [open, setOpen] = useState(quote.number === focusQuote);
-  const [date, setDate] = useState('');
-  const cache = useQueryClient();
-  const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'administration';
-  const isCreator = quote.owner && (String(quote.owner) === String(currentUser?._id) || String(quote.owner?._id) === String(currentUser?._id));
-  const canManageInstallation = isAdmin || isCreator;
-
-  const validation = useMutation({
-    mutationFn: async () => api.patch(`/api/quotes/${encodeURIComponent(quote.number)}/approve`, { plannedDate: date }),
-    onSuccess: () => cache.invalidateQueries({ queryKey: ['sales-quotes'] }),
-  });
 
   return (
     <article className="sales-quote">
@@ -66,7 +47,7 @@ function QuoteRow({ quote, onNewClientQuote, focusQuote, currentUser, onViewDeta
             </div>
             <div>
               <dt>Installation prévue</dt>
-              <dd>{(canManageInstallation && quote.plannedDate) ? quote.plannedDate : '—'}</dd>
+              <dd>{quote.plannedDate || 'À planifier'}</dd>
             </div>
             <div>
               <dt>Installation enregistrée</dt>
@@ -104,26 +85,6 @@ function QuoteRow({ quote, onNewClientQuote, focusQuote, currentUser, onViewDeta
             )}
           </div>
 
-          {quote.status === 'draft' && canManageInstallation && (
-            <form className="sales-approve" onSubmit={event => { event.preventDefault(); validation.mutate(); }}>
-              <label>
-                Date d’installation prévue
-                <input type="date" required min={today()} value={date} onChange={event => setDate(event.target.value)} />
-              </label>
-              <button type="submit" disabled={!date || date < today() || validation.isPending}>
-                {validation.isPending ? 'Validation…' : 'Valider le devis'}
-              </button>
-              <small>Heure de Kinshasa. En validant, le devis passe au statut validé et la date est enregistrée.</small>
-              {validation.isError && (
-                <p role="alert" className="sales-error">{validation.error?.response?.data?.message || 'Validation impossible.'}</p>
-              )}
-            </form>
-          )}
-          {quote.status === 'draft' && !canManageInstallation && (
-            <p className="sales-error" style={{ background: 'transparent', padding: '0.5rem 0' }}>
-              La validation et fixation de date sont réservées au créateur du devis et à l'administrateur.
-            </p>
-          )}
         </div>
       )}
     </article>
@@ -132,11 +93,11 @@ function QuoteRow({ quote, onNewClientQuote, focusQuote, currentUser, onViewDeta
 
 export default function SalesQuotes({ onNewClientQuote, focusQuote }) {
   const user = useAuthStore(state => state.user);
+  const navigate = useNavigate();
   const userId = user?._id;
   const [search, setSearch] = useState(focusQuote || '');
   const [term, setTerm] = useState('');
   const [page, setPage] = useState(1);
-  const [selectedQuote, setSelectedQuote] = useState(null);
 
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -176,7 +137,8 @@ export default function SalesQuotes({ onNewClientQuote, focusQuote }) {
       <div className="sales-stats">
         {[
           ['Total des devis', totalStats],
-          ['À valider', data?.stats?.draft || 0],
+          ['En attente', data?.stats?.draft || 0],
+          ['Refusés', data?.stats?.rejected || 0],
           ['Validés', (data?.stats?.approved || 0) + (data?.stats?.installing || 0) + (data?.stats?.installed || 0)],
           ['Installés', data?.stats?.installed || 0],
         ].map(([label, value]) => (
@@ -221,9 +183,8 @@ export default function SalesQuotes({ onNewClientQuote, focusQuote }) {
               key={quote._id}
               quote={quote}
               focusQuote={focusQuote}
-              currentUser={user}
               onNewClientQuote={onNewClientQuote}
-              onViewDetails={setSelectedQuote}
+              onViewDetails={quote => navigate(`/devis/${encodeURIComponent(quote.number)}`)}
             />
           ))}
           {!data.total && <p>Aucun devis enregistré pour cette recherche.</p>}
@@ -239,12 +200,6 @@ export default function SalesQuotes({ onNewClientQuote, focusQuote }) {
         </>
       )}
 
-      {selectedQuote && (
-        <QuoteDetailModal
-          quote={selectedQuote}
-          onClose={() => setSelectedQuote(null)}
-        />
-      )}
     </section>
   );
 }
@@ -268,7 +223,7 @@ export function SalesQuoteOverview({ onOpen }) {
               ? 'Chargement…'
               : query.isError
               ? 'Suivi indisponible pour le moment.'
-              : `${Object.values(data?.stats || {}).reduce((sum, value) => sum + value, 0)} devis · ${data?.stats?.draft || 0} à valider · ${(data?.stats?.approved || 0) + (data?.stats?.installing || 0) + (data?.stats?.installed || 0)} validés · ${data?.stats?.installed || 0} installés`}
+              : `${Object.values(data?.stats || {}).reduce((sum, value) => sum + value, 0)} devis · ${data?.stats?.draft || 0} en attente · ${data?.stats?.rejected || 0} refusés · ${(data?.stats?.approved || 0) + (data?.stats?.installing || 0) + (data?.stats?.installed || 0)} acceptés · ${data?.stats?.installed || 0} installés`}
           </p>
         </div>
         <button type="button" className="sales-secondary" onClick={onOpen}>

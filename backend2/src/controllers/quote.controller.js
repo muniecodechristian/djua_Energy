@@ -10,6 +10,15 @@ const details = z.object({
   ...Object.fromEntries(['fullName','postNom','companyName','contactName','contactPostNom','contactPref','budgetPeriod','budgetCurrency','rccm','idNationale','tva','secteur','adresse','ville','province'].map(key => [key, text.optional()])),
   budget: z.union([text, z.number().nonnegative()]).optional(),
 });
+const lineItem = z.object({
+  category: z.string().trim().min(1).max(60),
+  name: z.string().trim().min(1).max(120),
+  description: z.string().trim().max(250).optional().default(''),
+  quantity: z.number().positive().max(100000),
+  unit: z.enum(['piece', 'forfait']).default('piece'),
+  unitPrice: z.number().nonnegative().max(1e14),
+  currency: z.enum(['USD', 'CDF']),
+});
 const schema = z.object({
   requestKey: z.string().min(8).max(100),
   customer: z.object({ name: text.min(2), phone: text.min(7), email: z.union([z.email(), z.literal('')]).optional(), address: text.optional(), profile: z.enum(['personne', 'entreprise']).optional(), details:details.optional() }),
@@ -17,7 +26,18 @@ const schema = z.object({
   buildingType:text.optional(),
   system: z.object({ panels: z.number().int().positive().max(100000), panelPower: z.number().positive().max(10000), batteryCapacity: z.number().nonnegative().max(1000000), inverterPower: z.number().positive().max(1000000), expectedLoad: z.number().nonnegative().optional() }),
   appliances: z.array(z.object({ name: text.min(1), quantity: z.number().int().min(1).max(100000), watts: z.number().nonnegative().max(10000000), hours: z.number().min(0).max(24), period: z.enum(['day', 'night', 'both', 'mixed', 'continuous']).optional() })).min(1).max(200),
+  lineItems: z.array(lineItem).max(100).optional(),
   amount: z.number().nonnegative().max(1e14), currency: z.enum(['USD', 'CDF']), recommendationId: text.optional(),
+}).superRefine((quote, context) => {
+  if (!quote.lineItems?.length) return;
+  const itemCurrencies = new Set(quote.lineItems.map(item => item.currency));
+  const itemTotal = quote.lineItems.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
+  if (itemCurrencies.size !== 1 || !itemCurrencies.has(quote.currency)) {
+    context.addIssue({ code: 'custom', message: 'La devise des éléments doit correspondre à celle du devis.', path: ['lineItems'] });
+  }
+  if (Math.abs(itemTotal - quote.amount) > 0.01) {
+    context.addIssue({ code: 'custom', message: 'Le total des éléments doit correspondre au montant du devis.', path: ['lineItems'] });
+  }
 });
 const escapeRegex = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const fail = (res, status, message) => res.status(status).json({ success: false, message });
@@ -37,6 +57,10 @@ export async function saveQuote(req, res) {
     catch (error) { if(error.code !== 11000) throw error; client = await Client.findOne(clientFilter); }
     const quote = await Quote.create({
       ...input,
+      lineItems: input.lineItems?.map(item => ({
+        ...item,
+        total: Math.round(item.quantity * item.unitPrice * 100) / 100,
+      })),
       status: 'draft',
       owner: req.user._id,
       shopManager,
@@ -60,7 +84,7 @@ export async function listQuotes(req, res) {
     const followUpBefore = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
     const status = String(req.query.status || '');
     if (status === 'validated') filter.status = { $in: ['approved', 'installing', 'installed'] };
-    else if (['draft', 'approved', 'installing', 'installed'].includes(status)) filter.status = status;
+    else if (['draft', 'approved', 'rejected', 'installing', 'installed'].includes(status)) filter.status = status;
     if (req.query.followUp === 'true') {
       filter.status = 'draft';
       filter.createdAt = { $lt: followUpBefore };
@@ -90,7 +114,7 @@ export async function listQuotes(req, res) {
       Quote.distinct('kitId', { ...scope, kitId: { $type: 'string' } }),
       Quote.find({ ...scope, status: 'draft', createdAt: { $lt: followUpBefore } }).sort({ createdAt: -1 }).limit(5).lean(),
       Quote.aggregate([
-        { $match: { ...scope, status: { $ne: 'installed' } } },
+        { $match: { ...scope, status: { $nin: ['installed', 'rejected'] } } },
         { $group: { _id: '$currency', amount: { $sum: '$amount' } } },
       ]),
     ]);
@@ -150,7 +174,6 @@ export async function getQuote(req, res) {
   } catch { return fail(res, 500, 'Impossible de charger le devis.'); }
 }
 export async function approveQuote(req, res) {
-  if(!validPlannedDate(req.body.plannedDate)) return fail(res,400,'Choisissez aujourd’hui ou une date future (heure de Kinshasa).');
   try {
     const rawParam = String(req.params.number || '').trim();
     const isObjectId = /^[0-9a-fA-F]{24}$/.test(rawParam);
@@ -165,23 +188,112 @@ export async function approveQuote(req, res) {
     const isOwner = quote.owner && String(quote.owner) === String(req.user._id);
     const isShopManager = req.user.role === 'shop_manager' && (!quote.shopManager || String(quote.shopManager) === String(req.user._id));
     if (!isAdmin && !isOwner && !isShopManager) {
-      return fail(res, 403, 'Seul le créateur du devis, le responsable shop ou un administrateur peut définir la date d’installation et valider le devis.');
+      return fail(res, 403, 'Seul le créateur du devis, le responsable shop ou un administrateur peut enregistrer la réponse du client.');
     }
 
-    quote.status = 'approved';
-    quote.plannedDate = req.body.plannedDate;
-    quote.validatedAt = new Date();
-    quote.validatedBy = req.user._id;
-    await quote.save();
+    if (quote.status === 'approved' || quote.status === 'installing' || quote.status === 'installed') {
+      return res.json({ success: true, data: quote });
+    }
+    if (quote.status !== 'draft') return fail(res, 409, 'Seul un devis en attente peut être accepté.');
 
-    // Création automatique du dossier d'installation (Module 2) par le validateur
-    let installationFolder = null;
-    try {
-      installationFolder = await createInstallationFromQuote(quote, req.user, req.body.plannedDate, req.body.folderName);
-    } catch (installErr) {
-      console.error('[quote.controller] Erreur création dossier installation:', installErr);
+    const acceptedQuote = await Quote.findOneAndUpdate(
+      { _id: quote._id, status: 'draft' },
+      { $set: { status: 'approved', acceptedAt: new Date(), acceptedBy: req.user._id, validatedAt: new Date(), validatedBy: req.user._id } },
+      { returnDocument: 'after' },
+    );
+    if (!acceptedQuote) {
+      const currentQuote = await Quote.findById(quote._id);
+      if (currentQuote && ['approved', 'installing', 'installed'].includes(currentQuote.status)) {
+        return res.json({ success: true, data: currentQuote });
+      }
+      return fail(res, 409, 'Le devis a déjà reçu une décision.');
     }
 
-    return res.json({ success: true, data: quote, installationFolder });
-  } catch { return fail(res,500,'Impossible de valider le devis.'); }
+    return res.json({ success: true, data: acceptedQuote });
+  } catch (error) {
+    console.error('[quote.controller] Erreur enregistrement acceptation devis:', error);
+    return fail(res, 500, 'Impossible d’enregistrer l’acceptation du devis.');
+  }
+}
+
+export async function rejectQuote(req, res) {
+  try {
+    const rawParam = String(req.params.number || '').trim();
+    const isObjectId = /^[0-9a-fA-F]{24}$/.test(rawParam);
+    const filter = isObjectId
+      ? { ...quoteScope(req.user), $or: [{ number: rawParam.toUpperCase() }, { _id: rawParam }] }
+      : { ...quoteScope(req.user), number: rawParam.toUpperCase() };
+    const quote = await Quote.findOne(filter);
+    if (!quote) return fail(res, 404, 'Devis introuvable.');
+
+    const isAdmin = ['admin', 'administration'].includes(req.user.role);
+    const isOwner = quote.owner && String(quote.owner) === String(req.user._id);
+    const isShopManager = req.user.role === 'shop_manager' && (!quote.shopManager || String(quote.shopManager) === String(req.user._id));
+    if (!isAdmin && !isOwner && !isShopManager) {
+      return fail(res, 403, 'Seul le créateur du devis, le responsable shop ou un administrateur peut enregistrer la réponse du client.');
+    }
+    if (quote.status === 'rejected') return res.json({ success: true, data: quote });
+    if (quote.status !== 'draft') return fail(res, 409, 'Seul un devis en attente peut être refusé.');
+
+    const rejectedQuote = await Quote.findOneAndUpdate(
+      { _id: quote._id, status: 'draft' },
+      { $set: { status: 'rejected', rejectedAt: new Date(), rejectedBy: req.user._id } },
+      { returnDocument: 'after' },
+    );
+    if (!rejectedQuote) {
+      const currentQuote = await Quote.findById(quote._id);
+      if (currentQuote?.status === 'rejected') return res.json({ success: true, data: currentQuote });
+      return fail(res, 409, 'Le devis a déjà reçu une décision.');
+    }
+    return res.json({ success: true, data: rejectedQuote });
+  } catch (error) {
+    console.error('[quote.controller] Erreur enregistrement refus devis:', error);
+    return fail(res, 500, 'Impossible d’enregistrer le refus du devis.');
+  }
+}
+
+export async function createQuoteInstallation(req, res) {
+  const input = z.object({
+    plannedDate: z.string().optional(),
+    folderName: z.string().trim().max(120).optional(),
+  }).safeParse(req.body);
+  if (!input.success) return fail(res, 400, 'Les informations du dossier d’installation sont invalides.');
+  if (input.data.plannedDate && !validPlannedDate(input.data.plannedDate)) {
+    return fail(res, 400, 'Choisissez aujourd’hui ou une date future (heure de Kinshasa).');
+  }
+
+  try {
+    const rawParam = String(req.params.number || '').trim();
+    const isObjectId = /^[0-9a-fA-F]{24}$/.test(rawParam);
+    const filter = isObjectId
+      ? { ...quoteScope(req.user), $or: [{ number: rawParam.toUpperCase() }, { _id: rawParam }] }
+      : { ...quoteScope(req.user), number: rawParam.toUpperCase() };
+    const quote = await Quote.findOne(filter);
+    if (!quote) return fail(res, 404, 'Devis introuvable.');
+
+    const isAdmin = ['admin', 'administration'].includes(req.user.role);
+    const isOwner = quote.owner && String(quote.owner) === String(req.user._id);
+    const isShopManager = req.user.role === 'shop_manager' && (!quote.shopManager || String(quote.shopManager) === String(req.user._id));
+    if (!isAdmin && !isOwner && !isShopManager) {
+      return fail(res, 403, 'Seul le créateur du devis, le responsable shop ou un administrateur peut créer le dossier d’installation.');
+    }
+    if (!['approved', 'installing', 'installed'].includes(quote.status)) {
+      return fail(res, 409, 'Le devis doit être accepté avant la création du dossier d’installation.');
+    }
+
+    const installationFolder = await createInstallationFromQuote(
+      quote,
+      req.user,
+      input.data.plannedDate || '',
+      input.data.folderName || '',
+    );
+    if (input.data.plannedDate && quote.plannedDate !== input.data.plannedDate) {
+      quote.plannedDate = input.data.plannedDate;
+      await quote.save();
+    }
+    return res.status(201).json({ success: true, data: installationFolder });
+  } catch (error) {
+    console.error('[quote.controller] Erreur création dossier depuis devis:', error);
+    return fail(res, 500, 'Impossible de créer le dossier d’installation.');
+  }
 }

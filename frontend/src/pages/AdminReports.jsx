@@ -25,7 +25,7 @@ const tabs = [
   { id: 'fleet', label: 'Performance du parc' },
   { id: 'reports', label: 'Rapports personnalisés' },
 ];
-const statusLabels = { draft: 'En attente', approved: 'Validé', installing: 'En installation', installed: 'Installé' };
+const statusLabels = { draft: 'En attente', approved: 'Accepté', rejected: 'Refusé', installing: 'En installation', installed: 'Installé' };
 const numberFormat = new Intl.NumberFormat('fr-FR');
 const palette = ['#2eaa70', '#f6a623', '#e84d4d', '#aeb8c7', '#4187f5'];
 const reportTemplateKey = 'djua-admin-report-template';
@@ -284,7 +284,7 @@ export default function AdminReports() {
     { label: 'Devis créés', value: quotesQuery.isSuccess ? numberFormat.format(quotes.length) : '—', note: 'Sur la période sélectionnée', icon: FileText, tone: 'orange' },
     { label: 'Devis validés', value: quotesQuery.isSuccess ? numberFormat.format(validatedCount) : '—', note: 'Validés ou en cours d’installation', icon: CheckCircle2, tone: 'green' },
     { label: 'Installations suivies', value: isCommercial ? numberFormat.format(quotes.filter(quote => quote.status === 'installed').length) : kitsQuery.isSuccess ? numberFormat.format(filteredKits.length) : '—', note: isCommercial ? 'Issues des devis validés' : province === 'all' ? 'Parc enregistré' : province, icon: Users, tone: 'purple' },
-    { label: isCommercial ? 'Devis à traiter' : 'Alertes ouvertes', value: isCommercial ? numberFormat.format(quotes.filter(quote => quote.status === 'draft').length) : alertsQuery.isSuccess ? numberFormat.format(filteredAlerts.length) : '—', note: isCommercial ? 'À valider ou relancer' : 'Actives ou prises en charge', icon: isCommercial ? Clock3 : AlertTriangle, tone: 'red' },
+    { label: isCommercial ? 'Devis en attente' : 'Alertes ouvertes', value: isCommercial ? numberFormat.format(quotes.filter(quote => quote.status === 'draft').length) : alertsQuery.isSuccess ? numberFormat.format(filteredAlerts.length) : '—', note: isCommercial ? 'Réponse client attendue ou relance à effectuer' : 'Actives ou prises en charge', icon: isCommercial ? Clock3 : AlertTriangle, tone: 'red' },
   ];
   const kpis = allKpis;
 
