@@ -3,6 +3,7 @@
 
 import { Router }      from 'express';
 import * as controller from '../controllers/device.controller.js';
+import { protect, authorizeRoles } from '../middlewares/auth.middleware.js';
 
 const router = Router();
 
@@ -178,6 +179,18 @@ router.get('/devices/:deviceId', controller.getDeviceById);
  *                     power: 286.65
  */
 router.get('/telemetry', controller.getTelemetry);
+router.get(
+  '/telemetry/latest',
+  protect,
+  authorizeRoles('shop_manager', 'commercial'),
+  controller.getLatestKitTelemetry,
+);
+router.get(
+  '/telemetry/:kitId/summary',
+  protect,
+  authorizeRoles('shop_manager', 'commercial', 'technician', 'admin', 'administration'),
+  controller.getKitTelemetrySummary,
+);
 
 /**
  * @swagger

@@ -2,10 +2,9 @@ import React, { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
-  ArrowLeft, CheckCircle2, Clock, Calendar, User, MapPin,
-  Cpu, Wrench, ShieldCheck, AlertCircle, Play, Check,
-  FileText, ExternalLink, ChevronRight, Layers, Phone,
-  Navigation, Compass, AlertTriangle, RefreshCw, MessageSquare
+  ArrowLeft, CheckCircle2, Clock, Calendar, User,
+  Wrench, ShieldCheck, AlertCircle, Play, Check,
+  ChevronRight, Navigation, AlertTriangle, RefreshCw
 } from 'lucide-react';
 import InstallationChat from '../components/InstallationChat';
 import { toast } from 'sonner';
@@ -30,27 +29,6 @@ const STATUS_CONFIG = {
   validee: { label: 'Validée & Conforme', tone: 'validated', desc: 'Contrôle qualité final approuvé par l’administration' },
 };
 
-function formatCurrency(amount, currency = 'USD') {
-  if (amount == null) return '—';
-  const displayCurrency = (!currency || currency === 'XAF' || currency === 'CDF' || currency === 'FC') ? 'Francs' : currency;
-  return new Intl.NumberFormat('fr-CD', { maximumFractionDigits: 0 }).format(amount) + ' ' + displayCurrency;
-}
-
-function formatDate(date) {
-  if (!date) return '—';
-  try {
-    return new Intl.DateTimeFormat('fr-FR', {
-      day: '2-digit',
-      month: 'long',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    }).format(new Date(date));
-  } catch {
-    return String(date);
-  }
-}
-
 function formatDateShort(date) {
   if (!date) return '—';
   try {
@@ -68,8 +46,6 @@ export default function InstallationDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const currentUser = useAuthStore(state => state.user);
-
-  const [activeTab, setActiveTab] = useState('summary'); // 'summary' | 'checklist' | 'iot' | 'history'
 
   // Action Modals
   const [showAssignModal, setShowAssignModal] = useState(false);
@@ -99,7 +75,7 @@ export default function InstallationDetail() {
   // Query dossier d'installation
   const { data: folder, isLoading, error, refetch } = useGetInstallationDetail(id);
 
-  // Query techniciens (pour assignation : vision totale admin, ou techniciens créés par le commercial)
+  // The API scopes commercial choices to technicians under their shop manager.
   const { data: teamUsers } = useQuery({
     queryKey: ['team-technicians', currentUser?._id, currentUser?.role],
     queryFn: async () => {
@@ -167,13 +143,12 @@ export default function InstallationDetail() {
   const canManage = isAdmin || isManager || isFolderOwner;
   const canOperate = isAdmin || isManager || isAssignedTech || isFolderOwner;
 
-  const status = STATUS_CONFIG[folder.status] || { label: folder.status, tone: 'pending', desc: '' };
-  const customer = folder.customer || {};
-  const site = folder.site || {};
-  const system = folder.system || {};
-  const appliances = folder.appliances || [];
   const latestHistoryEvent = folder.history?.[folder.history.length - 1];
   const assignedTechnicianId = String(folder.assignedTechnician?._id || folder.assignedTechnician || '');
+  const hasAssignedTechnician = Boolean(assignedTechnicianId);
+  const assignedTechnicianName = folder.assignedTechnician?.prenom
+    ? `${folder.assignedTechnician.prenom} ${folder.assignedTechnician.nom || ''}`.trim()
+    : 'Technicien assigné';
   const latestEventAuthorId = String(latestHistoryEvent?.changedBy?._id || latestHistoryEvent?.changedBy || '');
   const technicianCreatorId = String(folder.assignedTechnician?.createdBy?._id || folder.assignedTechnician?.createdBy || '');
   const currentUserId = String(currentUser?._id || '');
@@ -346,8 +321,6 @@ export default function InstallationDetail() {
     );
   };
 
-  const checklistCount = Object.values(checklist).filter(Boolean).length;
-
   return (
     <div className="inst-detail-page">
       {/* Navigation supérieure */}
@@ -376,6 +349,11 @@ export default function InstallationDetail() {
           >
             <RefreshCw size={15} />
           </button>
+          {canReviewTechnicianStatus && (
+            <button type="button" className="inst-detail-btn-action" onClick={openStatusReview}>
+              <RefreshCw size={14} /> Modifier le statut transmis
+            </button>
+          )}
 
           {/* Action : Assigner / Reprogrammer */}
           {((canManage && ['a_planifier', 'planifiee', 'en_attente'].includes(folder.status)) || (isAdmin && folder.status !== 'validee')) && (
@@ -452,577 +430,59 @@ export default function InstallationDetail() {
         </div>
       </header>
 
-      {/* Hero Header Dossier */}
-      <section className="inst-detail-hero">
-        <div className="inst-detail-hero-main">
-          <div className="inst-detail-title-row">
-            <span className={`inst-detail-badge ${status.tone}`}>
-              <span className="inst-badge-dot" />
-              {status.label}
-            </span>
-            {folder.isOverdue && (
-              <span className="inst-overdue-pill" title="La date d'intervention prévue est dépassée sans confirmation d'installation">
-                <AlertTriangle size={12} /> Échéance dépassée
-              </span>
-            )}
-            <span className="inst-detail-folder-num">{folder.folderNumber}</span>
-            <span className="inst-detail-creator-pill">
-              Initié par <strong>{folder.createdBy?.prenom} {folder.createdBy?.nom || 'Validateur'}</strong> ({folder.createdBy?.role || 'commercial'})
-            </span>
-          </div>
-
-          <h1 className="inst-detail-title">
-            {folder.folderName || `Installation Solaire • ${customer.name || 'Client sans nom'}`}
-          </h1>
-
-          <div className="inst-detail-meta-row">
-            <span className="inst-detail-meta-item">
-              <MapPin size={14} />
-              {[site.adresse, site.quartier, site.ville || 'Kinshasa'].filter(Boolean).join(', ') || 'Adresse non renseignée'}
-            </span>
-            <span className="inst-detail-meta-divider">•</span>
-            <span className="inst-detail-meta-item">
-              <Phone size={14} /> {customer.phone || '—'}
-            </span>
-            <span className="inst-detail-meta-divider">•</span>
-            <Link to={`/devis/${encodeURIComponent(folder.quoteNumber)}`} className="inst-detail-quote-link">
-              <FileText size={14} /> Devis associé {folder.quoteNumber} <ExternalLink size={12} />
-            </Link>
-          </div>
-        </div>
-
-        {/* Bloc Technicien & Planning — Toujours visible, interactif */}
-        <div className="inst-detail-hero-assignment">
-          {/* Carte Technicien interactive */}
-          <div
-            className={`inst-assignment-box inst-assignment-tech-card ${!folder.assignedTechnician && canManage ? 'is-unassigned-cta' : ''}`}
-            onClick={() => {
-              if (canManage && !folder.assignedTechnician) setShowAssignModal(true);
-            }}
-            role={!folder.assignedTechnician && canManage ? 'button' : undefined}
-            tabIndex={!folder.assignedTechnician && canManage ? 0 : undefined}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !folder.assignedTechnician && canManage) setShowAssignModal(true);
-            }}
-          >
-            <div className="inst-assign-card-header">
-              <span className="inst-assignment-lbl">Technicien assigné</span>
-              {canManage && folder.assignedTechnician && (
-                <button
-                  type="button"
-                  className="inst-assign-change-btn"
-                  onClick={(e) => { e.stopPropagation(); setShowAssignModal(true); }}
-                >
-                  <Wrench size={12} /> Modifier
-                </button>
-              )}
-            </div>
-
-            {folder.assignedTechnician ? (
-              <div className="inst-tech-badge">
-                <div className="inst-tech-avatar">
-                  {folder.assignedTechnician.prenom?.charAt(0) || 'T'}
-                </div>
-                <div>
-                  <strong>{folder.assignedTechnician.prenom} {folder.assignedTechnician.nom}</strong>
-                  <small>{folder.assignedTechnician.zone || 'Zone Kinshasa'} · {folder.assignedTechnician.phone || 'Opérationnel'}</small>
-                  <div style={{ marginTop: 4 }}>
-                    {folder.technicianAcknowledgedAt ? (
-                      <span style={{ fontSize: 11, color: '#16a34a', background: '#dcfce7', padding: '2px 8px', borderRadius: 12, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                        <Check size={11} /> Prise en charge confirmée ({formatDateShort(folder.technicianAcknowledgedAt)})
-                      </span>
-                    ) : (
-                      <span style={{ fontSize: 11, color: '#d97706', background: '#fef3c7', padding: '2px 8px', borderRadius: 12, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                        <Clock size={11} /> En attente de confirmation de réception
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ) : canManage ? (
-              <div className="inst-unassigned-action">
-                <div className="inst-unassigned-icon"><User size={18} /></div>
-                <div>
-                  <strong>Aucun technicien assigné</strong>
-                  <small>Cliquez pour assigner et planifier l'intervention</small>
-                </div>
-                <span className="inst-assign-arrow"><ChevronRight size={16} /></span>
-              </div>
-            ) : (
-              <span className="inst-unassigned">Non assigné pour le moment</span>
+      <section className="inst-detail-hero inst-tech-contact-hero" aria-label="Technicien assigné">
+        <div className="inst-assignment-box inst-assignment-tech-card">
+          <div className="inst-assign-card-header">
+            <span className="inst-assignment-lbl">Technicien assigné</span>
+            {canManage && hasAssignedTechnician && (
+              <button type="button" className="inst-assign-change-btn" onClick={() => setShowAssignModal(true)}>
+                <Wrench size={12} /> Modifier
+              </button>
             )}
           </div>
-
-          <div className="inst-assignment-box">
-            <span className="inst-assignment-lbl">Date prévue d'intervention</span>
-            <div className={`inst-date-badge ${!folder.plannedDate ? 'is-unplanned' : ''}`}>
-              <Calendar size={15} />
-              <strong>{folder.plannedDate ? formatDateShort(folder.plannedDate) : 'À planifier'}</strong>
-              {!folder.plannedDate && canManage && (
-                <button
-                  type="button"
-                  className="inst-assign-change-btn"
-                  onClick={() => setShowAssignModal(true)}
-                >
-                  Définir
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Message de blocage si statut en_attente */}
-      {folder.status === 'en_attente' && folder.blockedReason && (
-        <div className="inst-detail-blocked-banner">
-          <AlertCircle size={20} />
-          <div>
-            <strong>Intervention temporairement suspendue</strong>
-            <p>Motif déclaré : {folder.blockedReason}</p>
-          </div>
-        </div>
-      )}
-
-      <section className="inst-operational-summary" aria-label="Suivi opérationnel de l’installation">
-        <div className="inst-operational-status">
-          <span className="inst-assignment-lbl">Statut de l’installation</span>
-          <strong className={`inst-detail-badge ${status.tone}`}>
-            <span className="inst-badge-dot" />{status.label}
-          </strong>
-          <small>{status.desc || 'Statut actuel du dossier'}</small>
-        </div>
-        <div className="inst-operational-report">
-          <span className="inst-assignment-lbl">Dernière mise à jour terrain</span>
-          {latestEventFromTechnician ? (
-            <>
-              <strong>{STATUS_CONFIG[latestHistoryEvent.status]?.label || latestHistoryEvent.status}</strong>
-              <small>
-                {latestHistoryEvent.note || 'Statut transmis par le technicien'}
-                {' · '}{latestHistoryEvent.changedBy?.prenom} {latestHistoryEvent.changedBy?.nom}
-                {' · '}{formatDate(latestHistoryEvent.timestamp)}
-              </small>
-            </>
-          ) : (
-            <small>{folder.assignedTechnician ? 'En attente du premier statut transmis par le technicien.' : 'Assignez un technicien pour démarrer le suivi terrain.'}</small>
-          )}
-        </div>
-        <div className="inst-operational-actions">
-          {folder.assignedTechnician ? (
-            <button type="button" className="inst-detail-btn-action is-primary" onClick={() => setActiveTab('chat')}>
-              <MessageSquare size={15} /> Chatter avec le technicien
-            </button>
-          ) : canManage ? (
-            <button type="button" className="inst-detail-btn-action is-primary" onClick={() => setShowAssignModal(true)}>
-              <Wrench size={15} /> Assigner un technicien
-            </button>
-          ) : (
-            <span className="inst-operational-pending">En attente d’assignation</span>
-          )}
-          {canReviewTechnicianStatus && (
-            <button type="button" className="inst-detail-btn-action" onClick={openStatusReview}>
-              <RefreshCw size={14} /> Modifier le statut transmis
-            </button>
-          )}
-        </div>
-      </section>
-
-      {/* Onglets de navigation */}
-      <nav className="inst-detail-tabs">
-        <button
-          type="button"
-          className={`inst-tab-btn ${activeTab === 'summary' ? 'is-active' : ''}`}
-          onClick={() => setActiveTab('summary')}
-        >
-          <FileText size={15} /> Vue d'ensemble & Spécifications
-        </button>
-        <button
-          type="button"
-          className={`inst-tab-btn ${activeTab === 'checklist' ? 'is-active' : ''}`}
-          onClick={() => setActiveTab('checklist')}
-        >
-          <CheckCircle2 size={15} /> Checklist de Conformité ({checklistCount}/6)
-        </button>
-        <button
-          type="button"
-          className={`inst-tab-btn ${activeTab === 'iot' ? 'is-active' : ''}`}
-          onClick={() => setActiveTab('iot')}
-        >
-          <Cpu size={15} /> Télémétrie & Coordonnées GPS
-        </button>
-        <button
-          type="button"
-          className={`inst-tab-btn ${activeTab === 'history' ? 'is-active' : ''}`}
-          onClick={() => setActiveTab('history')}
-        >
-          <Clock size={15} /> Journal d'Audit ({folder.history?.length || 0})
-        </button>
-        <button
-          type="button"
-          className={`inst-tab-btn ${activeTab === 'chat' ? 'is-active' : ''} ${!folder.assignedTechnician ? 'is-locked-tab' : ''}`}
-          onClick={() => {
-            if (folder.assignedTechnician) setActiveTab('chat');
-            else if (canManage) setShowAssignModal(true);
-          }}
-          title={!folder.assignedTechnician ? 'Assignez un technicien pour activer le chat' : 'Discuter avec le technicien assigné'}
-        >
-          <MessageSquare size={15} /> Messagerie & Vocaux direct {!folder.assignedTechnician && <small style={{ opacity: 0.7, fontSize: 11 }}>(Assignation requise)</small>}
-        </button>
-      </nav>
-
-      {/* Contenu des Onglets */}
-      <div className="inst-tab-content">
-        {/* Onglet 1 : Vue d'ensemble */}
-        {activeTab === 'summary' && (
-          <div className="inst-grid-summary">
-            {/* Fiche Client & Emplacement */}
-            <div className="inst-card">
-              <div className="inst-card-header">
-                <User size={17} className="inst-card-icon" />
-                <h3>Client & Emplacement du Site</h3>
-              </div>
-              <div className="inst-info-list">
-                <div className="inst-info-row">
-                  <span>Nom complet</span>
-                  <strong>{customer.name || '—'}</strong>
-                </div>
-                <div className="inst-info-row">
-                  <span>Téléphone</span>
-                  <strong className="font-mono">{customer.phone || '—'}</strong>
-                </div>
-                <div className="inst-info-row">
-                  <span>Profil client</span>
-                  <strong className="capitalize">{customer.profile || 'Particulier'}</strong>
-                </div>
-                <div className="inst-info-row">
-                  <span>Adresse</span>
-                  <strong>{site.adresse || '—'}</strong>
-                </div>
-                <div className="inst-info-row">
-                  <span>Quartier & Commune</span>
-                  <strong>{[site.quartier, site.commune].filter(Boolean).join(', ') || '—'}</strong>
-                </div>
-                <div className="inst-info-row">
-                  <span>Ville & Zone</span>
-                  <strong>{site.ville || 'Kinshasa'} {folder.zone ? `(${folder.zone})` : ''}</strong>
-                </div>
-              </div>
-            </div>
-
-            {/* Fiche Matériel Solaire */}
-            <div className="inst-card">
-              <div className="inst-card-header">
-                <Layers size={17} className="inst-card-icon" />
-                <h3>Matériel Prévu pour l'Installation</h3>
-              </div>
-              <div className="inst-specs-grid">
-                <div className="inst-spec-box">
-                  <span className="inst-spec-lbl">Panneaux Photovoltaïques</span>
-                  <strong className="inst-spec-val">{system.panels || 0} unités</strong>
-                  <span className="inst-spec-hint">{system.panelPower || 0} W par panneau</span>
-                </div>
-                <div className="inst-spec-box">
-                  <span className="inst-spec-lbl">Capacité de Stockage</span>
-                  <strong className="inst-spec-val">{system.batteryCapacity || 0} kWh</strong>
-                  <span className="inst-spec-hint">Batterie Lithium LiFePO4</span>
-                </div>
-                <div className="inst-spec-box">
-                  <span className="inst-spec-lbl">Onduleur Hybride</span>
-                  <strong className="inst-spec-val">{system.inverterPower || 0} kVA</strong>
-                  <span className="inst-spec-hint">Gestion réseau & PV</span>
-                </div>
-                <div className="inst-spec-box">
-                  <span className="inst-spec-lbl">Montant du Projet</span>
-                  <strong className="inst-spec-val">{formatCurrency(folder.amount, folder.currency)}</strong>
-                  <span className="inst-spec-hint">Validé le {formatDateShort(folder.createdAt)}</span>
-                </div>
-              </div>
-
-              {appliances.length > 0 && (
-                <div className="inst-appliances-section">
-                  <h4>Appareils pris en compte ({appliances.length})</h4>
-                  <div className="inst-appliances-tags">
-                    {appliances.map((app, idx) => (
-                      <span key={idx} className="inst-app-tag">
-                        {app.quantity}× {app.name} ({app.watts} W)
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Fiche Responsables & Traçabilité */}
-            <div className="inst-card">
-              <div className="inst-card-header">
-                <ShieldCheck size={17} className="inst-card-icon" />
-                <h3>Gouvernance Opérationnelle</h3>
-              </div>
-              <div className="inst-info-list">
-                <div className="inst-info-row">
-                  <span>Dossier créé par</span>
-                  <strong>{folder.createdBy?.prenom} {folder.createdBy?.nom} ({folder.createdBy?.role || 'commercial'})</strong>
-                </div>
-                <div className="inst-info-row">
-                  <span>Responsable Boutique</span>
-                  <strong>{folder.shopManager ? `${folder.shopManager.prenom} ${folder.shopManager.nom}` : 'Direction Kinshasa'}</strong>
-                </div>
-                <div className="inst-info-row">
-                  <span>Technicien assigné</span>
-                  <strong>{folder.assignedTechnician ? `${folder.assignedTechnician.prenom} ${folder.assignedTechnician.nom}` : 'À assigner'}</strong>
-                </div>
-                {folder.validatedBy && (
-                  <div className="inst-info-row">
-                    <span>Validation finale par</span>
-                    <strong>{folder.validatedBy.prenom} {folder.validatedBy.nom}</strong>
-                  </div>
-                )}
-                {folder.commissionedAt && (
-                  <div className="inst-info-row">
-                    <span>Mise en service le</span>
-                    <strong>{formatDate(folder.commissionedAt)}</strong>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Onglet 2 : Checklist de conformité */}
-        {activeTab === 'checklist' && (
-          <div className="inst-card inst-checklist-card">
-            <div className="inst-card-header">
-              <CheckCircle2 size={18} className="inst-card-icon" />
+          {hasAssignedTechnician ? (
+            <div className="inst-tech-badge">
+              <div className="inst-tech-avatar">{folder.assignedTechnician?.prenom?.charAt(0) || 'T'}</div>
               <div>
-                <h3>Contrôle Qualité & Conformité Terrain</h3>
-                <p>Les 6 étapes indispensables avant toute validation finale de l'installation.</p>
-              </div>
-            </div>
-
-            <div className="inst-checklist-items">
-              <div className={`inst-check-item ${checklist.solarPanelsMounted ? 'is-done' : ''}`}>
-                <div className="inst-check-status">
-                  {checklist.solarPanelsMounted ? <Check size={16} /> : <span className="inst-check-num">1</span>}
-                </div>
-                <div className="inst-check-text">
-                  <strong>Fixation des panneaux solaires</strong>
-                  <p>Structure ancrée solidement, orientation optimale vers le nord/sud avec inclinaison adéquate.</p>
-                </div>
-              </div>
-
-              <div className={`inst-check-item ${checklist.wiringChecked ? 'is-done' : ''}`}>
-                <div className="inst-check-status">
-                  {checklist.wiringChecked ? <Check size={16} /> : <span className="inst-check-num">2</span>}
-                </div>
-                <div className="inst-check-text">
-                  <strong>Câblage DC et AC sécurisé</strong>
-                  <p>Section des câbles respectée, goulottes et presse-étoupes étanches, polarités vérifiées.</p>
-                </div>
-              </div>
-
-              <div className={`inst-check-item ${checklist.inverterTested ? 'is-done' : ''}`}>
-                <div className="inst-check-status">
-                  {checklist.inverterTested ? <Check size={16} /> : <span className="inst-check-num">3</span>}
-                </div>
-                <div className="inst-check-text">
-                  <strong>Test de mise sous tension onduleur</strong>
-                  <p>Démarrage normal, calibration des paramètres de charge et commutation réseau/PV sans coupure.</p>
-                </div>
-              </div>
-
-              <div className={`inst-check-item ${checklist.safetyGrounding ? 'is-done' : ''}`}>
-                <div className="inst-check-status">
-                  {checklist.safetyGrounding ? <Check size={16} /> : <span className="inst-check-num">4</span>}
-                </div>
-                <div className="inst-check-text">
-                  <strong>Mise à la terre et parafoudre</strong>
-                  <p>Piquet de terre relié, impédance de boucle conforme, protection contre les surtensions active.</p>
-                </div>
-              </div>
-
-              <div className={`inst-check-item ${checklist.iotBoxPaired ? 'is-done' : ''}`}>
-                <div className="inst-check-status">
-                  {checklist.iotBoxPaired ? <Check size={16} /> : <span className="inst-check-num">5</span>}
-                </div>
-                <div className="inst-check-text">
-                  <strong>Appairage du Boîtier Connecté Djua</strong>
-                  <p>Transmission GSM/IoT effective vers le serveur central Djua, télémétrie en temps réel confirmée.</p>
-                </div>
-              </div>
-
-              <div className={`inst-check-item ${checklist.customerTrainingDone ? 'is-done' : ''}`}>
-                <div className="inst-check-status">
-                  {checklist.customerTrainingDone ? <Check size={16} /> : <span className="inst-check-num">6</span>}
-                </div>
-                <div className="inst-check-text">
-                  <strong>Formation éco-gestes du client</strong>
-                  <p>Remise du guide utilisateur, explications sur les appareils prioritaires et la jauge de batterie.</p>
-                </div>
-              </div>
-            </div>
-
-            {canOperate && !['validee', 'mise_en_service'].includes(folder.status) && (
-              <div className="inst-checklist-footer">
-                <button
-                  type="button"
-                  className="inst-detail-btn-action is-primary"
-                  onClick={() => setShowCommissionModal(true)}
-                >
-                  <CheckCircle2 size={16} /> Mettre à jour la checklist & Mettre en service
-                </button>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Onglet 3 : Télémétrie & Coordonnées GPS */}
-        {activeTab === 'iot' && (
-          <div className="inst-grid-summary">
-            <div className="inst-card">
-              <div className="inst-card-header">
-                <Cpu size={18} className="inst-card-icon" />
-                <h3>Boîtier Connecté Djua IoT</h3>
-              </div>
-              <div className="inst-info-list">
-                <div className="inst-info-row">
-                  <span>Numéro de série / ID Box</span>
-                  <strong className="font-mono text-base">{folder.kitId || 'Non encore associé'}</strong>
-                </div>
-                <div className="inst-info-row">
-                  <span>Statut de liaison</span>
-                  <strong className={folder.kitId ? 'text-green-600 font-semibold' : 'text-slate-500'}>
-                    {folder.kitId ? 'Connecté au cloud Djua' : 'En attente d’association'}
-                  </strong>
-                </div>
-                <div className="inst-info-row">
-                  <span>Dernière synchronisation</span>
-                  <strong>{folder.commissionedAt ? formatDate(folder.commissionedAt) : 'Aucune trame'}</strong>
-                </div>
-              </div>
-            </div>
-
-            <div className="inst-card">
-              <div className="inst-card-header">
-                <Compass size={18} className="inst-card-icon" />
-                <h3>Coordonnées GPS du Site</h3>
-              </div>
-              <div className="inst-info-list">
-                <div className="inst-info-row">
-                  <span>Latitude</span>
-                  <strong className="font-mono">{folder.gpsCoordinates?.latitude?.toFixed(6) || '—'}</strong>
-                </div>
-                <div className="inst-info-row">
-                  <span>Longitude</span>
-                  <strong className="font-mono">{folder.gpsCoordinates?.longitude?.toFixed(6) || '—'}</strong>
-                </div>
-                {folder.gpsCoordinates?.latitude && folder.gpsCoordinates?.longitude && (
-                  <div style={{ marginTop: 16 }}>
-                    <a
-                      href={`https://maps.google.com/?q=${folder.gpsCoordinates.latitude},${folder.gpsCoordinates.longitude}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inst-detail-btn-action"
-                    >
-                      <Navigation size={14} /> Voir sur Google Maps <ExternalLink size={12} />
-                    </a>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Onglet 4 : Journal d'Audit & Traçabilité */}
-        {activeTab === 'history' && (
-          <div className="inst-card">
-            <div className="inst-card-header">
-              <Clock size={18} className="inst-card-icon" />
-              <h3>Traçabilité Complète du Dossier (Module 2)</h3>
-            </div>
-            {(!folder.history || folder.history.length === 0) ? (
-              <p className="inst-empty-text">Aucun événement enregistré.</p>
-            ) : (
-              <div className="inst-timeline">
-                {folder.history.map((ev, index) => (
-                  <div key={index} className="inst-timeline-item">
-                    <div className="inst-timeline-dot" />
-                    <div className="inst-timeline-content">
-                      <div className="inst-timeline-meta">
-                        <span className="inst-timeline-status">
-                          {STATUS_CONFIG[ev.status]?.label || ev.status}
-                        </span>
-                        <span className="inst-timeline-time">{formatDate(ev.timestamp)}</span>
-                      </div>
-                      <p className="inst-timeline-note">{ev.note || 'Mise à jour d’étape'}</p>
-                      {ev.changedBy && (
-                        <span className="inst-timeline-author">
-                          Par <strong>{ev.changedBy.prenom} {ev.changedBy.nom}</strong> ({ev.changedBy.role || 'utilisateur'})
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Onglet 5 : Messagerie & Vocaux direct (Chat avec le technicien) */}
-        {activeTab === 'chat' && (
-          <div className="inst-chat-tab-wrap">
-            {!folder.assignedTechnician ? (
-              <div style={{
-                padding: '48px 24px',
-                textAlign: 'center',
-                background: '#fff',
-                borderRadius: 16,
-                border: '1.5px dashed #cbd5e1',
-                maxWidth: 580,
-                margin: '24px auto'
-              }}>
-                <div style={{
-                  width: 56,
-                  height: 56,
-                  borderRadius: '50%',
-                  background: '#f1f5f9',
-                  color: '#64748b',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  margin: '0 auto 16px'
-                }}>
-                  <User size={28} />
-                </div>
-                <h3 style={{ fontSize: 18, fontWeight: 700, color: '#0f172a', marginBottom: 8 }}>
-                  Assignation d'un technicien requise
-                </h3>
-                <p style={{ fontSize: 14, color: '#64748b', lineHeight: 1.5, marginBottom: 20 }}>
-                  Le canal de discussion direct (messages instantanés, photos terrain et notes vocales) s'active automatiquement dès qu'un technicien est assigné à ce dossier d'installation.
-                </p>
-                {canManage ? (
-                  <button
-                    type="button"
-                    className="inst-detail-btn-action is-primary"
-                    style={{ margin: '0 auto' }}
-                    onClick={() => setShowAssignModal(true)}
-                  >
-                    <Wrench size={16} /> Assigner un technicien maintenant
-                  </button>
+                <strong>{assignedTechnicianName}</strong>
+                <small>{folder.assignedTechnician?.zone || 'Zone Kinshasa'} · {folder.assignedTechnician?.phone || 'Contact non renseigné'}</small>
+                {folder.technicianAcknowledgedAt ? (
+                  <small className="inst-tech-assignment-status is-confirmed">
+                    <Check size={12} /> Assignation acceptée le {formatDateShort(folder.technicianAcknowledgedAt)}
+                  </small>
                 ) : (
-                  <div style={{ fontSize: 13, color: '#94a3b8', fontStyle: 'italic' }}>
-                    En attente d’assignation par l’administrateur ou le responsable.
-                  </div>
+                  <small className="inst-tech-assignment-status">
+                    <Clock size={12} /> En attente de confirmation
+                  </small>
                 )}
               </div>
-            ) : (
-              <InstallationChat
-                installationId={folder._id}
-                title={`Dossier ${folder.folderName || folder.folderNumber}`}
-                recipientName={`${folder.assignedTechnician.prenom} ${folder.assignedTechnician.nom}`}
-              />
-            )}
-          </div>
-        )}
-      </div>
+            </div>
+          ) : (
+            <div className="inst-unassigned-action">
+              <div className="inst-unassigned-icon"><User size={18} /></div>
+              <div>
+                <strong>Aucun technicien assigné</strong>
+                <small>{canManage ? 'Assignez un technicien pour ouvrir la messagerie.' : 'La messagerie sera disponible après assignation.'}</small>
+              </div>
+              {canManage && (
+                <button type="button" className="inst-detail-btn-action is-primary" onClick={() => setShowAssignModal(true)}>
+                  Assigner
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      </section>
+      {hasAssignedTechnician && (
+        <section className="inst-chat-section" aria-label="Messagerie avec le technicien">
+          <h2>Messages avec {assignedTechnicianName}</h2>
+          <InstallationChat
+            installationId={folder._id}
+            title={`Dossier ${folder.folderName || folder.folderNumber}`}
+            recipientName={assignedTechnicianName}
+          />
+        </section>
+      )}
 
       {/* MODAL 1 : Assigner un technicien & planifier date */}
       {showAssignModal && (

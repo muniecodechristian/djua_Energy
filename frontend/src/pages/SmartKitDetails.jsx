@@ -1,20 +1,18 @@
 import './SmartKitDetails.css';
 import PageEntrance from '../components/PageEntrance';
-import React, { lazy, Suspense, useState, useEffect, useRef } from 'react';
+import React, { lazy, Suspense, useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid
 } from 'recharts';
-import {
-  AlertTriangle, CheckCircle2, Minus, TrendingDown, TrendingUp, X
-} from 'lucide-react';
+import { AlertTriangle, CheckCircle2, MapPin, MessageCircle, Radio, Sun, X, Zap } from 'lucide-react';
 import { useKitLiveTelemetry } from '../hooks/tanstack/useKitLiveTelemetry.js';
-import { useAlertsQuery, useKitsQuery } from '../hooks/tanstack/useKitQueries.js';
+import { useAlertsQuery, useKitsQuery, useKitTelemetrySummaryQuery } from '../hooks/tanstack/useKitQueries.js';
 import { io } from 'socket.io-client';
 import api from '../api/axios';
 import { predictionMatchesKit } from '../lib/operations';
-import { formatTelemetryValue, getTelemetryMetrics, groupTelemetryMetrics } from '../lib/telemetryMetrics';
+import { getTelemetryMetrics } from '../lib/telemetryMetrics';
 import { useCreateIntervention, useTeamTechnicians } from '../hooks/tanstack/useInterventions.js';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -64,15 +62,50 @@ const parseDateString = (v) => {
   return isNaN(d.getTime()) ? null : d;
 };
 
-const formatTime = (v) => {
-  const d = parseDateString(v);
-  return d ? d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '—';
-};
-
 const fmt = (value, unit = '') => {
   if (value === undefined || value === null) return '—';
   if (typeof value === 'number') return `${Number(value.toFixed(2))}${unit}`;
   return `${value}${unit}`;
+};
+
+const flattenRawTelemetry = (snapshot) => snapshot ? ({
+  event_time: snapshot.meta?.event_time || snapshot.createdAt,
+  device_id: snapshot.deviceId,
+  solar_power_w: snapshot.solar?.power_w,
+  solar_voltage_v: snapshot.solar?.voltage_v,
+  solar_current_a: snapshot.solar?.current_a,
+  energy_generated_wh: snapshot.solar?.energy_interval_wh,
+  solar_error_code: snapshot.solar?.error_code,
+  battery_voltage_v: snapshot.battery?.voltage_v,
+  battery_current_a: snapshot.battery?.current_a,
+  battery_power_w: snapshot.battery?.power_w,
+  state_of_charge_pct: snapshot.battery?.state_of_charge_pct,
+  state_of_health_pct: snapshot.battery?.state_of_health_pct,
+  battery_error_code: snapshot.battery?.error_code,
+  load_power_w: snapshot.dc_load?.power_w,
+  load_voltage_v: snapshot.dc_load?.voltage_v,
+  load_current_a: snapshot.dc_load?.current_a,
+  load_energy_interval_wh: snapshot.dc_load?.energy_interval_wh,
+  overload_detected: snapshot.dc_load?.overload_detected,
+  ac_load_voltage_v: snapshot.ac_load?.voltage_v,
+  ac_load_current_a: snapshot.ac_load?.current_a,
+  ac_apparent_power_va: snapshot.ac_load?.apparent_power_va,
+  latitude: snapshot.gpsCoordinates?.latitude,
+  longitude: snapshot.gpsCoordinates?.longitude,
+  signal_strength_dbm: snapshot.environment?.signal_strength_dbm,
+  device_temperature_c: snapshot.environment?.device_temperature_c,
+  ambient_temperature_c: snapshot.environment?.ambient_temperature_c,
+  humidity_pct: snapshot.environment?.humidity_pct,
+  message_id: snapshot.meta?.message_id,
+  sequence_number: snapshot.meta?.sequence_number,
+  firmware_version: snapshot.extraData?.firmware_version || snapshot.extraData?.firmwareVersion,
+  device_model: snapshot.extraData?.device_model || snapshot.extraData?.model,
+  serial_number: snapshot.extraData?.serial_number || snapshot.extraData?.serialNumber,
+}) : null;
+
+const formatDate = (value) => {
+  const date = parseDateString(value);
+  return date ? date.toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' }) : 'Non renseigné';
 };
 
 const distanceInMeters = (lat1, lon1, lat2, lon2) => {
@@ -91,14 +124,6 @@ const hasValidGps = (latitude, longitude) => {
   return Number.isFinite(lat) && Number.isFinite(lon)
     && lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180
     && !(lat === 0 && lon === 0);
-};
-
-/* Valeur précédente = valeur d'avant le dernier changement réel
-   (l'ancienne version comparait T à lui-même après chaque re-render). */
-const usePreviousOnChange = (value) => {
-  const ref = useRef({ prev: null, curr: value });
-  if (value !== ref.current.curr) ref.current = { prev: ref.current.curr, curr: value };
-  return ref.current.prev;
 };
 
 const MapUpdater = ({ center }) => {
@@ -144,34 +169,6 @@ const Meter = ({ value, max = 100, warnBelow, className = '' }) => {
     </div>
   );
 };
-
-const Trend = ({ prev, curr, unit = '' }) => {
-  if (prev == null || curr == null) return <span className="h-4" />;
-  const diff = curr - prev;
-  if (Math.abs(diff) < 0.01) {
-    return <span className={`inline-flex items-center gap-1 text-xs ${MUTED}`}><Minus size={12} /> Stable</span>;
-  }
-  const Icon = diff > 0 ? TrendingUp : TrendingDown;
-  return (
-    <span className={`inline-flex items-center gap-1 text-xs tabular-nums ${MUTED}`}>
-      <Icon size={12} /> {diff > 0 ? '+' : ''}{diff.toFixed(2)}{unit} depuis le relevé précédent
-    </span>
-  );
-};
-
-/* Grand indicateur : uniquement pour les 4 chiffres qui comptent */
-const Stat = ({ label, hint, value, unit, prev, curr, meter, primary = false }) => (
-  <div className={`kit-stat ${SURFACE} rounded-lg p-5 ${primary ? 'border-t-2 border-t-[#F59E0B]' : ''}`}>
-    <p className={`text-sm font-medium ${FG}`}>{label}</p>
-    <p className={`text-xs ${MUTED}`}>{hint}</p>
-    <p className={`mt-3 flex items-baseline gap-1.5 tabular-nums ${FG}`}>
-      <span className="text-4xl font-semibold tracking-tight">{value ?? '—'}</span>
-      {value != null && <span className={`text-base ${MUTED}`}>{unit}</span>}
-    </p>
-    {meter && <Meter {...meter} className="mt-3" />}
-    <div className="mt-2 min-h-[16px]"><Trend prev={prev} curr={curr} unit={unit} /></div>
-  </div>
-);
 
 /* Ligne label / valeur : remplace 12 cartes identiques */
 const Row = ({ label, value, meter, status }) => (
@@ -470,14 +467,20 @@ export default function SmartKitDetails() {
   const [interventionForm, setInterventionForm] = useState({ title: '', description: '', priority: 'Moyenne', assignedTo: '' });
 
   const { telemetryRecords, latestTelemetry, isLive, isLoading } = useKitLiveTelemetry(kitId);
+  const telemetrySummary = useKitTelemetrySummaryQuery(kitId);
   const { data: kits = [] } = useKitsQuery();
   const { data: alerts = [] } = useAlertsQuery();
   const createIntervention = useCreateIntervention();
 const technicians = useTeamTechnicians();
   const kitReference = kits.find((kit) => kit.kitId === kitId);
 
-  const T = latestTelemetry;
-  const P = usePreviousOnChange(T);
+  const rawSnapshot = telemetrySummary.data?.latest || null;
+  const T = isLive
+    ? latestTelemetry
+    : telemetrySummary.data
+      ? flattenRawTelemetry(rawSnapshot)
+      : latestTelemetry;
+  const history30d = telemetrySummary.data?.history30d;
 
   useEffect(() => {
     if (!isLoading) { setIsChecking(false); return; }
@@ -505,13 +508,45 @@ const technicians = useTeamTechnicians();
   }, [kitId]);
 
   const hasTelemetryGps = hasValidGps(T?.latitude, T?.longitude);
-  const lat = hasTelemetryGps ? Number(T.latitude) : Number(kitReference?.gpsCoordinates?.latitude ?? -3.5);
-  const lng = hasTelemetryGps ? Number(T.longitude) : Number(kitReference?.gpsCoordinates?.longitude ?? 23.5);
+  const lat = hasTelemetryGps ? Number(T.latitude) : Number(kitReference?.gpsCoordinates?.latitude ?? 0);
+  const lng = hasTelemetryGps ? Number(T.longitude) : Number(kitReference?.gpsCoordinates?.longitude ?? 0);
   const refLat = kitReference?.gpsCoordinates?.latitude == null ? NaN : Number(kitReference.gpsCoordinates.latitude);
   const refLng = kitReference?.gpsCoordinates?.longitude == null ? NaN : Number(kitReference.gpsCoordinates.longitude);
   const hasReferenceGps = hasValidGps(refLat, refLng);
   const currentDistance = hasReferenceGps && hasTelemetryGps ? distanceInMeters(refLat, refLng, lat, lng) : null;
   const isOutsideGeofence = Boolean(liveGeofenceAlert) || (currentDistance != null && currentDistance > 90);
+  const snapshotTime = telemetrySummary.data?.communication?.lastSeen || rawSnapshot?.createdAt || T?.event_time || null;
+  const communicationIsRecent = isLive || Boolean(telemetrySummary.data?.communication?.isRecent);
+  const communicationStatus = communicationIsRecent
+    ? 'Active'
+    : snapshotTime ? 'Inactive' : 'Aucune donnée';
+  const currentConsumption = T?.load_power_w != null
+    ? { value: T.load_power_w, unit: 'W' }
+    : T?.ac_apparent_power_va != null
+      ? { value: T.ac_apparent_power_va, unit: 'VA' }
+      : null;
+  const averageConsumption = history30d?.averageDcLoadPowerW != null
+    ? { value: history30d.averageDcLoadPowerW, unit: 'W' }
+    : history30d?.averageAcLoadApparentPowerVa != null
+      ? { value: history30d.averageAcLoadApparentPowerVa, unit: 'VA' }
+      : null;
+  const referenceLocation = kitReference?.zone || telemetrySummary.data?.kit?.zone || 'Non renseignée';
+  const gpsStatus = isOutsideGeofence
+    ? 'Hors périmètre'
+    : hasTelemetryGps
+      ? hasReferenceGps ? 'Confirmée' : 'Reçue'
+      : 'Non disponible';
+  const kitAlerts = (Array.isArray(alerts) ? alerts : []).filter(
+    (alert) => alert.kitId === kitId && ['active', 'acknowledged'].includes(alert.status),
+  );
+  const hasDiagnosticData = [
+    T?.solar_power_w,
+    T?.solar_voltage_v,
+    T?.battery_voltage_v,
+    T?.battery_power_w,
+    T?.load_power_w,
+    T?.ac_apparent_power_va,
+  ].some((value) => value != null);
 
   const recentRecords = telemetryRecords.slice(-24);
   const chartOptionsByPath = new Map();
@@ -532,8 +567,6 @@ const technicians = useTeamTechnicians();
     label: `${metric.group} · ${metric.label}`,
     unit: metric.unit,
   }));
-  const currentMetrics = groupTelemetryMetrics(getTelemetryMetrics(T));
-
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 3000); };
 
   /* Problèmes à signaler en haut de page */
@@ -543,17 +576,54 @@ const technicians = useTeamTechnicians();
   if (T?.abnormal_consumption_detected) issues.push('Consommation anormale détectée.');
   if (T?.battery_error_code && T.battery_error_code !== 'NONE') issues.push(`Erreur batterie : ${T.battery_error_code}.`);
   if (T?.solar_error_code && T.solar_error_code !== 'NONE') issues.push(`Erreur panneau : ${T.solar_error_code}.`);
+  const technicalStatus = !T
+    ? 'Non disponible'
+    : !hasDiagnosticData
+      ? 'Données insuffisantes'
+      : issues.length || kitAlerts.length
+      ? 'À surveiller'
+      : 'Aucune anomalie détectée';
+  const openKitAiChat = () => {
+    window.dispatchEvent(new CustomEvent('open-ai-chat', {
+      detail: {
+        message: 'Fais le point sur l’état actuel de mon kit et explique les mesures ou alertes qui nécessitent mon attention.',
+        context: {
+          scope: 'kit_status',
+          kit: {
+            kitId,
+            deviceId: T?.device_id || kitReference?.deviceId || null,
+            model: T?.device_model || null,
+            firmwareVersion: T?.firmware_version || null,
+            zone: referenceLocation,
+            technicalStatus,
+            communicationStatus,
+            isLive,
+            lastTelemetryAt: snapshotTime,
+            productionLast30DaysKwh: history30d?.productionKwh ?? null,
+            solarPowerW: T?.solar_power_w ?? null,
+            solarVoltageV: T?.solar_voltage_v ?? null,
+            solarCurrentA: T?.solar_current_a ?? null,
+            batteryChargePercent: T?.state_of_charge_pct ?? null,
+            batteryVoltageV: T?.battery_voltage_v ?? null,
+            batteryCurrentA: T?.battery_current_a ?? null,
+            batteryPowerW: T?.battery_power_w ?? null,
+            currentConsumption: currentConsumption,
+            averageConsumption30Days: averageConsumption,
+            signalStrengthDbm: T?.signal_strength_dbm ?? null,
+            deviceTemperatureC: T?.device_temperature_c ?? null,
+            gpsStatus,
+            alerts: [
+              ...issues,
+              ...kitAlerts.map((alert) => alert.title || alert.message || alert.type || 'Alerte active'),
+            ],
+          },
+        },
+      },
+    }));
+  };
 
   if (isChecking) return <LoadingScreen kitId={kitId} />;
 
-  const errorRows = [
-    { label: 'Erreur batterie', bad: T?.battery_error_code && T.battery_error_code !== 'NONE', text: T?.battery_error_code && T.battery_error_code !== 'NONE' ? T.battery_error_code : 'Aucune' },
-    { label: 'Erreur panneau', bad: T?.solar_error_code && T.solar_error_code !== 'NONE', text: T?.solar_error_code && T.solar_error_code !== 'NONE' ? T.solar_error_code : 'Aucune' },
-    { label: 'Surcharge', bad: T?.overload_detected, text: T?.overload_detected ? 'Détectée' : 'Non' },
-    { label: 'Consommation anormale', bad: T?.abnormal_consumption_detected, text: T?.abnormal_consumption_detected ? 'Détectée' : 'Non' },
-  ];
-
-  const duration = (sec) => (sec == null ? '—' : `${Math.floor(sec / 3600)} h ${String(Math.floor((sec % 3600) / 60)).padStart(2, '0')}`);
   const rssi = T?.signal_strength_dbm;
 
   const handleCreateIntervention = (e) => {
@@ -612,17 +682,25 @@ const technicians = useTeamTechnicians();
             <div>
               <div className="flex flex-wrap items-center gap-2.5">
                 <h1 className="text-xl font-semibold tracking-tight">{kitId || 'Équipement non sélectionné'}</h1>
-                <Pill tone={isLive ? 'ok' : 'off'} dot>
-                  {isLive ? 'Connexion en direct' : 'Sans connexion directe'}
+                <Pill tone={communicationIsRecent ? 'ok' : 'off'} dot>
+                  {isLive ? 'Connexion en direct' : communicationIsRecent ? 'Données récentes' : 'Sans signal récent'}
                 </Pill>
                 {isOutsideGeofence && <Pill tone="bad">Hors périmètre</Pill>}
               </div>
               <p className={`mt-1 text-sm ${MUTED}`}>
                 {isLive ? 'Mesures actualisées automatiquement'
-                  : T ? `Dernières mesures reçues : ${formatTime(T.event_time)}` : 'Aucune mesure reçue pour ce kit'}
+                  : snapshotTime ? `Dernières mesures reçues : ${formatDate(snapshotTime)}` : 'Aucune mesure reçue pour ce kit'}
               </p>
             </div>
             <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={openKitAiChat}
+                className={`kit-secondary-action ${FOCUS}`}
+              >
+                <MessageCircle size={15} className="mr-1.5 inline" />
+                Causer avec l’IA pour ce kit
+              </button>
               <button
                 type="button" onClick={() => setActiveTab('ia')}
                 className={`kit-secondary-action ${FOCUS}`}
@@ -674,20 +752,72 @@ const technicians = useTeamTechnicians();
               <div className="space-y-5">
                 <div className="kit-summary-title">
                   <h2>Vue d'ensemble</h2>
-                  <p>{T ? `Dernier relevé : ${formatTime(T.event_time)}` : 'En attente des premières mesures'}</p>
+                  <p>{snapshotTime ? `Dernier relevé : ${formatDate(snapshotTime)}` : 'En attente des premières mesures'}</p>
                 </div>
 
-                <div className="kit-stats grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                  <Stat primary label="Batterie disponible" hint="Énergie restante" value={T?.state_of_charge_pct} unit="%"
-                    prev={P?.state_of_charge_pct} curr={T?.state_of_charge_pct} meter={{ value: T?.state_of_charge_pct, warnBelow: 20 }} />
-                  <Stat label="Production solaire" hint="Puissance du panneau à cet instant" value={T?.solar_power_w} unit=" W"
-                    prev={P?.solar_power_w} curr={T?.solar_power_w} />
-                  <Stat label="Tension batterie" hint="Stabilité de l’alimentation" value={T?.battery_voltage_v} unit=" V"
-                    prev={P?.battery_voltage_v} curr={T?.battery_voltage_v} />
-                  <Stat label="Puissance batterie" hint="Mesurée aux bornes" value={T?.battery_power_w} unit=" W"
-                    prev={P?.battery_power_w} curr={T?.battery_power_w} />
+                <div className="kit-overview-grid">
+                  <Card title="Production solaire" subtitle="Énergie mesurée sur les 30 derniers jours" className="kit-overview-card">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className={`text-xs ${MUTED}`}>30 derniers jours</p>
+                        <p className={`mt-1 text-2xl font-semibold tabular-nums ${FG}`}>
+                          {history30d?.productionKwh != null ? fmt(history30d.productionKwh, ' kWh') : 'Non disponible'}
+                        </p>
+                        <p className={`mt-3 text-xs ${MUTED}`}>
+                          Actuellement · {T?.solar_power_w != null ? fmt(T.solar_power_w, ' W') : 'Non disponible'}
+                        </p>
+                      </div>
+                      <Sun size={20} className="shrink-0 text-[var(--ops-emphasis)]" />
+                    </div>
+                  </Card>
+
+                  <Card title="Consommation" subtitle="Mesures de charge disponibles" className="kit-overview-card">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className={`text-xs ${MUTED}`}>Moyenne mesurée · 30 jours</p>
+                        <p className={`mt-1 text-2xl font-semibold tabular-nums ${FG}`}>
+                          {averageConsumption ? fmt(averageConsumption.value, ` ${averageConsumption.unit}`) : 'Non disponible'}
+                        </p>
+                        <p className={`mt-3 text-xs ${MUTED}`}>
+                          Actuellement · {currentConsumption ? fmt(currentConsumption.value, ` ${currentConsumption.unit}`) : 'Non disponible'}
+                        </p>
+                      </div>
+                      <Zap size={20} className="shrink-0 text-[var(--ops-emphasis)]" />
+                    </div>
+                  </Card>
+
+                  <Card title="Communication" subtitle="Fraîcheur des relevés ESP32" className="kit-overview-card">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <Pill tone={communicationIsRecent ? 'ok' : 'off'} dot>{communicationStatus}</Pill>
+                        <p className={`mt-3 text-sm font-medium ${FG}`}>
+                          {T?.signal_strength_dbm != null ? `Signal · ${fmt(T.signal_strength_dbm, ' dBm')}` : 'Réseau · non communiqué'}
+                        </p>
+                        <p className={`mt-1 text-xs ${MUTED}`}>Dernière donnée · {formatDate(snapshotTime)}</p>
+                      </div>
+                      <Radio size={20} className="shrink-0 text-[var(--ops-emphasis)]" />
+                    </div>
+                  </Card>
+
+                  <Card title="Boîtier & localisation" subtitle="Informations présentes dans les données reçues" className="kit-overview-card">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className={`truncate text-sm font-semibold ${FG}`}>ID · {T?.device_id || 'Non transmis'}</p>
+                        <p className={`mt-2 text-sm ${FG}`}>Position · {gpsStatus}</p>
+                        <p className={`mt-1 text-xs ${MUTED}`}>
+                          {hasTelemetryGps ? `${lat.toFixed(5)}, ${lng.toFixed(5)}` : referenceLocation}
+                        </p>
+                      </div>
+                      <MapPin size={20} className="shrink-0 text-[var(--ops-emphasis)]" />
+                    </div>
+                  </Card>
                 </div>
 
+                {telemetrySummary.isError && (
+                  <p className="rounded-md border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-800 dark:text-amber-300" role="status">
+                    Le résumé historique IoT n’a pas pu être chargé. Les valeurs de synthèse indisponibles ne sont pas estimées.
+                  </p>
+                )}
 
                 <Suspense fallback={<div className="kit-card p-6 text-sm" role="status">Chargement de la vue du kit…</div>}>
                   <KitExplorer telemetry={T} />
@@ -697,35 +827,98 @@ const technicians = useTeamTechnicians();
                   <TrendChart data={chartData} options={chartOptions} />
                 </Card>
 
-                <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-                  <Card title="Autres mesures" className="lg:col-span-1">
+                <Card title="Mesures techniques" subtitle="Valeurs du dernier relevé brut reçu">
+                  <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
+                    <div>
+                      <p className="kit-section-label">Solaire</p>
+                      <RowList>
+                        <Row label="Tension" value={fmt(T?.solar_voltage_v, ' V')} />
+                        <Row label="Courant" value={fmt(T?.solar_current_a, ' A')} />
+                        <Row label="Puissance" value={fmt(T?.solar_power_w, ' W')} />
+                        <Row label="Énergie intervalle" value={fmt(T?.energy_generated_wh, ' Wh')} />
+                      </RowList>
+                    </div>
+                    <div>
+                      <p className="kit-section-label">Batterie</p>
+                      <RowList>
+                        <Row label="Tension" value={fmt(T?.battery_voltage_v, ' V')} />
+                        <Row label="Courant" value={fmt(T?.battery_current_a, ' A')} />
+                        <Row label="Puissance" value={fmt(T?.battery_power_w, ' W')} />
+                        <Row label="Charge" value={fmt(T?.state_of_charge_pct, ' %')} />
+                      </RowList>
+                    </div>
+                    <div>
+                      <p className="kit-section-label">Sortie AC</p>
+                      <RowList>
+                        <Row label="Tension" value={fmt(T?.ac_load_voltage_v, ' V')} />
+                        <Row label="Courant" value={fmt(T?.ac_load_current_a, ' A')} />
+                        <Row label="Puissance apparente" value={fmt(T?.ac_apparent_power_va, ' VA')} />
+                      </RowList>
+                    </div>
+                    <div>
+                      <p className="kit-section-label">GPS / GSM</p>
+                      <RowList>
+                        <Row label="Position" value={gpsStatus} />
+                        <Row label="Coordonnées" value={hasTelemetryGps ? `${lat.toFixed(5)}, ${lng.toFixed(5)}` : 'Non disponible'} />
+                        <Row label="Signal radio" value={fmt(T?.signal_strength_dbm, ' dBm')} />
+                        <Row label="Dernière transmission" value={formatDate(snapshotTime)} />
+                      </RowList>
+                    </div>
+                  </div>
+                  </Card>
+
+                <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+                  <Card title="Boîtier Djua" subtitle="Informations matérielles communiquées par le kit">
                     <RowList>
-                      <Row label="Santé de la batterie" value={fmt(T?.state_of_health_pct, ' %')} />
-                      <Row label="Tension du panneau" value={fmt(T?.solar_voltage_v, ' V')} />
-                      <Row label="Courant du panneau" value={fmt(T?.solar_current_a, ' A')} />
-                      <Row label="Énergie produite (intervalle)" value={fmt(T?.energy_generated_wh, ' Wh')} />
-                      <Row label="Température du boîtier" value={fmt(T?.device_temperature_c, ' °C')} />
-                      <Row label="Température ambiante" value={fmt(T?.ambient_temperature_c, ' °C')} />
-                      <Row label="Humidité" value={fmt(T?.humidity_pct, ' %')} />
+                      <Row label="ID du boîtier" value={T?.device_id || 'Non transmis'} />
+                      <Row label="Modèle" value={T?.device_model || 'Non transmis'} />
+                      <Row label="Version du firmware" value={T?.firmware_version || 'Non transmise'} />
+                      <Row label="Numéro de série" value={T?.serial_number || 'Non transmis'} />
+                      <Row label="Enregistrement dans la base" value={formatDate(telemetrySummary.data?.kit?.createdAt || kitReference?.createdAt)} />
+                      <Row label="Emplacement" value={hasTelemetryGps ? `${lat.toFixed(5)}, ${lng.toFixed(5)}` : referenceLocation} />
                     </RowList>
                   </Card>
 
-                  <Card title="Diagnostic" className="lg:col-span-1">
+                  <Card title="Capteurs et connectivité" subtitle="Présence de mesures dans le dernier message, sans présumer de leur état matériel">
                     <RowList>
-                      {errorRows.map((r) => (
-                        <Row key={r.label} label={r.label} status={<Pill tone={!T ? 'off' : r.bad ? 'bad' : 'ok'}>{T ? r.text : 'Non disponible'}</Pill>} />
+                      {[
+                        { label: 'Entrée panneaux', received: T?.solar_voltage_v != null || T?.solar_current_a != null || T?.solar_power_w != null },
+                        { label: 'Entrée batterie', received: T?.battery_voltage_v != null || T?.battery_current_a != null || T?.battery_power_w != null },
+                        { label: 'Capteur AC', received: T?.ac_load_voltage_v != null || T?.ac_load_current_a != null || T?.ac_apparent_power_va != null },
+                        { label: 'GPS', received: hasTelemetryGps },
+                        { label: 'Signal radio', received: T?.signal_strength_dbm != null },
+                      ].map((sensor) => (
+                        <Row
+                          key={sensor.label}
+                          label={sensor.label}
+                          status={<Pill tone={sensor.received ? 'ok' : 'off'}>{sensor.received ? 'Donnée reçue' : 'Non disponible'}</Pill>}
+                        />
                       ))}
                     </RowList>
                   </Card>
-
-                  <Card title="Cycles de charge" className="lg:col-span-1">
-                    <RowList>
-                      <Row label="Durée de charge" value={duration(T?.charge_duration_seconds)} />
-                      <Row label="Durée de décharge" value={duration(T?.discharge_duration_seconds)} />
-                      <Row label="N° de séquence" value={T?.sequence_number ?? '—'} />
-                    </RowList>
-                  </Card>
                 </div>
+
+                <Card title="Ce qui se passe sur cette installation" subtitle={`État technique · ${technicalStatus}`}>
+                  {issues.length > 0 || kitAlerts.length > 0 ? (
+                    <ul className="space-y-2">
+                      {[...issues, ...kitAlerts.map((alert) => alert.title || alert.message || alert.type || 'Alerte active')].map((item, index) => (
+                        <li key={`${item}-${index}`} className="flex items-start gap-2 text-sm">
+                          <AlertTriangle size={16} className="mt-0.5 shrink-0 text-amber-600 dark:text-amber-400" />
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className={`text-sm ${MUTED}`}>
+                      {hasDiagnosticData
+                        ? 'Aucune anomalie télémétrique ou alerte active détectée dans les données disponibles.'
+                        : 'En attente de mesures suffisantes pour établir un diagnostic.'}
+                    </p>
+                  )}
+                  {history30d?.sampleCount != null && (
+                    <p className={`mt-3 text-xs ${MUTED}`}>{history30d.sampleCount} relevé(s) exploité(s) sur les 30 derniers jours.</p>
+                  )}
+                </Card>
               </div>
             )}
 
@@ -817,8 +1010,8 @@ const technicians = useTeamTechnicians();
                   </div>
                   <RowList>
                     <Row label="Réception" value={isLive ? 'En direct' : 'Dernier relevé connu'} />
-                    <Row label="Région" value={T?.region || 'Kinshasa, RDC'} />
-                    <Row label="Type d’installation" value={(T?.installation_type || 'household_rooftop').replace(/_/g, ' ')} />
+                    <Row label="Région" value={T?.region || 'Non communiquée'} />
+                    <Row label="Type d’installation" value={T?.installation_type ? T.installation_type.replace(/_/g, ' ') : 'Non communiqué'} />
                     <Row label="ID du message" value={<span className="break-all text-xs">{T?.message_id || '—'}</span>} />
                   </RowList>
                 </Card>

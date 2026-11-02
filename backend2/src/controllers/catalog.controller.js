@@ -23,7 +23,7 @@ const validImage = value => !value || /^data:image\/(?:jpeg|png|webp);base64,[A-
 export async function listCatalogProducts(req, res) {
   try {
     const { category, search } = req.query;
-    const filter = req.user.role === 'admin' || req.user.role === 'administration' ? {} : { active: true };
+    const filter = ['admin', 'administration', 'shop_manager'].includes(req.user.role) ? {} : { active: true };
     if (typeof category === 'string' && category.trim()) filter.category = category.trim().slice(0, 60);
     if (typeof search === 'string' && search.trim()) {
       const safeSearch = search.trim().slice(0, 80).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');

@@ -153,7 +153,7 @@ export const getTeamUsers = async (req, res) => {
  * GET /auth/technicians
  * Récupère la liste des techniciens selon le rôle de l'utilisateur demandeur :
  * - Admin / Administration : Vision totale sur TOUS les techniciens
- * - Commercial : STRICTEMENT les techniciens qu'il a créés lui-même
+ * - Commercial : techniciens créés par son responsable shop
  * - Shop Manager : Techniciens de sa zone ou créés par lui
  */
 export const getTechnicians = async (req, res) => {
@@ -164,7 +164,13 @@ export const getTechnicians = async (req, res) => {
     if (actorRole === 'admin') {
       filter = { role: 'technician' };
     } else if (actorRole === 'commercial') {
-      filter = { role: 'technician', createdBy: req.user._id };
+      const shopManager = req.user.createdBy
+        ? await User.findOne({ _id: req.user.createdBy, role: 'shop_manager' }).select('_id').lean()
+        : null;
+      if (!shopManager) {
+        return sendSuccess(res, 'Techniciens récupérés avec succès', []);
+      }
+      filter = { role: 'technician', createdBy: shopManager._id };
     } else if (actorRole === 'shop_manager') {
       filter = {
         role: 'technician',

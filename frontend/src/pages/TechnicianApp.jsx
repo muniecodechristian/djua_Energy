@@ -837,7 +837,7 @@ export default function TechnicianApp() {
           <div className="bg-[#121c2e] border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
             <div className="flex items-start justify-between flex-wrap gap-3 pb-4 border-b border-slate-800">
               <div className="flex items-center gap-3.5">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-slate-900 to-slate-800 border-2 border-[#F59E0B] flex items-center justify-center text-white font-extrabold text-xl shadow-lg">
+                <div className="w-14 h-14 rounded-2xl bg-slate-900 border-2 border-[#F59E0B] flex items-center justify-center text-white font-extrabold text-xl shadow-lg">
                   {user?.prenom?.charAt(0) || 'T'}{user?.nom?.charAt(0) || 'D'}
                 </div>
                 <div>

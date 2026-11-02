@@ -291,9 +291,13 @@ export async function assignTechnician(req, res) {
         return fail(res, 400, 'Technicien sélectionné invalide.');
       }
 
-      // Si le demandeur est commercial, vérifier que le technicien a bien été créé par lui
-      if (req.user.role === 'commercial' && String(tech.createdBy) !== String(req.user._id)) {
-        return fail(res, 403, 'Vous ne pouvez assigner que des techniciens que vous avez créés.');
+      if (req.user.role === 'commercial') {
+        const shopManager = req.user.createdBy
+          ? await User.findOne({ _id: req.user.createdBy, role: 'shop_manager' }).select('_id').lean()
+          : null;
+        if (!shopManager || String(tech.createdBy) !== String(shopManager._id)) {
+          return fail(res, 403, 'Vous ne pouvez assigner que les techniciens de votre responsable boutique.');
+        }
       }
 
       folder.assignedTechnician = tech._id;

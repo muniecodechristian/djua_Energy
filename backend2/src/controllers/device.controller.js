@@ -5,6 +5,10 @@ import * as store from '../store/db.store.js';
 import { publishCommand } from '../services/mqtt.service.js';
 import { enqueueCommand } from '../store/command.store.js';
 import Telemetry from '../models/Telemetry.js';
+import Quote from '../models/Quote.model.js';
+import Kit from '../models/kit.model.js';
+import InstallationFolder from '../models/InstallationFolder.model.js';
+import { quoteScope } from '../services/quote.service.js';
 
 // ─── Lectures ─────────────────────────────────────────────────────────────────
 
@@ -86,6 +90,152 @@ export async function getKitTelemetry(req, res) {
   } catch (err) {
     console.error('[Device Controller] Erreur récupération télémétrie brute :', err);
     res.status(500).json({ success: false, message: 'Erreur serveur interne' });
+  }
+}
+
+/** GET /api/telemetry/latest?kitIds=KIT-1,KIT-2 */
+export async function getLatestKitTelemetry(req, res) {
+  const requestedKitIds = [...new Set(String(req.query.kitIds || '')
+    .split(',')
+    .map(kitId => kitId.trim())
+    .filter(Boolean))].slice(0, 50);
+
+  if (requestedKitIds.length === 0) {
+    return res.status(400).json({ success: false, message: 'Au moins un kitId est requis' });
+  }
+
+  try {
+    const role = req.user?.role === 'administration' ? 'admin' : req.user?.role;
+    let allowedKitIds = requestedKitIds;
+    if (role !== 'admin') {
+      const ownedQuoteKitIds = await Quote.distinct('kitId', {
+        ...quoteScope(req.user),
+        kitId: { $in: requestedKitIds },
+      });
+      allowedKitIds = role === 'shop_manager'
+        ? [...new Set([
+          ...ownedQuoteKitIds,
+          ...await Kit.distinct('kitId', {
+            shopManager: req.user._id,
+            kitId: { $in: requestedKitIds },
+          }),
+        ])]
+        : ownedQuoteKitIds;
+    }
+
+    if (allowedKitIds.length === 0) {
+      return res.json({ success: true, data: [] });
+    }
+
+    const telemetry = await Telemetry.aggregate([
+      { $match: { kitId: { $in: allowedKitIds } } },
+      { $sort: { kitId: 1, createdAt: -1 } },
+      {
+        $group: {
+          _id: '$kitId',
+          createdAt: { $first: '$createdAt' },
+          gpsCoordinates: { $first: '$gpsCoordinates' },
+          battery: { $first: '$battery' },
+          solar: { $first: '$solar' },
+          dc_load: { $first: '$dc_load' },
+          ac_load: { $first: '$ac_load' },
+          environment: { $first: '$environment' },
+          meta: { $first: '$meta' },
+        },
+      },
+    ]);
+
+    return res.json({
+      success: true,
+      data: telemetry.map(({ _id, ...snapshot }) => ({ kitId: _id, ...snapshot })),
+    });
+  } catch (err) {
+    console.error('[Device Controller] Erreur récupération des dernières télémétries :', err);
+    return res.status(500).json({ success: false, message: 'Impossible de charger les dernières données IoT' });
+  }
+}
+
+/** GET /api/telemetry/:kitId/summary */
+export async function getKitTelemetrySummary(req, res) {
+  const { kitId } = req.params;
+  const role = req.user?.role === 'administration' ? 'admin' : req.user?.role;
+
+  try {
+    let authorized = role === 'admin';
+    if (!authorized && role === 'commercial') {
+      authorized = Boolean(await Quote.exists({ ...quoteScope(req.user), kitId }));
+    } else if (!authorized && role === 'shop_manager') {
+      authorized = Boolean(
+        await Quote.exists({ ...quoteScope(req.user), kitId })
+        || await Kit.exists({ kitId, shopManager: req.user._id }),
+      );
+    } else if (!authorized && role === 'technician') {
+      authorized = Boolean(await InstallationFolder.exists({
+        kitId,
+        assignedTechnician: req.user._id,
+      }));
+    }
+
+    if (!authorized) {
+      return res.status(404).json({ success: false, message: 'Kit non trouvé' });
+    }
+
+    const from = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const [kit, latest, [history = {}]] = await Promise.all([
+      Kit.findOne({ kitId }).select('kitId createdAt installationDate gpsCoordinates zone').lean(),
+      Telemetry.findOne({ kitId }).sort({ createdAt: -1 }).lean(),
+      Telemetry.aggregate([
+        { $match: { kitId, createdAt: { $gte: from } } },
+        {
+          $group: {
+            _id: null,
+            sampleCount: { $sum: 1 },
+            productionSampleCount: {
+              $sum: { $cond: [{ $ne: ['$solar.energy_interval_wh', null] }, 1, 0] },
+            },
+            productionWh: { $sum: { $ifNull: ['$solar.energy_interval_wh', 0] } },
+            dcPowerSampleCount: {
+              $sum: { $cond: [{ $ne: ['$dc_load.power_w', null] }, 1, 0] },
+            },
+            averageDcLoadPowerW: { $avg: '$dc_load.power_w' },
+            acPowerSampleCount: {
+              $sum: { $cond: [{ $ne: ['$ac_load.apparent_power_va', null] }, 1, 0] },
+            },
+            averageAcLoadApparentPowerVa: { $avg: '$ac_load.apparent_power_va' },
+          },
+        },
+      ]),
+    ]);
+    const lastSeenTime = latest?.createdAt ? new Date(latest.createdAt).getTime() : 0;
+
+    return res.json({
+      success: true,
+      data: {
+        kit,
+        latest,
+        communication: {
+          isRecent: lastSeenTime > 0 && Date.now() - lastSeenTime < 5 * 60 * 1000,
+          lastSeen: latest?.createdAt || null,
+        },
+        history30d: {
+          from,
+          to: new Date(),
+          sampleCount: history.sampleCount || 0,
+          productionKwh: history.productionSampleCount
+            ? history.productionWh / 1000
+            : null,
+          averageDcLoadPowerW: history.dcPowerSampleCount
+            ? history.averageDcLoadPowerW
+            : null,
+          averageAcLoadApparentPowerVa: history.acPowerSampleCount
+            ? history.averageAcLoadApparentPowerVa
+            : null,
+        },
+      },
+    });
+  } catch (err) {
+    console.error('[Device Controller] Erreur récupération du résumé de télémétrie :', err);
+    return res.status(500).json({ success: false, message: 'Impossible de charger le résumé IoT' });
   }
 }
 

@@ -2,7 +2,7 @@ import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from 'framer-m
 import { quickSpring } from '../lib/motion';
 import { useEffect, useRef, useState } from 'react';
 import { NavLink, Link } from 'react-router-dom';
-import { Sun, PanelLeftClose, PanelLeftOpen, X, LogOut, LogIn } from 'lucide-react';
+import { Sun, PanelLeftClose, PanelLeftOpen, X, LogOut, LogIn, FilePlus2 } from 'lucide-react';
 import { navigationForRole } from '../lib/navigation';
 import useAuthStore from '../hooks/Zustand/useAuthStore';
 import { useLogoutMutation } from '../hooks/tanstack/useAuthMutations';
@@ -53,6 +53,16 @@ export default function Sidebar({ isSidebarOpen, setIsSidebarOpen }) {
       <Link to={role === 'admin' ? '/AdministrationSettings' : role === 'commercial' ? '/devis' : '/dashboard'} className="ops-brand ops-brand-logo-only" onClick={() => setIsSidebarOpen(false)} aria-label="Accueil Djua Energy">
         <img src={LOGO_URL} alt="Djua Energy" className="ops-brand-logo-img" />
       </Link>
+      {['commercial', 'shop_manager'].includes(role) && <Link
+        to="/devis/nouveau"
+        className="ops-sidebar-create-quote"
+        title="Nouveau devis"
+        aria-label="Créer un nouveau devis"
+        onClick={() => setIsSidebarOpen(false)}
+      >
+        <FilePlus2 size={16} />
+        <span className="ops-nav-label">Nouveau devis</span>
+      </Link>}
       <button className="ops-mobile-close ops-icon-button" aria-label="Fermer le menu" onClick={() => setIsSidebarOpen(false)}><X size={18}/></button>
       <LayoutGroup id="primary-nav"><nav aria-label="Navigation principale">
         {sections.map(section => <div className="ops-nav-group" key={section}>

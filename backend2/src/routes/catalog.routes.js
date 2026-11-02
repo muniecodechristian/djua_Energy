@@ -10,8 +10,8 @@ import {
 const router = Router();
 router.use(protect, authorizeRoles('admin', 'administration', 'commercial', 'shop_manager'));
 router.get('/', listCatalogProducts);
-router.post('/', authorizeRoles('admin'), createCatalogProduct);
-router.patch('/:productId', authorizeRoles('admin'), updateCatalogProduct);
-router.delete('/:productId', authorizeRoles('admin'), deleteCatalogProduct);
+router.post('/', authorizeRoles('admin', 'shop_manager'), createCatalogProduct);
+router.patch('/:productId', authorizeRoles('admin', 'shop_manager'), updateCatalogProduct);
+router.delete('/:productId', authorizeRoles('admin', 'shop_manager'), deleteCatalogProduct);
 
 export default router;

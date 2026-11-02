@@ -60,7 +60,24 @@ function StreamingAiMessage({ text, isNew, onTick }) {
   );
 }
 
-export default function QuoteChat({ open, onClose, messages, input, onInput, onSend, pending }) {
+export default function QuoteChat({
+  open,
+  onClose,
+  messages,
+  input,
+  onInput,
+  onSend,
+  pending,
+  suggestions: suggestedQuestions = suggestions,
+  onSuggestionSelect,
+  assistantName = 'Djua Copilot',
+  assistantBadge = 'Copilot',
+  assistantSubtitle = 'Assistant de votre étude solaire',
+  welcomeEyebrow = 'VOTRE DEVIS, EN CLAIR',
+  welcomeTitle = <>Et si on parlait de<br />votre installation ?</>,
+  welcomeDescription = 'Panneaux, autonomie, budget… Je vous aide à comprendre votre étude, à votre rythme.',
+  inputPlaceholder = 'Que souhaitez-vous comprendre dans votre devis ?',
+}) {
   const dialogRef = useDialog(open, onClose);
   const inputRef = useRef(null);
   const endRef = useRef(null);
@@ -90,8 +107,8 @@ export default function QuoteChat({ open, onClose, messages, input, onInput, onS
             <img src="/bot.gif" alt="" aria-hidden="true" />
           </span>
           <span>
-            <span className="quote-ai-brand-title">Djua Copilot <strong>Copilot</strong></span>
-            <small>Assistant de votre étude solaire</small>
+            <span className="quote-ai-brand-title">{assistantName} <strong>{assistantBadge}</strong></span>
+            <small>{assistantSubtitle}</small>
           </span>
         </div>
         <div className="quote-ai-actions">
@@ -111,22 +128,29 @@ export default function QuoteChat({ open, onClose, messages, input, onInput, onS
               <div className="quote-ai-robot">
                 <img src={`${import.meta.env.BASE_URL}bot.gif`} alt="Robot assistant Djua" />
               </div>
-              <p className="quote-ai-eyebrow">VOTRE DEVIS, EN CLAIR</p>
-              <h1>Et si on parlait de<br />votre installation ?</h1>
-              <p>Panneaux, autonomie, budget… Je vous aide à comprendre votre étude, à votre rythme.</p>
+              <p className="quote-ai-eyebrow">{welcomeEyebrow}</p>
+              <h1>{welcomeTitle}</h1>
+              <p>{welcomeDescription}</p>
               <div className="quote-ai-suggestions" aria-label="Questions suggérées">
-                {suggestions.map((question) => (
+                {suggestedQuestions.map((suggestion) => {
+                  const question = typeof suggestion === 'string' ? suggestion : suggestion.label;
+                  const prompt = typeof suggestion === 'string' ? suggestion : suggestion.prompt;
+                  return (
                   <button
                     type="button"
                     key={question}
                     onClick={() => {
-                      onInput(question);
-                      inputRef.current?.focus();
+                      if (onSuggestionSelect) onSuggestionSelect(prompt);
+                      else {
+                        onInput(prompt);
+                        inputRef.current?.focus();
+                      }
                     }}
                   >
                     {question}
                   </button>
-                ))}
+                  );
+                })}
               </div>
             </div>
           ) : (
@@ -199,7 +223,7 @@ export default function QuoteChat({ open, onClose, messages, input, onInput, onS
               }}
               maxLength={1000}
               aria-label="Votre question sur l’étude"
-              placeholder="Que souhaitez-vous comprendre dans votre devis ?"
+              placeholder={inputPlaceholder}
             />
             <button type="submit" aria-label="Envoyer la question" disabled={!input.trim() || pending}>
               {pending ? <Loader2 size={19} className="quote-ai-spin" /> : <ArrowUp size={21} />}

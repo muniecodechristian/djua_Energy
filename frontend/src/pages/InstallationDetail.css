@@ -138,16 +138,18 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: transparent;
-  border: 1px solid var(--border-color, rgba(0, 0, 0, 0.15));
-  color: var(--text-primary, #0f172a);
-  font-size: 13px;
+  min-height: 37px;
+  background: var(--ops-surface, #fff);
+  border: 1px solid var(--ops-line, #e6e8ec);
+  color: var(--ops-ink, #202936);
+  font-size: 12px;
   font-weight: 600;
-  padding: 8px 16px;
+  padding: 9px 13px;
   border-radius: 8px;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: background .16s, border-color .16s, transform .16s;
   text-decoration: none;
+  box-shadow: var(--ops-shadow, 0 2px 5px rgb(25 35 50 / 3%));
 }
 
 :root[data-theme='dark'] .inst-detail-btn-action,
@@ -166,15 +168,16 @@
 }
 
 .inst-detail-btn-action.is-primary {
-  background: #0f172a;
+  background: #B45309;
   color: #ffffff;
-  border-color: transparent;
+  border-color: #B45309;
 }
 
 :root[data-theme='dark'] .inst-detail-btn-action.is-primary,
 .dark .inst-detail-btn-action.is-primary {
-  background: #ffffff;
-  color: #0f172a;
+  background: #B45309;
+  color: #ffffff;
+  border-color: #B45309;
 }
 
 .inst-detail-btn-action.is-warning {
@@ -314,9 +317,60 @@
   border-color: rgba(220, 38, 38, 0.5);
 }
 
-.inst-chat-tab-wrap {
-  max-width: 880px;
-  margin: 0 auto;
+.inst-chat-section {
+  max-width: 1120px;
+  margin: 28px auto 0;
+  scroll-margin-top: 24px;
+}
+
+.inst-tech-contact-hero {
+  display: block;
+  margin: 28px auto 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.inst-tech-contact-hero .inst-assignment-box {
+  padding: 20px 22px;
+  background: var(--surface-primary, #ffffff);
+  border-color: var(--border-color, rgba(0, 0, 0, 0.08));
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03);
+}
+
+.inst-tech-assignment-status {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 7px;
+  color: #b77912 !important;
+}
+
+.inst-tech-assignment-status.is-confirmed {
+  color: #16a34a !important;
+}
+
+.inst-chat-section h2 {
+  margin: 0 0 12px;
+  color: var(--text-primary, #0f172a);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+:root[data-theme='dark'] .inst-chat-section h2,
+.dark .inst-chat-section h2 {
+  color: #ffffff;
+}
+
+@media (max-width: 600px) {
+  .inst-tech-contact-hero .inst-assignment-box {
+    padding: 16px;
+  }
+
+  .inst-chat-section {
+    margin-top: 20px;
+  }
 }
 
 .inst-detail-folder-num {

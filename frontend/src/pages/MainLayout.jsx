@@ -105,6 +105,6 @@ export default function MainLayout() {
       <p className="ops-eyebrow">Pages et equipements</p>
       <div className="ops-search-results">{results.map(item => <button key={item.path} onClick={() => { dialog.current.close(); navigate(item.path); }}><span><strong>{item.label}</strong><small>{item.description}</small></span><ArrowUpRight size={16}/></button>)}{results.length === 0 && <p className="ops-empty">Aucun resultat pour cette recherche.</p>}</div>
     </dialog>
-    {!hasRestrictedNavigation && <AIAssistant/>}
+    <AIAssistant/>
   </div>;
 }

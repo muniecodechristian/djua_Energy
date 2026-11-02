@@ -280,7 +280,7 @@ export default function Discussion() {
               <Card title="Actif Affecté" action={<span className="flex items-center gap-1">Gérer <ArrowRight size={12}/></span>}>
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-14 bg-gradient-to-br from-slate-700 to-slate-900 rounded-lg border border-slate-600/50 flex items-center justify-center shadow-md relative">
+                    <div className="w-12 h-14 bg-slate-800 rounded-lg border border-slate-600/50 flex items-center justify-center shadow-md relative">
                       <Cpu size={22} className="text-amber-400" />
                       <div className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-amber-500 animate-pulse"></div>
                     </div>

@@ -78,6 +78,24 @@ describe('Shared solar equipment catalogue', () => {
     expect((await request(app).post('/api/catalog').set('Cookie', cookie(admin)).send(product({ imageData: 'data:image/svg+xml;base64,PHN2Zz4=' }))).status).toBe(400);
   });
 
+  it('lets shop managers manage products and view inactive catalog entries', async () => {
+    const inactive = await CatalogProduct.create({ ...product({ name: 'Produit inactif', active: false }), createdBy: admin._id });
+    const list = await request(app).get('/api/catalog').set('Cookie', cookie(shopManager));
+    expect(list.status).toBe(200);
+    expect(list.body.data.map(item => item.name)).toContain('Produit inactif');
+
+    const created = await request(app).post('/api/catalog').set('Cookie', cookie(shopManager)).send(product({ name: 'Produit manager' }));
+    expect(created.status).toBe(201);
+    expect(created.body.data.createdBy).toBe(String(shopManager._id));
+
+    const updated = await request(app).patch(`/api/catalog/${inactive._id}`).set('Cookie', cookie(shopManager)).send({ active: true });
+    expect(updated.status).toBe(200);
+    expect(updated.body.data.active).toBe(true);
+
+    const removed = await request(app).delete(`/api/catalog/${created.body.data._id}`).set('Cookie', cookie(shopManager));
+    expect(removed.status).toBe(200);
+  });
+
   it('counts product appearances in quotes from the last 30 days', async () => {
     const television = await CatalogProduct.create({ ...product(), createdBy: admin._id });
     const refrigerator = await CatalogProduct.create({ ...product({ name: 'Réfrigérateur', model: 'FR-1' }), createdBy: admin._id });

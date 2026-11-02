@@ -12,7 +12,6 @@ import {
 import api from '../api/axios';
 import PageEntrance from '../components/PageEntrance';
 import { ListSkeleton } from '../components/PageSkeleton';
-import { useGetInterventions } from '../hooks/tanstack/useInterventions';
 import { useAlertsQuery, useKitsQuery, useTelemetryQuery } from '../hooks/tanstack/useKitQueries';
 import { activeAlerts, asList, formatDate } from '../lib/operations';
 import useAuthStore from '../hooks/Zustand/useAuthStore';
@@ -82,6 +81,10 @@ function dateOf(item, ...fields) {
 
 function getProvince(item) {
   return item?.customer?.details?.province || item?.site?.province || item?.province || item?.region || '';
+}
+
+function entityId(value) {
+  return String(value?._id ?? value ?? '');
 }
 
 function dateInside(item, range, ...fields) {
@@ -200,6 +203,7 @@ function KpiCard({ label, value, note, icon: Icon, tone = 'orange' }) {
 export default function AdminReports() {
   const user = useAuthStore(state => state.user);
   const isCommercial = user?.role === 'commercial';
+  const isShopManager = user?.role === 'shop_manager';
   const [initialReportTemplate] = useState(readReportTemplate);
   const [tab, setTab] = useState('overview');
   const [period, setPeriod] = useState('30');
@@ -217,7 +221,7 @@ export default function AdminReports() {
   const [selectedReportQuote, setSelectedReportQuote] = useState(null);
 
   const quotesQuery = useQuery({
-    queryKey: ['sales-quotes', user?._id, 'reports'],
+    queryKey: ['sales-quotes', user?._id, user?.role, 'reports'],
     queryFn: async () => {
       const firstPage = (await api.get('/api/quotes', { params: { page: 1 } })).data?.data;
       if (!firstPage || !Array.isArray(firstPage.quotes)) throw new Error('Format de réponse des devis inattendu.');
@@ -238,16 +242,94 @@ export default function AdminReports() {
     },
     staleTime: 60_000,
   });
+  const managerInstallationsQuery = useQuery({
+    queryKey: ['report-installations', user?._id],
+    queryFn: async () => {
+      const pageSize = 100;
+      const firstPage = (await api.get('/api/installations', { params: { page: 1, limit: pageSize } })).data?.data;
+      if (!firstPage || !Array.isArray(firstPage.installations)) {
+        throw new Error('Format de réponse des installations inattendu.');
+      }
+
+      const pages = [firstPage.installations];
+      const pageCount = Math.ceil((firstPage.total || firstPage.installations.length) / (firstPage.limit || pageSize));
+      for (let first = 2; first <= pageCount; first += 4) {
+        const batch = await Promise.all(
+          Array.from({ length: Math.min(4, pageCount - first + 1) }, (_, offset) =>
+            api.get('/api/installations', { params: { page: first + offset, limit: pageSize } }),
+          ),
+        );
+        batch.forEach(response => {
+          const installations = response.data?.data?.installations;
+          if (!Array.isArray(installations)) throw new Error('Format de réponse des installations inattendu.');
+          pages.push(installations);
+        });
+      }
+      return pages.flat();
+    },
+    enabled: isShopManager,
+    staleTime: 60_000,
+  });
   const kitsQuery = useKitsQuery({ enabled: !isCommercial });
   const alertsQuery = useAlertsQuery({ enabled: !isCommercial });
   const telemetryQuery = useTelemetryQuery({ enabled: !isCommercial });
-  const interventionsQuery = useGetInterventions(null, { enabled: !isCommercial });
+  const interventionsQuery = useQuery({
+    queryKey: ['report-interventions', user?._id, user?.role],
+    queryFn: async () => {
+      const response = await api.get('/api/interventions');
+      if (!Array.isArray(response.data?.data)) {
+        throw new Error('Format de réponse des comptes-rendus inattendu.');
+      }
+      return response.data.data;
+    },
+    staleTime: 30_000,
+    enabled: !isCommercial,
+  });
 
   const allQuotes = asList(quotesQuery.data);
-  const kits = useMemo(() => isCommercial ? [] : asList(kitsQuery.data), [isCommercial, kitsQuery.data]);
-  const alerts = useMemo(() => isCommercial ? [] : activeAlerts(alertsQuery.data), [isCommercial, alertsQuery.data]);
-  const telemetry = useMemo(() => isCommercial ? [] : asList(telemetryQuery.data), [isCommercial, telemetryQuery.data]);
+  const managerInstallations = useMemo(() => {
+    if (!isShopManager) return [];
+    const managerId = entityId(user?._id);
+    const managerQuoteNumbers = new Set(allQuotes.map(quote => quote.number).filter(Boolean));
+    return asList(managerInstallationsQuery.data).filter(installation =>
+      entityId(installation.shopManager) === managerId
+      || managerQuoteNumbers.has(installation.quoteNumber),
+    );
+  }, [isShopManager, user?._id, allQuotes, managerInstallationsQuery.data]);
+  const managerKitIds = useMemo(() => {
+    if (!isShopManager) return new Set();
+    const managerId = entityId(user?._id);
+    return new Set([
+      ...allQuotes.map(quote => quote.kitId),
+      ...managerInstallations.map(installation => installation.kitId),
+      ...asList(kitsQuery.data)
+        .filter(kit => entityId(kit.shopManager) === managerId)
+        .map(kit => kit.kitId),
+    ].filter(Boolean));
+  }, [isShopManager, user?._id, allQuotes, managerInstallations, kitsQuery.data]);
+  const kits = useMemo(() => {
+    if (isCommercial) return [];
+    const allKits = asList(kitsQuery.data);
+    if (!isShopManager) return allKits;
+    return allKits.filter(kit => managerKitIds.has(kit.kitId));
+  }, [isCommercial, isShopManager, kitsQuery.data, managerKitIds]);
+  const alerts = useMemo(() => {
+    if (isCommercial) return [];
+    const allAlerts = activeAlerts(alertsQuery.data);
+    if (!isShopManager) return allAlerts;
+    const managerId = entityId(user?._id);
+    return allAlerts.filter(alert =>
+      entityId(alert.createdBy) === managerId || managerKitIds.has(alert.kitId),
+    );
+  }, [isCommercial, isShopManager, alertsQuery.data, user?._id, managerKitIds]);
+  const telemetry = useMemo(() => {
+    if (isCommercial) return [];
+    const allTelemetry = asList(telemetryQuery.data);
+    if (!isShopManager) return allTelemetry;
+    return allTelemetry.filter(record => managerKitIds.has(record.kitId));
+  }, [isCommercial, isShopManager, telemetryQuery.data, managerKitIds]);
   const interventions = useMemo(() => isCommercial ? [] : asList(interventionsQuery.data), [isCommercial, interventionsQuery.data]);
+  const managerScopeReady = !isShopManager || managerInstallationsQuery.isSuccess;
   const range = period === 'custom' ? customRange : initialRange(period);
   const provinces = useMemo(() => [...new Set([
     ...allQuotes.map(getProvince),
@@ -283,8 +365,8 @@ export default function AdminReports() {
   const allKpis = [
     { label: 'Devis créés', value: quotesQuery.isSuccess ? numberFormat.format(quotes.length) : '—', note: 'Sur la période sélectionnée', icon: FileText, tone: 'orange' },
     { label: 'Devis validés', value: quotesQuery.isSuccess ? numberFormat.format(validatedCount) : '—', note: 'Validés ou en cours d’installation', icon: CheckCircle2, tone: 'green' },
-    { label: 'Installations suivies', value: isCommercial ? numberFormat.format(quotes.filter(quote => quote.status === 'installed').length) : kitsQuery.isSuccess ? numberFormat.format(filteredKits.length) : '—', note: isCommercial ? 'Issues des devis validés' : province === 'all' ? 'Parc enregistré' : province, icon: Users, tone: 'purple' },
-    { label: isCommercial ? 'Devis en attente' : 'Alertes ouvertes', value: isCommercial ? numberFormat.format(quotes.filter(quote => quote.status === 'draft').length) : alertsQuery.isSuccess ? numberFormat.format(filteredAlerts.length) : '—', note: isCommercial ? 'Réponse client attendue ou relance à effectuer' : 'Actives ou prises en charge', icon: isCommercial ? Clock3 : AlertTriangle, tone: 'red' },
+    { label: 'Installations suivies', value: isCommercial ? numberFormat.format(quotes.filter(quote => quote.status === 'installed').length) : managerScopeReady && kitsQuery.isSuccess ? numberFormat.format(filteredKits.length) : '—', note: isCommercial ? 'Issues des devis validés' : province === 'all' ? 'Parc enregistré' : province, icon: Users, tone: 'purple' },
+    { label: isCommercial ? 'Devis en attente' : 'Alertes ouvertes', value: isCommercial ? numberFormat.format(quotes.filter(quote => quote.status === 'draft').length) : managerScopeReady && alertsQuery.isSuccess ? numberFormat.format(filteredAlerts.length) : '—', note: isCommercial ? 'Réponse client attendue ou relance à effectuer' : 'Actives ou prises en charge', icon: isCommercial ? Clock3 : AlertTriangle, tone: 'red' },
   ];
   const kpis = allKpis;
 
@@ -317,10 +399,10 @@ export default function AdminReports() {
   }, [quotes]);
   const summaryInsight = useMemo(() => {
     if (isCommercial) return null;
-    if (quotesQuery.isPending || kitsQuery.isPending || alertsQuery.isPending) {
+    if (quotesQuery.isPending || kitsQuery.isPending || alertsQuery.isPending || (isShopManager && managerInstallationsQuery.isPending)) {
       return { message: 'Chargement des données du parc et des devis…', target: 'fleet' };
     }
-    if (quotesQuery.isError || kitsQuery.isError || alertsQuery.isError) {
+    if (quotesQuery.isError || kitsQuery.isError || alertsQuery.isError || (isShopManager && managerInstallationsQuery.isError)) {
       return { message: 'Cette analyse est indisponible car certaines données du serveur n’ont pas pu être chargées.', target: 'fleet' };
     }
     if (anomalies.length > 0) {
@@ -343,7 +425,7 @@ export default function AdminReports() {
         : 'Aucune alerte ni aucun article de devis ne sont enregistrés pour les filtres sélectionnés.',
       target: 'fleet',
     };
-  }, [isCommercial, quotesQuery.isPending, kitsQuery.isPending, alertsQuery.isPending, quotesQuery.isError, kitsQuery.isError, alertsQuery.isError, anomalies, products, filteredKits.length]);
+  }, [isCommercial, isShopManager, managerInstallationsQuery.isPending, managerInstallationsQuery.isError, quotesQuery.isPending, kitsQuery.isPending, alertsQuery.isPending, quotesQuery.isError, kitsQuery.isError, alertsQuery.isError, anomalies, products, filteredKits.length]);
   const currencyTotals = useMemo(() => {
     const totals = new Map();
     quotes.forEach(quote => {
@@ -408,19 +490,19 @@ export default function AdminReports() {
         revenue: quotesQuery.isSuccess ? revenue : '—',
       },
       fleet: {
-        installations: kitsQuery.isSuccess ? numberFormat.format(filteredKits.length) : '—',
-        active: kitsQuery.isSuccess ? numberFormat.format(contractStatuses.find(item => item.name === 'Actifs')?.value || 0) : '—',
-        alerts: alertsQuery.isSuccess ? numberFormat.format(filteredAlerts.length) : '—',
-        production: telemetryQuery.isSuccess ? `${numberFormat.format(produced)} Wh` : '—',
-        consumption: telemetryQuery.isSuccess ? `${numberFormat.format(consumed)} Wh` : '—',
+        installations: managerScopeReady && kitsQuery.isSuccess ? numberFormat.format(filteredKits.length) : '—',
+        active: managerScopeReady && kitsQuery.isSuccess ? numberFormat.format(contractStatuses.find(item => item.name === 'Actifs')?.value || 0) : '—',
+        alerts: managerScopeReady && alertsQuery.isSuccess ? numberFormat.format(filteredAlerts.length) : '—',
+        production: managerScopeReady && telemetryQuery.isSuccess ? `${numberFormat.format(produced)} Wh` : '—',
+        consumption: managerScopeReady && telemetryQuery.isSuccess ? `${numberFormat.format(consumed)} Wh` : '—',
       },
       interventions: {
         reports: interventionsQuery.isSuccess ? numberFormat.format(filteredInterventions.length) : '—',
         completed: interventionsQuery.isSuccess ? numberFormat.format(completed) : '—',
-        installations: kitsQuery.isSuccess ? numberFormat.format(filteredKits.length) : '—',
+        installations: managerScopeReady && kitsQuery.isSuccess ? numberFormat.format(filteredKits.length) : '—',
       },
     };
-  }, [reportQuotes, trend, filteredInterventions, filteredKits, contractStatuses, filteredAlerts, quotesQuery.isSuccess, kitsQuery.isSuccess, alertsQuery.isSuccess, telemetryQuery.isSuccess, interventionsQuery.isSuccess]);
+  }, [reportQuotes, trend, filteredInterventions, filteredKits, contractStatuses, filteredAlerts, managerScopeReady, quotesQuery.isSuccess, kitsQuery.isSuccess, alertsQuery.isSuccess, telemetryQuery.isSuccess, interventionsQuery.isSuccess]);
   const selectedReportMetrics = reportMetricOptions[reportType].filter(metric => reportMetrics.includes(metric.id));
   const selectedReportRows = selectedReportMetrics.map(metric => [metric.label, reportMetricsData[reportType][metric.id]]);
   const saveReportTemplate = () => {
@@ -452,14 +534,18 @@ export default function AdminReports() {
       telemetryQuery.refetch();
       interventionsQuery.refetch();
     }
+    if (isShopManager) managerInstallationsQuery.refetch();
   };
-  const refreshing = isCommercial ? quotesQuery.isFetching : [quotesQuery, kitsQuery, alertsQuery, telemetryQuery, interventionsQuery].some(query => query.isFetching);
+  const refreshing = isCommercial
+    ? quotesQuery.isFetching
+    : [quotesQuery, kitsQuery, alertsQuery, telemetryQuery, interventionsQuery, ...(isShopManager ? [managerInstallationsQuery] : [])].some(query => query.isFetching);
   const errors = [
     quotesQuery.isError && 'devis',
     !isCommercial && kitsQuery.isError && 'installations',
     !isCommercial && alertsQuery.isError && 'alertes',
     !isCommercial && telemetryQuery.isError && 'télémétrie',
     !isCommercial && interventionsQuery.isError && 'comptes-rendus',
+    isShopManager && managerInstallationsQuery.isError && 'installations de la boutique',
   ].filter(Boolean);
   const visibleTabs = isCommercial ? tabs.filter(item => ['overview', 'sales'].includes(item.id)) : tabs;
 
@@ -482,7 +568,7 @@ export default function AdminReports() {
         <div>
           <p className="ops-eyebrow">PILOTAGE DE L’ACTIVITÉ</p>
           <h1>Rapports</h1>
-          <p>Suivez vos ventes, vos installations et les événements du parc solaire.</p>
+          <p>{isShopManager ? 'Suivez les ventes de votre boutique, les installations et l’activité de vos techniciens.' : 'Suivez vos ventes, vos installations et les événements du parc solaire.'}</p>
         </div>
         <div className="reports-controls">
           <div className="reports-period-control">

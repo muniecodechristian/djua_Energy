@@ -251,6 +251,79 @@ describe('Authentication API - Integration Tests', () => {
     });
   });
 
+  describe('GET /auth/technicians', () => {
+    it('should list only technicians belonging to the commercial user shop manager', async () => {
+      const suffix = Date.now();
+      const manager = await User.create({
+        nom: 'Manager',
+        prenom: 'Shop',
+        identifier: `technicians-manager-${suffix}@example.com`,
+        password: 'Password123!',
+        role: 'shop_manager',
+      });
+      const otherManager = await User.create({
+        nom: 'Other',
+        prenom: 'Manager',
+        identifier: `technicians-other-manager-${suffix}@example.com`,
+        password: 'Password123!',
+        role: 'shop_manager',
+      });
+      const commercial = await User.create({
+        nom: 'Commercial',
+        prenom: 'Shop',
+        identifier: `technicians-commercial-${suffix}@example.com`,
+        password: 'Password123!',
+        role: 'commercial',
+        createdBy: manager._id,
+      });
+      const managerTechnician = await User.create({
+        nom: 'Technician',
+        prenom: 'Same Shop',
+        identifier: `technicians-same-shop-${suffix}@example.com`,
+        password: 'Password123!',
+        role: 'technician',
+        createdBy: manager._id,
+      });
+      await User.create({
+        nom: 'Technician',
+        prenom: 'Other Shop',
+        identifier: `technicians-other-shop-${suffix}@example.com`,
+        password: 'Password123!',
+        role: 'technician',
+        createdBy: otherManager._id,
+      });
+      await User.create({
+        nom: 'Technician',
+        prenom: 'Commercial Created',
+        identifier: `technicians-commercial-created-${suffix}@example.com`,
+        password: 'Password123!',
+        role: 'technician',
+        createdBy: commercial._id,
+      });
+      const login = await request(app)
+        .post('/auth/login')
+        .send({ identifier: commercial.identifier, password: 'Password123!' });
+
+      const response = await request(app)
+        .get('/auth/technicians')
+        .set('Cookie', login.headers['set-cookie']);
+
+      expect(response.status).toBe(200);
+      expect(response.body.data.map(technician => technician._id)).toEqual([String(managerTechnician._id)]);
+    });
+
+    it('should return no technicians to a commercial without a shop manager', async () => {
+      const { cookie } = await createSession('commercial');
+
+      const response = await request(app)
+        .get('/auth/technicians')
+        .set('Cookie', cookie);
+
+      expect(response.status).toBe(200);
+      expect(response.body.data).toEqual([]);
+    });
+  });
+
   describe('POST /auth/login', () => {
     it('should log in successfully and set the HttpOnly cookie', async () => {
       const res = await request(app)

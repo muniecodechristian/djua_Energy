@@ -51,11 +51,32 @@
 .park-table-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 14px; }
 .park-table-heading h2 span { color:var(--ops-muted); font-weight:500; }
 .park-table-heading .ops-input-wrap { width:min(300px,50%); min-height:34px; }
+.park-table-tools { display:flex; align-items:center; gap:8px; }
+.park-export-button { min-height:34px; }
 .park-filter-row { display:flex; gap:5px; overflow:auto; padding:0 12px 10px; border-bottom:1px solid var(--ops-line); }
 .park-filter-row button { flex:none; padding:7px 10px; border:1px solid var(--ops-line); border-radius:5px; background:var(--ops-surface); color:var(--ops-muted); font-size:8px; }
 .park-filter-row button.is-active { border-color:#e87537; background:#fff1e9; color:#c7470e; }
 .park-table tr { cursor:pointer; }.park-table tr:hover { background:var(--ops-canvas); }
 .park-table td { vertical-align:middle; }.park-table td small { display:block; margin-top:4px; color:var(--ops-muted); font-size:8px; }
 .park-gps { display:inline-flex; align-items:center; gap:4px; color:#178657; font-size:8px; white-space:nowrap; }
+.park-table { min-width:1180px; }
+.park-table th { min-width:105px; white-space:normal; }
+.park-table th:nth-child(1) { min-width:130px; }
+.park-table th:nth-child(2) { min-width:145px; }
+.park-measurement { display:block; min-width:120px; color:var(--ops-ink); font-size:10px; font-weight:650; white-space:nowrap; }
+.park-measurement small { color:var(--ops-muted); font-size:8px; font-weight:450; }
+.park-live-badge { display:inline-flex; align-items:center; gap:5px; max-width:160px; padding:5px 8px; border-radius:5px; background:var(--ops-canvas); color:var(--ops-muted); font-size:8px; font-weight:600; line-height:1.35; }
+.park-live-badge.good { background:#e9f7ef; color:#17834f; }
+.park-live-badge.warning { background:#fff3e5; color:#b45309; }
+.park-live-badge.critical { background:#fdebed; color:#c9283e; }
+.park-live-badge.offline { background:#f0f2f5; color:#667085; }
+.dark .park-live-badge.good { background:#153626; color:#75d39c; }
+.dark .park-live-badge.warning { background:#3a2815; color:#f2b66f; }
+.dark .park-live-badge.critical { background:#3b1c22; color:#f18a97; }
+.dark .park-live-badge.offline { background:#262a31; color:#a0a9b8; }
+.park-pagination { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 14px; color:var(--ops-muted); font-size:9px; }
+.park-pagination > div { display:flex; align-items:center; gap:10px; }
+.park-pagination button { display:grid; width:32px; height:32px; place-items:center; border:1px solid var(--ops-line); border-radius:6px; background:var(--ops-surface); color:var(--ops-ink); }
+.park-pagination button:disabled { opacity:.45; cursor:not-allowed; }
 @media(max-width:950px) { .park-overview-grid { grid-template-columns:1fr; }.park-alert-card { min-height:0; }.park-alert-empty { min-height:150px; } }
-@media(max-width:650px) { .park-page { padding:20px 14px 60px; }.park-heading-actions { width:100%; }.park-heading-actions .ops-button { flex:1; }.park-kpis { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }.park-kpi { min-height:65px; padding:10px; gap:7px; }.park-kpi > span { grid-template-columns:22px minmax(0,1fr); gap:6px; font-size:8px; }.park-kpi > span svg { width:22px; height:22px; padding:4px; }.park-kpi > strong { font-size:21px; }.park-table-heading { align-items:stretch; flex-direction:column; }.park-table-heading .ops-input-wrap { width:100%; }.park-map .leaflet-container { height:260px; }.park-map-legend { top:7px; left:7px; }.park-map-empty { right:7px; left:7px; font-size:7px; } }
+@media(max-width:650px) { .park-page { padding:20px 14px 60px; }.park-heading-actions { width:100%; }.park-heading-actions .ops-button { flex:1; }.park-kpis { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }.park-kpi { min-height:65px; padding:10px; gap:7px; }.park-kpi > span { grid-template-columns:22px minmax(0,1fr); gap:6px; font-size:8px; }.park-kpi > span svg { width:22px; height:22px; padding:4px; }.park-kpi > strong { font-size:21px; }.park-table-heading { align-items:stretch; flex-direction:column; }.park-table-tools { align-items:stretch; flex-direction:column; }.park-table-heading .ops-input-wrap { width:100%; }.park-map .leaflet-container { height:260px; }.park-map-legend { top:7px; left:7px; }.park-map-empty { right:7px; left:7px; font-size:7px; }.park-pagination { align-items:flex-start; flex-direction:column; } }

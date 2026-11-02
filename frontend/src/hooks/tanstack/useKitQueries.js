@@ -133,6 +133,43 @@ export const useTelemetryQuery = (options = {}) => {
   });
 };
 
+export const useLatestKitTelemetryQuery = (kitIds) => {
+  const ids = [...new Set(kitIds.filter(Boolean))].sort();
+  return useQuery({
+    queryKey: ['latest-kit-telemetry', ids],
+    queryFn: async () => {
+      const response = await api.get('/api/telemetry/latest', {
+        params: { kitIds: ids.join(',') },
+      });
+      if (!response.data?.success || !Array.isArray(response.data.data)) {
+        throw new Error('Format de réponse des données IoT inattendu.');
+      }
+      return Object.fromEntries(response.data.data.map(snapshot => [snapshot.kitId, snapshot]));
+    },
+    enabled: ids.length > 0,
+    staleTime: 10_000,
+    refetchInterval: 30_000,
+    retry: 1,
+  });
+};
+
+export const useKitTelemetrySummaryQuery = (kitId) => {
+  return useQuery({
+    queryKey: ['kit-telemetry-summary', kitId],
+    queryFn: async () => {
+      const response = await api.get(`/api/telemetry/${encodeURIComponent(kitId)}/summary`);
+      if (!response.data?.success || !response.data.data) {
+        throw new Error('Format du résumé IoT inattendu.');
+      }
+      return response.data.data;
+    },
+    enabled: Boolean(kitId),
+    staleTime: 15_000,
+    refetchInterval: 30_000,
+    retry: 1,
+  });
+};
+
 export const useKitTelemetryQuery = (kitId) => {
   return useQuery({
     queryKey: ['telemetry', kitId],

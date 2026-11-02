@@ -4,16 +4,17 @@ import {
   ArrowLeft, ArrowRight, Check, Search, Plus, Trash2, 
   MapPin, Phone, User, Clock, Zap, Sun, Battery, 
   HelpCircle, Lightbulb, SlidersHorizontal, ChevronDown, 
-  FileText, CheckCircle2, AlertCircle, ShieldCheck, X,
-  Sparkles, MessageSquare, Send, Bot, RefreshCw, Edit3,
-  FolderPlus, FolderCheck, Calendar
+  FileText, CheckCircle2, X,
+  Sparkles, MessageSquare, Edit3, PackagePlus
 } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { toast } from 'sonner';
-import useAuthStore from '../hooks/Zustand/useAuthStore';
+import { useCatalogProducts } from '../hooks/tanstack/useCatalogProducts';
 import api from '../api/axios';
+import QuoteChat from '../components/QuoteChat';
+import SolarAdvisorResult from '../components/SolarAdvisorResult';
 import './Devis5Steps.css';
 
 // Fix icône Leaflet par défaut
@@ -104,7 +105,8 @@ function LocationPickerMarker({ position, setPosition }) {
 
 export default function Devis() {
   const navigate = useNavigate();
-  const user = useAuthStore(state => state.user);
+  const catalogQuery = useCatalogProducts();
+  const catalogProducts = Array.isArray(catalogQuery.data) ? catalogQuery.data.filter(product => product.active && product.currency === 'USD') : [];
 
   // Étape actuelle : 1: 'project', 2: 'appliances', 3: 'client', 4: 'proposal', 5: 'quote'
   const [step, setStep] = useState(1);
@@ -118,6 +120,8 @@ export default function Devis() {
     { id: 'app-2', name: 'Télévision', watts: 120, hours: 5, period: 'night', quantity: 1, image: '/equipment/tv.jpg' },
     { id: 'app-3', name: 'Ampoule LED', watts: 15, hours: 6, period: 'night', quantity: 4, image: '/equipment/light.jpg' }
   ]);
+  const [selectedCatalogItems, setSelectedCatalogItems] = useState([]);
+  const [catalogSearch, setCatalogSearch] = useState('');
   const [applianceSearch, setApplianceSearch] = useState('');
 
   // ─── ÉTAT DU MODAL AJOUT D'APPAREIL INTELLIGENT (Capture utilisateur) ───
@@ -227,12 +231,12 @@ export default function Devis() {
   const [quoteNumber] = useState(() => `OE-2026-${Math.floor(10000 + Math.random() * 90000)}`);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Drawer de discussion avec l'IA après devis
+  // Discussion plein écran avec l'IA après le devis
   const [isAIDiscussionOpen, setIsAIDiscussionOpen] = useState(false);
   const [aiChatMessages, setAiChatMessages] = useState([
     {
       role: 'assistant',
-      text: 'Bonjour ! Je suis l’assistant Djúa Solaire IA. Je peux vous aider à expliquer ce devis au client, simuler l’autonomie par temps pluvieux ou ajuster les composants pour respecter le budget.'
+      text: 'Bonjour ! Je suis l’assistant Djúa Solaire IA. Je peux vous aider à présenter ce devis au client, estimer l’autonomie par temps de pluie ou adapter la proposition à son budget.'
     }
   ]);
   const [aiChatInput, setAiChatInput] = useState('');
@@ -273,7 +277,21 @@ export default function Devis() {
   const cablesPrice = 30;
   const mountingPrice = 20;
 
-  const totalSystemPrice = panelsTotal + batteryPrice + inverterPrice + installPrice + cablesPrice + mountingPrice;
+  const baseSystemPrice = panelsTotal + batteryPrice + inverterPrice + installPrice + cablesPrice + mountingPrice;
+  const catalogLineItems = selectedCatalogItems
+    .map(({ productId, quantity }) => {
+      const product = catalogProducts.find(item => item._id === productId);
+      if (!product) return null;
+      return {
+        category: product.category,
+        name: product.name,
+        description: [product.brand, product.model].filter(Boolean).join(' · ') || 'Produit ajouté depuis le catalogue Djúa.',
+        quantity,
+        unit: 'piece',
+        unitPrice: Number(product.price || 0),
+      };
+    })
+    .filter(Boolean);
   const quoteLineItems = [
     {
       category: 'Panneaux solaires',
@@ -323,7 +341,20 @@ export default function Devis() {
       unit: 'forfait',
       unitPrice: mountingPrice,
     },
+    ...catalogLineItems,
   ];
+  const totalSystemPrice = baseSystemPrice + catalogLineItems.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
+
+  const toggleCatalogItem = (product, checked) => {
+    setSelectedCatalogItems(current => checked
+      ? [...current, { productId: product._id, quantity: 1 }]
+      : current.filter(item => item.productId !== product._id));
+  };
+  const updateCatalogItemQuantity = (productId, quantity) => {
+    setSelectedCatalogItems(current => current.map(item => item.productId === productId
+      ? { ...item, quantity: Math.max(1, Number(quantity) || 1) }
+      : item));
+  };
 
   // Actions liste appareils
   const updateQuantity = (id, delta) => {
@@ -358,20 +389,35 @@ export default function Devis() {
         budget: clientForm.budgetAmount,
       });
 
-      if (res.data?.data) {
-        setAiRecommendation(res.data.data);
-        toast.success('Recommandation IA Djúa calculée avec succès !');
+      const recommendation = res.data?.data;
+      if (!recommendation || recommendation.error || recommendation.errors) {
+        const providerError = typeof recommendation?.error === 'string'
+          ? recommendation.error
+          : recommendation?.error?.message || recommendation?.message;
+        throw new Error(providerError || 'Le service IA n’a pas retourné de recommandation exploitable.');
       }
-    } catch {
-      // Fallback local expert de haute précision
-      const solarKwc = ((recommendedPanelsCount * panelUnitWatt) / 1000).toFixed(1);
       setAiRecommendation({
-        summary: `Dimensionnement optimal pour ${selectedProjectType} : ${recommendedPanelsCount} panneaux 600W (${solarKwc} kWc) et ${batteryKwh} kWh de stockage lithium.`,
-        confidence: '98%',
-        autonomyDays: selectedOption === 'autonome' ? 1.2 : 0.6,
-        details: `Couvre 100% de la consommation journalière de ${(totalDailyWh / 1000).toFixed(2)} kWh avec une réserve batterie adaptée aux nuits à Kinshasa.`
+        ...recommendation,
+        clientInfo: {
+          fullName: `${clientForm.nom} ${clientForm.postnom}`.trim(),
+          phone: clientForm.phone,
+          budget: clientForm.budgetAmount,
+        },
+        site: {
+          adresse: clientForm.address,
+          ville: 'Kinshasa',
+          lat: clientForm.position.lat,
+          lng: clientForm.position.lng,
+        },
+        sourceAppliances: appliances.map(({ name, quantity, watts, hours, period }) => ({
+          name, quantity, watts, hours, period,
+        })),
+        buildingType: selectedProjectType,
       });
-      toast.success('Dimensionnement IA calculé avec succès.');
+      toast.success('Recommandation IA Djúa calculée avec succès !');
+    } catch (error) {
+      setAiRecommendation(null);
+      toast.error(error.response?.data?.error?.message || error.response?.data?.message || error.message || 'Le service IA est indisponible. Réessayez dans quelques instants.');
     } finally {
       setIsGeneratingAI(false);
     }
@@ -401,30 +447,22 @@ export default function Devis() {
         }
       });
 
-      const reply = res.data?.data?.assistant_message || res.data?.data?.answer;
+      const responseData = res.data?.data;
+      const reply = responseData?.assistant_message || responseData?.answer;
       if (reply) {
         setAiChatMessages(prev => [...prev, { role: 'assistant', text: reply }]);
       } else {
-        throw new Error('No reply');
+        const providerError = typeof responseData?.error === 'string'
+          ? responseData.error
+          : responseData?.error?.message || responseData?.message;
+        throw new Error(providerError || 'Le service IA n’a pas retourné de réponse exploitable.');
       }
-    } catch {
-      // Réponse experte locale avec contexte réel
-      let fallbackAnswer = '';
-      const lower = textToSend.toLowerCase();
-
-      if (lower.includes('expliqu') || lower.includes('client')) {
-        fallbackAnswer = `Pour ${clientForm.nom} ${clientForm.postnom}, ce devis de ${totalSystemPrice.toLocaleString()} $ propose une indépendance totale face aux délestages. Les ${recommendedPanelsCount} panneaux produisent ${(totalDailyWh / 1000).toFixed(1)} kWh/jour, rechargeant la batterie lithium de ${batteryKwh} kWh pour garantir l'alimentation continue du réfrigérateur et de l'éclairage même toute la nuit.`;
-      } else if (lower.includes('pluie') || lower.includes('autonomie')) {
-        fallbackAnswer = `Avec la batterie de ${batteryKwh} kWh, le site bénéficie d'une autonomie de 24 à 30 heures sans aucun soleil si les appareils lourds (fer à repasser) sont temporairement limités. Les panneaux monocristallins de 600W conservent environ 25% de captation en lumière diffuse sous la pluie.`;
-      } else if (lower.includes('r&eacute;duire') || lower.includes('réduire') || lower.includes('cout') || lower.includes('coût')) {
-        fallbackAnswer = `Pour réduire le coût de 15 à 20%, nous pouvons basculer sur l'option Solaire Complémentaire (panneaux 2x600W et batterie 2.5 kWh) ramenant l'investissement sous la barre des 1 800 $, en s'appuyant sur le réseau SNEL lorsqu'il est disponible.`;
-      } else if (lower.includes('batterie') || lower.includes('vie')) {
-        fallbackAnswer = `La batterie lithium LiFePO4 de ${batteryKwh} kWh est garantie pour 4 000 à 6 000 cycles à 80% de décharge, ce qui correspond à une durée de vie opérationnelle de plus de 10 ans sans maintenance.`;
-      } else {
-        fallbackAnswer = `Ce système de ${recommendedPanelsCount} panneaux (${(recommendedPanelsCount * 600) / 1000} kWc) et ${batteryKwh} kWh est parfaitement taillé pour la consommation de ${(totalDailyWh / 1000).toFixed(2)} kWh/jour à Kinshasa. Souhaitez-vous un plan d'échelonnement mensuel (${clientForm.budgetAmount} $/mois) ?`;
-      }
-
-      setAiChatMessages(prev => [...prev, { role: 'assistant', text: fallbackAnswer }]);
+    } catch (error) {
+      setAiChatMessages(prev => [...prev, {
+        role: 'assistant',
+        isError: true,
+        text: error.response?.data?.error?.message || error.response?.data?.message || error.message || 'Le service IA est indisponible. Réessayez dans quelques instants.'
+      }]);
     } finally {
       setIsAITyping(false);
     }
@@ -614,7 +652,7 @@ export default function Devis() {
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                   <div style={{ display: 'flex', gap: 12 }}>
-                    <div style={{ color: '#ea580c', marginTop: 2 }}>
+                    <div style={{ color: 'var(--dv-orange)', marginTop: 2 }}>
                       <Zap size={18} />
                     </div>
                     <div>
@@ -626,7 +664,7 @@ export default function Devis() {
                   </div>
 
                   <div style={{ display: 'flex', gap: 12 }}>
-                    <div style={{ color: '#ea580c', marginTop: 2 }}>
+                    <div style={{ color: 'var(--dv-orange)', marginTop: 2 }}>
                       <Clock size={18} />
                     </div>
                     <div>
@@ -638,7 +676,7 @@ export default function Devis() {
                   </div>
 
                   <div style={{ display: 'flex', gap: 12 }}>
-                    <div style={{ color: '#ea580c', marginTop: 2 }}>
+                    <div style={{ color: 'var(--dv-orange)', marginTop: 2 }}>
                       <MapPin size={18} />
                     </div>
                     <div>
@@ -752,7 +790,7 @@ export default function Devis() {
                   </div>
 
                   <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: 24, fontWeight: 800, color: '#ea580c' }}>
+                    <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--dv-orange)' }}>
                       {totalDailyWh} Wh / jour
                     </div>
                     <div style={{ fontSize: 12, color: '#64748b' }}>
@@ -791,13 +829,13 @@ export default function Devis() {
                   <svg viewBox="0 0 100 25" style={{ width: '100%', height: 35, marginTop: 6 }}>
                     <defs>
                       <linearGradient id="gradConso" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#ea580c" stopOpacity="0.3" />
-                        <stop offset="100%" stopColor="#ea580c" stopOpacity="0.0" />
+                        <stop offset="0%" stopColor="var(--dv-orange)" stopOpacity="0.3" />
+                        <stop offset="100%" stopColor="var(--dv-orange)" stopOpacity="0.0" />
                       </linearGradient>
                     </defs>
                     <path d="M 0 22 Q 30 18, 60 12 T 100 4 L 100 25 L 0 25 Z" fill="url(#gradConso)" />
-                    <path d="M 0 22 Q 30 18, 60 12 T 100 4" fill="none" stroke="#ea580c" strokeWidth="2.5" />
-                    <circle cx="100" cy="4" r="3" fill="#ea580c" />
+                    <path d="M 0 22 Q 30 18, 60 12 T 100 4" fill="none" stroke="var(--dv-orange)" strokeWidth="2.5" />
+                    <circle cx="100" cy="4" r="3" fill="var(--dv-orange)" />
                   </svg>
                 </div>
 
@@ -817,13 +855,13 @@ export default function Devis() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 10 }}>
                     <svg width="60" height="60" viewBox="0 0 36 36" style={{ flexShrink: 0 }}>
                       <circle cx="18" cy="18" r="14" fill="none" stroke="#e2e8f0" strokeWidth="4" />
-                      <circle cx="18" cy="18" r="14" fill="none" stroke="#ea580c" strokeWidth="4" strokeDasharray="38 62" strokeDashoffset="25" />
+                      <circle cx="18" cy="18" r="14" fill="none" stroke="var(--dv-orange)" strokeWidth="4" strokeDasharray="38 62" strokeDashoffset="25" />
                       <circle cx="18" cy="18" r="14" fill="none" stroke="#475569" strokeWidth="4" strokeDasharray="62 38" strokeDashoffset="-13" />
                     </svg>
 
                     <div style={{ fontSize: 12, display: 'flex', flexDirection: 'column', gap: 4 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#ea580c' }} />
+                        <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--dv-orange)' }} />
                         <span>Jour (6h – 18h)</span>
                         <strong style={{ marginLeft: 'auto' }}>38%</strong>
                       </div>
@@ -873,7 +911,7 @@ export default function Devis() {
                 </p>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
-                  <User size={16} style={{ color: '#ea580c' }} />
+                  <User size={16} style={{ color: 'var(--dv-orange)' }} />
                   <strong style={{ fontSize: 14 }}>Contact du client</strong>
                 </div>
 
@@ -950,7 +988,7 @@ export default function Devis() {
                 {/* Section Localisation */}
                 <div style={{ paddingTop: 18, borderTop: '1px solid #e2e8f0', marginBottom: 14 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                    <MapPin size={16} style={{ color: '#ea580c' }} />
+                    <MapPin size={16} style={{ color: 'var(--dv-orange)' }} />
                     <strong style={{ fontSize: 14 }}>Localisation de l’installation</strong>
                   </div>
                   <p style={{ fontSize: 12, color: '#64748b' }}>
@@ -1015,7 +1053,7 @@ export default function Devis() {
               <div className="devis-v2-sidebar-card">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
                   <h3 style={{ fontSize: 15, fontWeight: 700 }}>Besoins retenus</h3>
-                  <button onClick={() => setStep(2)} style={{ background: 'none', border: 'none', color: '#ea580c', fontSize: 12, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  <button onClick={() => setStep(2)} style={{ background: 'none', border: 'none', color: 'var(--dv-orange)', fontSize: 12, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                     <Edit3 size={12} /> Modifier
                   </button>
                 </div>
@@ -1057,7 +1095,7 @@ export default function Devis() {
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <h1 className="devis-v2-title">Proposition de système solaire</h1>
-                  <span style={{ fontSize: 12, background: '#fff7ed', color: '#ea580c', padding: '3px 10px', borderRadius: 20, fontWeight: 700 }}>
+                  <span style={{ fontSize: 12, background: 'var(--dv-orange-soft)', color: 'var(--dv-orange)', padding: '3px 10px', borderRadius: 20, fontWeight: 700 }}>
                     Préparée par Djúa
                   </span>
                 </div>
@@ -1080,27 +1118,11 @@ export default function Devis() {
 
             {/* Bannière Recommandation IA */}
             {aiRecommendation && (
-              <div className="devis-ai-badge-banner">
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-                  <div style={{ width: 36, height: 36, borderRadius: 10, background: '#ea580c', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <Sparkles size={18} />
-                  </div>
-                  <div>
-                    <strong style={{ fontSize: 14, color: 'inherit', display: 'block' }}>
-                      Recommandation IA Djúa Solaire (Confiance {aiRecommendation.confidence || '98%'})
-                    </strong>
-                    <div style={{ fontSize: 12.5, color: '#64748b', marginTop: 2 }}>
-                      {aiRecommendation.summary || aiRecommendation.details}
-                    </div>
-                  </div>
-                </div>
-
-                <div style={{ textAlign: 'right', flexShrink: 0, paddingLeft: 16 }}>
-                  <span style={{ fontSize: 11, color: '#16a34a', fontWeight: 700, background: '#dcfce7', padding: '4px 8px', borderRadius: 6 }}>
-                    Autonomie certifiée {aiRecommendation.autonomyDays || 1.2} j
-                  </span>
-                </div>
-              </div>
+              <SolarAdvisorResult
+                result={aiRecommendation}
+                onClose={() => setAiRecommendation(null)}
+                showSaveQuote={false}
+              />
             )}
 
             <div className="devis-v2-layout">
@@ -1139,11 +1161,11 @@ export default function Devis() {
                     onClick={() => setSelectedOption('autonome')}
                   >
                     {selectedOption === 'autonome' && (
-                      <div style={{ position: 'absolute', right: 14, top: 14, width: 20, height: 20, borderRadius: '50%', background: '#ea580c', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <div style={{ position: 'absolute', right: 14, top: 14, width: 20, height: 20, borderRadius: '50%', background: 'var(--dv-orange)', color: '#111827', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <Check size={13} strokeWidth={3} />
                       </div>
                     )}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#ea580c', marginBottom: 4 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--dv-orange)', marginBottom: 4 }}>
                       <Sun size={16} />
                       <strong style={{ fontSize: 14, color: 'inherit' }}>Solaire autonome</strong>
                     </div>
@@ -1164,7 +1186,7 @@ export default function Devis() {
                 {/* 4 Indicateurs sous forme de bandeau */}
                 <div className="devis-v2-kpis-bar">
                   <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#ea580c' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--dv-orange)' }}>
                       <Zap size={14} /> Production solaire estimée
                     </div>
                     <div style={{ fontSize: 17, fontWeight: 800, margin: '4px 0' }}>≈ {((recommendedPanelsCount * panelUnitWatt * 4.2) / 1000).toFixed(1)} kWh / jour</div>
@@ -1203,7 +1225,7 @@ export default function Devis() {
                     style={{ background: 'none', border: 'none', color: '#64748b', fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
                   >
                     <span>Comment l’expliquer au client ?</span>
-                    <span style={{ color: '#ea580c', fontWeight: 600 }}>Voir les éléments de calcul</span>
+                    <span style={{ color: 'var(--dv-orange)', fontWeight: 600 }}>Voir les éléments de calcul</span>
                     <ChevronDown size={14} style={{ transform: isCalculExplOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
                   </button>
 
@@ -1229,7 +1251,7 @@ export default function Devis() {
               <div className="devis-v2-sidebar-card">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
                   <h3 style={{ fontSize: 15, fontWeight: 700 }}>Besoins retenus</h3>
-                  <button onClick={() => setStep(2)} style={{ background: 'none', border: 'none', color: '#ea580c', fontSize: 12, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  <button onClick={() => setStep(2)} style={{ background: 'none', border: 'none', color: 'var(--dv-orange)', fontSize: 12, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                     <Edit3 size={12} /> Modifier
                   </button>
                 </div>
@@ -1262,6 +1284,72 @@ export default function Devis() {
                     <div>• Coffret AC/DC & câblage blindé</div>
                   </div>
                 </div>
+
+                <section className="devis-catalog-picker" aria-label="Ajouter des produits du catalogue">
+                  <div className="devis-catalog-picker-heading">
+                    <strong>Ajouter depuis le catalogue</strong>
+                    <span>{selectedCatalogItems.length} sélectionné(s)</span>
+                  </div>
+                  <label className="devis-catalog-search">
+                    <Search size={14} />
+                    <input
+                      value={catalogSearch}
+                      onChange={event => setCatalogSearch(event.target.value)}
+                      placeholder="Rechercher un produit"
+                      aria-label="Rechercher un produit du catalogue"
+                    />
+                  </label>
+                  {catalogQuery.isPending ? (
+                    <p className="devis-catalog-message">Chargement du catalogue…</p>
+                  ) : catalogQuery.isError ? (
+                    <p className="devis-catalog-message is-error">Le catalogue n’a pas pu être chargé.</p>
+                  ) : (
+                    <div className="devis-catalog-items">
+                      {catalogProducts
+                        .filter(product => [product.name, product.brand, product.model].join(' ').toLowerCase().includes(catalogSearch.trim().toLowerCase()))
+                        .map(product => {
+                          const selected = selectedCatalogItems.find(item => item.productId === product._id);
+                          return (
+                            <div className="devis-catalog-item" key={product._id}>
+                              {product.imageData
+                                ? <img src={product.imageData} alt="" />
+                                : <span className="devis-catalog-placeholder"><PackagePlus size={16} /></span>}
+                              <span className="devis-catalog-item-copy">
+                                <strong>{product.name}</strong>
+                                <small>{product.brand || product.category} · {Number(product.price || 0).toLocaleString('fr-FR')} USD</small>
+                              </span>
+                              <span className="devis-catalog-item-actions">
+                                <input
+                                  type="checkbox"
+                                  aria-label={`Ajouter ${product.name} au devis`}
+                                  checked={Boolean(selected)}
+                                  onChange={event => toggleCatalogItem(product, event.target.checked)}
+                                />
+                                {selected && (
+                                  <input
+                                    aria-label={`Quantité de ${product.name}`}
+                                    className="devis-catalog-quantity"
+                                    type="number"
+                                    min="1"
+                                    value={selected.quantity}
+                                    onClick={event => event.stopPropagation()}
+                                    onChange={event => updateCatalogItemQuantity(product._id, event.target.value)}
+                                  />
+                                )}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      {!catalogProducts.some(product => [product.name, product.brand, product.model].join(' ').toLowerCase().includes(catalogSearch.trim().toLowerCase()))
+                        && <p className="devis-catalog-message">Aucun produit actif en USD ne correspond à cette recherche.</p>}
+                    </div>
+                  )}
+                  {selectedCatalogItems.length > 0 && (
+                    <p className="devis-catalog-total">
+                      Produits ajoutés au devis · {catalogLineItems.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0).toLocaleString('fr-FR')} USD
+                    </p>
+                  )}
+                </section>
               </div>
             </div>
           </div>
@@ -1292,7 +1380,7 @@ export default function Devis() {
                 <button
                   type="button"
                   className="devis-v2-btn-ghost"
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 7, border: '1px solid #ea580c', color: '#ea580c' }}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 7, border: '1px solid var(--dv-orange)', color: 'var(--dv-orange)' }}
                   onClick={() => setIsAIDiscussionOpen(true)}
                 >
                   <MessageSquare size={16} /> Discuter avec l’IA Solaire
@@ -1319,7 +1407,7 @@ export default function Devis() {
               </thead>
               <tbody>
                 {quoteLineItems.map(item => (
-                  <tr key={item.category}>
+                  <tr key={`${item.category}-${item.name}`}>
                     <td>
                       <span className="devis-v2-badge-tag">{item.category}</span>
                       <strong style={{ display: 'block' }}>{item.name}</strong>
@@ -1420,7 +1508,7 @@ export default function Devis() {
                       className="devis-app-search-input"
                       onClick={() => setIsDropdownOpen(prev => !prev)}
                     >
-                      <Search size={16} color="#ea580c" />
+                      <Search size={16} color="var(--dv-orange)" />
                       <input 
                         type="text" 
                         placeholder="Rechercher ou saisir un appareil" 
@@ -1651,94 +1739,29 @@ export default function Devis() {
       {/* ═══════════════════════════════════════════════════════════════
           DRAWER : DISCUTER AVEC L'IA SOLAIRE
           ═══════════════════════════════════════════════════════════════ */}
-      {isAIDiscussionOpen && (
-        <div className="devis-ai-drawer">
-          <div className="devis-ai-drawer-header">
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Bot size={18} color="#ea580c" />
-              <strong style={{ fontSize: 13 }}>Assistant Djúa Solaire IA</strong>
-            </div>
-            <button 
-              onClick={() => setIsAIDiscussionOpen(false)}
-              style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: 2 }}
-            >
-              <X size={16} />
-            </button>
-          </div>
-
-          <div className="devis-ai-drawer-messages">
-            {aiChatMessages.map((msg, idx) => (
-              <div 
-                key={idx} 
-                className={`devis-ai-msg-bubble ${msg.role === 'user' ? 'devis-ai-msg-user' : 'devis-ai-msg-assistant'}`}
-              >
-                {msg.text}
-              </div>
-            ))}
-            {isAITyping && (
-              <div className="devis-ai-msg-bubble devis-ai-msg-assistant" style={{ fontStyle: 'italic', color: '#64748b' }}>
-                Djúa IA réfléchit...
-              </div>
-            )}
-          </div>
-
-          {/* Questions rapides */}
-          <div className="devis-ai-quick-questions">
-            <button 
-              type="button"
-              className="devis-ai-chip"
-              onClick={() => handleSendAIMessage('Explique ce devis au client en termes simples')}
-            >
-              Expliquer au client
-            </button>
-            <button 
-              type="button"
-              className="devis-ai-chip"
-              onClick={() => handleSendAIMessage('Quelle est l’autonomie en cas de pluie ?')}
-            >
-              Autonomie pluie
-            </button>
-            <button 
-              type="button"
-              className="devis-ai-chip"
-              onClick={() => handleSendAIMessage('Comment réduire le devis de 20% ?')}
-            >
-              Optimiser budget
-            </button>
-            <button 
-              type="button"
-              className="devis-ai-chip"
-              onClick={() => handleSendAIMessage('Quelle est la durée de vie des batteries lithium ?')}
-            >
-              Durée de vie batterie
-            </button>
-          </div>
-
-          {/* Saisie message */}
-          <form 
-            className="devis-ai-input-bar"
-            onSubmit={(e) => {
-              e.preventDefault();
-              handleSendAIMessage();
-            }}
-          >
-            <input 
-              type="text" 
-              placeholder="Poser une question sur ce devis..." 
-              value={aiChatInput}
-              onChange={e => setAiChatInput(e.target.value)}
-            />
-            <button 
-              type="submit" 
-              className="devis-v2-btn-orange" 
-              style={{ padding: '7px 12px' }}
-              disabled={!aiChatInput.trim() || isAITyping}
-            >
-              <Send size={14} />
-            </button>
-          </form>
-        </div>
-      )}
+      <QuoteChat
+        open={isAIDiscussionOpen}
+        onClose={() => setIsAIDiscussionOpen(false)}
+        messages={aiChatMessages}
+        input={aiChatInput}
+        onInput={setAiChatInput}
+        onSend={() => handleSendAIMessage()}
+        onSuggestionSelect={prompt => handleSendAIMessage(prompt)}
+        pending={isAITyping}
+        assistantName="Assistant Djúa Solaire IA"
+        assistantBadge="Devis"
+        assistantSubtitle={`Conseiller pour le devis ${quoteNumber}`}
+        welcomeEyebrow="VOTRE DEVIS, EN CLAIR"
+        welcomeTitle="Et si on parlait de votre devis ?"
+        welcomeDescription="Explication client, autonomie sous la pluie, budget et batterie… Je vous aide à préparer une proposition adaptée."
+        inputPlaceholder="Poser une question sur ce devis…"
+        suggestions={[
+          { label: 'Expliquer ce devis au client', prompt: 'Explique ce devis au client en termes simples' },
+          { label: 'Estimer l’autonomie par temps de pluie', prompt: 'Quelle est l’autonomie de ce système en cas de pluie ?' },
+          { label: 'Adapter le devis au budget du client', prompt: 'Comment adapter ce devis au budget du client ?' },
+          { label: 'Évaluer la durée de vie de la batterie', prompt: 'Quelle est la durée de vie de la batterie de ce devis ?' },
+        ]}
+      />
     </div>
   );
 }

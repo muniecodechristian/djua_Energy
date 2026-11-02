@@ -1,10 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   AlertTriangle, ArrowRight, BellRing, CalendarDays, CheckCircle2, ChevronRight,
   ClipboardList, FileText, PanelsTopLeft, RefreshCw, Wifi, Wrench,
-  Eye, Clock, ShieldCheck, Search, Folder, User
 } from 'lucide-react';
 import api from '../api/axios';
 import PageEntrance from '../components/PageEntrance';
@@ -94,16 +93,8 @@ export default function CommercialDashboard() {
   const user = useAuthStore(state => state.user);
   const navigate = useNavigate();
 
-  // État du suivi d'installations commercial
-  const [installTab, setInstallTab] = useState('all');
-  const [installSearch, setInstallSearch] = useState('');
-
-  const installationsQuery = useGetInstallations({
-    status: installTab !== 'all' ? installTab : undefined,
-    search: installSearch || undefined,
-  });
+  const installationsQuery = useGetInstallations();
   const commercialInstallations = asList(installationsQuery.data?.installations);
-  const installStats = installationsQuery.data?.stats || {};
 
   const quotesQuery = useQuery({
     queryKey: ['sales-quotes', user?._id, 'commercial-dashboard'],
@@ -132,6 +123,24 @@ export default function CommercialDashboard() {
     .sort((left, right) => (severityRank[left.severity] ?? 5) - (severityRank[right.severity] ?? 5)
       || new Date(right.createdAt || 0) - new Date(left.createdAt || 0)),
   [alertsQuery.data, ownedKitIds]);
+  const installationsToWatch = useMemo(() => {
+    const alertByKit = new Map(scopedAlerts.map(alert => [alert.kitId, alert]));
+    const watchedInstallations = commercialInstallations.filter(installation =>
+      installation.isOverdue || (installation.kitId && alertByKit.has(installation.kitId)));
+    const representedKitIds = new Set(watchedInstallations.map(installation => installation.kitId).filter(Boolean));
+    const installationItems = watchedInstallations.map(installation => ({
+      key: `installation-${installation._id}`,
+      installation,
+      alert: alertByKit.get(installation.kitId),
+    }));
+    const unmatchedAlertItems = scopedAlerts
+      .filter(alert => !representedKitIds.has(alert.kitId))
+      .map(alert => ({
+        key: `alert-${alert._id || alert.id || alert.kitId}`,
+        alert: { ...alert, quote: quoteByKit.get(alert.kitId) },
+      }));
+    return [...installationItems, ...unmatchedAlertItems];
+  }, [commercialInstallations, scopedAlerts, quoteByKit]);
 
   const drafts = useMemo(() => quotes.filter(quote => quote.status === 'draft')
     .sort((left, right) => new Date(left.createdAt || 0) - new Date(right.createdAt || 0)), [quotes]);
@@ -140,7 +149,7 @@ export default function CommercialDashboard() {
     && new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Kinshasa' }).format(new Date(quote.createdAt)) === today).length;
   const toFollowUp = asList(quotesQuery.data?.followUps);
   const criticalAlerts = scopedAlerts.filter(alert => alert.severity === 'critical' || alert.severity === 'high');
-  const installationsUnderWatch = new Set(scopedAlerts.map(alert => alert.kitId)).size;
+  const installationsUnderWatch = installationsToWatch.length;
   const criticalInstallations = new Set(criticalAlerts.map(alert => alert.kitId)).size;
 
   const todoItems = useMemo(() => {
@@ -190,10 +199,6 @@ export default function CommercialDashboard() {
     return items.slice(0, 5);
   }, [toFollowUp, criticalAlerts, drafts, quoteByKit, navigate, quotesQuery.isSuccess, alertsQuery.isSuccess]);
 
-  const installationsToWatch = scopedAlerts.slice(0, 5).map(alert => ({
-    ...alert,
-    quote: quoteByKit.get(alert.kitId),
-  }));
   const reportNotices = asList(quotesQuery.data?.notices);
   const isRefreshing = quotesQuery.isFetching || alertsQuery.isFetching;
   const failedSources = [
@@ -220,7 +225,7 @@ export default function CommercialDashboard() {
       <section className="commercial-kpis" aria-label="Indicateurs commerciaux">
         <DashboardKpi title="Dimensionnements en cours" value={quotesQuery.isSuccess ? numberFormat.format(stats.draft || 0) : '—'} note={`${numberFormat.format(draftsToday)} commencé${draftsToday === 1 ? '' : 's'} aujourd’hui`} icon={ClipboardList} tone="orange" onClick={() => navigate('/devis')} />
         <DashboardKpi title="Devis à relancer" value={quotesQuery.isSuccess ? numberFormat.format(stats.draftsToFollowUp || 0) : '—'} note="Sans validation depuis 3 jours" icon={FileText} tone="orange" onClick={() => navigate('/devis')} />
-        <DashboardKpi title="Installations à surveiller" value={alertsQuery.isSuccess ? numberFormat.format(installationsUnderWatch) : '—'} note="Avec au moins une alerte ouverte" icon={Wifi} tone="amber" onClick={() => navigate('/parc')} />
+        <DashboardKpi title="Installations à surveiller" value={installationsQuery.isSuccess && alertsQuery.isSuccess ? numberFormat.format(installationsUnderWatch) : '—'} note="Avec une alerte ou une échéance dépassée" icon={Wifi} tone="amber" onClick={() => navigate('/parc')} />
         <DashboardKpi title="Installations critiques" value={alertsQuery.isSuccess ? numberFormat.format(criticalInstallations) : '—'} note="Avec une alerte haute ou critique" icon={AlertTriangle} tone="red" onClick={() => navigate('/parc')} />
       </section>
 
@@ -231,10 +236,38 @@ export default function CommercialDashboard() {
         </section>
 
         <section className="commercial-panel">
-          <header className="commercial-panel-heading"><div><h2>Installations à surveiller</h2><p>Les installations nécessitant votre attention.</p></div><Link to="/notification">Voir toutes <ArrowRight size={14} /></Link></header>
-          {quotesQuery.isPending || alertsQuery.isPending ? <div className="commercial-state"><RefreshCw size={17} className="ops-spin" />Chargement des alertes…</div> : quotesQuery.isError || alertsQuery.isError ? <div className="commercial-state" role="alert">Impossible de charger les alertes. Utilisez « Réessayer » pour actualiser les données.</div> : installationsToWatch.length === 0 ? <div className="commercial-state commercial-empty"><CheckCircle2 size={20} /><strong>Aucune installation ne nécessite votre attention</strong><span>Les alertes de vos installations apparaîtront ici dès leur réception.</span><Link to="/notification">Consulter le centre d’alertes <ArrowRight size={14} /></Link></div> : <ul className="commercial-install-list">{installationsToWatch.map(alert => {
+          <header className="commercial-panel-heading"><div><h2>Installations à surveiller</h2><p>Retards et alertes de vos installations.</p></div><Link to="/notification">Voir les alertes <ArrowRight size={14} /></Link></header>
+          {installationsQuery.isPending || quotesQuery.isPending || alertsQuery.isPending ? <div className="commercial-state"><RefreshCw size={17} className="ops-spin" />Chargement des installations…</div> : installationsQuery.isError || quotesQuery.isError || alertsQuery.isError ? <div className="commercial-state" role="alert">Impossible de charger les installations à surveiller. Actualisez le tableau de bord pour réessayer.</div> : installationsToWatch.length === 0 ? <div className="commercial-state commercial-empty"><CheckCircle2 size={20} /><strong>Aucune installation ne nécessite votre attention</strong><span>Les retards et alertes de vos installations apparaîtront ici.</span><Link to="/notification">Consulter le centre d’alertes <ArrowRight size={14} /></Link></div> : <ul className="commercial-install-list">{installationsToWatch.map(item => {
+            if (item.installation) {
+              const { installation, alert } = item;
+              const statusMeta = INSTALL_STATUS_CONFIG[installation.status] || { label: installation.status, tone: 'pending' };
+              const tone = alert?.severity === 'critical' || installation.isOverdue
+                ? 'red'
+                : ['high', 'medium'].includes(alert?.severity) ? 'amber' : 'slate';
+              const powerKwc = ((Number(installation.system?.panels || 0) * Number(installation.system?.panelPower || 0)) / 1000).toFixed(1);
+              const technician = installation.assignedTechnician
+                ? `${installation.assignedTechnician.prenom} ${installation.assignedTechnician.nom}`
+                : 'Non assigné';
+              const location = [installation.site?.quartier, installation.site?.ville || 'Kinshasa'].filter(Boolean).join(', ');
+              return <li className="commercial-installation-watch-item" key={item.key}>
+                <span className={`commercial-install-icon ${tone}`}><AlertTriangle size={15} /></span>
+                <span className="commercial-install-copy">
+                  <strong>{installation.folderNumber} · Devis {installation.quoteNumber}</strong>
+                  <b className={tone}><i />{alert?.label || alert?.type || (installation.isOverdue ? 'Retard d’installation' : 'Alerte ouverte')}</b>
+                  <small>{installation.customer?.name || 'Client sans nom'}{location ? ` · ${location}` : ''}</small>
+                  <small>{powerKwc} kWc · {installation.system?.batteryCapacity || 0} kWh · {installation.system?.inverterPower || 0} kVA · {technician} · {formatInstallDate(installation.plannedDate)}</small>
+                </span>
+                <span className="commercial-install-watch-status">
+                  <span className={`commercial-status-badge ${statusMeta.tone}`}><i className="commercial-badge-dot" />{statusMeta.label}</span>
+                  {installation.isOverdue && <span className="commercial-overdue-tag"><AlertTriangle size={11} /> Retard</span>}
+                </span>
+                <button type="button" onClick={() => navigate(`/installations/${installation._id}`)}>Fiche détails</button>
+              </li>;
+            }
+
+            const { alert } = item;
             const tone = alert.severity === 'critical' ? 'red' : ['high', 'medium'].includes(alert.severity) ? 'amber' : 'slate';
-            return <li key={alert._id || alert.id || `${alert.kitId}-${alert.type}`}>
+            return <li key={item.key}>
               <span className={`commercial-install-icon ${tone}`}><BellRing size={15} /></span>
               <span className="commercial-install-copy"><strong>{alert.kitId}{alert.quote ? ` · ${quoteCustomer(alert.quote)}` : ''}</strong><b className={tone}><i />{alert.label || alert.type || severityLabels[alert.severity] || 'Alerte'}</b><small>{alert.description || alert.message || 'Consulter le détail de l’alerte.'}</small></span>
               <time>{ageLabel(alert.createdAt)}</time>
@@ -243,213 +276,6 @@ export default function CommercialDashboard() {
           })}</ul>}
         </section>
       </div>
-
-      {/* SECTION SENIOR : SUIVI DES INSTALLATIONS ISSUES DES DEVIS DU COMMERCIAL */}
-      <section className="commercial-installations-section" aria-label="Suivi des chantiers et installations">
-        <header className="commercial-installations-head">
-          <div>
-            <p className="ops-eyebrow">MODULE 2 · TRAÇABILITÉ DES PROJETS</p>
-            <h2>Suivi des Chantiers & Installations</h2>
-            <p>État d'avancement des installations issues de vos devis, assignation des techniciens et mise en service.</p>
-          </div>
-          <div className="commercial-install-head-actions">
-            <div className="commercial-install-search">
-              <Search size={14} />
-              <input
-                type="text"
-                placeholder="Rechercher dossier, client, kit..."
-                value={installSearch}
-                onChange={e => setInstallSearch(e.target.value)}
-              />
-            </div>
-          </div>
-        </header>
-
-        {/* Mini KPIs du suivi commercial */}
-        <div className="commercial-install-kpis">
-          <div className="commercial-mini-kpi">
-            <span className="commercial-mini-kpi-icon"><Folder size={16} /></span>
-            <div>
-              <small>Total Dossiers</small>
-              <strong>{installStats.total || commercialInstallations.length}</strong>
-            </div>
-          </div>
-          <div className="commercial-mini-kpi">
-            <span className="commercial-mini-kpi-icon"><Clock size={16} /></span>
-            <div>
-              <small>À planifier</small>
-              <strong>{installStats.a_planifier || 0}</strong>
-            </div>
-          </div>
-          <div className="commercial-mini-kpi">
-            <span className="commercial-mini-kpi-icon"><CalendarDays size={16} /></span>
-            <div>
-              <small>Planifiées</small>
-              <strong>{installStats.planifiee || 0}</strong>
-            </div>
-          </div>
-          <div className="commercial-mini-kpi">
-            <span className="commercial-mini-kpi-icon"><Wrench size={16} /></span>
-            <div>
-              <small>En cours</small>
-              <strong>{installStats.en_cours || 0}</strong>
-            </div>
-          </div>
-          <div className="commercial-mini-kpi">
-            <span className="commercial-mini-kpi-icon"><ShieldCheck size={16} /></span>
-            <div>
-              <small>Mises en service / Validées</small>
-              <strong>{(installStats.mise_en_service || 0) + (installStats.validee || 0)}</strong>
-            </div>
-          </div>
-          {Number(installStats.overdue || 0) > 0 && (
-            <div className="commercial-mini-kpi is-overdue">
-              <span className="commercial-mini-kpi-icon"><AlertTriangle size={16} /></span>
-              <div>
-                <small>Retards / Échéances</small>
-                <strong>{installStats.overdue}</strong>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Onglets Filtres de Statut */}
-        <div className="commercial-install-tabs">
-          {[
-            { id: 'all', label: 'Toutes les installations', count: installStats.total || commercialInstallations.length },
-            { id: 'a_planifier', label: 'À planifier', count: installStats.a_planifier },
-            { id: 'planifiee', label: 'Planifiées', count: installStats.planifiee },
-            { id: 'en_cours', label: 'En cours', count: installStats.en_cours },
-            { id: 'en_attente', label: 'Bloquées / En attente', count: installStats.en_attente },
-            { id: 'installee', label: 'Installées', count: installStats.installee },
-            { id: 'mise_en_service', label: 'Mises en service', count: installStats.mise_en_service },
-            { id: 'validee', label: 'Validées conformes', count: installStats.validee },
-          ].map(tab => (
-            <button
-              key={tab.id}
-              type="button"
-              className={`commercial-install-tab-btn ${installTab === tab.id ? 'is-active' : ''}`}
-              onClick={() => setInstallTab(tab.id)}
-            >
-              <span>{tab.label}</span>
-              {tab.count != null && <span className="commercial-tab-count">{tab.count}</span>}
-            </button>
-          ))}
-        </div>
-
-        {/* Tableau des Dossiers */}
-        <div className="commercial-install-table-card">
-          {installationsQuery.isPending ? (
-            <div className="commercial-state">
-              <RefreshCw size={18} className="ops-spin" />
-              <span>Chargement du suivi de vos installations...</span>
-            </div>
-          ) : installationsQuery.isError ? (
-            <div className="commercial-state" role="alert">
-              <AlertTriangle size={18} />
-              <span>Impossible de charger le suivi des installations. Utilisez « Réessayer » pour actualiser les données.</span>
-            </div>
-          ) : commercialInstallations.length === 0 ? (
-            <div className="commercial-state commercial-empty">
-              <CheckCircle2 size={24} />
-              <strong>Aucun dossier d'installation dans cette catégorie</strong>
-              <span>Dès que vos devis sont validés avec une date d'installation, ils s'affichent automatiquement ici.</span>
-              <Link to="/devis">Consulter vos devis <ArrowRight size={14} /></Link>
-            </div>
-          ) : (
-            <div className="commercial-table-responsive">
-              <table className="commercial-install-table">
-                <thead>
-                  <tr>
-                    <th>Dossier / Devis</th>
-                    <th>Client & Site</th>
-                    <th>Système Solaire</th>
-                    <th>Technicien Assigné</th>
-                    <th>Date d'intervention</th>
-                    <th>Statut</th>
-                    <th style={{ textAlign: 'right' }}>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {commercialInstallations.map(inst => {
-                    const statusMeta = INSTALL_STATUS_CONFIG[inst.status] || { label: inst.status, tone: 'pending' };
-                    const powerKwc = ((Number(inst.system?.panels || 0) * Number(inst.system?.panelPower || 0)) / 1000).toFixed(1);
-                    return (
-                      <tr
-                        key={inst._id}
-                        className="commercial-install-row"
-                        onClick={() => navigate(`/installations/${inst._id}`)}
-                      >
-                        <td>
-                          <div className="commercial-row-folder">
-                            <span className="font-mono font-bold text-slate-900 dark:text-slate-100">{inst.folderNumber}</span>
-                            <small className="text-slate-500 font-mono">Devis {inst.quoteNumber}</small>
-                          </div>
-                        </td>
-                        <td>
-                          <div className="commercial-row-client">
-                            <strong>{inst.customer?.name || 'Client sans nom'}</strong>
-                            <small>
-                              {[inst.site?.quartier, inst.site?.ville || 'Kinshasa'].filter(Boolean).join(', ')}
-                            </small>
-                          </div>
-                        </td>
-                        <td>
-                          <div className="commercial-row-tech">
-                            <strong>{powerKwc} kWc</strong>
-                            <small>{inst.system?.batteryCapacity || 0} kWh • {inst.system?.inverterPower || 0} kVA</small>
-                          </div>
-                        </td>
-                        <td>
-                          {inst.assignedTechnician ? (
-                            <div className="commercial-row-assigned">
-                              <User size={13} className="text-slate-400" />
-                              <span>{inst.assignedTechnician.prenom} {inst.assignedTechnician.nom}</span>
-                            </div>
-                          ) : (
-                            <span className="commercial-unassigned-tag">Non assigné</span>
-                          )}
-                        </td>
-                        <td>
-                          <div className="commercial-row-date">
-                            <CalendarDays size={13} />
-                            <span>{formatInstallDate(inst.plannedDate)}</span>
-                          </div>
-                        </td>
-                        <td>
-                          <div className="commercial-row-status">
-                            <span className={`commercial-status-badge ${statusMeta.tone}`}>
-                              <span className="commercial-badge-dot" />
-                              {statusMeta.label}
-                            </span>
-                            {inst.isOverdue && (
-                              <span className="commercial-overdue-tag">
-                                <AlertTriangle size={11} /> Retard
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                        <td style={{ textAlign: 'right' }}>
-                          <button
-                            type="button"
-                            className="commercial-view-btn"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              navigate(`/installations/${inst._id}`);
-                            }}
-                          >
-                            <Eye size={13} /> Fiche détails
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      </section>
 
       <section className="commercial-shortcuts" aria-label="Accès rapides">
         <Link to="/devis"><ClipboardList size={16} /><span><strong>Nouveau dimensionnement</strong><small>Préparer une offre solaire</small></span><ArrowRight size={15} /></Link>

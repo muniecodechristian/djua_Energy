@@ -77,10 +77,10 @@ function KpiCard({ icon: Icon, label, value, sub, accent }) {
   return (
     <div className={`rounded-2xl border p-4 flex flex-col gap-1.5 transition-all ${accentCls}`}>
       <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-[var(--muted-foreground)] font-bold">
-        <Icon size={12} className={accent ? 'text-[#F59E0B]' : 'text-[var(--muted-foreground)]'} />
+        <Icon size={12} className={accent ? 'text-[#F19C20]' : 'text-[var(--muted-foreground)]'} />
         {label}
       </div>
-      <div className={`text-2xl font-black tracking-tight ${accent ? 'text-[#F59E0B]' : 'text-[var(--app-foreground)]'}`}>
+      <div className={`text-2xl font-black tracking-tight ${accent ? 'text-[#F19C20]' : 'text-[var(--app-foreground)]'}`}>
         {value}
       </div>
       {sub && <div className="text-[10px] text-[var(--muted-foreground)] leading-snug">{sub}</div>}
@@ -323,7 +323,7 @@ function SolarChat({ recommendationId, open, onClose }) {
 
 // ─── Composant principal ─────────────────────────────────────────────────────
 
-export default function SolarAdvisorResult({ result, onClose, onContactRequest }) {
+export default function SolarAdvisorResult({ result, onClose, onContactRequest, showSaveQuote = true }) {
   const [savedQuote,setSavedQuote]=useState(null);
   const [tab, setTab]               = useState('quote');   // 'quote' | 'sizing' | 'appliances' | 'components'
   const [showAlternatives, setShowAlternatives] = useState(false);
@@ -426,7 +426,7 @@ export default function SolarAdvisorResult({ result, onClose, onContactRequest }
 
         {recId && <div className="mt-4 flex items-center justify-between gap-3"><p className="text-xs text-[var(--muted-foreground)]">Une question sur les panneaux, le budget ou l’autonomie ?</p><QuoteChatButton onClick={() => setIsChatModalOpen(true)} /></div>}
 
-        <SaveQuote onSaved={setSavedQuote} payload={{ customer:{name:result.clientInfo?.fullName||result.clientInfo?.companyName||result.clientInfo?.contactName||'',phone:result.clientInfo?.phone||'',email:result.clientInfo?.email||'',address:result.site?.adresse||'',profile:result.profile||'personne',details:result.clientInfo||{}},site:{adresse:result.site?.adresse||'',ville:result.site?.ville||'',...(Number.isFinite(result.site?.lat)?{lat:result.site.lat}:{}),...(Number.isFinite(result.site?.lng)?{lng:result.site.lng}:{})},appliances:(result.sourceAppliances||[]).map(({name,quantity,watts,hours,period})=>({name,quantity:Number(quantity),watts:Number(watts),hours:Number(hours),period})),system:{panels:Number(panelCount),panelPower:Number(panelPowerW),batteryCapacity:Number(battUsableWh)/1000,inverterPower:Number(inverterW)/1000},amount:Number(totalPrice),currency:currency==='USD'?'USD':'CDF',recommendationId:recId||undefined,buildingType:result.buildingType||undefined}}/>
+        {showSaveQuote && <SaveQuote onSaved={setSavedQuote} payload={{ customer:{name:result.clientInfo?.fullName||result.clientInfo?.companyName||result.clientInfo?.contactName||'',phone:result.clientInfo?.phone||'',email:result.clientInfo?.email||'',address:result.site?.adresse||'',profile:result.profile||'personne',details:result.clientInfo||{}},site:{adresse:result.site?.adresse||'',ville:result.site?.ville||'',...(Number.isFinite(result.site?.lat)?{lat:result.site.lat}:{}),...(Number.isFinite(result.site?.lng)?{lng:result.site.lng}:{})},appliances:(result.sourceAppliances||[]).map(({name,quantity,watts,hours,period})=>({name,quantity:Number(quantity),watts:Number(watts),hours:Number(hours),period})),system:{panels:Number(panelCount),panelPower:Number(panelPowerW),batteryCapacity:Number(battUsableWh)/1000,inverterPower:Number(inverterW)/1000},amount:Number(totalPrice),currency:currency==='USD'?'USD':'CDF',recommendationId:recId||undefined,buildingType:result.buildingType||undefined}}/>}
         {/* Alertes infos manquantes */}
         {missing.length > 0 && (
           <div className="mt-3 flex items-start gap-2 rounded-xl border border-amber-500/25 bg-amber-500/5 px-3 py-2.5">
@@ -456,10 +456,10 @@ export default function SolarAdvisorResult({ result, onClose, onContactRequest }
             <button key={id} aria-pressed={tab===id} onClick={() => setTab(id)}
               className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all duration-300 ${
                 tab === id
-                  ? 'bg-white dark:bg-zinc-700 text-[#F59E0B] shadow-sm ring-1 ring-zinc-900/5 dark:ring-white/10'
+                  ? 'bg-white dark:bg-zinc-700 text-[#F19C20] shadow-sm ring-1 ring-zinc-900/5 dark:ring-white/10'
                   : 'text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 hover:bg-black/5 dark:hover:bg-white/5'
               }`}>
-              <Icon size={14} className={tab === id ? 'text-[#F59E0B]' : ''} />
+              <Icon size={14} className={tab === id ? 'text-[#F19C20]' : ''} />
               {label}
             </button>
           ))}
@@ -482,7 +482,7 @@ export default function SolarAdvisorResult({ result, onClose, onContactRequest }
                   </div>
                 </div>
                 <div className="text-left sm:text-right">
-                  <div className="text-2xl font-black text-[#F59E0B] tracking-tight">DJUA ENERGY</div>
+                  <div className="text-2xl font-black text-[#F19C20] tracking-tight">DJUA ENERGY</div>
                   <div className="text-xs font-semibold text-[#666] uppercase tracking-widest mt-1">Solutions Solaires Intelligentes</div>
                   <div className="text-sm text-[#555] mt-2">Avenue de l'Énergie, Kinshasa</div>
                   <div className="text-sm text-[#555]">contact@djua.com</div>
@@ -549,7 +549,7 @@ export default function SolarAdvisorResult({ result, onClose, onContactRequest }
                   )}
                   <div className="flex justify-between items-center border-t border-[#d4d4d8] pt-3 mt-1">
                     <span className="text-lg font-black text-[#111]">NET À PAYER</span>
-                    <span className="text-xl font-black text-[#F59E0B]">{fmtCurrency(totalPrice, currency)}</span>
+                    <span className="text-xl font-black text-[#F19C20]">{fmtCurrency(totalPrice, currency)}</span>
                   </div>
                 </div>
               </div>
@@ -567,7 +567,7 @@ export default function SolarAdvisorResult({ result, onClose, onContactRequest }
                 <button onClick={() => setShowAlternatives(!showAlternatives)}
                   className="w-full flex items-center justify-between py-3 px-4 rounded-xl border border-[var(--panel-border)] bg-[var(--panel-alt)] text-sm font-bold text-[var(--app-foreground)] hover:bg-[var(--panel)] transition">
                   <span className="flex items-center gap-2">
-                    <BarChart3 size={15} className="text-[#F59E0B]" />
+                    <BarChart3 size={15} className="text-[#F19C20]" />
                     Options d'évolution proposées ({alternatives.length})
                   </span>
                   {showAlternatives ? <ChevronUp size={15} /> : <ChevronDown size={15} />}

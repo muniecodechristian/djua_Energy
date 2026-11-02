@@ -35,12 +35,12 @@ export function navigationForRole(role) {
   
   // Le commercial consulte les alertes uniquement pour les kits liés à ses devis.
   if (normalizedRole === 'commercial') {
-    const commercialPaths = ['/dashboard', '/devis', '/parc', '/notification', '/rapports'];
+    const commercialPaths = ['/dashboard', '/devis', '/parc', '/rapports'];
     return navigation.filter(item => commercialPaths.includes(item.path))
       .sort((left, right) => commercialPaths.indexOf(left.path) - commercialPaths.indexOf(right.path))
       .map(item => ({
         ...item,
-        label: item.path === '/dashboard' ? 'Tableau de bord' : item.path === '/devis' ? 'Devis' : item.path === '/parc' ? 'Parc solaire' : item.path === '/notification' ? 'Alertes' : item.path === '/rapports' ? 'Rapports' : item.label,
+        label: item.path === '/dashboard' ? 'Tableau de bord' : item.path === '/devis' ? 'Devis' : item.path === '/parc' ? 'Parc solaire' : item.path === '/rapports' ? 'Rapports' : item.label,
         section: 'Espace commercial',
       }));
   }
@@ -50,6 +50,6 @@ export function navigationForRole(role) {
     return [];
   }
 
-  // Responsable Shop (shop_manager) : Vue d'ensemble complète sauf paramètres admin
-  return navigation.filter(item => !['/AdministrationSettings', '/rapports', '/catalogue'].includes(item.path));
+  // Responsable Shop (shop_manager) : rapports complets sur son équipe, sauf paramètres admin
+  return navigation.filter(item => item.path !== '/AdministrationSettings');
 }

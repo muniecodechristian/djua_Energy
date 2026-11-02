@@ -57,23 +57,10 @@ export async function setDeviceStatus(deviceId, status) {
 }
 
 /**
- * Enregistre une nouvelle télémétrie en BDD et met à jour la position GPS du kit.
+ * Met à jour les métadonnées du kit après l'enregistrement structuré de la télémétrie.
  */
 export async function setDeviceTelemetry(deviceId, payload) {
-  const gpsCoordinates = payload.gpsCoordinates || {
-    latitude: payload.latitude ?? null,
-    longitude: payload.longitude ?? null,
-  };
-
-  // 1. Enregistre le log brut dans la collection Telemetry
-  await Telemetry.create({
-    kitId: deviceId,
-    gpsCoordinates,
-    metrics: payload.metrics || payload,
-    extraData: payload.extraData || {},
-  });
-
-  // 2. Met à jour la dernière position connue sur le document principal du Kit
+  // Le message brut structuré est déjà enregistré par iot.service.js.
   const updateData = { updatedAt: new Date() };
   if (payload.gpsCoordinates) {
     updateData.gpsCoordinates = payload.gpsCoordinates;

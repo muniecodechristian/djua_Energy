@@ -10,7 +10,10 @@ import Quote from '../src/models/Quote.model.js';
 import Client from '../src/models/SalesClient.model.js';
 import Notice from '../src/models/InstallationNotice.model.js';
 import Kit from '../src/models/kit.model.js';
+import Telemetry from '../src/models/Telemetry.js';
+import EnrichedTelemetry from '../src/models/EnrichedTelemetry.js';
 import InstallationFolder from '../src/models/InstallationFolder.model.js';
+import { processTelemetry } from '../src/services/iot.service.js';
 import { businessDay, validPlannedDate } from '../src/services/quote.service.js';
 let manager,commercial,other,technician,admin,outsider;
 const cookie=user=>`token=${jwt.sign({id:String(user._id)},config.jwtSecret,{expiresIn:'1h'})}`;
@@ -22,7 +25,7 @@ const install=(quote,kitId='KIT-QUOTE-001')=>request(app).post('/api/kits').set(
 describe('Customer quotations and installation lifecycle',()=>{
  beforeAll(async()=>{
   await connectDB();
-  await Promise.all([Quote.init(),Client.init(),Notice.init(),Kit.init(),InstallationFolder.init()]);
+  await Promise.all([Quote.init(),Client.init(),Notice.init(),Kit.init(),Telemetry.init(),InstallationFolder.init()]);
   const make=(role,identifier,createdBy)=>User.create({nom:'Test',prenom:role,identifier,password:'TestPass123!',role,createdBy});
   manager=await make('shop_manager','quote-manager@test.local');
   commercial=await make('commercial','quote-sales@test.local',manager._id);
@@ -31,8 +34,8 @@ describe('Customer quotations and installation lifecycle',()=>{
   admin=await make('admin','quote-admin@test.local');
   outsider=await make('technician','quote-outside@test.local',admin._id);
  });
- beforeEach(async()=>{await Promise.all([Quote.deleteMany({}),Client.deleteMany({}),Notice.deleteMany({}),Kit.deleteMany({}),InstallationFolder.deleteMany({})]);});
- afterAll(async()=>{await Promise.all([Quote.deleteMany({}),Client.deleteMany({}),Notice.deleteMany({}),Kit.deleteMany({}),InstallationFolder.deleteMany({}),User.deleteMany({identifier:/quote-.*@test\.local$/})]);await mongoose.connection.close();});
+ beforeEach(async()=>{await Promise.all([Quote.deleteMany({}),Client.deleteMany({}),Notice.deleteMany({}),Kit.deleteMany({}),Telemetry.deleteMany({}),EnrichedTelemetry.deleteMany({}),InstallationFolder.deleteMany({})]);});
+ afterAll(async()=>{await Promise.all([Quote.deleteMany({}),Client.deleteMany({}),Notice.deleteMany({}),Kit.deleteMany({}),Telemetry.deleteMany({}),EnrichedTelemetry.deleteMany({}),InstallationFolder.deleteMany({}),User.deleteMany({identifier:/quote-.*@test\.local$/})]);await mongoose.connection.close();});
  it('reuses one customer for local and international phone formats and lists all their quotes',async()=>{
   const first=await save('customer-quote-001');const second=await save('customer-quote-002','+243 812 345 678');
   expect(first.client).toBe(second.client);expect(await Client.countDocuments()).toBe(1);
@@ -82,6 +85,97 @@ describe('Customer quotations and installation lifecycle',()=>{
   const otherResponse=await request(app).get('/api/quotes').set('Cookie',cookie(other));
   expect(otherResponse.body.data.stats.draftsToFollowUp).toBe(0);
   expect(otherResponse.body.data.kitIds).toEqual([]);
+ });
+ it('returns only the latest IoT snapshot for the commercial user’s own kits',async()=>{
+  await Quote.collection.insertMany([
+   {number:'DJ-TELEMETRY-OWNED',owner:commercial._id,shopManager:manager._id,kitId:'KIT-TELEMETRY-OWNED'},
+   {number:'DJ-TELEMETRY-OTHER',owner:other._id,shopManager:manager._id,kitId:'KIT-TELEMETRY-OTHER'},
+  ]);
+  await Telemetry.create([
+   {kitId:'KIT-TELEMETRY-OWNED',createdAt:new Date('2026-10-01T10:00:00Z'),solar:{power_w:120}},
+   {kitId:'KIT-TELEMETRY-OWNED',createdAt:new Date('2026-10-01T11:00:00Z'),solar:{power_w:240}},
+   {kitId:'KIT-TELEMETRY-OTHER',createdAt:new Date('2026-10-01T11:00:00Z'),solar:{power_w:999}},
+  ]);
+
+  const response=await request(app).get('/api/telemetry/latest')
+   .query({kitIds:'KIT-TELEMETRY-OWNED,KIT-TELEMETRY-OTHER'})
+   .set('Cookie',cookie(commercial));
+
+  expect(response.status).toBe(200);
+  expect(response.body.data).toHaveLength(1);
+  expect(response.body.data[0]).toMatchObject({
+   kitId:'KIT-TELEMETRY-OWNED',
+   solar:{power_w:240},
+  });
+ });
+ it('returns a 30-day IoT summary only to the commercial user who owns the kit',async()=>{
+  await Quote.collection.insertMany([
+   {number:'DJ-TELEMETRY-SUMMARY-OWNED',owner:commercial._id,shopManager:manager._id,kitId:'KIT-TELEMETRY-SUMMARY'},
+   {number:'DJ-TELEMETRY-SUMMARY-OTHER',owner:other._id,shopManager:manager._id,kitId:'KIT-TELEMETRY-SUMMARY-OTHER'},
+  ]);
+  const now=Date.now();
+  await Telemetry.create([
+   {
+    kitId:'KIT-TELEMETRY-SUMMARY',
+    deviceId:'ESP32-UNIT-01',
+    createdAt:new Date(now-2*24*60*60*1000),
+    solar:{power_w:180,energy_interval_wh:500},
+    dc_load:{power_w:100},
+    ac_load:{apparent_power_va:120},
+   },
+   {
+    kitId:'KIT-TELEMETRY-SUMMARY',
+    deviceId:'ESP32-UNIT-01',
+    createdAt:new Date(now-60*60*1000),
+    solar:{power_w:240,energy_interval_wh:750},
+    dc_load:{power_w:300},
+    ac_load:{apparent_power_va:360},
+   },
+   {
+    kitId:'KIT-TELEMETRY-SUMMARY',
+    createdAt:new Date(now-31*24*60*60*1000),
+    solar:{energy_interval_wh:9000},
+    dc_load:{power_w:9000},
+   },
+  ]);
+
+  const response=await request(app)
+   .get('/api/telemetry/KIT-TELEMETRY-SUMMARY/summary')
+   .set('Cookie',cookie(commercial));
+
+  expect(response.status).toBe(200);
+  expect(response.body.data.latest.deviceId).toBe('ESP32-UNIT-01');
+  expect(response.body.data.latest.solar.power_w).toBe(240);
+  expect(response.body.data.history30d).toMatchObject({
+   sampleCount:2,
+   productionKwh:1.25,
+   averageDcLoadPowerW:200,
+   averageAcLoadApparentPowerVa:240,
+  });
+
+  const denied=await request(app)
+   .get('/api/telemetry/KIT-TELEMETRY-SUMMARY/summary')
+   .set('Cookie',cookie(other));
+  expect(denied.status).toBe(404);
+ });
+ it('stores one structured raw telemetry record for each ESP32 message',async()=>{
+  await processTelemetry('KIT-IOT-STRUCTURED-001',{
+   kit_id:'KIT-IOT-STRUCTURED-001',
+   solar_power_w:180,
+   energy_generated_wh:24,
+   load_power_w:65,
+   energy_consumed_wh:9,
+   latitude:-4.32,
+   longitude:15.31,
+  });
+
+  const records=await Telemetry.find({kitId:'KIT-IOT-STRUCTURED-001'}).lean();
+  expect(records).toHaveLength(1);
+  expect(records[0]).toMatchObject({
+   solar:{power_w:180,energy_interval_wh:24},
+   dc_load:{power_w:65,energy_interval_wh:9},
+   gpsCoordinates:{latitude:-4.32,longitude:15.31},
+  });
  });
  it('filters validated quotes as a group while keeping summary amounts role-scoped and split by currency',async()=>{
   const draft=await save('dashboard-filter-draft');
@@ -137,6 +231,26 @@ describe('Customer quotations and installation lifecycle',()=>{
   expect(folderResponse.body.data.quoteNumber).toBe(quote.number);
   expect(await InstallationFolder.countDocuments({quote:quote._id})).toBe(1);
  });
+ it('lets a commercial assign only technicians from their shop manager',async()=>{
+  const quote=await approve(await save('installation-technician-scope-001'));
+  const folderResponse=await createFolder(quote);
+  expect(folderResponse.status).toBe(201);
+  const folderId=folderResponse.body.data._id;
+
+  const crossShopAssignment=await request(app).patch(`/api/installations/${folderId}/assign`).set('Cookie',cookie(commercial)).send({
+   technicianId:String(outsider._id),
+   plannedDate:businessDay(),
+  });
+  expect(crossShopAssignment.status).toBe(403);
+
+  const sameShopAssignment=await request(app).patch(`/api/installations/${folderId}/assign`).set('Cookie',cookie(commercial)).send({
+   technicianId:String(technician._id),
+   plannedDate:businessDay(),
+  });
+  expect(sameShopAssignment.status).toBe(200);
+  expect(String(sameShopAssignment.body.data.assignedTechnician._id || sameShopAssignment.body.data.assignedTechnician)).toBe(String(technician._id));
+ });
+
  it('lets the installation owner review the latest status reported by its assigned technician',async()=>{
   const quote=await approve(await save('installation-status-review-001'));
   const folderResponse=await createFolder(quote);

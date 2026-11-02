@@ -204,6 +204,7 @@ export default function AIAssistant() {
   const chatEndRef  = useRef(null);
   const inputRef    = useRef(null);
   const textareaRef = useRef(null);
+  const activeContextRef = useRef({});
 
   useEffect(() => {
     if (!isExpanded) return undefined;
@@ -259,7 +260,7 @@ export default function AIAssistant() {
   }, [messages, isOpen, isTyping]);
 
   // ── Envoi du message ───────────────────────────────────────────────────────
-  const sendMessage = async (messageText) => {
+  const sendMessage = async (messageText, context) => {
     const textToSend = messageText || input;
     if (!textToSend.trim() || isTyping) return;
 
@@ -279,7 +280,10 @@ export default function AIAssistant() {
     setIsTyping(true);
 
     try {
-      const resp = await api.post("/ai/chat", { context: {}, message: userMessage.text });
+      const resp = await api.post("/ai/chat", {
+        context: context ?? activeContextRef.current,
+        message: userMessage.text,
+      });
       const payload = resp.data?.data ?? resp.data;
       const parsed = extractAIPayload(payload);
 
@@ -334,12 +338,13 @@ export default function AIAssistant() {
   // ── Événement global open-ai-chat ─────────────────────────────────────────
   useEffect(() => {
     const handleOpenAIChat = (e) => {
-      const { message } = e.detail || {};
+      const { message, context = {} } = e.detail || {};
+      activeContextRef.current = context && typeof context === "object" ? context : {};
       setIsOpen(true);
       setIsExpanded(false);
       if (message) {
         setTimeout(() => {
-          if (sendMessageRef.current) sendMessageRef.current(message);
+          if (sendMessageRef.current) sendMessageRef.current(message, context);
         }, 300);
       }
     };
@@ -397,6 +402,7 @@ export default function AIAssistant() {
 
   const handleReset = () => {
     if (isListening) stopMic();
+    activeContextRef.current = {};
     setMessages([{
       id: Date.now(),
       sender: "ai",

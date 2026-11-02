@@ -24,8 +24,20 @@ class IAService {
       .trim();
   }
 
+  buildMessageWithContext(message, context) {
+    if (context?.scope !== 'kit_status' || !context.kit || typeof context.kit !== 'object') {
+      return message;
+    }
+
+    return `${message}\n\nContexte technique du kit (les valeurs nulles ou absentes sont inconnues; ne les déduis pas) :\n${JSON.stringify(context.kit)}`;
+  }
+
   // ─── Normalise n'importe quel format de réponse ML → format interne unifié ───
   normalizeMLResponse(data, source) {
+    if (data?.error || data?.errors) {
+      throw new Error('The AI provider returned an error.');
+    }
+
     // Format /ai/chat → { assistant_message, next_questions, used_ai, ... }
     if (data?.assistant_message) {
       return {
@@ -49,13 +61,17 @@ class IAService {
         source,
       };
     }
-    // Fallback générique
-    const text = typeof data === 'string' ? this.cleanAiText(data) : JSON.stringify(data);
+    const text = typeof data === 'string'
+      ? this.cleanAiText(data)
+      : this.cleanAiText(data?.reply || data?.text || data?.message || '');
+    if (!text) {
+      throw new Error('The AI provider returned an unsupported response.');
+    }
     return {
-      assistant_message: text || 'Réponse reçue du modèle.',
+      assistant_message: text,
       next_questions: [],
       can_recommend: false,
-      used_ai: false,
+      used_ai: data?.used_ai ?? data?.used_llm ?? true,
       source,
     };
   }
@@ -66,6 +82,9 @@ class IAService {
       console.log(`\n[IA API] 📥 RAW JSON RESPONSE from ${label}:`);
       console.log(JSON.stringify(resp.data, null, 2));
       const normalized = this.normalizeMLResponse(resp.data, label);
+      if (!normalized.used_ai) {
+        throw new Error('The AI provider returned a non-AI fallback.');
+      }
       console.log(`[IA API] ✅ ${label} → réponse reçue`, {
         status: resp.status,
         used_ai: normalized.used_ai,
@@ -96,23 +115,24 @@ class IAService {
     }
 
     const trimmed = (message || '').trim();
+    const messageWithContext = this.buildMessageWithContext(trimmed, context);
 
     const contextErrors = { timeout: false };
 
-    // 1️⃣ Endpoint principal : /ai/chat  (schéma: { message })
+    // L’endpoint conversationnel du kit est prioritaire; /ai/chat reste le secours.
     const primary = await this.tryEndpoint(
-      '/ai/chat',
-      { message: trimmed },
-      'REMOTE /ai/chat',
+      '/demo/kit-console/chat',
+      { message: messageWithContext, context: context || {} },
+      'REMOTE /demo/kit-console/chat',
       contextErrors
     );
     if (primary) return primary;
 
-    // 2️⃣ Endpoint de secours : /demo/kit-console/chat  (schéma: { message, context })
+    // Endpoint de secours : /ai/chat.
     const secondary = await this.tryEndpoint(
-      '/demo/kit-console/chat',
-      { message: trimmed, context: context || {} },
-      'REMOTE /demo/kit-console/chat',
+      '/ai/chat',
+      { message: messageWithContext, context: context || {} },
+      'REMOTE /ai/chat',
       contextErrors
     );
     if (secondary) return secondary;

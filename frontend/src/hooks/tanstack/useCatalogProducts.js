@@ -6,7 +6,7 @@ const catalogQueryKey = ['catalog-products'];
 
 export function useCatalogProducts({ enabled = true } = {}) {
   const role = useAuthStore(state => state.user?.role);
-  const access = ['admin', 'administration'].includes(role) ? 'admin' : 'commercial';
+  const access = ['admin', 'administration', 'shop_manager'].includes(role) ? 'manager' : 'commercial';
   return useQuery({
     queryKey: [...catalogQueryKey, access],
     queryFn: async () => {
