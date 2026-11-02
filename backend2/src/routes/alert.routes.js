@@ -42,7 +42,7 @@ router.post(
 // - shop_manager : ses alertes créées + IoT de sa zone
 // - technician : ses alertes assignées
 // - admin : toutes les alertes
-// - commercial : 403 interdit
+// - commercial : alertes liées aux kits de ses propres devis
 // - public / non connecté : signaux & alertes IoT du parc solaire
 router.get(
   '/',

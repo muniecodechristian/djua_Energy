@@ -6,6 +6,7 @@ import connectDB from '../src/config/db.config.js';
 import User from '../src/models/user.model.js';
 import Kit from '../src/models/kit.model.js';
 import Alert from '../src/models/Alert.model.js';
+import Quote from '../src/models/Quote.model.js';
 import { Intervention } from '../src/models/Intervention.model.js';
 
 describe('Shop Manager Alert & Intervention Workflows - Integration Tests', () => {
@@ -369,14 +370,15 @@ describe('Shop Manager Alert & Intervention Workflows - Integration Tests', () =
   });
 
   // ═════════════════════════════════════════════════════════════════════════════
-  // SECTION 3: COMMERCIAL RBAC BOUNDARY (Commercial strictly restricted to quotes)
+  // SECTION 3: COMMERCIAL RBAC BOUNDARY
   // ═════════════════════════════════════════════════════════════════════════════
 
   describe('Commercial Strict RBAC Boundary', () => {
     let commercialCookie;
+    let commercialUser;
 
     beforeAll(async () => {
-      await User.create({
+      commercialUser = await User.create({
         nom: 'Commercial',
         prenom: 'Gombe',
         identifier: 'commercial.gombe@test.com',
@@ -393,7 +395,11 @@ describe('Shop Manager Alert & Intervention Workflows - Integration Tests', () =
       commercialCookie = res.headers['set-cookie'];
     });
 
-    it('should forbid commercial user from accessing interventions (strictly devis only)', async () => {
+    afterAll(async () => {
+      await Quote.deleteMany({ owner: commercialUser._id });
+    });
+
+    it('should forbid commercial user from accessing interventions', async () => {
       const res = await request(app)
         .get('/api/interventions')
         .set('Cookie', commercialCookie);
@@ -402,13 +408,48 @@ describe('Shop Manager Alert & Intervention Workflows - Integration Tests', () =
       expect(res.body.success).toBe(false);
     });
 
-    it('should forbid commercial user from accessing alerts', async () => {
+    it('should show a commercial only alerts for kits linked to their quotes', async () => {
+      const ownedKitId = 'KIT-COMMERCIAL-001';
+      await Quote.create({
+        number: 'DJ-2026-COMMERCIAL-001',
+        requestKey: 'commercial-alert-quote-001',
+        owner: commercialUser._id,
+        client: new mongoose.Types.ObjectId(),
+        customer: { name: 'Client commercial' },
+        site: {},
+        system: {},
+        appliances: [],
+        amount: 0,
+        currency: 'USD',
+        kitId: ownedKitId,
+      });
+      await Alert.create([
+        {
+          kitId: ownedKitId,
+          source: 'iot_esp32',
+          type: 'offline',
+          severity: 'high',
+          label: 'Communication interrompue',
+          description: 'Aucune donnée reçue.',
+        },
+        {
+          kitId: 'KIT-OTHER-COMMERCIAL-001',
+          source: 'iot_esp32',
+          type: 'offline',
+          severity: 'high',
+          label: 'Alerte hors périmètre',
+          description: 'Cette alerte ne doit pas être visible.',
+        },
+      ]);
+
       const res = await request(app)
         .get('/api/alerts')
         .set('Cookie', commercialCookie);
 
-      expect(res.status).toBe(403);
-      expect(res.body.success).toBe(false);
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data).toHaveLength(1);
+      expect(res.body.data[0].kitId).toBe(ownedKitId);
     });
   });
 

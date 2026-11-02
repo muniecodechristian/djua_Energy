@@ -26,21 +26,21 @@ export function navigationForRole(role) {
   
   // L’administrateur accède aux écrans globaux de gestion et de supervision avec vision complète.
   if (normalizedRole === 'admin') {
-    const adminPaths = ['/installations', '/rapports', '/devis', '/parc', '/catalogue', '/AdministrationSettings'];
+    const adminPaths = ['/installations', '/rapports', '/devis', '/parc', '/notification', '/catalogue', '/AdministrationSettings'];
     return navigation
       .filter(item => adminPaths.includes(item.path))
       .sort((left, right) => adminPaths.indexOf(left.path) - adminPaths.indexOf(right.path))
       .map(item => ({ ...item, label: item.path === '/devis' ? 'Devis' : item.label, section: 'Administration' }));
   }
   
-  // Le commercial est uniquement là pour la partie devis, rien d'autre
+  // Le commercial consulte les alertes uniquement pour les kits liés à ses devis.
   if (normalizedRole === 'commercial') {
-    const commercialPaths = ['/dashboard', '/devis', '/parc', '/rapports'];
+    const commercialPaths = ['/dashboard', '/devis', '/parc', '/notification', '/rapports'];
     return navigation.filter(item => commercialPaths.includes(item.path))
       .sort((left, right) => commercialPaths.indexOf(left.path) - commercialPaths.indexOf(right.path))
       .map(item => ({
         ...item,
-        label: item.path === '/dashboard' ? 'Tableau de bord' : item.path === '/devis' ? 'Devis' : item.path === '/parc' ? 'Parc solaire' : item.path === '/rapports' ? 'Rapports' : item.label,
+        label: item.path === '/dashboard' ? 'Tableau de bord' : item.path === '/devis' ? 'Devis' : item.path === '/parc' ? 'Parc solaire' : item.path === '/notification' ? 'Alertes' : item.path === '/rapports' ? 'Rapports' : item.label,
         section: 'Espace commercial',
       }));
   }

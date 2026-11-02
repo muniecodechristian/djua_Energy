@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   Activity, AlertTriangle, ArrowDownToLine, BarChart3, CalendarDays, CheckCircle2, ChevronDown,
-  ChevronRight, CircleAlert, Clock3, FileText, Gauge, Leaf, MapPin, RefreshCw,
+  ChevronRight, CircleAlert, Clock3, FileText, Gauge, Leaf, Lightbulb, MapPin, RefreshCw,
   Save, Search, Users, Wrench, X, Eye,
 } from 'lucide-react';
 import {
@@ -299,17 +299,51 @@ export default function AdminReports() {
       counts.set(name, (counts.get(name) || 0) + 1);
     });
     return [...counts].map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count).slice(0, 5);
-  }, [filteredAlerts]);
+  }, [filteredAlerts, isCommercial, quotes]);
   const products = useMemo(() => {
     const counts = new Map();
-    quotes.forEach(quote => (quote.appliances || []).forEach(appliance => {
-      const name = appliance.name || 'Équipement';
-      const product = counts.get(name) || { name, category: appliance.category || appliance.type || 'Équipement', count: 0 };
-      product.count += Number(appliance.quantity) || 1;
-      counts.set(name, product);
-    }));
+    quotes.forEach(quote => {
+      const items = Array.isArray(quote.lineItems) && quote.lineItems.length
+        ? quote.lineItems
+        : (quote.appliances || []);
+      items.forEach(item => {
+        const name = item.name || item.label || 'Équipement';
+        const product = counts.get(name) || { name, category: item.category || item.type || 'Équipement', count: 0 };
+        product.count += Number(item.quantity) || 1;
+        counts.set(name, product);
+      });
+    });
     return [...counts.values()].sort((a, b) => b.count - a.count).slice(0, 5);
   }, [quotes]);
+  const summaryInsight = useMemo(() => {
+    if (isCommercial) return null;
+    if (quotesQuery.isPending || kitsQuery.isPending || alertsQuery.isPending) {
+      return { message: 'Chargement des données du parc et des devis…', target: 'fleet' };
+    }
+    if (quotesQuery.isError || kitsQuery.isError || alertsQuery.isError) {
+      return { message: 'Cette analyse est indisponible car certaines données du serveur n’ont pas pu être chargées.', target: 'fleet' };
+    }
+    if (anomalies.length > 0) {
+      const [topAlert] = anomalies;
+      return {
+        message: `Les alertes ouvertes concernent surtout « ${topAlert.name} » (${numberFormat.format(topAlert.count)}). Vérifiez les kits concernés en priorité.`,
+        target: 'fleet',
+      };
+    }
+    if (products.length > 0) {
+      const [topProduct] = products;
+      return {
+        message: `« ${topProduct.name} » est l’article le plus présent dans les devis de la période (${numberFormat.format(topProduct.count)} unités).`,
+        target: 'sales',
+      };
+    }
+    return {
+      message: filteredKits.length
+        ? `Aucune alerte ouverte n’est enregistrée sur cette période. Le parc filtré compte ${numberFormat.format(filteredKits.length)} installation(s).`
+        : 'Aucune alerte ni aucun article de devis ne sont enregistrés pour les filtres sélectionnés.',
+      target: 'fleet',
+    };
+  }, [isCommercial, quotesQuery.isPending, kitsQuery.isPending, alertsQuery.isPending, quotesQuery.isError, kitsQuery.isError, alertsQuery.isError, anomalies, products, filteredKits.length]);
   const currencyTotals = useMemo(() => {
     const totals = new Map();
     quotes.forEach(quote => {
@@ -489,7 +523,7 @@ export default function AdminReports() {
         {visibleTabs.map(item => <button key={item.id} id={`reports-tab-${item.id}`} role="tab" aria-controls={`reports-panel-${item.id}`} aria-selected={tab === item.id} tabIndex={tab === item.id ? 0 : -1} className={tab === item.id ? 'is-active' : ''} onClick={() => setTab(item.id)}>{item.label}</button>)}
       </nav>
 
-      {tab === 'overview' && <div id="reports-panel-overview" role="tabpanel" aria-labelledby="reports-tab-overview" tabIndex={0}>
+      {tab === 'overview' && <div id="reports-panel-overview" className={`reports-overview-panel${isCommercial ? ' is-commercial' : ''}`} role="tabpanel" aria-labelledby="reports-tab-overview" tabIndex={0}>
         <section className={`reports-kpis${isCommercial ? ' commercial-only' : ''}`} aria-label="Indicateurs clés">
           {kpis.map(item => <KpiCard key={item.label} {...item} />)}
         </section>
@@ -507,14 +541,19 @@ export default function AdminReports() {
             {kitsQuery.isPending ? <EmptyChart>Chargement du parc…</EmptyChart> : contractStatuses.length === 0 ? <EmptyChart>Aucune installation enregistrée pour ces filtres.</EmptyChart> : <div className="reports-status-content"><div className="reports-donut"><ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={contractStatuses} dataKey="value" nameKey="name" innerRadius="66%" outerRadius="92%" paddingAngle={2} stroke="none">{contractStatuses.map(item => <Cell key={item.name} fill={item.color} />)}</Pie><Tooltip content={<ChartTooltip />} /></PieChart></ResponsiveContainer><span><strong>{numberFormat.format(filteredKits.length)}</strong><small>installations</small></span></div><ul className="reports-legend-list">{contractStatuses.map(item => <li key={item.name}><i style={{ background: item.color }} /><span>{item.name}</span><strong>{numberFormat.format(item.value)}</strong><small>{filteredKits.length ? `${Math.round(item.value / filteredKits.length * 100)} %` : '0 %'}</small></li>)}</ul></div>}
           </section>
           <section className="reports-card reports-list-card">
-            <header className="reports-card-title"><div><h2>{isCommercial ? 'Priorités commerciales' : 'Alertes les plus fréquentes'}</h2><p>{isCommercial ? 'Devis nécessitant une action.' : 'Alertes ouvertes correspondant aux filtres.'}</p></div><button className="reports-inline-action" onClick={() => setTab(isCommercial ? 'sales' : 'fleet')}>Voir tout <ChevronRight size={14} /></button></header>
+            <header className="reports-card-title"><div><h2>{isCommercial ? 'Priorités commerciales' : 'Top 5 des anomalies'}</h2><p>{isCommercial ? 'Devis nécessitant une action.' : 'Alertes ouvertes les plus fréquentes pour les filtres choisis.'}</p></div><button className="reports-inline-action" onClick={() => setTab(isCommercial ? 'sales' : 'fleet')}>Voir tout <ChevronRight size={14} /></button></header>
             {(isCommercial ? quotesQuery.isPending : alertsQuery.isPending) ? <EmptyChart>Chargement des données…</EmptyChart> : anomalies.length === 0 ? <EmptyChart>{isCommercial ? 'Aucun devis prioritaire sur cette période.' : 'Aucune alerte ouverte sur cette période.'}</EmptyChart> : <ul className="reports-data-list">{anomalies.map((item, index) => <li key={item.name}><span className="reports-rank">{index + 1}</span><span>{item.name}</span><strong>{numberFormat.format(item.count)}</strong></li>)}</ul>}
           </section>
           <section className="reports-card reports-list-card">
-            <header className="reports-card-title"><div><h2>Équipements les plus dimensionnés</h2><p>Quantités issues des devis de la période.</p></div><button className="reports-inline-action" onClick={() => setTab('sales')}>Voir les ventes <ChevronRight size={14} /></button></header>
-            {quotesQuery.isPending ? <EmptyChart>Chargement des devis…</EmptyChart> : products.length === 0 ? <EmptyChart>Aucun équipement dans les devis de cette période.</EmptyChart> : <div className="reports-mini-table"><div><span>Équipement</span><span>Catégorie</span><span>Qté</span></div>{products.map(item => <div key={item.name}><strong title={item.name}>{item.name}</strong><span>{item.category}</span><b>{numberFormat.format(item.count)}</b></div>)}</div>}
+            <header className="reports-card-title"><div><h2>Produits les plus utilisés</h2><p>Quantités des articles enregistrés dans les devis de la période.</p></div><button className="reports-inline-action" onClick={() => setTab('sales')}>Voir les ventes <ChevronRight size={14} /></button></header>
+            {quotesQuery.isPending ? <EmptyChart>Chargement des devis…</EmptyChart> : products.length === 0 ? <EmptyChart>Aucun article dans les devis de cette période.</EmptyChart> : <div className="reports-mini-table"><div><span>Produit</span><span>Catégorie</span><span>Utilisations</span></div>{products.map(item => <div key={item.name}><strong title={item.name}>{item.name}</strong><span>{item.category}</span><b>{numberFormat.format(item.count)}</b></div>)}</div>}
           </section>
         </div>
+        {!isCommercial && summaryInsight && <section className="reports-insight" aria-live="polite">
+          <Lightbulb size={24} aria-hidden="true" />
+          <div><h2>Conseil Djua</h2><p>{summaryInsight.message}</p></div>
+          <button type="button" onClick={() => setTab(summaryInsight.target)}>Voir l’analyse détaillée <ChevronRight size={16} /></button>
+        </section>}
       </div>}
 
       {tab === 'sales' && <div id="reports-panel-sales" role="tabpanel" aria-labelledby="reports-tab-sales" tabIndex={0} className="reports-sales-panel">

@@ -4,6 +4,7 @@
 // Les notifications Socket.io sont déléguées au notification.service.
 
 import Alert from '../models/Alert.model.js';
+import Quote from '../models/Quote.model.js';
 import { sendSuccess, sendError } from '../utils/apiResponse.js';
 import { notifyNewAlert, notifyAlertReassigned } from '../services/notification.service.js';
 
@@ -49,6 +50,7 @@ export const createAlert = async (req, res) => {
 // ── GET /api/alerts ───────────────────────────────────────────────────────────
 /**
  * Récupère les alertes selon le rôle de l'utilisateur :
+ * - commercial : voit les alertes des kits liés à ses devis
  * - shop_manager : voit toutes les alertes qu'il a créées + les alertes IoT de sa zone
  * - technician : voit uniquement les alertes qui lui sont assignées
  */
@@ -58,14 +60,16 @@ export const getAlerts = async (req, res) => {
     const role = user?.role === 'administration' ? 'admin' : user?.role;
     const { kitId, status, severity } = req.query || {};
 
-    // Le commercial est strictement restreint aux devis (interdiction d'accès aux alertes)
-    if (role === 'commercial') {
-      return sendError(res, 'You do not have permission to perform this action', [], 403);
-    }
-
     let filter = {};
 
-    if (role === 'shop_manager') {
+    if (role === 'commercial') {
+      const kitIds = await Quote.distinct('kitId', {
+        owner: user._id,
+        kitId: { $type: 'string' },
+      });
+      if (kitIds.length === 0) return sendSuccess(res, 'Alertes récupérées', []);
+      filter.kitId = { $in: kitIds };
+    } else if (role === 'shop_manager') {
       // Alertes créées par ce shop_manager OU alertes IoT globales
       filter.$or = [
         { createdBy: user._id },
@@ -83,7 +87,11 @@ export const getAlerts = async (req, res) => {
     }
 
     // Filtres optionnels
-    if (kitId) filter.kitId = kitId;
+    if (kitId) {
+      filter.kitId = role === 'commercial'
+        ? { $in: filter.kitId.$in.filter(ownedKitId => ownedKitId === kitId) }
+        : kitId;
+    }
     if (status) filter.status = status;
     if (severity) filter.severity = severity;
 

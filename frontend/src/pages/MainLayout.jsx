@@ -81,8 +81,8 @@ export default function MainLayout() {
   if (isAdminOnlyPage && !isAdmin && !isCommercial && role !== 'shop_manager') return <Navigate to={restrictedPageFallback} replace/>;
   if (isCatalogPage && !isAdmin) return <Navigate to={restrictedPageFallback} replace/>;
 
-  // Commercial : acces dashboard, devis, parc, rapports + consultation des fiches de suivi d'installations
-  if (isCommercial && !['/dashboard', '/devis', '/devis/nouveau', '/parc', '/rapports'].includes(location.pathname.toLowerCase()) && !/smartkit|customerprofile|installations|devis/i.test(location.pathname)) return <Navigate to="/dashboard" replace/>;
+  // Commercial : accès aux alertes limitées aux installations liées à ses devis.
+  if (isCommercial && !['/dashboard', '/devis', '/devis/nouveau', '/parc', '/notification', '/rapports'].includes(location.pathname.toLowerCase()) && !/smartkit|customerprofile|installations|devis/i.test(location.pathname)) return <Navigate to="/dashboard" replace/>;
 
   if (isTechnician && location.pathname.toLowerCase() !== '/technicien') return <Navigate to="/technicien" replace/>;
   if (!isAdmin && location.pathname.toLowerCase() === '/administrationsettings') return <Navigate to={role === 'shop_manager' ? '/equipe' : '/dashboard'} replace/>;

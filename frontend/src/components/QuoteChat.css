@@ -1,1 +1,86 @@
 .quote-ai-invite{display:inline-flex;align-items:center;gap:12px;padding:11px 16px;border:1px solid var(--ops-ink,#202124);border-radius:12px;background:var(--ops-ink,#202124);color:var(--ops-surface,#fff);cursor:pointer;text-align:left;flex-shrink:0;transition:box-shadow .2s,transform .2s}.quote-ai-invite:hover{transform:translateY(-1px);box-shadow:0 5px 16px #0002}.quote-ai-invite strong,.quote-ai-invite small{display:block}.quote-ai-invite strong{font-size:13px;font-weight:650}.quote-ai-invite small{font-size:11px;opacity:.75;margin-top:2px}.quote-ai-screen{position:fixed;inset:0;z-index:10050;width:100%;height:100dvh;display:flex;flex-direction:column;background:var(--ops-surface,#fff);color:var(--ops-ink,#202124);font-family:inherit;isolation:isolate}.quote-ai-screen *{box-sizing:border-box}.quote-ai-header{flex-shrink:0;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:20px 28px;border-bottom:1px solid var(--ops-line,#e5e7eb)}.quote-ai-back,.quote-ai-close{display:flex;align-items:center;gap:9px;border:0;background:transparent;color:inherit;cursor:pointer;font-size:13px;border-radius:8px;padding:8px}.quote-ai-back:hover,.quote-ai-close:hover{background:var(--ops-canvas,#f5f5f5)}.quote-ai-brand{display:flex;gap:10px;align-items:center;font-size:18px}.quote-ai-brand strong{font-weight:600}.quote-ai-brand small{display:block;font-size:11px;color:var(--ops-muted,#6b7280);margin-top:2px}.quote-ai-workspace{flex:1;min-height:0;display:flex;flex-direction:column;width:min(100%,900px);margin:0 auto;padding:0 28px}.quote-ai-scroll{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;display:flex;flex-direction:column}.quote-ai-welcome{margin:auto;text-align:center;padding:20px 0 24px;max-width:570px;align-self:center}.quote-ai-robot{width:130px;height:130px;margin:0 auto 14px;border-radius:50%;overflow:hidden;background:#fff;animation:quote-robot-float 5s ease-in-out infinite}.quote-ai-robot img{width:100%;height:100%;object-fit:cover}.quote-ai-static-robot{display:none}.quote-ai-eyebrow{font-size:10px!important;font-weight:650;letter-spacing:.16em;margin-bottom:12px!important}.quote-ai-welcome h1{font-size:clamp(28px,3.2vw,46px);font-weight:500;letter-spacing:-.045em;line-height:1.16;margin:0 0 16px}.quote-ai-welcome>p{font-size:14px;line-height:1.65;color:var(--ops-muted,#6b7280);max-width:440px;margin:0 auto}.quote-ai-compose-area{flex-shrink:0;padding:0 0 18px}.quote-ai-suggestions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:0 auto 16px}.quote-ai-suggestions button{border:1px solid var(--ops-line,#e5e7eb);background:transparent;color:var(--ops-ink,#202124);border-radius:12px;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:13px 15px;text-align:left;font-size:12px;cursor:pointer}.quote-ai-suggestions button:hover{background:var(--ops-canvas,#f5f5f5)}.quote-ai-suggestions svg{flex-shrink:0;transform:rotate(45deg);opacity:.6}.quote-ai-composer{border:1px solid var(--ops-line,#e5e7eb);border-radius:22px;background:var(--ops-canvas,#f6f7f8);padding:16px 18px 12px;box-shadow:0 2px 8px #00000005}.quote-ai-composer:focus-within{border-color:var(--ops-muted,#6b7280)}.quote-ai-composer textarea{display:block;width:100%;resize:none;max-height:140px;background:transparent;color:inherit;border:0;outline:0;font:inherit;font-size:15px;line-height:1.5;padding:0}.quote-ai-composer textarea::placeholder{color:var(--ops-muted,#6b7280)}.quote-ai-composer-bottom{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:8px}.quote-ai-composer-bottom>span{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--ops-muted,#6b7280)}.quote-ai-composer-bottom button{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;border:0;background:var(--ops-ink,#202124);color:var(--ops-surface,#fff);cursor:pointer}.quote-ai-composer-bottom button:disabled{opacity:.35;cursor:default}.quote-ai-note{text-align:center;font-size:10px;line-height:1.5;color:var(--ops-muted,#6b7280);margin:10px 0 0}.quote-ai-thread{padding:30px 0 20px;width:100%}.quote-ai-message{margin:0 0 30px;max-width:94%;font-size:15px;line-height:1.8}.quote-ai-author{font-size:11px;font-weight:650;display:flex;align-items:center;gap:7px;margin-bottom:8px;color:var(--ops-muted,#6b7280)}.quote-ai-message p{white-space:pre-wrap;overflow-wrap:anywhere;margin:0}.quote-ai-message.is-user{margin-left:auto;width:fit-content;max-width:85%;padding:14px 20px;border-radius:20px 20px 5px 20px;background:var(--ops-canvas,#f5f5f5)}.quote-ai-message.is-error{border-left:2px solid #b65353;padding-left:16px}.quote-ai-thinking{display:flex;align-items:center;gap:10px;color:var(--ops-muted,#6b7280);font-size:13px}.quote-ai-thinking svg,.quote-ai-spin{animation:quote-ai-spin 1.2s linear infinite}.quote-ai-screen button:focus-visible,.quote-ai-invite:focus-visible{outline:2px solid var(--ops-ink,#202124);outline-offset:4px}@keyframes quote-ai-spin{to{transform:rotate(360deg)}}@keyframes quote-robot-float{50%{transform:translateY(-5px)}}@media(max-width:600px){.quote-ai-header{padding:12px;gap:8px}.quote-ai-back span{display:none}.quote-ai-brand{font-size:16px}.quote-ai-workspace{padding:0 16px}.quote-ai-welcome{padding:16px 0}.quote-ai-robot{width:92px;height:92px;margin-bottom:8px}.quote-ai-welcome>p{font-size:12px;max-width:320px}.quote-ai-suggestions{gap:6px;margin-bottom:12px}.quote-ai-suggestions button{font-size:11px;padding:10px;min-height:48px}.quote-ai-composer{padding:12px 14px;border-radius:18px}.quote-ai-compose-area{padding-bottom:max(12px,env(safe-area-inset-bottom))}.quote-ai-composer textarea{font-size:16px}.quote-ai-invite{padding:9px 11px;gap:8px}.quote-ai-invite small{display:none}}@media(max-height:700px){.quote-ai-robot{width:72px;height:72px;margin-bottom:6px}.quote-ai-welcome{padding:12px 0}.quote-ai-welcome h1{font-size:28px;margin-bottom:8px}.quote-ai-suggestions button{padding:9px 12px}.quote-ai-eyebrow{margin-bottom:6px!important}}@media(prefers-reduced-motion:reduce){.quote-ai-robot,.quote-ai-thinking svg,.quote-ai-spin{animation:none}.quote-ai-robot img{display:none}.quote-ai-static-robot{display:block;margin:25px auto;color:#252a30}.quote-ai-invite{transition:none}}.quote-ai-cursor{display:inline-block;margin-left:2px;color:#F59E0B;font-weight:700;animation:quote-cursor-blink .8s infinite}@keyframes quote-cursor-blink{0%,100%{opacity:1}50%{opacity:0}}
+
+.quote-ai-screen{background:var(--app-surface);color:var(--app-foreground)}
+.quote-ai-header{justify-content:space-between;padding:16px 28px;background:var(--panel);border-color:var(--panel-border)}
+.quote-ai-brand{gap:12px;font-size:13px;font-weight:600;letter-spacing:-.025em}
+.quote-ai-brand-avatar,.quote-ai-message-avatar{position:relative;display:flex;flex-shrink:0;align-items:center;justify-content:center;overflow:hidden;border:1px solid #cbd5d8;border-radius:50%;background:#e7edf0}
+.quote-ai-brand-avatar{width:40px;height:40px}
+.quote-ai-brand-avatar img{width:135%;height:135%;max-width:none;object-fit:cover;mix-blend-mode:multiply}
+.quote-ai-brand-title{display:flex;align-items:center;gap:8px}
+.quote-ai-brand-title strong{padding:2px 8px;border:1px solid var(--panel-border);border-radius:999px;background:var(--panel-alt);color:var(--muted-foreground);font-size:9px;font-weight:500;letter-spacing:.08em;text-transform:uppercase}
+.quote-ai-brand small{margin-top:3px;color:var(--muted-foreground);font-size:11px;font-weight:400}
+.quote-ai-actions{display:flex;align-items:center;gap:4px;padding:4px;border:1px solid var(--panel-border);border-radius:12px;background:var(--panel-alt)}
+.quote-ai-back,.quote-ai-close{color:var(--muted-foreground);font-size:12px}
+.quote-ai-back:hover,.quote-ai-close:hover{background:var(--panel);color:var(--app-foreground)}
+.quote-ai-workspace{width:100%;max-width:none;padding:0}
+.quote-ai-scroll{padding:24px max(24px,calc((100% - 900px)/2));background:var(--app-surface);overscroll-behavior:contain}
+.quote-ai-welcome{width:min(100%,570px);padding:24px 0}
+.quote-ai-robot{width:96px;height:96px;margin-bottom:20px;border:1px solid var(--panel-border);background:var(--panel)}
+.quote-ai-robot img{display:block}
+.quote-ai-eyebrow{color:var(--muted-foreground)}
+.quote-ai-welcome h1{margin-bottom:14px;font-size:clamp(28px,3.2vw,46px);font-weight:500;letter-spacing:-.045em;line-height:1.16}
+.quote-ai-welcome>p:not(.quote-ai-eyebrow){max-width:440px;color:var(--muted-foreground);font-size:14px;line-height:1.65}
+.quote-ai-suggestions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:24px auto 0;text-align:left}
+.quote-ai-suggestions button{min-height:48px;padding:12px 14px;border-color:var(--panel-border);border-radius:12px;background:transparent;color:var(--app-foreground);font-size:12px;line-height:1.45;transition:background-color 150ms ease}
+.quote-ai-suggestions button:hover{background:var(--panel-alt)}
+.quote-ai-thread{display:flex;flex-direction:column;gap:16px;width:100%;padding:0 0 20px}
+.quote-ai-message-row{display:flex;align-items:flex-start;gap:10px}
+.quote-ai-message-row.is-user{align-items:flex-end;justify-content:flex-end}
+.quote-ai-message-avatar{width:28px;height:28px;margin-top:3px}
+.quote-ai-message-avatar img{width:140%;height:140%;max-width:none;object-fit:cover;mix-blend-mode:multiply}
+.quote-ai-message-bubble{position:relative;width:fit-content;max-width:min(84%,720px);padding:12px 16px;border:1px solid var(--panel-border);border-radius:16px 16px 16px 3px;background:var(--panel-alt);color:var(--app-foreground);font-size:13px;line-height:1.65;overflow-wrap:anywhere;box-shadow:0 1px 3px #0000000d}
+.quote-ai-message-bubble p{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;font-size:inherit;line-height:inherit}
+.quote-ai-message-bubble.is-user{max-width:85%;border-color:#f59e0b;background:#f59e0b;color:#fff;font-weight:500;border-radius:16px 16px 3px 16px}
+.quote-ai-message-bubble.is-error{border-color:#7f1d1d;background:rgb(69 10 10 / .35);color:#fecaca}
+.quote-ai-message-user-avatar{display:flex;width:24px;height:24px;flex-shrink:0;align-items:center;justify-content:center;margin-bottom:4px;border:1px solid var(--panel-border);border-radius:50%;background:var(--panel-alt);color:var(--muted-foreground)}
+.quote-ai-thinking{display:flex;align-items:center;gap:10px;color:var(--muted-foreground)}
+.quote-ai-thinking-dots{display:flex;align-items:center;gap:5px;padding:12px 14px;border:1px solid var(--panel-border);border-radius:16px 16px 16px 3px;background:var(--panel-alt)}
+.quote-ai-thinking-dots i{width:6px;height:6px;border-radius:50%;background:var(--muted-foreground);animation:quote-ai-dot-bounce .8s ease-in-out infinite alternate}
+.quote-ai-thinking-dots i:nth-child(2){animation-delay:.15s}
+.quote-ai-thinking-dots i:nth-child(3){animation-delay:.3s}
+.quote-ai-sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.quote-ai-compose-area{padding:16px max(24px,calc((100% - 900px)/2)) max(18px,env(safe-area-inset-bottom));background:var(--panel);border-top:1px solid var(--panel-border)}
+.quote-ai-composer{display:flex;align-items:flex-end;gap:8px;padding:8px 10px 8px 16px;border:1px solid var(--panel-border);border-radius:18px;background:var(--panel-alt);box-shadow:none}
+.quote-ai-composer:focus-within{border-color:#f59e0b}
+.quote-ai-composer textarea{min-height:52px;max-height:140px;padding:14px 0 8px;color:var(--app-foreground);font-size:15px;line-height:1.5}
+.quote-ai-composer textarea::placeholder{color:var(--muted-foreground)}
+.quote-ai-composer>button{display:grid;width:42px;height:42px;flex-shrink:0;place-items:center;border:0;border-radius:12px;background:#f59e0b;color:#fff;cursor:pointer;transition:background-color 150ms ease,transform 150ms ease}
+.quote-ai-composer>button:hover:not(:disabled){background:#fbbf24}
+.quote-ai-composer>button:active:not(:disabled){transform:scale(.95)}
+.quote-ai-composer>button:disabled{opacity:.4;cursor:default}
+.quote-ai-note{margin-top:10px;color:var(--muted-foreground);font-size:10px}
+.quote-ai-screen button:focus-visible{outline:2px solid #f59e0b;outline-offset:3px}
+@keyframes quote-ai-dot-bounce{to{transform:translateY(-3px);opacity:.55}}
+@media(max-width:600px){
+  .quote-ai-header{padding:12px}
+  .quote-ai-brand-avatar{width:36px;height:36px}
+  .quote-ai-brand{gap:9px}
+  .quote-ai-brand small{font-size:10px}
+  .quote-ai-back{gap:5px;padding:7px;font-size:11px}
+  .quote-ai-back span{display:none}
+  .quote-ai-close{padding:7px}
+  .quote-ai-scroll{padding:16px}
+  .quote-ai-welcome{padding:16px 0}
+  .quote-ai-robot{width:76px;height:76px;margin-bottom:14px}
+  .quote-ai-welcome>p:not(.quote-ai-eyebrow){font-size:12px}
+  .quote-ai-suggestions{gap:6px;margin-top:18px}
+  .quote-ai-suggestions button{padding:10px;font-size:11px}
+  .quote-ai-message-bubble{max-width:calc(100% - 36px)}
+  .quote-ai-compose-area{padding:12px 12px max(12px,env(safe-area-inset-bottom))}
+  .quote-ai-composer{padding:6px 8px 6px 12px}
+  .quote-ai-composer textarea{font-size:16px}
+}
+@media(max-height:700px){
+  .quote-ai-header{padding-top:10px;padding-bottom:10px}
+  .quote-ai-welcome{padding:10px 0}
+  .quote-ai-robot{width:64px;height:64px;margin-bottom:8px}
+  .quote-ai-eyebrow{margin-bottom:6px}
+  .quote-ai-welcome h1{margin-bottom:8px;font-size:clamp(26px,3vw,34px)}
+  .quote-ai-suggestions{gap:6px;margin-top:12px}
+  .quote-ai-suggestions button{min-height:40px;padding:8px 10px}
+  .quote-ai-composer textarea{min-height:42px;padding-top:10px}
+}
+@media(prefers-reduced-motion:reduce){
+  .quote-ai-suggestions button,.quote-ai-composer>button{transition:none}
+  .quote-ai-thinking-dots i{animation:none}
+}

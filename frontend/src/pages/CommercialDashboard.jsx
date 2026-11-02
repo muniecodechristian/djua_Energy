@@ -11,7 +11,7 @@ import PageEntrance from '../components/PageEntrance';
 import { useAlertsQuery } from '../hooks/tanstack/useKitQueries';
 import { useGetInstallations } from '../hooks/tanstack/useInstallations';
 import useAuthStore from '../hooks/Zustand/useAuthStore';
-import { activeAlerts, asList, detailUrl, severityLabels } from '../lib/operations';
+import { activeAlerts, asList, severityLabels } from '../lib/operations';
 import './CommercialDashboard.css';
 
 const numberFormat = new Intl.NumberFormat('fr-FR');
@@ -77,6 +77,10 @@ function quoteCustomer(quote) {
 
 function openQuote(navigate, quote) {
   navigate(`/devis/${encodeURIComponent(quote.number)}`);
+}
+
+function alertDetailUrl(alert) {
+  return `/notification?alertId=${encodeURIComponent(alert._id || '')}`;
 }
 
 function DashboardKpi({ title, value, note, icon: Icon, tone, onClick }) {
@@ -158,7 +162,7 @@ export default function CommercialDashboard() {
       subject: quoteCustomer(quoteByKit.get(alert.kitId) || {}),
       detail: `${alert.kitId} · ${alert.description || alert.message || severityLabels[alert.severity] || 'Alerte ouverte'}`,
       action: 'Analyser',
-      onClick: () => navigate(detailUrl(alert.kitId)),
+      onClick: () => navigate(alertDetailUrl(alert)),
     }));
     const pending = drafts.filter(quote => !toFollowUp.some(item => item.number === quote.number)).slice(-2).reverse().map(quote => ({
       key: `approval-${quote.number}`,
@@ -186,7 +190,7 @@ export default function CommercialDashboard() {
     return items.slice(0, 5);
   }, [toFollowUp, criticalAlerts, drafts, quoteByKit, navigate, quotesQuery.isSuccess, alertsQuery.isSuccess]);
 
-  const installations = scopedAlerts.slice(0, 5).map(alert => ({
+  const installationsToWatch = scopedAlerts.slice(0, 5).map(alert => ({
     ...alert,
     quote: quoteByKit.get(alert.kitId),
   }));
@@ -227,14 +231,14 @@ export default function CommercialDashboard() {
         </section>
 
         <section className="commercial-panel">
-          <header className="commercial-panel-heading"><div><h2>Installations à surveiller</h2><p>Les installations nécessitant votre attention.</p></div><Link to="/parc">Voir toutes <ArrowRight size={14} /></Link></header>
-          {alertsQuery.isPending || quotesQuery.isPending ? <div className="commercial-state"><RefreshCw size={17} className="ops-spin" />Chargement des alertes…</div> : alertsQuery.isError || quotesQuery.isError ? <div className="commercial-state" role="alert">Impossible de charger les alertes. Utilisez « Réessayer » pour actualiser les données.</div> : installations.length === 0 ? <div className="commercial-state commercial-empty"><CheckCircle2 size={20} /><strong>Aucune installation ne nécessite votre attention</strong><span>Les alertes de vos installations apparaîtront ici dès leur réception.</span><Link to="/parc">Consulter le parc solaire <ArrowRight size={14} /></Link></div> : <ul className="commercial-install-list">{installations.map(alert => {
+          <header className="commercial-panel-heading"><div><h2>Installations à surveiller</h2><p>Les installations nécessitant votre attention.</p></div><Link to="/notification">Voir toutes <ArrowRight size={14} /></Link></header>
+          {quotesQuery.isPending || alertsQuery.isPending ? <div className="commercial-state"><RefreshCw size={17} className="ops-spin" />Chargement des alertes…</div> : quotesQuery.isError || alertsQuery.isError ? <div className="commercial-state" role="alert">Impossible de charger les alertes. Utilisez « Réessayer » pour actualiser les données.</div> : installationsToWatch.length === 0 ? <div className="commercial-state commercial-empty"><CheckCircle2 size={20} /><strong>Aucune installation ne nécessite votre attention</strong><span>Les alertes de vos installations apparaîtront ici dès leur réception.</span><Link to="/notification">Consulter le centre d’alertes <ArrowRight size={14} /></Link></div> : <ul className="commercial-install-list">{installationsToWatch.map(alert => {
             const tone = alert.severity === 'critical' ? 'red' : ['high', 'medium'].includes(alert.severity) ? 'amber' : 'slate';
-            return <li key={alert._id || alert.id || alert.kitId + alert.type}>
+            return <li key={alert._id || alert.id || `${alert.kitId}-${alert.type}`}>
               <span className={`commercial-install-icon ${tone}`}><BellRing size={15} /></span>
-              <span className="commercial-install-copy"><strong>{alert.kitId}{alert.quote ? ` · ${quoteCustomer(alert.quote)}` : ''}</strong><b className={tone}><i />{alert.label || alert.type || severityLabels[alert.severity] || 'Alerte'}</b><small>{alert.description || alert.message || 'Consulter le détail de l’installation.'}</small></span>
+              <span className="commercial-install-copy"><strong>{alert.kitId}{alert.quote ? ` · ${quoteCustomer(alert.quote)}` : ''}</strong><b className={tone}><i />{alert.label || alert.type || severityLabels[alert.severity] || 'Alerte'}</b><small>{alert.description || alert.message || 'Consulter le détail de l’alerte.'}</small></span>
               <time>{ageLabel(alert.createdAt)}</time>
-              <button type="button" onClick={() => navigate(detailUrl(alert.kitId))}>Vérifier</button>
+              <button type="button" onClick={() => navigate(alertDetailUrl(alert))}>Détails</button>
             </li>;
           })}</ul>}
         </section>
