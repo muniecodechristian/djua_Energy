@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import {
   Folder, Search, RefreshCw, Calendar, MapPin, Eye,
   AlertTriangle, ArrowRight, List, LayoutGrid, Clock,
-  CheckCircle2, AlertOctagon, Wrench, ShieldCheck, Zap
+  CheckCircle2, AlertOctagon, Wrench, Zap
 } from 'lucide-react';
 import { useGetInstallations } from '../hooks/tanstack/useInstallations';
 import { formatDate } from '../lib/operations';
@@ -173,6 +173,10 @@ export default function InstallationsTracker() {
             {recentInstallations.map(item => {
               const statusMeta = STATUS_CONFIG[item.status] || { label: item.status, tone: 'pending' };
               const systemPower = ((Number(item.system?.panels || 0) * Number(item.system?.panelPower || 0)) / 1000).toFixed(1);
+              const latestUpdate = item.history?.[0];
+              const latestUpdateAuthor = latestUpdate?.changedBy
+                ? [latestUpdate.changedBy.prenom, latestUpdate.changedBy.nom].filter(Boolean).join(' ')
+                : '';
 
               return (
                 <div
@@ -204,6 +208,23 @@ export default function InstallationsTracker() {
                     <span>{systemPower} kWc • {item.system?.batteryCapacity || 0} kWh</span>
                     <span className="djua-recent-date">{formatDate(item.plannedDate || item.createdAt)}</span>
                   </div>
+                  {latestUpdate && (
+                    <div className="djua-recent-update">
+                      <strong>{STATUS_CONFIG[latestUpdate.status]?.label || latestUpdate.status}</strong>
+                      <span>{latestUpdate.note || 'Dernière mise à jour du dossier'}</span>
+                      {latestUpdateAuthor && <small>Transmis par {latestUpdateAuthor} · {formatDate(latestUpdate.timestamp)}</small>}
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    className="djua-recent-details"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      navigate(`/installations/${item._id}`);
+                    }}
+                  >
+                    <Eye size={14} /> Voir les détails
+                  </button>
                 </div>
               );
             })}
@@ -260,6 +281,7 @@ export default function InstallationsTracker() {
                 {installations.map(inst => {
                   const statusMeta = STATUS_CONFIG[inst.status] || { label: inst.status, tone: 'pending' };
                   const systemPower = ((Number(inst.system?.panels || 0) * Number(inst.system?.panelPower || 0)) / 1000).toFixed(1);
+                  const latestUpdate = inst.history?.[0];
 
                   return (
                     <tr
@@ -321,6 +343,7 @@ export default function InstallationsTracker() {
                               {inst.blockedReason}
                             </small>
                           )}
+                          {latestUpdate?.note && <small className="djua-last-update">{latestUpdate.note}</small>}
                         </div>
                       </td>
 
@@ -349,6 +372,7 @@ export default function InstallationsTracker() {
             {installations.map(inst => {
               const statusMeta = STATUS_CONFIG[inst.status] || { label: inst.status, tone: 'pending' };
               const systemPower = ((Number(inst.system?.panels || 0) * Number(inst.system?.panelPower || 0)) / 1000).toFixed(1);
+              const latestUpdate = inst.history?.[0];
 
               return (
                 <div
@@ -381,6 +405,12 @@ export default function InstallationsTracker() {
                     <MapPin size={12} />
                     {[inst.site?.quartier, inst.site?.ville || 'Kinshasa'].filter(Boolean).join(', ')}
                   </p>
+                  {latestUpdate?.note && (
+                    <p className="djua-grid-update">
+                      <strong>{STATUS_CONFIG[latestUpdate.status]?.label || latestUpdate.status}</strong>
+                      <span>{latestUpdate.note}</span>
+                    </p>
+                  )}
 
                   <div className="djua-grid-specs-box">
                     <div>
@@ -408,6 +438,16 @@ export default function InstallationsTracker() {
                       {formatDate(inst.plannedDate || inst.createdAt)}
                     </span>
                   </div>
+                  <button
+                    type="button"
+                    className="djua-recent-details"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      navigate(`/installations/${inst._id}`);
+                    }}
+                  >
+                    <Eye size={14} /> Voir les détails
+                  </button>
                 </div>
               );
             })}

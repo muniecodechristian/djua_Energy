@@ -137,6 +137,72 @@ describe('Customer quotations and installation lifecycle',()=>{
   expect(folderResponse.body.data.quoteNumber).toBe(quote.number);
   expect(await InstallationFolder.countDocuments({quote:quote._id})).toBe(1);
  });
+ it('lets the installation owner review the latest status reported by its assigned technician',async()=>{
+  const quote=await approve(await save('installation-status-review-001'));
+  const folderResponse=await createFolder(quote);
+  expect(folderResponse.status).toBe(201);
+  const folderId=folderResponse.body.data._id;
+  const assignment=await request(app).patch(`/api/installations/${folderId}/assign`).set('Cookie',cookie(admin)).send({
+   technicianId:String(technician._id),
+   plannedDate:businessDay(),
+  });
+  expect(assignment.status).toBe(200);
+  const ownerList=await request(app).get('/api/installations').query({search:folderResponse.body.data.folderNumber}).set('Cookie',cookie(commercial));
+  expect(ownerList.status).toBe(200);
+  expect(ownerList.body.data.installations.map(item=>String(item._id))).toContain(String(folderId));
+  const otherList=await request(app).get('/api/installations').query({search:folderResponse.body.data.folderNumber}).set('Cookie',cookie(other));
+  expect(otherList.status).toBe(200);
+  expect(otherList.body.data.installations).toHaveLength(0);
+  const otherTechnicianList=await request(app).get('/api/installations').query({technician:String(technician._id)}).set('Cookie',cookie(outsider));
+  expect(otherTechnicianList.status).toBe(200);
+  expect(otherTechnicianList.body.data.installations).toHaveLength(0);
+  expect((await request(app).get(`/api/installations/${folderId}`).set('Cookie',cookie(commercial))).status).toBe(200);
+  expect((await request(app).get(`/api/installations/${folderId}`).set('Cookie',cookie(other))).status).toBe(403);
+  const technicianUpdate=await request(app).patch(`/api/installations/${folderId}/status`).set('Cookie',cookie(technician)).send({
+   status:'en_cours',
+   note:'Installation démarrée sur le site.',
+  });
+  expect(technicianUpdate.status).toBe(200);
+  expect(technicianUpdate.body.data.status).toBe('en_cours');
+
+  const otherCommercialUpdate=await request(app).patch(`/api/installations/${folderId}/status`).set('Cookie',cookie(other)).send({
+   status:'installee',
+   reviewedTechnicianStatus:true,
+  });
+  expect(otherCommercialUpdate.status).toBe(403);
+
+  const ownerReview=await request(app).patch(`/api/installations/${folderId}/status`).set('Cookie',cookie(commercial)).send({
+   status:'en_attente',
+   note:'En attente de validation du rapport terrain.',
+   reviewedTechnicianStatus:true,
+  });
+  expect(ownerReview.status).toBe(200);
+  expect(ownerReview.body.data.status).toBe('en_attente');
+
+  const staleReview=await request(app).patch(`/api/installations/${folderId}/status`).set('Cookie',cookie(commercial)).send({
+   status:'installee',
+   reviewedTechnicianStatus:true,
+  });
+  expect(staleReview.status).toBe(403);
+
+  const secondTechnicianUpdate=await request(app).patch(`/api/installations/${folderId}/status`).set('Cookie',cookie(technician)).send({
+   status:'en_attente',
+   note:'Matériel manquant sur le site.',
+  });
+  expect(secondTechnicianUpdate.status).toBe(200);
+  const managerReview=await request(app).patch(`/api/installations/${folderId}/status`).set('Cookie',cookie(manager)).send({
+   status:'en_cours',
+   reviewedTechnicianStatus:true,
+  });
+  expect(managerReview.status).toBe(200);
+  expect(managerReview.body.data.status).toBe('en_cours');
+
+  const adminReview=await request(app).patch(`/api/installations/${folderId}/status`).set('Cookie',cookie(admin)).send({
+   status:'installee',
+  });
+  expect(adminReview.status).toBe(200);
+  expect(adminReview.body.data.status).toBe('installee');
+ });
  it('persists client rejection and prevents creating an installation folder',async()=>{
   const quote=await save('rejected-quote-001');
   const response=await request(app).patch(`/api/quotes/${quote.number}/reject`).set('Cookie',cookie(commercial)).send({});

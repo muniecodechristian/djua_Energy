@@ -52,11 +52,12 @@ export function useAssignTechnician() {
 export function useUpdateInstallationStatus() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, status, note, blockedReason }) => {
+    mutationFn: async ({ id, status, note, blockedReason, reviewedTechnicianStatus }) => {
       const res = await api.patch(`/api/installations/${id}/status`, {
         status,
         note,
         blockedReason,
+        reviewedTechnicianStatus,
       });
       return res.data?.data;
     },
@@ -199,4 +200,3 @@ export function useMarkInstallationMessagesRead() {
     },
   });
 }
-

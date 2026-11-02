@@ -5,7 +5,7 @@ import {
   ArrowLeft, CheckCircle2, Clock, Calendar, User, MapPin,
   Cpu, Wrench, ShieldCheck, AlertCircle, Play, Check,
   FileText, ExternalLink, ChevronRight, Layers, Phone,
-  Activity, Navigation, Compass, AlertTriangle, RefreshCw, MessageSquare
+  Navigation, Compass, AlertTriangle, RefreshCw, MessageSquare
 } from 'lucide-react';
 import InstallationChat from '../components/InstallationChat';
 import { toast } from 'sonner';
@@ -75,11 +75,14 @@ export default function InstallationDetail() {
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [showBlockModal, setShowBlockModal] = useState(false);
   const [showCommissionModal, setShowCommissionModal] = useState(false);
+  const [showStatusReviewModal, setShowStatusReviewModal] = useState(false);
 
   // Form states
   const [selectedTech, setSelectedTech] = useState('');
   const [plannedDate, setPlannedDate] = useState('');
   const [assignNote, setAssignNote] = useState('');
+  const [reviewedStatus, setReviewedStatus] = useState('');
+  const [statusReviewNote, setStatusReviewNote] = useState('');
   const [blockReason, setBlockReason] = useState('');
   const [boxKitId, setBoxKitId] = useState('');
   const [gpsLat, setGpsLat] = useState(-4.3276);
@@ -169,6 +172,29 @@ export default function InstallationDetail() {
   const site = folder.site || {};
   const system = folder.system || {};
   const appliances = folder.appliances || [];
+  const latestHistoryEvent = folder.history?.[folder.history.length - 1];
+  const assignedTechnicianId = String(folder.assignedTechnician?._id || folder.assignedTechnician || '');
+  const latestEventAuthorId = String(latestHistoryEvent?.changedBy?._id || latestHistoryEvent?.changedBy || '');
+  const technicianCreatorId = String(folder.assignedTechnician?.createdBy?._id || folder.assignedTechnician?.createdBy || '');
+  const currentUserId = String(currentUser?._id || '');
+  const currentUserParentId = String(currentUser?.createdBy?._id || currentUser?.createdBy || '');
+  const canManageAssignedTechnician = isAdmin || (
+    ['shop_manager', 'commercial'].includes(currentUser?.role)
+    && Boolean(technicianCreatorId)
+    && (technicianCreatorId === currentUserId || (currentUserParentId && technicianCreatorId === currentUserParentId))
+  );
+  const latestEventFromTechnician = Boolean(
+    assignedTechnicianId
+    && latestEventAuthorId === assignedTechnicianId
+    && latestHistoryEvent?.status === folder.status,
+  );
+  const canReviewTechnicianStatus = canManage && canManageAssignedTechnician && latestEventFromTechnician;
+
+  const openStatusReview = () => {
+    setReviewedStatus(folder.status);
+    setStatusReviewNote('');
+    setShowStatusReviewModal(true);
+  };
 
   // 1. Action : Assigner un technicien
   const handleAssignSubmit = async (e) => {
@@ -237,6 +263,27 @@ export default function InstallationDetail() {
       refetch();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Erreur lors de la reprise.');
+    }
+  };
+
+  const handleStatusReviewSubmit = async (e) => {
+    e.preventDefault();
+    if (!canReviewTechnicianStatus || !reviewedStatus) {
+      toast.error('Aucun statut récent transmis par le technicien ne peut être modifié.');
+      return;
+    }
+    try {
+      await statusMutation.mutateAsync({
+        id: folder._id,
+        status: reviewedStatus,
+        note: statusReviewNote.trim() || `Statut terrain confirmé par ${currentUser?.prenom || ''} ${currentUser?.nom || ''}`.trim(),
+        reviewedTechnicianStatus: true,
+      });
+      toast.success('Le statut de l’installation a été mis à jour.');
+      setShowStatusReviewModal(false);
+      refetch();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Erreur lors de la mise à jour du statut.');
     }
   };
 
@@ -536,62 +583,46 @@ export default function InstallationDetail() {
         </div>
       )}
 
-      {/* 4 Métriques techniques monochromes */}
-      <section className="inst-detail-kpis">
-        <div className="inst-kpi-card">
-          <div className="inst-kpi-icon">
-            <Layers size={18} />
-          </div>
-          <div className="inst-kpi-meta">
-            <span className="inst-kpi-label">Puissance Solaire</span>
-            <strong className="inst-kpi-val">
-              {((Number(system.panels || 0) * Number(system.panelPower || 0)) / 1000).toFixed(1)} kWc
-            </strong>
-            <span className="inst-kpi-sub">{system.panels || 0} panneaux ({system.panelPower || 0} W)</span>
-          </div>
+      <section className="inst-operational-summary" aria-label="Suivi opérationnel de l’installation">
+        <div className="inst-operational-status">
+          <span className="inst-assignment-lbl">Statut de l’installation</span>
+          <strong className={`inst-detail-badge ${status.tone}`}>
+            <span className="inst-badge-dot" />{status.label}
+          </strong>
+          <small>{status.desc || 'Statut actuel du dossier'}</small>
         </div>
-
-        <div className="inst-kpi-card">
-          <div className="inst-kpi-icon">
-            <Activity size={18} />
-          </div>
-          <div className="inst-kpi-meta">
-            <span className="inst-kpi-label">Batterie & Onduleur</span>
-            <strong className="inst-kpi-val">
-              {system.batteryCapacity || 0} kWh • {system.inverterPower || 0} kVA
-            </strong>
-            <span className="inst-kpi-sub">LiFePO4 Hybride</span>
-          </div>
+        <div className="inst-operational-report">
+          <span className="inst-assignment-lbl">Dernière mise à jour terrain</span>
+          {latestEventFromTechnician ? (
+            <>
+              <strong>{STATUS_CONFIG[latestHistoryEvent.status]?.label || latestHistoryEvent.status}</strong>
+              <small>
+                {latestHistoryEvent.note || 'Statut transmis par le technicien'}
+                {' · '}{latestHistoryEvent.changedBy?.prenom} {latestHistoryEvent.changedBy?.nom}
+                {' · '}{formatDate(latestHistoryEvent.timestamp)}
+              </small>
+            </>
+          ) : (
+            <small>{folder.assignedTechnician ? 'En attente du premier statut transmis par le technicien.' : 'Assignez un technicien pour démarrer le suivi terrain.'}</small>
+          )}
         </div>
-
-        <div className="inst-kpi-card">
-          <div className="inst-kpi-icon">
-            <Cpu size={18} />
-          </div>
-          <div className="inst-kpi-meta">
-            <span className="inst-kpi-label">Boîtier IoT Connecté</span>
-            <strong className="inst-kpi-val font-mono">
-              {folder.kitId || 'Non appairé'}
-            </strong>
-            <span className="inst-kpi-sub">
-              {folder.kitId ? 'En ligne • Suivi actif' : 'En attente de mise en service'}
-            </span>
-          </div>
-        </div>
-
-        <div className="inst-kpi-card">
-          <div className="inst-kpi-icon">
-            <ShieldCheck size={18} />
-          </div>
-          <div className="inst-kpi-meta">
-            <span className="inst-kpi-label">Checklist Conformité</span>
-            <strong className="inst-kpi-val">
-              {checklistCount} / 6 points
-            </strong>
-            <span className="inst-kpi-sub">
-              {checklistCount === 6 ? 'Contrôle 100% validé' : 'Points restants à valider'}
-            </span>
-          </div>
+        <div className="inst-operational-actions">
+          {folder.assignedTechnician ? (
+            <button type="button" className="inst-detail-btn-action is-primary" onClick={() => setActiveTab('chat')}>
+              <MessageSquare size={15} /> Chatter avec le technicien
+            </button>
+          ) : canManage ? (
+            <button type="button" className="inst-detail-btn-action is-primary" onClick={() => setShowAssignModal(true)}>
+              <Wrench size={15} /> Assigner un technicien
+            </button>
+          ) : (
+            <span className="inst-operational-pending">En attente d’assignation</span>
+          )}
+          {canReviewTechnicianStatus && (
+            <button type="button" className="inst-detail-btn-action" onClick={openStatusReview}>
+              <RefreshCw size={14} /> Modifier le statut transmis
+            </button>
+          )}
         </div>
       </section>
 
@@ -628,7 +659,11 @@ export default function InstallationDetail() {
         <button
           type="button"
           className={`inst-tab-btn ${activeTab === 'chat' ? 'is-active' : ''} ${!folder.assignedTechnician ? 'is-locked-tab' : ''}`}
-          onClick={() => setActiveTab('chat')}
+          onClick={() => {
+            if (folder.assignedTechnician) setActiveTab('chat');
+            else if (canManage) setShowAssignModal(true);
+          }}
+          title={!folder.assignedTechnician ? 'Assignez un technicien pour activer le chat' : 'Discuter avec le technicien assigné'}
         >
           <MessageSquare size={15} /> Messagerie & Vocaux direct {!folder.assignedTechnician && <small style={{ opacity: 0.7, fontSize: 11 }}>(Assignation requise)</small>}
         </button>
@@ -1040,6 +1075,48 @@ export default function InstallationDetail() {
                 </button>
                 <button type="submit" className="inst-btn-submit" disabled={assignMutation.isPending}>
                   {assignMutation.isPending ? 'Enregistrement…' : 'Valider l’assignation'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showStatusReviewModal && (
+        <div className="inst-modal-backdrop" onClick={() => setShowStatusReviewModal(false)}>
+          <div className="inst-modal-box" onClick={e => e.stopPropagation()}>
+            <div className="inst-modal-header">
+              <h3>Vérifier le statut transmis par le technicien</h3>
+              <button type="button" className="inst-modal-close" onClick={() => setShowStatusReviewModal(false)}>×</button>
+            </div>
+            <form onSubmit={handleStatusReviewSubmit} className="inst-modal-form">
+              <p className="inst-status-review-context">
+                Statut communiqué : <strong>{STATUS_CONFIG[folder.status]?.label || folder.status}</strong>
+                {latestHistoryEvent?.note ? ` — ${latestHistoryEvent.note}` : ''}
+              </p>
+              <label>
+                Statut à enregistrer
+                <select required value={reviewedStatus} onChange={e => setReviewedStatus(e.target.value)}>
+                  {Object.entries(STATUS_CONFIG)
+                    .filter(([value]) => value !== 'validee')
+                    .map(([value, item]) => <option key={value} value={value}>{item.label}</option>)}
+                </select>
+              </label>
+              <label>
+                Note de vérification (facultative)
+                <textarea
+                  rows={3}
+                  value={statusReviewNote}
+                  placeholder="Ajouter une précision sur la vérification du statut…"
+                  onChange={e => setStatusReviewNote(e.target.value)}
+                />
+              </label>
+              <div className="inst-modal-actions">
+                <button type="button" className="inst-btn-ghost" onClick={() => setShowStatusReviewModal(false)}>
+                  Annuler
+                </button>
+                <button type="submit" className="inst-btn-submit" disabled={statusMutation.isPending || !canReviewTechnicianStatus}>
+                  {statusMutation.isPending ? 'Enregistrement…' : 'Enregistrer le statut'}
                 </button>
               </div>
             </form>

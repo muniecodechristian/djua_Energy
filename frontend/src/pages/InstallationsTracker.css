@@ -500,6 +500,80 @@
   color: #94a3b8;
 }
 
+.djua-recent-update,
+.djua-grid-update {
+  display: grid;
+  gap: 3px;
+  padding: 9px 10px;
+  border-radius: 8px;
+  background: var(--surface-secondary, #f8fafc);
+  color: #64748b;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.djua-recent-update strong,
+.djua-grid-update strong {
+  color: var(--text-primary, #0f172a);
+  font-size: 11px;
+}
+
+.djua-recent-update span,
+.djua-grid-update span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.djua-recent-update small {
+  color: #94a3b8;
+  font-size: 10px;
+}
+
+.djua-recent-details {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 2px;
+  padding: 8px 10px;
+  border: 1px solid var(--border-color, rgba(0, 0, 0, 0.1));
+  border-radius: 7px;
+  background: var(--surface-primary, #fff);
+  color: var(--text-primary, #0f172a);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.djua-recent-details:hover {
+  border-color: #f59e0b;
+}
+
+:root[data-theme='dark'] .djua-recent-update,
+:root[data-theme='dark'] .djua-grid-update,
+.dark .djua-recent-update,
+.dark .djua-grid-update {
+  background: #111622;
+  color: #94a3b8;
+}
+
+:root[data-theme='dark'] .djua-recent-update strong,
+:root[data-theme='dark'] .djua-grid-update strong,
+.dark .djua-recent-update strong,
+.dark .djua-grid-update strong {
+  color: #f8fafc;
+}
+
+:root[data-theme='dark'] .djua-recent-details,
+.dark .djua-recent-details {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: #151b28;
+  color: #f1f5f9;
+}
+
 /* --------------------------------------------------------------------------
    4. TABLEAU DE SUIVI (VUE LISTE)
    -------------------------------------------------------------------------- */
@@ -674,6 +748,14 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+}
+
+.djua-last-update {
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: normal;
+  line-height: 1.4;
 }
 
 /* --------------------------------------------------------------------------

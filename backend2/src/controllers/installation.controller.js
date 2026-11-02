@@ -11,6 +11,30 @@ import { notifyUser } from '../services/notification.service.js';
 import { businessDay } from '../services/quote.service.js';
 
 const fail = (res, status, message) => res.status(status).json({ success: false, message });
+const idOf = value => String(value?._id ?? value ?? '');
+
+function canViewInstallation(folder, user) {
+  const userId = idOf(user._id);
+  if (['admin', 'administration'].includes(user.role)) return true;
+  if (user.role === 'shop_manager') {
+    return idOf(folder.shopManager) === userId || Boolean(user.zone && folder.zone === user.zone);
+  }
+  if (user.role === 'technician') return idOf(folder.assignedTechnician) === userId;
+  if (user.role === 'commercial') return idOf(folder.createdBy) === userId;
+  return false;
+}
+
+async function canManageInstallationTechnician(folder, user) {
+  if (['admin', 'administration'].includes(user.role)) return true;
+  if (!['shop_manager', 'commercial'].includes(user.role) || !canViewInstallation(folder, user)) return false;
+  if (!folder.assignedTechnician) return false;
+
+  const technician = await User.findById(idOf(folder.assignedTechnician)).select('createdBy').lean();
+  const technicianCreator = idOf(technician?.createdBy);
+  const userId = idOf(user._id);
+  const sharedParent = user.createdBy && technicianCreator === idOf(user.createdBy);
+  return technicianCreator === userId || Boolean(sharedParent);
+}
 
 function emitInstallationEvent(event, data) {
   try {
@@ -97,54 +121,55 @@ export async function listInstallations(req, res) {
   try {
     const { role, _id, zone } = req.user;
     const filter = {};
+    const scopeConditions = [];
 
     if (role === 'admin' || role === 'administration') {
       // Vision totale : pas de restriction sur le créateur ou la zone
       if (req.query.zone) filter.zone = req.query.zone;
     } else if (role === 'shop_manager') {
-      filter.$or = [
+      const visibleInstallations = [
         { shopManager: _id },
-        { zone: zone || '' }
       ];
+      if (zone) visibleInstallations.push({ zone });
+      scopeConditions.push({ $or: visibleInstallations });
     } else if (role === 'technician') {
-      filter.assignedTechnician = _id;
+      scopeConditions.push({ assignedTechnician: _id });
     } else if (role === 'commercial') {
-      filter.$or = [
+      scopeConditions.push({ $or: [
         { createdBy: _id },
         { 'quote.owner': _id }
-      ];
+      ] });
+    } else {
+      return fail(res, 403, 'Votre rôle ne permet pas de consulter le suivi des installations.');
     }
 
-    // Filtres optionnels
-    if (req.query.status) {
-      filter.status = req.query.status;
-    }
-
-    if (req.query.technician) {
-      filter.assignedTechnician = req.query.technician;
-    }
+    if (req.query.status) filter.status = req.query.status;
+    if (req.query.technician) scopeConditions.push({ assignedTechnician: req.query.technician });
 
     if (req.query.search) {
-      const term = String(req.query.search).trim();
-      filter.$or = [
+      const term = String(req.query.search).trim().slice(0, 100).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      scopeConditions.push({ $or: [
         { folderNumber: new RegExp(term, 'i') },
         { folderName: new RegExp(term, 'i') },
         { quoteNumber: new RegExp(term, 'i') },
         { 'customer.name': new RegExp(term, 'i') },
         { 'customer.phone': new RegExp(term, 'i') },
         { kitId: new RegExp(term, 'i') }
-      ];
+      ] });
     }
+    if (scopeConditions.length) filter.$and = scopeConditions;
 
     const page = Math.max(1, parseInt(req.query.page, 10) || 1);
     const limit = Math.min(100, parseInt(req.query.limit, 10) || 30);
 
     const [installations, total, stats] = await Promise.all([
       InstallationFolder.find(filter)
+        .slice('history', -1)
         .populate('assignedTechnician', 'nom prenom identifier seniority zone')
         .populate('createdBy', 'nom prenom identifier role')
         .populate('shopManager', 'nom prenom identifier')
         .populate('validatedBy', 'nom prenom identifier')
+        .populate('history.changedBy', 'nom prenom role')
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
         .limit(limit)
@@ -214,12 +239,16 @@ export async function getInstallationDetail(req, res) {
     const { id } = req.params;
     const folder = await InstallationFolder.findById(id)
       .populate('quote')
-      .populate('assignedTechnician', 'nom prenom identifier phone seniority zone whatsapp')
+      .populate('assignedTechnician', 'nom prenom identifier phone seniority zone whatsapp createdBy')
       .populate('createdBy', 'nom prenom identifier role')
       .populate('shopManager', 'nom prenom identifier phone')
       .populate('validatedBy', 'nom prenom identifier')
       .populate('history.changedBy', 'nom prenom role')
       .lean();
+    if (!folder) return fail(res, 404, 'Dossier d’installation introuvable.');
+    if (!canViewInstallation(folder, req.user)) {
+      return fail(res, 403, 'Vous n’avez pas accès à ce dossier d’installation.');
+    }
 
     const today = businessDay();
     const isOverdue = Boolean(
@@ -326,7 +355,7 @@ export async function assignTechnician(req, res) {
 export async function updateInstallationStatus(req, res) {
   try {
     const { id } = req.params;
-    const { status, note, blockedReason } = req.body;
+    const { status, note, blockedReason, reviewedTechnicianStatus } = req.body;
 
     const allowedStatuses = ['a_planifier', 'planifiee', 'en_cours', 'en_attente', 'installee', 'mise_en_service', 'validee'];
     if (!allowedStatuses.includes(status)) {
@@ -338,9 +367,21 @@ export async function updateInstallationStatus(req, res) {
 
     // Permissions : technicien assigné ou admin/manager
     const isTech = req.user.role === 'technician' && String(folder.assignedTechnician) === String(req.user._id);
-    const isAdmin = ['admin', 'administration', 'shop_manager'].includes(req.user.role);
-    if (!isTech && !isAdmin) {
+    const canManageTechnician = await canManageInstallationTechnician(folder, req.user);
+    if (isTech && status === 'validee') {
+      return fail(res, 403, 'Seule l’administration peut valider la conformité finale.');
+    }
+    const latestEvent = folder.history[folder.history.length - 1];
+    const reviewingTechnicianStatus = reviewedTechnicianStatus === true
+      && Boolean(folder.assignedTechnician)
+      && String(latestEvent?.changedBy) === String(folder.assignedTechnician)
+      && latestEvent.status === folder.status
+      && status !== 'validee';
+    if (!isTech && !canManageTechnician) {
       return fail(res, 403, 'Vous n’avez pas les droits pour modifier l’état de cette installation.');
+    }
+    if (reviewedTechnicianStatus === true && !reviewingTechnicianStatus && !['admin', 'administration'].includes(req.user.role)) {
+      return fail(res, 403, 'Le statut du technicien a déjà été mis à jour ou ne peut pas être modifié.');
     }
 
     folder.status = status;
@@ -965,7 +1006,9 @@ export async function listInstallationConversations(req, res) {
     } else if (role === 'commercial') {
       folderFilter = { createdBy: _id };
     } else if (role === 'shop_manager') {
-      folderFilter = { $or: [{ shopManager: _id }, { zone: zone || '' }] };
+      folderFilter = { $or: [{ shopManager: _id }, ...(zone ? [{ zone }] : [])] };
+    } else if (!['admin', 'administration'].includes(role)) {
+      return fail(res, 403, 'Votre rôle ne permet pas de consulter ces conversations.');
     }
     // admin voit tout
 
