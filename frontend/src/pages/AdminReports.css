@@ -114,9 +114,9 @@
 .reports-data-footnote { margin:5px 15px 13px; color:var(--ops-muted); font-size:8px; line-height:1.5; }
 .reports-overview-panel:not(.is-commercial) { display:flex; flex-direction:column; }
 .reports-overview-panel:not(.is-commercial) > .reports-kpis { order:0; }
-.reports-overview-panel:not(.is-commercial) > .reports-bottom-grid { order:1; margin-bottom:11px; }
-.reports-overview-panel:not(.is-commercial) > .reports-insight { order:2; }
-.reports-overview-panel:not(.is-commercial) > .reports-main-grid { order:3; margin-top:11px; }
+.reports-overview-panel:not(.is-commercial) > .reports-main-grid { order:1; margin-top:0; margin-bottom:11px; }
+.reports-overview-panel:not(.is-commercial) > .reports-bottom-grid { order:2; margin-bottom:11px; }
+.reports-overview-panel:not(.is-commercial) > .reports-insight { order:3; }
 .reports-insight { display:flex; min-height:70px; align-items:center; gap:14px; margin:0 0 11px; padding:13px 18px; border:1px solid #ffd9bf; border-radius:9px; background:linear-gradient(100deg,#fff5ed,#fffdfa); color:var(--ops-ink); }
 .reports-insight > svg { flex:none; color:#f17612; }
 .reports-insight > div { min-width:0; flex:1; }
