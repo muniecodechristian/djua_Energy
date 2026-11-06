@@ -23,6 +23,7 @@ const TeamManagement = lazy(() => import('./pages/TeamManagement'));
 const AdminReports = lazy(() => import('./pages/AdminReports'));
 const ProductCatalog = lazy(() => import('./pages/ProductCatalog'));
 const QuotesDashboard = lazy(() => import('./pages/QuotesDashboard'));
+const QuoteAdvice = lazy(() => import('./pages/QuoteAdvice'));
 const QuoteDetail = lazy(() => import('./pages/QuoteDetail'));
 const InstallationsTracker = lazy(() => import('./pages/InstallationsTracker'));
 const InstallationDetail = lazy(() => import('./pages/InstallationDetail'));
@@ -73,6 +74,7 @@ function App() {
           <Route path="/diagnostics"          element={<Navigate to="/parc" replace />} />
           <Route path="/dashboard"            element={<DashboardHome />} />
           <Route path="/devis"                element={<QuotesDashboard />} />
+          <Route path="/devis/conseil"        element={<QuoteAdvice />} />
           <Route path="/devis/nouveau"        element={<Devis />} />
           <Route path="/devis/:id"            element={<QuoteDetail />} />
           <Route path="/notification"         element={<FleetStatusFeed />} />

@@ -3,9 +3,11 @@
 .quotes-workspace-heading h1 { margin:0 0 5px; color:var(--ops-ink); font-size:28px; font-weight:650; letter-spacing:-.9px; }
 .quotes-workspace-heading > div:first-child > p:last-child { margin:0; color:var(--ops-muted); font-size:12px; }
 .quotes-workspace-actions { display:flex; align-items:center; gap:8px; }
-.quotes-export-button,.quotes-create-button { display:inline-flex; min-height:37px; align-items:center; justify-content:center; gap:7px; padding:0 12px; border:1px solid var(--ops-line); border-radius:7px; background:var(--ops-surface); color:var(--ops-ink); font-size:10px; font-weight:600; white-space:nowrap; }
+.quotes-export-button,.quotes-advice-button,.quotes-create-button { display:inline-flex; min-height:37px; align-items:center; justify-content:center; gap:7px; padding:0 12px; border:1px solid var(--ops-line); border-radius:7px; background:var(--ops-surface); color:var(--ops-ink); font-size:10px; font-weight:600; white-space:nowrap; }
 .quotes-export-button:hover:not(:disabled) { background:var(--ops-canvas); }
 .quotes-export-button:disabled { cursor:not-allowed; opacity:.5; }
+.quotes-advice-button { border-color:rgba(255,89,0,.35); color:var(--ops-ink); }
+.quotes-advice-button:hover { border-color:#ff5900; background:rgba(255,89,0,.08); }
 .quotes-create-button { border-color:#d97706; background:#F59E0B; color:#000; font-weight:650; }
 .quotes-create-button:hover { background:#d97706; color:#fff; }
 .quotes-metrics { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; margin-bottom:16px; }
@@ -135,7 +137,7 @@ button.quotes-metric:hover { border-color:var(--ops-ink); background:var(--ops-c
   .quotes-workspace { padding:20px 14px 65px; }
   .quotes-workspace-heading h1 { font-size:25px; }
   .quotes-workspace-actions { align-items:stretch; }
-  .quotes-export-button,.quotes-create-button { padding:0 8px; font-size:9px; }
+  .quotes-export-button,.quotes-advice-button,.quotes-create-button { padding:0 8px; font-size:9px; }
   .quotes-metrics { gap:7px; }
   .quotes-metric { min-height:94px; gap:7px; padding:9px; }
   .quotes-metric-icon { width:31px; height:31px; border-radius:8px; }
@@ -159,7 +161,7 @@ button.quotes-metric:hover { border-color:var(--ops-ink); background:var(--ops-c
 .quotes-workspace-heading h1 { margin-bottom:5px; font-size:32px; font-weight:700; letter-spacing:-.8px; }
 .quotes-workspace-heading > div:first-child > p:last-child { font-size:14px; }
 .quotes-workspace-actions { gap:10px; }
-.quotes-export-button,.quotes-create-button { min-height:42px; padding:0 15px; border-radius:7px; font-size:12px; }
+.quotes-export-button,.quotes-advice-button,.quotes-create-button { min-height:42px; padding:0 15px; border-radius:7px; font-size:12px; }
 .quotes-create-button { border-color:#ff5900; background:#ff5900; color:#fff; }
 .quotes-create-button:hover { border-color:#e94f00; background:#e94f00; color:#fff; }
 .quotes-metrics { gap:16px; margin-bottom:20px; }

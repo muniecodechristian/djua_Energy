@@ -12,6 +12,8 @@
   color: #172033;
 }
 
+.technician-messages-page.is-hidden { display: none; }
+
 .technician-chat-list,
 .technician-chat-thread {
   display: flex;

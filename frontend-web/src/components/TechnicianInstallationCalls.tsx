@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   CallControls,
   CallingState,
@@ -19,6 +20,7 @@ import '@stream-io/video-react-sdk/dist/css/styles.css';
 
 interface TechnicianInstallationCallsProps {
   installationId: string;
+  showControls?: boolean;
 }
 
 function ActiveCall({
@@ -88,10 +90,12 @@ function InstallationCallActions({
   client,
   members,
   installationId,
+  showControls,
 }: {
   client: StreamVideoClient;
   members: StreamInstallationSession['members'];
   installationId: string;
+  showControls: boolean;
 }) {
   const calls = useCalls();
   const [activeCall, setActiveCall] = useState<Call | null>(null);
@@ -103,7 +107,6 @@ function InstallationCallActions({
   const incomingCall = calls.find(call => (
     !call.isCreatedByMe
     && call.state.callingState === CallingState.RINGING
-    && call.state.custom?.installationId === installationId
   ));
 
   useEffect(() => {
@@ -162,46 +165,59 @@ function InstallationCallActions({
 
   return (
     <>
-      <div className="technician-call-actions">
-        <button
-          type="button"
-          title="Appel audio"
-          aria-label="Appel audio"
-          disabled={calling || members.length < 2}
-          onClick={() => startCall(false)}
-        >
-          <Phone size={17} />
-        </button>
-        <button
-          type="button"
-          title="Appel vidéo"
-          aria-label="Appel vidéo"
-          disabled={calling || members.length < 2}
-          onClick={() => startCall(true)}
-        >
-          <Video size={17} />
-        </button>
-      </div>
-
-      {incomingCall && !activeCall && (
-        <div className="technician-incoming-call" role="dialog" aria-label="Appel entrant">
-          <strong>Appel entrant</strong>
-          <button type="button" onClick={answerCall}><Phone size={16} /> Répondre</button>
-          <button type="button" className="is-decline" onClick={declineCall}><PhoneOff size={16} /> Refuser</button>
+      {showControls && (
+        <div className="technician-call-actions">
+          <button
+            type="button"
+            title="Appel audio"
+            aria-label="Appel audio"
+            disabled={calling || members.length < 2 || Boolean(activeCall) || Boolean(incomingCall)}
+            onClick={() => startCall(false)}
+          >
+            <Phone size={17} />
+          </button>
+          <button
+            type="button"
+            title="Appel vidéo"
+            aria-label="Appel vidéo"
+            disabled={calling || members.length < 2 || Boolean(activeCall) || Boolean(incomingCall)}
+            onClick={() => startCall(true)}
+          >
+            <Video size={17} />
+          </button>
         </div>
       )}
 
+      {incomingCall && !activeCall && createPortal(
+        <div className="technician-incoming-backdrop">
+          <section className="technician-incoming-dialog" role="alertdialog" aria-modal="true" aria-labelledby="technician-incoming-title">
+            <div className="technician-incoming-icon"><Phone size={25} /></div>
+            <h2 id="technician-incoming-title">Appel entrant</h2>
+            <p>Un membre de l’équipe vous appelle. Répondez pour rejoindre la conversation.</p>
+            {error && <p className="technician-incoming-error" role="alert">{error}</p>}
+            <div className="technician-incoming-actions">
+              <button type="button" className="is-answer" onClick={answerCall}><Phone size={17} /> Répondre</button>
+              <button type="button" className="is-decline" onClick={declineCall}><PhoneOff size={17} /> Refuser</button>
+            </div>
+          </section>
+        </div>,
+        document.body,
+      )}
+
       {activeCall && (
-        <div className="technician-call-overlay" role="dialog" aria-label="Appel en cours">
-          <StreamCall call={activeCall}>
-            <ActiveCall
-              call={activeCall}
-              onLeave={clearActiveCall}
-              onError={setError}
-              onNoAnswer={showNoAnswer}
-            />
-          </StreamCall>
-        </div>
+        createPortal(
+          <div className="technician-call-overlay" role="dialog" aria-label="Appel en cours">
+            <StreamCall call={activeCall}>
+              <ActiveCall
+                call={activeCall}
+                onLeave={clearActiveCall}
+                onError={setError}
+                onNoAnswer={showNoAnswer}
+              />
+            </StreamCall>
+          </div>,
+          document.body,
+        )
       )}
 
       {error && <span className="technician-call-error" role="alert">{error}</span>}
@@ -210,7 +226,10 @@ function InstallationCallActions({
   );
 }
 
-export default function TechnicianInstallationCalls({ installationId }: TechnicianInstallationCallsProps) {
+export default function TechnicianInstallationCalls({
+  installationId,
+  showControls = true,
+}: TechnicianInstallationCallsProps) {
   const [client, setClient] = useState<StreamVideoClient | null>(null);
   const [members, setMembers] = useState<StreamInstallationSession['members']>([]);
   const [loading, setLoading] = useState(true);
@@ -283,6 +302,7 @@ export default function TechnicianInstallationCalls({ installationId }: Technici
               client={client}
               members={members}
               installationId={installationId}
+              showControls={showControls}
             />
           </StreamTheme>
         </StreamVideo>

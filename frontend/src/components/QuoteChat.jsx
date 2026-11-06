@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { ArrowLeft, ArrowUp, Loader2, MessageSquare, User, X } from 'lucide-react';
+import { ArrowLeft, ArrowUp, FilePlus2, Loader2, MessageSquare, User, X } from 'lucide-react';
 import useDialog from '../hooks/useDialog';
 import cleanAiText from '../lib/cleanAiText';
 import './QuoteChat.css';
@@ -77,6 +77,8 @@ export default function QuoteChat({
   welcomeTitle = <>Et si on parlait de<br />votre installation ?</>,
   welcomeDescription = 'Panneaux, autonomie, budget… Je vous aide à comprendre votre étude, à votre rythme.',
   inputPlaceholder = 'Que souhaitez-vous comprendre dans votre devis ?',
+  backLabel = 'Retour au devis',
+  onCreateQuote,
 }) {
   const dialogRef = useDialog(open, onClose);
   const inputRef = useRef(null);
@@ -112,8 +114,14 @@ export default function QuoteChat({
           </span>
         </div>
         <div className="quote-ai-actions">
+          {onCreateQuote && (
+            <button type="button" onClick={onCreateQuote} className="quote-ai-create-quote">
+              <FilePlus2 size={15} />
+              <span>Créer avec le formulaire</span>
+            </button>
+          )}
           <button type="button" onClick={onClose} className="quote-ai-back">
-            <ArrowLeft size={18} /><span>Retour au devis</span>
+            <ArrowLeft size={18} /><span>{backLabel}</span>
           </button>
           <button type="button" onClick={onClose} className="quote-ai-close" aria-label="Fermer la discussion">
             <X size={21} />

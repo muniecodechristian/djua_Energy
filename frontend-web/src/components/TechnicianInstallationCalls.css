@@ -10,7 +10,7 @@
 }
 
 .technician-call-actions button,
-.technician-incoming-call button,
+.technician-incoming-actions button,
 .technician-call-cancel {
   display: inline-flex;
   align-items: center;
@@ -28,7 +28,7 @@
 }
 
 .technician-call-actions button:hover:not(:disabled),
-.technician-incoming-call button:hover {
+.technician-incoming-actions button:hover {
   border-color: #ff5c00;
   color: #e04f00;
 }
@@ -60,25 +60,91 @@
   box-shadow: 0 6px 20px rgba(15, 23, 42, .12);
 }
 
-.technician-incoming-call {
-  position: absolute;
-  z-index: 20;
-  top: 62px;
-  right: 12px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px;
-  border: 1px solid #dbeafe;
-  border-radius: 12px;
-  background: #fff;
-  box-shadow: 0 8px 24px rgba(15, 23, 42, .16);
-  color: #111827;
+.technician-incoming-backdrop {
+  position: fixed;
+  z-index: 20000;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(15, 18, 24, .58);
+  backdrop-filter: blur(4px);
 }
 
-.technician-incoming-call button.is-decline {
-  border-color: #fecaca;
-  color: #b91c1c;
+.technician-incoming-dialog {
+  width: min(100%, 380px);
+  padding: 28px 22px 22px;
+  border: 1px solid #e8e9eb;
+  border-radius: 24px;
+  background: #fff;
+  box-shadow: 0 24px 80px rgba(15, 23, 42, .3);
+  color: #172033;
+  text-align: center;
+  animation: technician-call-pop .2s ease-out;
+}
+
+.technician-incoming-icon {
+  display: grid;
+  width: 58px;
+  height: 58px;
+  place-items: center;
+  margin: 0 auto 14px;
+  border-radius: 50%;
+  background: #fff1e8;
+  color: #e85a00;
+  animation: technician-call-ring 1.4s ease-in-out infinite;
+}
+
+.technician-incoming-dialog h2 {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 800;
+}
+
+.technician-incoming-dialog > p {
+  margin: 9px 0 20px;
+  color: #69707c;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.technician-incoming-error {
+  color: #b91c1c !important;
+}
+
+.technician-incoming-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.technician-incoming-actions button {
+  display: inline-flex;
+  min-height: 46px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 0;
+  border-radius: 14px;
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.technician-incoming-actions button.is-answer { background: #16a05b; }
+.technician-incoming-actions button.is-decline { background: #dc3545; }
+.technician-incoming-actions button:hover { filter: brightness(.94); }
+
+@keyframes technician-call-pop {
+  from { opacity: 0; transform: translateY(8px) scale(.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes technician-call-ring {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(232, 90, 0, .18); }
+  50% { box-shadow: 0 0 0 10px rgba(232, 90, 0, 0); }
 }
 
 .technician-call-overlay {
@@ -130,5 +196,5 @@
 @media (max-width: 480px) {
   .technician-call-overlay { padding: 0; }
   .technician-call-stage { width: 100vw; height: 100dvh; }
-  .technician-incoming-call { left: 8px; right: 8px; flex-wrap: wrap; }
+  .technician-incoming-dialog { padding: 26px 18px 18px; }
 }

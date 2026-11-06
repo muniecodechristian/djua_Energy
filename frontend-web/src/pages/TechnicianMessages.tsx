@@ -9,11 +9,13 @@ const TechnicianInstallationCalls = lazy(() => import('../components/TechnicianI
 
 interface TechnicianMessagesProps {
   initialInstallationId?: string | null;
+  isActive?: boolean;
   onBackToMissions?: () => void;
 }
 
 export default function TechnicianMessages({
   initialInstallationId,
+  isActive = true,
   onBackToMissions
 }: TechnicianMessagesProps) {
   const [conversations, setConversations] = useState<any[]>([]);
@@ -50,6 +52,8 @@ export default function TechnicianMessages({
 
   useEffect(() => {
     fetchConversationsList();
+    const interval = window.setInterval(fetchConversationsList, 30_000);
+    return () => window.clearInterval(interval);
   }, []);
 
   // Quand une installation est sélectionnée, charger les messages
@@ -83,7 +87,7 @@ export default function TechnicianMessages({
 
   useEffect(() => {
     selectedInstallationRef.current = selectedInstallationId;
-    if (selectedInstallationId) {
+    if (selectedInstallationId && isActive) {
       latestMessageId.current = null;
       setMessages([]);
       setLoadingMsg(true);
@@ -93,7 +97,8 @@ export default function TechnicianMessages({
       }, 5000);
       return () => clearInterval(interval);
     }
-  }, [selectedInstallationId]);
+    return undefined;
+  }, [selectedInstallationId, isActive]);
 
   useEffect(() => {
     if (initialInstallationId) setSelectedInstallationId(initialInstallationId);
@@ -125,6 +130,7 @@ export default function TechnicianMessages({
   const activeInstallation =
     installations.find(i => i._id === selectedInstallationId) ||
     conversations.find(c => c.installation?._id === selectedInstallationId)?.installation;
+  const callInstallationId = selectedInstallationId || initialInstallationId || installations[0]?._id || null;
   const visibleInstallations = installations.filter(inst => {
     const conv = conversations.find(c => c.installation?._id === inst._id);
     const query = searchTerm.trim().toLowerCase();
@@ -138,7 +144,15 @@ export default function TechnicianMessages({
   });
 
   return (
-    <div className="technician-messages-page">
+    <div className={`technician-messages-page${isActive ? '' : ' is-hidden'}`}>
+      {callInstallationId && (
+        <Suspense fallback={null}>
+          <TechnicianInstallationCalls
+            installationId={callInstallationId}
+            showControls={isActive && Boolean(selectedInstallationId)}
+          />
+        </Suspense>
+      )}
       {/* Si aucune discussion sélectionnée ou vue liste mobile */}
       {!selectedInstallationId ? (
         <div className="technician-chat-list">
@@ -237,9 +251,6 @@ export default function TechnicianMessages({
             </div>
 
             <div className="technician-chat-header-actions">
-              <Suspense fallback={<span style={{ fontSize: 11, color: '#6B7280' }}>Chargement des appels…</span>}>
-                <TechnicianInstallationCalls installationId={selectedInstallationId} />
-              </Suspense>
               <button
                 type="button"
                 aria-label="Actualiser les messages"

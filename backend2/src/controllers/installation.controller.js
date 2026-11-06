@@ -15,6 +15,63 @@ import { StreamChat } from 'stream-chat';
 const fail = (res, status, message) => res.status(status).json({ success: false, message });
 const idOf = value => String(value?._id ?? value ?? '');
 let streamServerClient;
+const streamProvisioningCache = new Map();
+const STREAM_PROVISIONING_TTL_MS = 60_000;
+
+async function ensureStreamInstallationProvisioned(folder, requester, members) {
+  const channelId = `installation-${idOf(folder._id)}`;
+  const memberSignature = members
+    .map(({ id, name, role }) => `${id}:${name}:${role}`)
+    .sort()
+    .join('|');
+  const cacheKey = `${channelId}:${memberSignature}`;
+  const cached = streamProvisioningCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) {
+    await cached.promise;
+    return;
+  }
+
+  for (const [key, value] of streamProvisioningCache) {
+    if (value.expiresAt <= Date.now()) streamProvisioningCache.delete(key);
+  }
+
+  const provision = (async () => {
+    await streamServerClient.upsertUsers(members.map(({ id, name, role }) => ({
+      id,
+      name,
+      role: 'user',
+      djua_role: role,
+    })));
+
+    const streamChannel = streamServerClient.channel('messaging', channelId, {
+      name: `Installation ${folder.folderNumber || idOf(folder._id)}`,
+      members: members.map(member => member.id),
+      created_by_id: idOf(requester._id),
+    });
+    await streamChannel.watch({ members: { limit: 100 }, messages: { limit: 1 } });
+
+    const authorizedMemberIds = new Set(members.map(member => member.id));
+    const currentMemberIds = Object.keys(streamChannel.state.members || {});
+    const membersToAdd = [...authorizedMemberIds].filter(memberId => !currentMemberIds.includes(memberId));
+    const membersToRemove = currentMemberIds.filter(memberId => !authorizedMemberIds.has(memberId));
+    if (membersToAdd.length) await streamChannel.addMembers(membersToAdd);
+    if (membersToRemove.length) await streamChannel.removeMembers(membersToRemove);
+  })();
+
+  streamProvisioningCache.set(cacheKey, {
+    promise: provision,
+    expiresAt: Date.now() + STREAM_PROVISIONING_TTL_MS,
+  });
+
+  try {
+    await provision;
+  } catch (error) {
+    if (streamProvisioningCache.get(cacheKey)?.promise === provision) {
+      streamProvisioningCache.delete(cacheKey);
+    }
+    throw error;
+  }
+}
 
 function canViewInstallation(folder, user) {
   const userId = idOf(user._id);
@@ -825,28 +882,11 @@ export async function getInstallationStreamSession(req, res) {
       return fail(res, 403, 'Votre compte ne peut pas rejoindre les communications de cette installation.');
     }
 
-    streamServerClient ??= StreamChat.getInstance(config.stream.apiKey, config.stream.apiSecret);
-    await streamServerClient.upsertUsers(members.map(({ id, name, role }) => ({
-      id,
-      name,
-      role: 'user',
-      djua_role: role,
-    })));
-
-    const channelId = `installation-${idOf(folder._id)}`;
-    const streamChannel = streamServerClient.channel('messaging', channelId, {
-      name: `Installation ${folder.folderNumber || idOf(folder._id)}`,
-      members: members.map(member => member.id),
-      created_by_id: idOf(req.user._id),
+    streamServerClient ??= StreamChat.getInstance(config.stream.apiKey, config.stream.apiSecret, {
+      timeout: 10_000,
     });
-    await streamChannel.watch({ members: { limit: 100 }, messages: { limit: 1 } });
-
-    const authorizedMemberIds = new Set(members.map(member => member.id));
-    const currentMemberIds = Object.keys(streamChannel.state.members || {});
-    const membersToAdd = [...authorizedMemberIds].filter(memberId => !currentMemberIds.includes(memberId));
-    const membersToRemove = currentMemberIds.filter(memberId => !authorizedMemberIds.has(memberId));
-    if (membersToAdd.length) await streamChannel.addMembers(membersToAdd);
-    if (membersToRemove.length) await streamChannel.removeMembers(membersToRemove);
+    const channelId = `installation-${idOf(folder._id)}`;
+    await ensureStreamInstallationProvisioned(folder, req.user, members);
 
     const now = Math.floor(Date.now() / 1000);
     const token = streamServerClient.createToken(idOf(req.user._id), now + 60 * 60, now);
@@ -862,8 +902,18 @@ export async function getInstallationStreamSession(req, res) {
       },
     });
   } catch (error) {
-    console.error('[InstallationController] getInstallationStreamSession error:', error);
-    return fail(res, 500, 'Impossible de préparer les communications Stream.');
+    const status = error?.code === 'ECONNABORTED' ? 504 : 503;
+    console.error(
+      `[InstallationController] getInstallationStreamSession failed (${error?.code || error?.response?.status || 'unknown'}):`,
+      error instanceof Error ? error.message : 'Erreur Stream inconnue.',
+    );
+    return fail(
+      res,
+      status,
+      status === 504
+        ? 'Stream met trop de temps à répondre. Réessayez dans quelques instants.'
+        : 'Stream est temporairement indisponible. Réessayez dans quelques instants.',
+    );
   }
 }
 

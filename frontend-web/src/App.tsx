@@ -323,12 +323,11 @@ export default function App() {
           />
         )}
 
-        {activeMainTab === 'messages' && (
-          <TechnicianMessages
-            initialInstallationId={selectedChatId}
-            onBackToMissions={() => setActiveMainTab('notifications')}
-          />
-        )}
+        <TechnicianMessages
+          initialInstallationId={selectedChatId}
+          isActive={activeMainTab === 'messages'}
+          onBackToMissions={() => setActiveMainTab('notifications')}
+        />
 
         {activeMainTab === 'scan' && (
           <>

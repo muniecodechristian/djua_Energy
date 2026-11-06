@@ -4,7 +4,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   ArrowDownToLine, ArrowRight, BellRing, CalendarClock, CheckCircle2, ChevronDown,
   ChevronLeft, ChevronRight, CircleDollarSign, FilePlus2, FileText,
-  RefreshCw, Search, Users, Eye, Maximize2,
+  MessageSquare, RefreshCw, Search, Users, Eye, Maximize2,
 } from 'lucide-react';
 import api from '../api/axios';
 import PageEntrance from '../components/PageEntrance';
@@ -241,6 +241,7 @@ export default function QuotesDashboard() {
         <div><h1>Devis</h1><p>Suivez vos propositions commerciales et les clients à relancer.</p></div>
         <div className="quotes-workspace-actions">
           <button className="quotes-export-button" type="button" disabled={!quotes.length} onClick={() => exportQuotes(quotes)}><ArrowDownToLine size={15} />Exporter <ChevronDown size={13} /></button>
+          <Link className="quotes-advice-button" to="/devis/conseil"><MessageSquare size={15} />Conseil IA sans formulaire</Link>
           <Link className="quotes-create-button" to="/devis/nouveau"><FilePlus2 size={15} />Nouveau devis</Link>
         </div>
       </header>

@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, ArrowRight, Check, Search, Plus, Trash2, 
   MapPin, Phone, User, Clock, Zap, Sun, Battery, 
@@ -571,6 +571,13 @@ export default function Devis() {
               <p className="devis-v2-subtitle">
                 Choisissez le projet du client : Djúa vous guidera ensuite pour recueillir les besoins et préparer une recommandation claire.
               </p>
+              <Link
+                to="/devis/conseil"
+                className="devis-v2-btn-ghost"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginTop: 12, textDecoration: 'none' }}
+              >
+                <MessageSquare size={15} /> Demander conseil à l’IA sans remplir le formulaire
+              </Link>
             </div>
 
             <div className="devis-v2-layout">
