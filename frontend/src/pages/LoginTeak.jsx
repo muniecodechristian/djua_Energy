@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import { useLoginMutation } from '../hooks/tanstack/useAuthMutations.js';
 import useAuthStore from '../hooks/Zustand/useAuthStore.js';
+import TECHNICIAN_APP_URL from '../lib/technicianAppUrl';
 
 const LOGO_URL = "https://lh3.googleusercontent.com/aida-public/AB6AXuBjEVP6WMcrEsv2nLYSgS9v4WfV711u6ne8fa0aJHDt8jAPuumn7dzikn8PIFEYq7whxH5iUZF0Hp4b92Z9SI44LG4uRnir7pr0-ES6zx8j0xpVv2pEq-x2t_pioe64Plt7nSVa8R3qmC0HbNrrXrNmnwO6NR6nrr80S_g0KTAAhwU7TLDwQxylz9da34eGd7zyXiuyuz5ah02oKZx3i2MRdZVu6H3tfwGv5hNcm8A_UvHUSZdbWh7He3c3Alx5dlSJzww";
 
@@ -62,25 +63,31 @@ export default function LoginDjuaEnergy() {
   });
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
+  const [technicianRedirecting, setTechnicianRedirecting] = useState(false);
   
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
   const loginMutation = useLoginMutation();
 
   useEffect(() => {
-    if (user) {
-      const role = user.role;
-      navigate(
-        role === 'admin' || role === 'administration'
-          ? '/AdministrationSettings'
-          : role === 'commercial'
-          ? '/devis'
-          : role === 'technician'
-          ? '/technicien'
-          : '/dashboard',
-        { replace: true }
-      );
+    if (!user) return undefined;
+    if (user.role === 'technician') {
+      setTechnicianRedirecting(true);
+      const timer = window.setTimeout(() => {
+        window.location.replace(TECHNICIAN_APP_URL);
+      }, 1800);
+      return () => window.clearTimeout(timer);
     }
+
+    navigate(
+      user.role === 'admin' || user.role === 'administration'
+        ? '/AdministrationSettings'
+        : user.role === 'commercial'
+        ? '/devis'
+        : '/dashboard',
+      { replace: true }
+    );
+    return undefined;
   }, [user, navigate]);
 
   React.useEffect(() => {
@@ -102,23 +109,7 @@ export default function LoginDjuaEnergy() {
     e.preventDefault();
     if (!identifier || !password) return;
     
-    loginMutation.mutate(
-      { identifier, password },
-      {
-        onSuccess: (response) => {
-          const role = response?.data?.role;
-          navigate(
-            role === 'admin' || role === 'administration'
-              ? '/AdministrationSettings'
-              : role === 'commercial'
-              ? '/devis'
-              : role === 'technician'
-              ? '/technicien'
-              : '/dashboard'
-          );
-        },
-      }
-    );
+    loginMutation.mutate({ identifier, password });
   };
 
   return (
@@ -258,6 +249,20 @@ export default function LoginDjuaEnergy() {
           <img src={LOGO_URL} alt="Djua Energy" className="h-9 w-auto object-contain" />
         </motion.div>
 
+        {technicianRedirecting && (
+          <motion.div
+            variants={fadeInUp}
+            className="mb-5 w-full rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs leading-5 text-amber-200"
+            role="alert"
+          >
+            L’accès technicien à cette plateforme est désactivé. Redirection vers l’application dédiée…
+            {' '}
+            <a className="font-bold underline underline-offset-2" href={TECHNICIAN_APP_URL}>
+              Ouvrir maintenant
+            </a>
+          </motion.div>
+        )}
+
         {/* FORMULAIRE (Commence directement sous le logo) */}
         <form className="w-full space-y-4" onSubmit={handleSubmit}>
           <motion.div variants={fadeInUp}>
@@ -267,7 +272,7 @@ export default function LoginDjuaEnergy() {
               placeholder="votre@email.com ou +33600000000"
               value={identifier}
               onChange={(e) => setIdentifier(e.target.value)}
-              disabled={loginMutation.isPending}
+              disabled={loginMutation.isPending || technicianRedirecting}
               required
               className={`w-full rounded-lg px-3.5 py-3 text-xs focus:outline-none focus:ring-1 transition-all ${
                 isDark 
@@ -284,7 +289,7 @@ export default function LoginDjuaEnergy() {
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              disabled={loginMutation.isPending}
+              disabled={loginMutation.isPending || technicianRedirecting}
               required
               className={`w-full rounded-lg px-3.5 py-3 text-xs tracking-widest focus:outline-none focus:ring-1 transition-all ${
                 isDark 

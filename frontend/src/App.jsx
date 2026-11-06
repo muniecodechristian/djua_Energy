@@ -4,6 +4,7 @@ import { Toaster } from 'react-hot-toast';
 import { Toaster as SonnerToaster } from 'sonner';
 import { useCheckAuth } from './hooks/tanstack/useAuthMutations.js';
 import useAuthStore from './hooks/Zustand/useAuthStore.js';
+import TechnicianAppRedirect from './components/TechnicianAppRedirect.jsx';
 
 
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -19,7 +20,6 @@ const AdministrationSettings = lazy(() => import('./pages/AdministrationSettings
 const OrangeKitsRegistry = lazy(() => import('./pages/OrangeKitsRegistry'));
 const Devis = lazy(() => import('./pages/Devis'));
 const TeamManagement = lazy(() => import('./pages/TeamManagement'));
-const TechnicianApp = lazy(() => import('./pages/TechnicianApp'));
 const AdminReports = lazy(() => import('./pages/AdminReports'));
 const ProductCatalog = lazy(() => import('./pages/ProductCatalog'));
 const QuotesDashboard = lazy(() => import('./pages/QuotesDashboard'));
@@ -66,7 +66,7 @@ function App() {
         <Route path="/connexion" element={<Navigate to="/login" replace />} />
 
         {/* Espace dédié application Technicien */}
-        <Route path="/technicien" element={<TechnicianApp />} />
+        <Route path="/technicien" element={<TechnicianAppRedirect />} />
 
         {/* Pages plateforme */}
         <Route element={<MainLayout />}>
@@ -79,7 +79,7 @@ function App() {
           <Route path="/decision"             element={<Navigate to="/notification" replace />} />
           <Route path="/SmartKitdetails"      element={<SmartKitDetails />} />
           <Route path="/InterventionWizard"   element={<InterventionWizard />} />
-          <Route path="/scan-kit"             element={<Navigate to="/technicien" replace />} />
+          <Route path="/scan-kit"             element={<TechnicianAppRedirect />} />
           <Route path="/CustomerProfile"      element={<CustomerProfile />} />
           <Route path="/OperationsOverview"   element={<OperationsOverview />} />
           <Route path="/AdministrationSettings" element={<AdministrationSettings />} />

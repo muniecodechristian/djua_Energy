@@ -12,6 +12,7 @@ import { useKitsQuery, useAlertsQuery } from '../hooks/tanstack/useKitQueries';
 import { navigationForRole, pageInfo } from '../lib/navigation';
 import { asList, activeAlerts, detailUrl } from '../lib/operations';
 import PageSkeleton from '../components/PageSkeleton';
+import TechnicianAppRedirect from '../components/TechnicianAppRedirect';
 import useAuthStore from '../hooks/Zustand/useAuthStore';
 
 export default function MainLayout() {
@@ -54,7 +55,7 @@ export default function MainLayout() {
   const isAdminOnlyPage = location.pathname.toLowerCase() === '/rapports';
   const isCatalogPage = location.pathname.toLowerCase() === '/catalogue';
   const isAdminSettingsShortcut = ['/notification', '/equipe', '/interventionwizard'].includes(location.pathname.toLowerCase());
-  const restrictedPageFallback = isCommercial ? '/devis' : isTechnician ? '/technicien' : '/dashboard';
+  const restrictedPageFallback = isCommercial ? '/devis' : '/dashboard';
   const backFallback = isAdmin
     ? '/installations'
     : location.pathname.toLowerCase() === '/devis/nouveau'
@@ -75,6 +76,8 @@ export default function MainLayout() {
   }, []);
   const results = [...visibleNavigation.map(item => ({label:item.label, description:item.description, path:item.path})), ...(!hasRestrictedNavigation ? asList(kits.data).filter(kit => kit.kitId).map(kit => ({label:kit.kitId || 'Equipement', description:kit.province || kit.region || 'Fiche equipement', path:detailUrl(kit.kitId)})) : [])].filter(item => (item.label + ' ' + item.description).toLowerCase().includes(search.toLowerCase())).slice(0, 10);
 
+  if (isTechnician) return <TechnicianAppRedirect />;
+
   // Admin : acces complet et debloque aux pages installations, devis, fiches details, rapports, catalogue, settings
   if (isAdmin && !visibleNavigation.some(item => item.path.toLowerCase() === location.pathname.toLowerCase()) && !['/devis/nouveau'].includes(location.pathname.toLowerCase()) && !isAdminSettingsShortcut && !/smartkit|customerprofile|installations|devis/i.test(location.pathname)) return <Navigate to="/AdministrationSettings" replace/>;
 
@@ -84,9 +87,8 @@ export default function MainLayout() {
   // Commercial : accès aux alertes limitées aux installations liées à ses devis.
   if (isCommercial && !['/dashboard', '/devis', '/devis/nouveau', '/parc', '/notification', '/rapports'].includes(location.pathname.toLowerCase()) && !/smartkit|customerprofile|installations|devis/i.test(location.pathname)) return <Navigate to="/dashboard" replace/>;
 
-  if (isTechnician && location.pathname.toLowerCase() !== '/technicien') return <Navigate to="/technicien" replace/>;
   if (!isAdmin && location.pathname.toLowerCase() === '/administrationsettings') return <Navigate to={role === 'shop_manager' ? '/equipe' : '/dashboard'} replace/>;
-  if (isTeamPage && role !== 'shop_manager' && !isAdmin) return <Navigate to={isTechnician ? '/technicien' : '/dashboard'} replace/>;
+  if (isTeamPage && role !== 'shop_manager' && !isAdmin) return <Navigate to="/dashboard" replace/>;
   const isShopManager = role === 'shop_manager';
   if (isShopManager && !['/dashboard', '/parc', '/notification', '/InterventionWizard', '/equipe', '/devis', '/devis/nouveau', '/installations'].includes(location.pathname.toLowerCase()) && !/smartkit|customerprofile|installations|devis/i.test(location.pathname)) return <Navigate to="/dashboard" replace/>;
 

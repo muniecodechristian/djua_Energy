@@ -84,39 +84,46 @@ html, body { height: 100%; font-family: 'Inter', system-ui, sans-serif; backgrou
   position: fixed;
   z-index: 40;
   right: 0;
-  bottom: 0;
+  bottom: max(12px, env(safe-area-inset-bottom));
   left: 0;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  width: min(100%, var(--max-w));
+  width: min(calc(100% - 24px), 420px);
   margin: 0 auto;
-  padding-bottom: env(safe-area-inset-bottom);
-  border-top: 1px solid var(--border);
-  background: #fff;
-  box-shadow: 0 -4px 16px rgba(0,0,0,.06);
+  gap: 4px;
+  padding: 5px;
+  border: 1px solid #292d35;
+  border-radius: 22px;
+  background: #111318;
+  box-shadow: 0 10px 32px rgba(0,0,0,.28);
 }
 .technician-nav-button {
   position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  padding: 12px 6px;
+  justify-content: center;
+  gap: 3px;
+  min-width: 0;
+  min-height: 52px;
+  padding: 7px 4px;
   border: 0;
-  border-top: 2.5px solid transparent;
+  border-radius: 17px;
   background: none;
-  color: var(--text-muted);
+  color: #858b96;
   font: inherit;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 500;
   cursor: pointer;
+  transition: background .18s ease, color .18s ease;
 }
 .technician-nav-button.is-active {
-  border-top-color: var(--brand);
-  color: var(--brand);
+  background: #252a33;
+  color: #f7a928;
   font-weight: 700;
 }
 .technician-nav-icon { position: relative; display: flex; }
+.technician-nav-button:focus-visible { outline: 2px solid #f7a928; outline-offset: 2px; }
 .technician-nav-badge {
   position: absolute;
   top: -4px;
@@ -145,6 +152,7 @@ html, body { height: 100%; font-family: 'Inter', system-ui, sans-serif; backgrou
   .technician-login { padding: 25px 18px; }
   .technician-toolbar { padding-inline: 12px; }
   .technician-password-reminder { padding: 14px 12px; }
+  .technician-nav-button { font-size: 9px; }
 }
 
 /* ─── Step Indicator ────────────────────────────────────────────────── */
