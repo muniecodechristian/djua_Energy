@@ -1,9 +1,9 @@
 import React, { lazy, Suspense, useEffect, useState, useRef } from 'react';
 import {
-  MessageSquare, Send, ArrowLeft, User, RefreshCw,
-  Image as ImageIcon, CheckCheck, Clock, AlertCircle
+  MessageSquare, Send, ArrowLeft, RefreshCw, Search, CheckCheck
 } from 'lucide-react';
 import { installationApi, type InstallationItem } from '../services/api';
+import './TechnicianMessages.css';
 
 const TechnicianInstallationCalls = lazy(() => import('../components/TechnicianInstallationCalls'));
 
@@ -24,7 +24,11 @@ export default function TechnicianMessages({
   const [loadingConv, setLoadingConv] = useState(true);
   const [loadingMsg, setLoadingMsg] = useState(false);
   const [sending, setSending] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fetchingMessageFor = useRef<string | null>(null);
+  const latestMessageId = useRef<string | null>(null);
+  const selectedInstallationRef = useRef<string | null>(selectedInstallationId);
 
   // Charger les conversations ou les installations assignées
   const fetchConversationsList = async () => {
@@ -37,11 +41,6 @@ export default function TechnicianMessages({
       setConversations(convList);
       setInstallations(instList);
 
-      // Si aucune installation sélectionnée et qu'il y en a au moins une
-      if (!selectedInstallationId && (convList.length > 0 || instList.length > 0)) {
-        const firstId = convList[0]?.installation?._id || instList[0]?._id;
-        if (firstId) setSelectedInstallationId(firstId);
-      }
     } catch (err) {
       console.error('[TechnicianMessages] Erreur chargement discussions:', err);
     } finally {
@@ -55,27 +54,50 @@ export default function TechnicianMessages({
 
   // Quand une installation est sélectionnée, charger les messages
   const fetchMessages = async (instId: string) => {
-    setLoadingMsg(true);
+    if (fetchingMessageFor.current === instId) return;
+    fetchingMessageFor.current = instId;
+    if (messages.length === 0) setLoadingMsg(true);
     try {
       const data = await installationApi.getMessages(instId);
-      setMessages(data.messages || []);
-      setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+      if (selectedInstallationRef.current !== instId) return;
+      const nextMessages = data.messages || [];
+      const nextLatestId = nextMessages.length
+        ? String(nextMessages[nextMessages.length - 1]._id || nextMessages[nextMessages.length - 1].id || '')
+        : null;
+      const isInitialLoad = latestMessageId.current === null;
+      const hasNewMessage = nextLatestId && nextLatestId !== latestMessageId.current;
+      latestMessageId.current = nextLatestId;
+      if (hasNewMessage) setMessages(nextMessages);
+      if (hasNewMessage) {
+        window.requestAnimationFrame(() => messagesEndRef.current?.scrollIntoView({
+          behavior: isInitialLoad ? 'auto' : 'smooth',
+        }));
+      }
     } catch (err) {
       console.error('[TechnicianMessages] Erreur chargement messages:', err);
     } finally {
+      fetchingMessageFor.current = null;
       setLoadingMsg(false);
     }
   };
 
   useEffect(() => {
+    selectedInstallationRef.current = selectedInstallationId;
     if (selectedInstallationId) {
+      latestMessageId.current = null;
+      setMessages([]);
+      setLoadingMsg(true);
       fetchMessages(selectedInstallationId);
       const interval = setInterval(() => {
-        fetchMessages(selectedInstallationId);
+        if (!document.hidden) fetchMessages(selectedInstallationId);
       }, 5000);
       return () => clearInterval(interval);
     }
   }, [selectedInstallationId]);
+
+  useEffect(() => {
+    if (initialInstallationId) setSelectedInstallationId(initialInstallationId);
+  }, [initialInstallationId]);
 
   const handleSend = async (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -103,89 +125,87 @@ export default function TechnicianMessages({
   const activeInstallation =
     installations.find(i => i._id === selectedInstallationId) ||
     conversations.find(c => c.installation?._id === selectedInstallationId)?.installation;
+  const visibleInstallations = installations.filter(inst => {
+    const conv = conversations.find(c => c.installation?._id === inst._id);
+    const query = searchTerm.trim().toLowerCase();
+    return !query || [
+      inst.folderName,
+      inst.folderNumber,
+      inst.customer?.name,
+      conv?.lastMessage?.content,
+      conv?.lastMessage?.senderName,
+    ].some(value => String(value || '').toLowerCase().includes(query));
+  });
 
   return (
-    <div className="technician-messages-page" style={{ height: 'calc(100vh - 120px)', display: 'flex', flexDirection: 'column', maxWidth: 480, margin: '0 auto', background: '#F9FAFB' }}>
+    <div className="technician-messages-page">
       {/* Si aucune discussion sélectionnée ou vue liste mobile */}
       {!selectedInstallationId ? (
-        <div style={{ padding: '20px 16px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-            <h2 style={{ fontSize: 18, fontWeight: 800, color: '#111827', margin: 0 }}>
-              Discussions de Chantier
-            </h2>
+        <div className="technician-chat-list">
+          <div className="technician-chat-list-heading">
+            <h2>Chats</h2>
             <button
               type="button"
               onClick={fetchConversationsList}
-              style={{ background: 'none', border: '1px solid #E5E7EB', borderRadius: 8, padding: '6px 10px', fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+              className="technician-chat-refresh"
+              aria-label="Actualiser les discussions"
             >
-              <RefreshCw size={13} /> Actualiser
+              <RefreshCw size={16} />
             </button>
+          </div>
+          <label className="technician-chat-search">
+            <Search size={16} />
+            <input
+              type="search"
+              placeholder="Rechercher une discussion"
+              value={searchTerm}
+              onChange={event => setSearchTerm(event.target.value)}
+            />
+          </label>
+          <div className="technician-chat-filter" aria-label="Filtres de discussion">
+            <span className="is-active">Toutes</span>
+            <span>Chantiers <b>{installations.length}</b></span>
           </div>
 
           {loadingConv ? (
-            <div style={{ textAlign: 'center', padding: 40, color: '#6B7280' }}>
-              <div className="spinner spinner-brand" style={{ margin: '0 auto 12px' }} />
-              <p style={{ fontSize: 13 }}>Chargement des canaux…</p>
+            <div className="technician-chat-empty">
+              <div className="spinner spinner-brand" />
+              <p>Chargement des discussions…</p>
             </div>
           ) : installations.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: 40, background: '#FFFFFF', borderRadius: 14, border: '1px dashed #E5E7EB' }}>
-              <MessageSquare size={32} color="#9CA3AF" style={{ margin: '0 auto 10px' }} />
-              <p style={{ fontSize: 14, color: '#374151', fontWeight: 600 }}>Aucune discussion active</p>
-              <p style={{ fontSize: 12, color: '#6B7280' }}>Les canaux de discussion s'ouvrent dès que vous recevez une mission d'installation.</p>
+            <div className="technician-chat-empty">
+              <MessageSquare size={30} />
+              <strong>Aucune discussion active</strong>
+              <p>Les discussions s’ouvrent avec vos missions d’installation.</p>
             </div>
+          ) : visibleInstallations.length === 0 ? (
+            <div className="technician-chat-empty"><p>Aucune discussion ne correspond à cette recherche.</p></div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {installations.map((inst) => {
+            <div className="technician-chat-conversations">
+              {visibleInstallations.map((inst) => {
                 const conv = conversations.find(c => c.installation?._id === inst._id);
                 const lastMsg = conv?.lastMessage;
+                const title = inst.folderName || inst.customer?.name || inst.folderNumber || 'Chantier';
 
                 return (
-                  <div
+                  <button
                     key={inst._id}
+                    type="button"
                     onClick={() => setSelectedInstallationId(inst._id)}
-                    style={{
-                      background: '#FFFFFF',
-                      borderRadius: 12,
-                      border: '1px solid #E5E7EB',
-                      padding: '12px 14px',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 12,
-                      boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
-                    }}
+                    className="technician-chat-conversation"
                   >
-                    <div style={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: 10,
-                      background: '#FFF7F0',
-                      color: '#FF5C00',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontWeight: 800,
-                      fontSize: 14,
-                      flexShrink: 0
-                    }}>
-                      {inst.customer?.name?.charAt(0) || 'D'}
+                    <div className="technician-chat-avatar">
+                      {(inst.customer?.name || title).charAt(0).toUpperCase()}
                     </div>
-
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                        <strong style={{ fontSize: 14, color: '#111827', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          {inst.folderName || inst.customer?.name || inst.folderNumber}
-                        </strong>
-                        <span style={{ fontSize: 10, color: '#9CA3AF', fontFamily: 'monospace' }}>
-                          {inst.folderNumber}
-                        </span>
+                    <div className="technician-chat-conversation-copy">
+                      <div className="technician-chat-conversation-title">
+                        <strong>{title}</strong>
+                        <time>{lastMsg?.createdAt ? new Date(lastMsg.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : ''}</time>
                       </div>
-
-                      <p style={{ fontSize: 12, color: '#6B7280', margin: '3px 0 0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {lastMsg ? `${lastMsg.senderName}: ${lastMsg.content}` : 'Échanger avec le superviseur et l’équipe'}
-                      </p>
+                      <p>{lastMsg ? `${lastMsg.senderName || 'Équipe'} : ${lastMsg.content || 'Nouveau message'}` : `Dossier ${inst.folderNumber || ''} · Équipe chantier`}</p>
                     </div>
-                  </div>
+                    {conv?.unreadCount > 0 && <span className="technician-chat-unread">{conv.unreadCount}</span>}
+                  </button>
                 );
               })}
             </div>
@@ -193,36 +213,30 @@ export default function TechnicianMessages({
         </div>
       ) : (
         /* VUE CHAT OUVERT */
-        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#FFFFFF' }}>
+        <div className="technician-chat-thread">
           {/* Header du chat */}
-          <div style={{
-            padding: '10px 14px',
-            borderBottom: '1px solid #E5E7EB',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            background: '#FFFFFF'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div className="technician-chat-header">
+            <div className="technician-chat-header-person">
               <button
                 type="button"
                 onClick={() => setSelectedInstallationId(null)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: '#4B5563', display: 'flex' }}
+                className="technician-chat-back"
+                aria-label="Retour aux discussions"
               >
                 <ArrowLeft size={18} />
               </button>
-              <div>
-                <strong style={{ fontSize: 14, color: '#111827', display: 'block' }}>
+              <div className="technician-chat-header-avatar">
+                {(activeInstallation?.customer?.name || activeInstallation?.folderName || 'D').charAt(0).toUpperCase()}
+              </div>
+              <div className="technician-chat-header-copy">
+                <strong>
                   {activeInstallation?.folderName || activeInstallation?.customer?.name || 'Support Opérations'}
                 </strong>
-                <small style={{ fontSize: 11, color: '#059669', display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#059669' }} />
-                  Superviseur & Direction connectés
-                </small>
+                <small>{activeInstallation?.folderNumber ? `Dossier ${activeInstallation.folderNumber}` : 'Discussion du chantier'}</small>
               </div>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div className="technician-chat-header-actions">
               <Suspense fallback={<span style={{ fontSize: 11, color: '#6B7280' }}>Chargement des appels…</span>}>
                 <TechnicianInstallationCalls installationId={selectedInstallationId} />
               </Suspense>
@@ -230,7 +244,7 @@ export default function TechnicianMessages({
                 type="button"
                 aria-label="Actualiser les messages"
                 onClick={() => fetchMessages(selectedInstallationId)}
-                style={{ background: 'none', border: 'none', color: '#9CA3AF', cursor: 'pointer', padding: 4 }}
+                className="technician-chat-refresh"
               >
                 <RefreshCw size={15} className={loadingMsg ? 'ops-spin' : ''} />
               </button>
@@ -238,12 +252,12 @@ export default function TechnicianMessages({
           </div>
 
           {/* Corps des messages */}
-          <div style={{ flex: 1, overflowY: 'auto', padding: '14px 12px', display: 'flex', flexDirection: 'column', gap: 10, background: '#F8FAFC' }}>
+          <div className="technician-chat-messages">
             {messages.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '30px 16px', color: '#9CA3AF' }}>
-                <MessageSquare size={28} style={{ margin: '0 auto 8px', opacity: 0.5 }} />
-                <p style={{ fontSize: 13 }}>Aucun message pour l'instant.</p>
-                <small style={{ fontSize: 11 }}>Posez vos questions techniques ou signalez l'avancée du chantier.</small>
+              <div className="technician-chat-empty">
+                <MessageSquare size={28} />
+                <strong>Aucun message pour le moment</strong>
+                <p>Échangez avec le superviseur et l’équipe du chantier.</p>
               </div>
             ) : (
               messages.map((msg, idx) => {
@@ -251,41 +265,17 @@ export default function TechnicianMessages({
                 return (
                   <div
                     key={msg._id || idx}
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: isMe ? 'flex-end' : 'flex-start',
-                      width: '100%'
-                    }}
+                    className={`technician-chat-message-row ${isMe ? 'is-mine' : 'is-theirs'}`}
                   >
                     {!isMe && (
-                      <span style={{ fontSize: 10, color: '#6B7280', marginBottom: 2, paddingLeft: 4, fontWeight: 600 }}>
-                        {msg.senderName} ({msg.senderRole || 'Superviseur'})
+                      <span className="technician-chat-sender">
+                        {msg.senderName || 'Équipe'} · {msg.senderRole || 'Superviseur'}
                       </span>
                     )}
 
-                    <div style={{
-                      maxWidth: '82%',
-                      padding: '8px 12px',
-                      borderRadius: isMe ? '14px 14px 2px 14px' : '14px 14px 14px 2px',
-                      background: isMe ? '#FF5C00' : '#FFFFFF',
-                      color: isMe ? '#FFFFFF' : '#111827',
-                      border: isMe ? 'none' : '1px solid #E2E8F0',
-                      boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-                      fontSize: 13,
-                      lineHeight: 1.45,
-                      wordBreak: 'break-word'
-                    }}>
+                    <div className="technician-chat-bubble">
                       {msg.content}
-                      <div style={{
-                        display: 'flex',
-                        justifyContent: 'flex-end',
-                        alignItems: 'center',
-                        gap: 4,
-                        marginTop: 4,
-                        fontSize: 9.5,
-                        color: isMe ? 'rgba(255,255,255,0.75)' : '#94A3B8'
-                      }}>
+                      <div className="technician-chat-message-meta">
                         {new Date(msg.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                         {isMe && <CheckCheck size={11} />}
                       </div>
@@ -300,44 +290,19 @@ export default function TechnicianMessages({
           {/* Zone de saisie */}
           <form
             onSubmit={handleSend}
-            style={{
-              padding: '10px 12px',
-              borderTop: '1px solid #E5E7EB',
-              background: '#FFFFFF',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8
-            }}
+            className="technician-chat-composer"
           >
             <input
               type="text"
               value={inputText}
               onChange={e => setInputText(e.target.value)}
-              placeholder="Message pour le superviseur…"
-              style={{
-                flex: 1,
-                border: '1px solid #CBD5E1',
-                borderRadius: 20,
-                padding: '8px 14px',
-                fontSize: 13,
-                outline: 'none'
-              }}
+              placeholder="Message…"
+              aria-label="Votre message"
             />
             <button
               type="submit"
               disabled={!inputText.trim() || sending}
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: '50%',
-                background: inputText.trim() ? '#FF5C00' : '#E5E7EB',
-                color: '#FFFFFF',
-                border: 'none',
-                cursor: inputText.trim() ? 'pointer' : 'default',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
+              aria-label="Envoyer le message"
             >
               <Send size={15} />
             </button>

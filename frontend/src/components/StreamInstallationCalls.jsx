@@ -2,9 +2,10 @@ import { useCallback, useEffect, useState } from 'react';
 import { CallControls, CallingState, SpeakerLayout, StreamCall, StreamTheme, StreamVideo, useCalls, useCallStateHooks } from '@stream-io/video-react-sdk';
 import { Phone, Video, PhoneOff } from 'lucide-react';
 import { toast } from 'sonner';
+import { playCallRingtone } from '../lib/callRingtone';
 import '@stream-io/video-react-sdk/dist/css/styles.css';
 
-function ActiveCall({ call, onLeave }) {
+function ActiveCall({ call, onLeave, onNoAnswer }) {
   const { useCallCallingState } = useCallStateHooks();
   const callingState = useCallCallingState();
 
@@ -12,7 +13,22 @@ function ActiveCall({ call, onLeave }) {
     if (callingState === CallingState.LEFT) onLeave();
   }, [callingState, onLeave]);
 
-  if (callingState === CallingState.RINGING) {
+  useEffect(() => {
+    if (callingState !== CallingState.RINGING) return undefined;
+    return playCallRingtone();
+  }, [callingState]);
+
+  useEffect(() => {
+    if (callingState !== CallingState.RINGING) return undefined;
+    const timer = window.setTimeout(() => {
+      call.leave({ reject: true, reason: 'timeout' })
+        .then(onNoAnswer)
+        .catch(error => toast.error(error.message || 'L’appel n’a pas abouti.'));
+    }, 30_000);
+    return () => window.clearTimeout(timer);
+  }, [call, callingState, onNoAnswer]);
+
+  if ([CallingState.IDLE, CallingState.JOINING, CallingState.RINGING].includes(callingState)) {
     const cancelCall = async () => {
       try {
         await call.leave({ reject: true, reason: 'cancel' });
@@ -24,7 +40,7 @@ function ActiveCall({ call, onLeave }) {
 
     return (
       <div className="ic-call-waiting">
-        <p>Appel en cours… En attente de réponse.</p>
+        <p>Appel lancé… En attente de réponse. Sans connexion du participant sous 30 secondes, il sera signalé sans réponse.</p>
         <button type="button" onClick={cancelCall}>
           <PhoneOff size={16} /> Annuler
         </button>
@@ -43,12 +59,27 @@ function ActiveCall({ call, onLeave }) {
 function CallControlsPanel({ client, members, installationId }) {
   const calls = useCalls();
   const [activeCall, setActiveCall] = useState(null);
+  const [isStartingCall, setIsStartingCall] = useState(false);
   const handleLeave = useCallback(() => setActiveCall(null), []);
   const incomingCall = calls.find(call => (
-    !call.isCreatedByMe && call.state.callingState === CallingState.RINGING
+    !call.isCreatedByMe
+    && call.state.callingState === CallingState.RINGING
+    && call.state.custom?.installationId === installationId
   ));
 
+  useEffect(() => {
+    if (!incomingCall || activeCall) return undefined;
+    return playCallRingtone();
+  }, [incomingCall, activeCall]);
+
+  const handleNoAnswer = useCallback(() => {
+    setActiveCall(null);
+    toast.warning('Aucune réponse : le participant ne s’est pas connecté, il est peut-être hors ligne.');
+  }, []);
+
   const startCall = async (video) => {
+    if (isStartingCall || activeCall || incomingCall) return;
+    setIsStartingCall(true);
     try {
       const call = client.call('default', crypto.randomUUID());
       await call.getOrCreate({
@@ -63,6 +94,8 @@ function CallControlsPanel({ client, members, installationId }) {
     } catch (error) {
       setActiveCall(null);
       toast.error(error.message || 'Impossible de démarrer l’appel Stream.');
+    } finally {
+      setIsStartingCall(false);
     }
   };
 
@@ -86,10 +119,10 @@ function CallControlsPanel({ client, members, installationId }) {
   return (
     <>
       <div className="ic-stream-call-actions">
-        <button type="button" className="ic-icon-btn" title="Appel audio" disabled={members.length < 2} onClick={() => startCall(false)}>
+        <button type="button" className="ic-icon-btn" title="Appel audio" aria-label="Appel audio" disabled={members.length < 2 || Boolean(activeCall) || Boolean(incomingCall) || isStartingCall} onClick={() => startCall(false)}>
           <Phone size={16} />
         </button>
-        <button type="button" className="ic-icon-btn" title="Appel vidéo" disabled={members.length < 2} onClick={() => startCall(true)}>
+        <button type="button" className="ic-icon-btn" title="Appel vidéo" aria-label="Appel vidéo" disabled={members.length < 2 || Boolean(activeCall) || Boolean(incomingCall) || isStartingCall} onClick={() => startCall(true)}>
           <Video size={16} />
         </button>
       </div>
@@ -107,7 +140,7 @@ function CallControlsPanel({ client, members, installationId }) {
       {activeCall && (
         <div className="ic-call-overlay" role="dialog" aria-label="Appel en cours">
           <StreamCall call={activeCall}>
-            <ActiveCall call={activeCall} onLeave={handleLeave} />
+            <ActiveCall call={activeCall} onLeave={handleLeave} onNoAnswer={handleNoAnswer} />
           </StreamCall>
         </div>
       )}

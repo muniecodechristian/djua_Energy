@@ -13,6 +13,7 @@ import {
 } from '@stream-io/video-react-sdk';
 import { Phone, PhoneOff, Video } from 'lucide-react';
 import { installationApi, type StreamInstallationSession } from '../services/api';
+import { playCallRingtone } from '../lib/callRingtone';
 import './TechnicianInstallationCalls.css';
 import '@stream-io/video-react-sdk/dist/css/styles.css';
 
@@ -24,10 +25,12 @@ function ActiveCall({
   call,
   onLeave,
   onError,
+  onNoAnswer,
 }: {
   call: Call;
   onLeave: () => void;
   onError: (message: string) => void;
+  onNoAnswer: () => void;
 }) {
   const { useCallCallingState } = useCallStateHooks();
   const callingState = useCallCallingState();
@@ -35,6 +38,21 @@ function ActiveCall({
   useEffect(() => {
     if (callingState === CallingState.LEFT) onLeave();
   }, [callingState, onLeave]);
+
+  useEffect(() => {
+    if (callingState !== CallingState.RINGING) return undefined;
+    return playCallRingtone();
+  }, [callingState]);
+
+  useEffect(() => {
+    if (callingState !== CallingState.RINGING) return undefined;
+    const timer = window.setTimeout(() => {
+      call.leave({ reject: true, reason: 'timeout' })
+        .then(onNoAnswer)
+        .catch(cause => onError(cause instanceof Error ? cause.message : 'L’appel n’a pas abouti.'));
+    }, 30_000);
+    return () => window.clearTimeout(timer);
+  }, [call, callingState, onError, onNoAnswer]);
 
   if ([CallingState.IDLE, CallingState.JOINING, CallingState.RINGING].includes(callingState)) {
     const cancelCall = async () => {
@@ -48,7 +66,9 @@ function ActiveCall({
 
     return (
       <div className="technician-call-status">
-        <p>{callingState === CallingState.RINGING ? 'Appel en cours… En attente de réponse.' : 'Connexion à l’appel…'}</p>
+        <p>{callingState === CallingState.RINGING
+          ? 'Appel lancé… En attente de réponse. Sans connexion du participant sous 30 secondes, il sera signalé sans réponse.'
+          : 'Connexion à l’appel…'}</p>
         <button type="button" className="technician-call-cancel" onClick={cancelCall}>
           <PhoneOff size={16} /> Annuler l’appel
         </button>
@@ -77,6 +97,7 @@ function InstallationCallActions({
   const [activeCall, setActiveCall] = useState<Call | null>(null);
   const [calling, setCalling] = useState(false);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
   const clearActiveCall = useCallback(() => setActiveCall(null), []);
 
   const incomingCall = calls.find(call => (
@@ -85,10 +106,21 @@ function InstallationCallActions({
     && call.state.custom?.installationId === installationId
   ));
 
+  useEffect(() => {
+    if (!incomingCall || activeCall) return undefined;
+    return playCallRingtone();
+  }, [incomingCall, activeCall]);
+
+  const showNoAnswer = useCallback(() => {
+    setActiveCall(null);
+    setNotice('Aucune réponse : le participant ne s’est pas connecté, il est peut-être hors ligne.');
+  }, []);
+
   const startCall = async (video: boolean) => {
     if (calling) return;
     setCalling(true);
     setError('');
+    setNotice('');
     try {
       const call = client.call('default', crypto.randomUUID());
       await call.getOrCreate({
@@ -166,12 +198,14 @@ function InstallationCallActions({
               call={activeCall}
               onLeave={clearActiveCall}
               onError={setError}
+              onNoAnswer={showNoAnswer}
             />
           </StreamCall>
         </div>
       )}
 
       {error && <span className="technician-call-error" role="alert">{error}</span>}
+      {notice && <span className="technician-call-notice" role="status">{notice}</span>}
     </>
   );
 }
