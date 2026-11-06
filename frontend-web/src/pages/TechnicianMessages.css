@@ -4,8 +4,8 @@
   flex-direction: column;
   width: 100%;
   max-width: 480px;
-  height: calc(100dvh - 128px);
-  min-height: 320px;
+  height: calc(100dvh - 148px);
+  min-height: 0;
   margin: 0 auto;
   overflow: hidden;
   background: #fff;
@@ -385,7 +385,6 @@
 }
 
 @media (max-width: 480px) {
-  .technician-messages-page { height: calc(100dvh - 126px); }
   .technician-chat-list { padding-inline: 14px; }
   .technician-chat-header-actions { gap: 0; }
 }

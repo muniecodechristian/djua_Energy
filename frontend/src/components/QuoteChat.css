@@ -85,3 +85,58 @@
   .quote-ai-suggestions button,.quote-ai-composer>button{transition:none}
   .quote-ai-thinking-dots i{animation:none}
 }
+
+/* Keep the conversation controls above other fixed platform widgets. */
+.quote-ai-screen{
+  z-index:11000;
+  height:100vh;
+  height:100dvh;
+  overflow:hidden;
+}
+.quote-ai-header{
+  position:relative;
+  z-index:1;
+  flex:none;
+  min-width:0;
+}
+.quote-ai-brand{
+  display:flex;
+  min-width:0;
+  align-items:center;
+}
+.quote-ai-actions{flex:none}
+.quote-ai-workspace{
+  display:flex;
+  flex-direction:column;
+  flex:1 1 0%;
+  min-width:0;
+  min-height:0;
+  overflow:hidden;
+}
+.quote-ai-scroll{
+  overflow-y:auto;
+  flex:1 1 0%;
+  min-width:0;
+  min-height:0;
+  overscroll-behavior:contain;
+  scroll-padding-bottom:16px;
+}
+.quote-ai-compose-area{
+  position:relative;
+  z-index:1;
+  flex:none;
+  padding-bottom:max(18px,env(safe-area-inset-bottom));
+}
+.quote-ai-composer{min-width:0}
+.quote-ai-composer textarea{
+  min-width:0;
+  flex:1 1 auto;
+  overflow-y:auto;
+}
+
+@media(max-width:600px){
+  .quote-ai-header{gap:6px}
+  .quote-ai-brand{flex:1 1 auto}
+  .quote-ai-actions{max-width:60%}
+  .quote-ai-compose-area{padding-bottom:max(12px,env(safe-area-inset-bottom))}
+}
