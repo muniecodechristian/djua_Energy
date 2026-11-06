@@ -1,0 +1,258 @@
+import { useCallback, useEffect, useState } from 'react';
+import {
+  CallControls,
+  CallingState,
+  SpeakerLayout,
+  StreamCall,
+  StreamTheme,
+  StreamVideo,
+  StreamVideoClient,
+  useCalls,
+  useCallStateHooks,
+  type Call,
+} from '@stream-io/video-react-sdk';
+import { Phone, PhoneOff, Video } from 'lucide-react';
+import { installationApi, type StreamInstallationSession } from '../services/api';
+import './TechnicianInstallationCalls.css';
+import '@stream-io/video-react-sdk/dist/css/styles.css';
+
+interface TechnicianInstallationCallsProps {
+  installationId: string;
+}
+
+function ActiveCall({
+  call,
+  onLeave,
+  onError,
+}: {
+  call: Call;
+  onLeave: () => void;
+  onError: (message: string) => void;
+}) {
+  const { useCallCallingState } = useCallStateHooks();
+  const callingState = useCallCallingState();
+
+  useEffect(() => {
+    if (callingState === CallingState.LEFT) onLeave();
+  }, [callingState, onLeave]);
+
+  if ([CallingState.IDLE, CallingState.JOINING, CallingState.RINGING].includes(callingState)) {
+    const cancelCall = async () => {
+      try {
+        await call.leave({ reject: true, reason: 'cancel' });
+        onLeave();
+      } catch (cause) {
+        onError(cause instanceof Error ? cause.message : 'Impossible d’annuler l’appel.');
+      }
+    };
+
+    return (
+      <div className="technician-call-status">
+        <p>{callingState === CallingState.RINGING ? 'Appel en cours… En attente de réponse.' : 'Connexion à l’appel…'}</p>
+        <button type="button" className="technician-call-cancel" onClick={cancelCall}>
+          <PhoneOff size={16} /> Annuler l’appel
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="technician-call-stage">
+      <SpeakerLayout participantsBarPosition="bottom" />
+      <CallControls onLeave={onLeave} />
+    </div>
+  );
+}
+
+function InstallationCallActions({
+  client,
+  members,
+  installationId,
+}: {
+  client: StreamVideoClient;
+  members: StreamInstallationSession['members'];
+  installationId: string;
+}) {
+  const calls = useCalls();
+  const [activeCall, setActiveCall] = useState<Call | null>(null);
+  const [calling, setCalling] = useState(false);
+  const [error, setError] = useState('');
+  const clearActiveCall = useCallback(() => setActiveCall(null), []);
+
+  const incomingCall = calls.find(call => (
+    !call.isCreatedByMe
+    && call.state.callingState === CallingState.RINGING
+    && call.state.custom?.installationId === installationId
+  ));
+
+  const startCall = async (video: boolean) => {
+    if (calling) return;
+    setCalling(true);
+    setError('');
+    try {
+      const call = client.call('default', crypto.randomUUID());
+      await call.getOrCreate({
+        ring: true,
+        video,
+        data: {
+          members: members.map(member => ({ user_id: member.id })),
+          custom: { installationId },
+        },
+      });
+      setActiveCall(call);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Impossible de démarrer l’appel.');
+    } finally {
+      setCalling(false);
+    }
+  };
+
+  const answerCall = async () => {
+    if (!incomingCall) return;
+    setError('');
+    try {
+      await incomingCall.join();
+      setActiveCall(incomingCall);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Impossible de rejoindre l’appel.');
+    }
+  };
+
+  const declineCall = async () => {
+    if (!incomingCall) return;
+    setError('');
+    try {
+      await incomingCall.leave({ reject: true, reason: 'decline' });
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Impossible de refuser l’appel.');
+    }
+  };
+
+  return (
+    <>
+      <div className="technician-call-actions">
+        <button
+          type="button"
+          title="Appel audio"
+          aria-label="Appel audio"
+          disabled={calling || members.length < 2}
+          onClick={() => startCall(false)}
+        >
+          <Phone size={17} />
+        </button>
+        <button
+          type="button"
+          title="Appel vidéo"
+          aria-label="Appel vidéo"
+          disabled={calling || members.length < 2}
+          onClick={() => startCall(true)}
+        >
+          <Video size={17} />
+        </button>
+      </div>
+
+      {incomingCall && !activeCall && (
+        <div className="technician-incoming-call" role="dialog" aria-label="Appel entrant">
+          <strong>Appel entrant</strong>
+          <button type="button" onClick={answerCall}><Phone size={16} /> Répondre</button>
+          <button type="button" className="is-decline" onClick={declineCall}><PhoneOff size={16} /> Refuser</button>
+        </div>
+      )}
+
+      {activeCall && (
+        <div className="technician-call-overlay" role="dialog" aria-label="Appel en cours">
+          <StreamCall call={activeCall}>
+            <ActiveCall
+              call={activeCall}
+              onLeave={clearActiveCall}
+              onError={setError}
+            />
+          </StreamCall>
+        </div>
+      )}
+
+      {error && <span className="technician-call-error" role="alert">{error}</span>}
+    </>
+  );
+}
+
+export default function TechnicianInstallationCalls({ installationId }: TechnicianInstallationCallsProps) {
+  const [client, setClient] = useState<StreamVideoClient | null>(null);
+  const [members, setMembers] = useState<StreamInstallationSession['members']>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    let active = true;
+    let videoClient: StreamVideoClient | null = null;
+    setClient(null);
+    setMembers([]);
+    setLoading(true);
+    setError('');
+
+    const connect = async () => {
+      const session = await installationApi.getStreamSession(installationId);
+      if (!session?.apiKey || !session.token || !session.user?.id || !session.members?.length) {
+        throw new Error('La réponse Stream est incomplète.');
+      }
+
+      videoClient = new StreamVideoClient({
+        apiKey: session.apiKey,
+        user: { id: session.user.id, name: session.user.name },
+        token: session.token,
+        tokenProvider: async () => (await installationApi.getStreamSession(installationId)).token,
+      });
+
+      if (!active) {
+        await videoClient.disconnectUser();
+        return;
+      }
+
+      setClient(videoClient);
+      setMembers(session.members);
+      setLoading(false);
+    };
+
+    connect().catch(cause => {
+      if (active) {
+        setError(
+          (cause as { response?: { data?: { message?: string } } })?.response?.data?.message
+          || (cause instanceof Error ? cause.message : 'Connexion Stream impossible.'),
+        );
+        setLoading(false);
+      }
+      if (videoClient) {
+        videoClient.disconnectUser().catch(disconnectError => {
+          console.error('[TechnicianCalls] Déconnexion Stream impossible:', disconnectError);
+        });
+      }
+    });
+
+    return () => {
+      active = false;
+      if (videoClient) {
+        videoClient.disconnectUser().catch(disconnectError => {
+          console.error('[TechnicianCalls] Déconnexion Stream impossible:', disconnectError);
+        });
+      }
+    };
+  }, [installationId]);
+
+  return (
+    <div className="technician-call-container">
+      {loading && <span className="technician-call-hint">Connexion aux appels…</span>}
+      {error && <span className="technician-call-error" role="status">{error}</span>}
+      {client && (
+        <StreamVideo client={client}>
+          <StreamTheme>
+            <InstallationCallActions
+              client={client}
+              members={members}
+              installationId={installationId}
+            />
+          </StreamTheme>
+        </StreamVideo>
+      )}
+    </div>
+  );
+}

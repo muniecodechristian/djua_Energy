@@ -238,80 +238,29 @@ export default function App() {
         </header>
 
         {/* ─── BARRE D'ONGLETS PRINCIPALE DU TECHNICIEN (3 TABS) ─── */}
-        <nav style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(3, 1fr)',
-          background: '#FFFFFF',
-          borderTop: '1px solid var(--border)',
-          position: 'fixed',
-          bottom: 0,
-          left: '50%',
-          transform: 'translateX(-50%)',
-          width: '100%',
-          maxWidth: 'var(--max-w)',
-          paddingBottom: 'env(safe-area-inset-bottom)',
-          zIndex: 40,
-          boxShadow: '0 -4px 16px rgba(0,0,0,.06)'
-        }}>
+        <nav className="technician-main-nav" aria-label="Navigation principale" role="tablist">
           <button
+            className={`technician-nav-button ${activeMainTab === 'scan' ? 'is-active' : ''}`}
+            role="tab"
+            aria-selected={activeMainTab === 'scan'}
             type="button"
             onClick={() => setActiveMainTab('scan')}
-            style={{
-              padding: '12px 6px',
-              border: 'none',
-              background: 'none',
-              cursor: 'pointer',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: 4,
-              fontSize: 12,
-              fontWeight: activeMainTab === 'scan' ? 700 : 500,
-              color: activeMainTab === 'scan' ? 'var(--brand)' : 'var(--text-muted)',
-              borderTop: activeMainTab === 'scan' ? '2.5px solid var(--brand)' : '2.5px solid transparent'
-            }}
           >
             <QrCode size={18} />
             <span>Scannage Kit</span>
           </button>
 
           <button
+            className={`technician-nav-button ${activeMainTab === 'notifications' ? 'is-active' : ''}`}
+            role="tab"
+            aria-selected={activeMainTab === 'notifications'}
             type="button"
             onClick={() => setActiveMainTab('notifications')}
-            style={{
-              padding: '12px 6px',
-              border: 'none',
-              background: 'none',
-              cursor: 'pointer',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: 4,
-              fontSize: 12,
-              fontWeight: activeMainTab === 'notifications' ? 700 : 500,
-              color: activeMainTab === 'notifications' ? 'var(--brand)' : 'var(--text-muted)',
-              borderTop: activeMainTab === 'notifications' ? '2.5px solid var(--brand)' : '2.5px solid transparent',
-              position: 'relative'
-            }}
           >
-            <div style={{ position: 'relative' }}>
+            <div className="technician-nav-icon">
               <Bell size={18} />
               {unacknowledgedCount > 0 && (
-                <span style={{
-                  position: 'absolute',
-                  top: -4,
-                  right: -8,
-                  background: '#EF4444',
-                  color: '#FFF',
-                  fontSize: 10,
-                  fontWeight: 800,
-                  width: 16,
-                  height: 16,
-                  borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}>
+                <span className="technician-nav-badge">
                   {unacknowledgedCount}
                 </span>
               )}
@@ -320,22 +269,11 @@ export default function App() {
           </button>
 
           <button
+            className={`technician-nav-button ${activeMainTab === 'messages' ? 'is-active' : ''}`}
+            role="tab"
+            aria-selected={activeMainTab === 'messages'}
             type="button"
             onClick={() => setActiveMainTab('messages')}
-            style={{
-              padding: '12px 6px',
-              border: 'none',
-              background: 'none',
-              cursor: 'pointer',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: 4,
-              fontSize: 12,
-              fontWeight: activeMainTab === 'messages' ? 700 : 500,
-              color: activeMainTab === 'messages' ? 'var(--brand)' : 'var(--text-muted)',
-              borderTop: activeMainTab === 'messages' ? '2.5px solid var(--brand)' : '2.5px solid transparent'
-            }}
           >
             <MessageSquare size={18} />
             <span>Discussions</span>

@@ -1,9 +1,11 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { lazy, Suspense, useEffect, useState, useRef } from 'react';
 import {
   MessageSquare, Send, ArrowLeft, User, RefreshCw,
   Image as ImageIcon, CheckCheck, Clock, AlertCircle
 } from 'lucide-react';
 import { installationApi, type InstallationItem } from '../services/api';
+
+const TechnicianInstallationCalls = lazy(() => import('../components/TechnicianInstallationCalls'));
 
 interface TechnicianMessagesProps {
   initialInstallationId?: string | null;
@@ -220,13 +222,19 @@ export default function TechnicianMessages({
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={() => fetchMessages(selectedInstallationId)}
-              style={{ background: 'none', border: 'none', color: '#9CA3AF', cursor: 'pointer', padding: 4 }}
-            >
-              <RefreshCw size={15} className={loadingMsg ? 'ops-spin' : ''} />
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Suspense fallback={<span style={{ fontSize: 11, color: '#6B7280' }}>Chargement des appels…</span>}>
+                <TechnicianInstallationCalls installationId={selectedInstallationId} />
+              </Suspense>
+              <button
+                type="button"
+                aria-label="Actualiser les messages"
+                onClick={() => fetchMessages(selectedInstallationId)}
+                style={{ background: 'none', border: 'none', color: '#9CA3AF', cursor: 'pointer', padding: 4 }}
+              >
+                <RefreshCw size={15} className={loadingMsg ? 'ops-spin' : ''} />
+              </button>
+            </div>
           </div>
 
           {/* Corps des messages */}

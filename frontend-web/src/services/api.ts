@@ -256,6 +256,14 @@ export interface InstallationItem {
   createdAt: string;
 }
 
+export interface StreamInstallationSession {
+  apiKey: string;
+  token: string;
+  channelId: string;
+  user: { id: string; name: string };
+  members: Array<{ id: string; name: string; role: string }>;
+}
+
 export const installationApi = {
   getAssignedInstallations: async (): Promise<InstallationItem[]> => {
     const { data } = await api.get('/installations');
@@ -281,5 +289,9 @@ export const installationApi = {
     const { data } = await api.get('/installations/conversations');
     return data?.data || [];
   },
-};
 
+  getStreamSession: async (id: string): Promise<StreamInstallationSession> => {
+    const { data } = await api.get(`/installations/${id}/stream-session`);
+    return data.data as StreamInstallationSession;
+  },
+};

@@ -1,0 +1,110 @@
+.technician-call-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.technician-call-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.technician-call-actions button,
+.technician-incoming-call button,
+.technician-call-cancel {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 36px;
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fff;
+  color: #374151;
+  cursor: pointer;
+  font: inherit;
+}
+
+.technician-call-actions button:hover:not(:disabled),
+.technician-incoming-call button:hover {
+  border-color: #ff5c00;
+  color: #e04f00;
+}
+
+.technician-call-actions button:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+
+.technician-call-hint,
+.technician-call-error {
+  font-size: 11px;
+}
+
+.technician-call-hint { color: #6b7280; }
+.technician-call-error { color: #b91c1c; }
+
+.technician-incoming-call {
+  position: absolute;
+  z-index: 20;
+  top: 62px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid #dbeafe;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, .16);
+  color: #111827;
+}
+
+.technician-incoming-call button.is-decline {
+  border-color: #fecaca;
+  color: #b91c1c;
+}
+
+.technician-call-overlay {
+  position: fixed;
+  z-index: 10000;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(2, 6, 23, .94);
+}
+
+.technician-call-stage {
+  display: flex;
+  flex-direction: column;
+  width: min(100%, 1100px);
+  height: min(100%, 760px);
+  color: #fff;
+}
+
+.technician-call-stage > :first-child { flex: 1; min-height: 0; }
+
+.technician-call-status {
+  align-self: center;
+  margin: auto;
+  color: #fff;
+}
+
+.technician-call-cancel {
+  position: absolute;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  border: 0;
+  background: #dc2626;
+  color: #fff;
+}
+
+@media (max-width: 480px) {
+  .technician-call-overlay { padding: 0; }
+  .technician-call-stage { width: 100vw; height: 100dvh; }
+  .technician-incoming-call { left: 8px; right: 8px; flex-wrap: wrap; }
+}
