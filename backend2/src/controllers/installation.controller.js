@@ -837,6 +837,7 @@ export async function getInstallationStreamSession(req, res) {
     const streamChannel = streamServerClient.channel('messaging', channelId, {
       name: `Installation ${folder.folderNumber || idOf(folder._id)}`,
       members: members.map(member => member.id),
+      created_by_id: idOf(req.user._id),
     });
     await streamChannel.watch({ members: { limit: 100 }, messages: { limit: 1 } });
 
