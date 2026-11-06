@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   Send, Mic, Image as ImageIcon, X, CheckCheck, Check,
-  Radio, StopCircle, Paperclip, ChevronDown, Phone,
+  Radio, StopCircle, Paperclip, ChevronDown,
   MoreVertical, Smile, Volume2, MessageSquare, Search, ChevronRight
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -13,8 +13,10 @@ import {
   useSendInstallationMessage,
   useMarkInstallationMessagesRead
 } from '../hooks/tanstack/useInstallations';
+import useStreamInstallation from '../hooks/useStreamInstallation';
 import useAuthStore from '../hooks/Zustand/useAuthStore';
 import { getAppSocket } from '../lib/socket';
+import StreamInstallationCalls from './StreamInstallationCalls';
 import './InstallationChat.css';
 
 function formatTime(dateStr) {
@@ -138,9 +140,11 @@ function AudioPlayerBubble({ src, isMe }) {
 export default function InstallationChat({ installationId, title, recipientName }) {
   const navigate = useNavigate();
   const currentUser = useAuthStore(state => state.user);
+  const stream = useStreamInstallation(installationId);
   const [inputText, setInputText] = useState('');
   const [selectedImage, setSelectedImage] = useState(null);
   const [isRecording, setIsRecording] = useState(false);
+  const [isSendingVoice, setIsSendingVoice] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
   const [showScrollBtn, setShowScrollBtn] = useState(false);
   const [isTyping, setIsTyping] = useState(false); // future: socket typing indicator
@@ -158,6 +162,7 @@ export default function InstallationChat({ installationId, title, recipientName 
   });
 
   const mediaRecorderRef = useRef(null);
+  const mediaStreamRef = useRef(null);
   const audioChunksRef = useRef([]);
   const recordingTimerRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -165,11 +170,22 @@ export default function InstallationChat({ installationId, title, recipientName 
   const messagesContainerRef = useRef(null);
   const inputRef = useRef(null);
 
+  useEffect(() => () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.onstop = null;
+      mediaRecorderRef.current.stop();
+    }
+    mediaStreamRef.current?.getTracks().forEach(track => track.stop());
+    if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+  }, []);
+
   const { data: chatData, refetch } = useGetInstallationMessages(installationId);
   const sendMutation = useSendInstallationMessage();
   const markReadMutation = useMarkInstallationMessagesRead();
 
-  const messages = Array.isArray(chatData) ? chatData : (chatData?.messages || []);
+  const storedMessages = Array.isArray(chatData) ? chatData : (chatData?.messages || []);
+  const messages = [...storedMessages, ...stream.voiceMessages]
+    .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
   const conversation = chatData?.conversation || null;
   const groupedItems = groupMessagesByDate(messages);
 
@@ -275,15 +291,17 @@ export default function InstallationChat({ installationId, title, recipientName 
   };
 
   const startRecording = async () => {
+    let mediaStream;
     try {
       if (!navigator.mediaDevices?.getUserMedia) {
         toast.error('L\'enregistrement vocal n\'est pas supporté.');
         return;
       }
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaStreamRef.current = mediaStream;
       audioChunksRef.current = [];
 
-      const mediaRecorder = new MediaRecorder(stream);
+      const mediaRecorder = new MediaRecorder(mediaStream);
       mediaRecorderRef.current = mediaRecorder;
 
       mediaRecorder.ondataavailable = (event) => {
@@ -291,29 +309,43 @@ export default function InstallationChat({ installationId, title, recipientName 
       };
 
       mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        const reader = new FileReader();
-        reader.onloadend = async () => {
-          try {
-            await sendMutation.mutateAsync({
-              id: installationId,
-              content: 'Note vocale',
+        const mimeType = mediaRecorder.mimeType || audioChunksRef.current[0]?.type || 'audio/webm';
+        const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
+        mediaStream.getTracks().forEach(track => track.stop());
+        mediaStreamRef.current = null;
+        if (!audioBlob.size) {
+          toast.error('L’enregistrement vocal est vide.');
+          return;
+        }
+        const extension = mimeType.includes('mp4') ? 'm4a' : 'webm';
+        const audioFile = new File([audioBlob], `note-vocale-${Date.now()}.${extension}`, { type: mimeType });
+
+        setIsSendingVoice(true);
+        try {
+          if (!stream.channel) throw new Error(stream.error || 'Connexion Stream indisponible.');
+          const uploaded = await stream.channel.sendFile(audioFile, audioFile.name, audioFile.type);
+          await stream.channel.sendMessage({
+            text: 'Note vocale',
+            attachments: [{
               type: 'audio',
-              mediaUrl: reader.result,
-              audioDuration: recordingDuration || 1,
-            });
-            toast.success('Note vocale transmise.');
-          } catch {
-            toast.error('Erreur lors de l\'envoi de la note vocale.');
-          }
-        };
-        reader.readAsDataURL(audioBlob);
-        stream.getTracks().forEach(track => track.stop());
+              asset_url: uploaded.file,
+              title: audioFile.name,
+              audio_length: Math.max(1, recordingDuration),
+            }],
+          });
+          toast.success('Note vocale transmise.');
+        } catch (error) {
+          toast.error(error.message || 'Erreur lors de l\'envoi de la note vocale.');
+        } finally {
+          setIsSendingVoice(false);
+        }
       };
 
       mediaRecorder.start();
       setIsRecording(true);
     } catch {
+      mediaStream?.getTracks().forEach(track => track.stop());
+      mediaStreamRef.current = null;
       toast.error('Impossible d\'accéder au microphone. Vérifiez vos permissions.');
     }
   };
@@ -331,6 +363,8 @@ export default function InstallationChat({ installationId, title, recipientName 
       mediaRecorderRef.current.stop();
       setIsRecording(false);
       audioChunksRef.current = [];
+      mediaStreamRef.current?.getTracks().forEach(track => track.stop());
+      mediaStreamRef.current = null;
       toast.info('Enregistrement annulé.');
     }
   };
@@ -388,11 +422,21 @@ export default function InstallationChat({ installationId, title, recipientName 
             <MessageSquare size={14} />
             <span>Toutes les discussions</span>
           </button>
-          <button className="ic-icon-btn" title="Appel direct" type="button">
-            <Phone size={16} />
-          </button>
+          <StreamInstallationCalls
+            client={stream.videoClient}
+            members={stream.members}
+            installationId={installationId}
+          />
         </div>
       </div>
+      {stream.error && (
+        <div className="ic-stream-error" role="status">
+          Voix et appels indisponibles : {stream.error}
+        </div>
+      )}
+      {stream.loading && (
+        <div className="ic-stream-loading" role="status">Connexion aux services vocaux Stream…</div>
+      )}
 
       {/* ─── Tiroir / Volet Liste des discussions pour la surveillance ─── */}
       {showConvDrawer && (
@@ -679,6 +723,7 @@ export default function InstallationChat({ installationId, title, recipientName 
               className="ic-send-btn ic-mic-btn"
               onClick={startRecording}
               title="Note vocale"
+              disabled={!stream.channel || isSendingVoice}
             >
               <Mic size={17} />
             </button>

@@ -317,6 +317,29 @@ describe('Customer quotations and installation lifecycle',()=>{
   expect(adminReview.status).toBe(200);
   expect(adminReview.body.data.status).toBe('installee');
  });
+ it('protects Stream session tokens with installation access checks',async()=>{
+  const quote=await approve(await save('installation-stream-session-001'));
+  const folderResponse=await createFolder(quote);
+  expect(folderResponse.status).toBe(201);
+  const folderId=folderResponse.body.data._id;
+
+  const anonymous=await request(app).get(`/api/installations/${folderId}/stream-session`);
+  expect(anonymous.status).toBe(401);
+  const unauthorized=await request(app).get(`/api/installations/${folderId}/stream-session`).set('Cookie',cookie(outsider));
+  expect(unauthorized.status).toBe(403);
+
+  const previousKey=config.stream.apiKey;
+  const previousSecret=config.stream.apiSecret;
+  config.stream.apiKey='';
+  config.stream.apiSecret='';
+  try{
+   const unconfigured=await request(app).get(`/api/installations/${folderId}/stream-session`).set('Cookie',cookie(commercial));
+   expect(unconfigured.status).toBe(503);
+  }finally{
+   config.stream.apiKey=previousKey;
+   config.stream.apiSecret=previousSecret;
+  }
+ });
  it('persists client rejection and prevents creating an installation folder',async()=>{
   const quote=await save('rejected-quote-001');
   const response=await request(app).patch(`/api/quotes/${quote.number}/reject`).set('Cookie',cookie(commercial)).send({});

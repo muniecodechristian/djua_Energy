@@ -14,7 +14,8 @@ import {
   sendInstallationMessage,
   markInstallationMessagesRead,
   acknowledgeInstallation,
-  listInstallationConversations
+  listInstallationConversations,
+  getInstallationStreamSession
 } from '../controllers/installation.controller.js';
 
 const router = Router();
@@ -53,6 +54,7 @@ router.post('/:id/commission', authorizeRoles('technician', 'admin', 'administra
 router.patch('/:id/validate', authorizeRoles('admin', 'administration'), validateInstallation);
 
 // Fil de discussion en temps réel (texte, vocal audio, images)
+router.get('/:id/stream-session', getInstallationStreamSession);
 router.get('/:id/messages', getInstallationMessages);
 router.post('/:id/messages', sendInstallationMessage);
 router.patch('/:id/messages/read', markInstallationMessagesRead);

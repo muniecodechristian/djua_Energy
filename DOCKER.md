@@ -36,6 +36,12 @@ Pour changer un paramètre local, modifie `environment` dans `compose.yaml`.
 Ne colle pas de secrets de production dans ce fichier suivi par Git.
 Les variables `DOCKER_JWT_SECRET`, `DOCKER_MQTT_USER`, `DOCKER_MQTT_PASS` et
 `DOCKER_IOT_API_KEY` peuvent aussi être définies dans ta session PowerShell.
+Pour activer les notes vocales et appels Stream, définis `STREAM_API_KEY` et
+`STREAM_API_SECRET` dans ta session PowerShell avant `docker compose up --build`.
+Crée une application Stream avec Chat et Video activés, puis utilise sa même
+clé publique et sa clé secrète pour ces deux variables. La clé secrète reste
+côté backend ; sans ces variables, le chat texte/photos continue de fonctionner
+et les fonctions Stream sont désactivées.
 
 ## Commandes utiles
 
@@ -82,5 +88,9 @@ de production à déployer telle quelle.
 Le Dockerfile du backend utilise par défaut `NODE_ENV=production` ; Compose le
 remplace uniquement pour cet environnement local. Pour un hébergement Docker,
 il faut fournir les variables et secrets de l'hébergeur, une base adaptée et HTTPS.
+Pour activer Stream en production, définis aussi `STREAM_API_KEY` et
+`STREAM_API_SECRET` dans l'environnement du backend uniquement. Les appels et
+l'enregistrement vocal nécessitent un navigateur en contexte sécurisé (HTTPS,
+ou `localhost` en développement).
 
 Référence : https://docs.docker.com/compose/how-tos/startup-order/

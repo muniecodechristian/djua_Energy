@@ -852,3 +852,115 @@
   background: rgba(255, 255, 255, 0.12);
   color: #f1f5f9;
 }
+
+.ic-stream-call-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ic-stream-error,
+.ic-stream-loading {
+  flex-shrink: 0;
+  padding: 6px 14px;
+  font-size: 11px;
+}
+
+.ic-stream-error {
+  color: #b91c1c;
+  background: #fef2f2;
+}
+
+.ic-stream-loading {
+  color: #64748b;
+  background: #f8fafc;
+}
+
+.ic-icon-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.ic-incoming-call {
+  position: absolute;
+  z-index: 20;
+  top: 72px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px;
+  border: 1px solid #dbeafe;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.18);
+  color: #0f172a;
+}
+
+.ic-incoming-call > div {
+  display: flex;
+  gap: 8px;
+}
+
+.ic-incoming-call button,
+.ic-call-waiting button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: #16a34a;
+  color: #fff;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.ic-incoming-call button.is-decline,
+.ic-call-waiting button {
+  background: #dc2626;
+}
+
+.ic-call-overlay {
+  position: fixed;
+  z-index: 10000;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(2, 6, 23, 0.92);
+}
+
+.ic-call-stage,
+.ic-call-waiting {
+  display: flex;
+  flex-direction: column;
+  width: min(100vw, 1100px);
+  height: min(100dvh, 760px);
+  color: #fff;
+}
+
+.ic-call-stage > :first-child {
+  flex: 1;
+  min-height: 0;
+}
+
+.ic-call-waiting {
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+}
+
+@media (max-width: 640px) {
+  .ic-incoming-call {
+    left: 8px;
+    right: 8px;
+    justify-content: space-between;
+  }
+
+  .ic-call-stage,
+  .ic-call-waiting {
+    width: 100vw;
+    height: 100dvh;
+  }
+}

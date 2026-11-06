@@ -32,6 +32,7 @@
     "mongoose": "^9.9.1",
     "mqtt": "^5.5.0",
     "socket.io": "^4.8.3",
+    "stream-chat": "^9.54.4",
     "swagger-jsdoc": "^6.3.0",
     "swagger-ui-express": "^5.0.1",
     "twilio": "^6.2.0",

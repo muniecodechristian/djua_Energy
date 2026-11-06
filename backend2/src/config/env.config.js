@@ -14,6 +14,10 @@ const config = {
     apiKey: process.env.IOT_API_KEY || '',
     authRequired: process.env.IOT_AUTH_REQUIRED !== 'false',
   },
+  stream: {
+    apiKey: process.env.STREAM_API_KEY || '',
+    apiSecret: process.env.STREAM_API_SECRET || '',
+  },
 
   mqtt: {
     port: parseInt(process.env.MQTT_PORT, 10) || 1883,

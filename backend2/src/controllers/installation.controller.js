@@ -9,9 +9,12 @@ import { getIO } from '../services/socket.service.js';
 import { sendInstallationToWhatsApp } from '../services/whatsapp.service.js';
 import { notifyUser } from '../services/notification.service.js';
 import { businessDay } from '../services/quote.service.js';
+import config from '../config/env.config.js';
+import { StreamChat } from 'stream-chat';
 
 const fail = (res, status, message) => res.status(status).json({ success: false, message });
 const idOf = value => String(value?._id ?? value ?? '');
+let streamServerClient;
 
 function canViewInstallation(folder, user) {
   const userId = idOf(user._id);
@@ -787,6 +790,79 @@ export async function getInstallationMessages(req, res) {
   } catch (error) {
     console.error('[InstallationController] getInstallationMessages error:', error);
     return fail(res, 500, 'Impossible de récupérer les messages.');
+  }
+}
+
+/**
+ * GET /api/installations/:id/stream-session
+ * Fournit les identifiants Stream à un membre autorisé de l'installation.
+ */
+export async function getInstallationStreamSession(req, res) {
+  try {
+    const folder = await InstallationFolder.findById(req.params.id);
+    if (!folder) return fail(res, 404, 'Dossier d’installation introuvable.');
+    if (!canViewInstallation(folder, req.user)) {
+      return fail(res, 403, 'Vous n’êtes pas autorisé à accéder aux communications de cette installation.');
+    }
+    if (!config.stream.apiKey || !config.stream.apiSecret) {
+      return fail(res, 503, 'Les appels et notes vocales Stream ne sont pas configurés.');
+    }
+
+    const conversation = await getOrCreateInstallationConversation(folder, req.user);
+    const participantIds = conversation.participants.map(participant => idOf(participant.user));
+    const users = await User.find({ _id: { $in: participantIds }, status: 'active' })
+      .select('_id nom prenom role zone')
+      .lean();
+    const members = users
+      .filter(user => canViewInstallation(folder, user))
+      .map(user => ({
+        id: idOf(user._id),
+        name: `${user.prenom || ''} ${user.nom || ''}`.trim() || 'Utilisateur',
+        role: user.role,
+      }));
+
+    if (!members.some(member => member.id === idOf(req.user._id))) {
+      return fail(res, 403, 'Votre compte ne peut pas rejoindre les communications de cette installation.');
+    }
+
+    streamServerClient ??= StreamChat.getInstance(config.stream.apiKey, config.stream.apiSecret);
+    await streamServerClient.upsertUsers(members.map(({ id, name, role }) => ({
+      id,
+      name,
+      role: 'user',
+      djua_role: role,
+    })));
+
+    const channelId = `installation-${idOf(folder._id)}`;
+    const streamChannel = streamServerClient.channel('messaging', channelId, {
+      name: `Installation ${folder.folderNumber || idOf(folder._id)}`,
+      members: members.map(member => member.id),
+    });
+    await streamChannel.watch({ members: { limit: 100 }, messages: { limit: 1 } });
+
+    const authorizedMemberIds = new Set(members.map(member => member.id));
+    const currentMemberIds = Object.keys(streamChannel.state.members || {});
+    const membersToAdd = [...authorizedMemberIds].filter(memberId => !currentMemberIds.includes(memberId));
+    const membersToRemove = currentMemberIds.filter(memberId => !authorizedMemberIds.has(memberId));
+    if (membersToAdd.length) await streamChannel.addMembers(membersToAdd);
+    if (membersToRemove.length) await streamChannel.removeMembers(membersToRemove);
+
+    const now = Math.floor(Date.now() / 1000);
+    const token = streamServerClient.createToken(idOf(req.user._id), now + 60 * 60, now);
+
+    return res.json({
+      success: true,
+      data: {
+        apiKey: config.stream.apiKey,
+        token,
+        user: members.find(member => member.id === idOf(req.user._id)),
+        members,
+        channelId,
+      },
+    });
+  } catch (error) {
+    console.error('[InstallationController] getInstallationStreamSession error:', error);
+    return fail(res, 500, 'Impossible de préparer les communications Stream.');
   }
 }
 
