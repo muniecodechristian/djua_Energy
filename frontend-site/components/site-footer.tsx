@@ -41,8 +41,7 @@ export function SiteFooter() {
           <div className="mt-4 grid gap-3 text-sm text-white/65">
             <p><MapPin className="mr-2 inline size-4 text-[#ff8a00]" />Kinshasa, RDC</p>
             <a href="tel:+243995424606" className="hover:text-white"><Phone className="mr-2 inline size-4 text-[#ff8a00]" />099 542 4606</a>
-            <a href="tel:+243837807301" className="hover:text-white"><Phone className="mr-2 inline size-4 text-[#ff8a00]" />+243 837 807 301</a>
-            <a href="mailto:Techplus643@gmail.com" className="hover:text-white"><Mail className="mr-2 inline size-4 text-[#ff8a00]" />Techplus643@gmail.com</a>
+            <a href="mailto:contact@djua-energy.cd" className="hover:text-white"><Mail className="mr-2 inline size-4 text-[#ff8a00]" />contact@djua-energy.cd</a>
           </div>
         </div>
       </div>

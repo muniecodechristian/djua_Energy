@@ -58,6 +58,13 @@ const heroSlides = [
   },
 ];
 
+const teamMembers = [
+  { name: "Carmel Kongolo", role: "Porteur du projet", initials: "CK", tone: "bg-[#f5dfc4] text-[#7b3d19]" },
+  { name: "Christian Munie", role: "Développeur full-stack", initials: "CM", tone: "bg-[#dce9df] text-[#27553b]" },
+  { name: "Elie Salumu", role: "Ingénieur IoT, IA & data", initials: "ES", tone: "bg-[#f6e5bb] text-[#79520a]" },
+  { name: "Eunice Kapinga", role: "Business project manager", initials: "EK", tone: "bg-[#eadfd8] text-[#754a3a]" },
+  { name: "Guylain", role: "Designer", initials: "G", tone: "bg-[#dce7e9] text-[#31545b]" },
+];
 
 export default function EnergyHome() {
   const reducedMotion = useReducedMotion();
@@ -73,7 +80,7 @@ export default function EnergyHome() {
   const slide = heroSlides[activeSlide];
 
   return (
-    <main className="overflow-hidden bg-white text-[#17211e]">
+    <main className="overflow-x-clip bg-white text-[#17211e]">
       <SiteHeader />
 
       <section className="relative isolate flex min-h-[min(760px,88svh)] items-center justify-center overflow-hidden bg-[#17191b] text-white">
@@ -312,6 +319,45 @@ export default function EnergyHome() {
             <PhoneCall size={16} /> Contactez Djua <ArrowRight size={16} />
           </a>
         </motion.div>
+      </section>
+
+      <section id="equipe" className="relative overflow-hidden bg-white px-6 py-20 sm:py-28">
+        <div className="relative mx-auto max-w-7xl">
+          <motion.div
+            initial={reducedMotion ? false : { opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.35 }}
+            className="mb-10 flex flex-col gap-5 md:mb-14 md:flex-row md:items-end md:justify-between"
+          >
+            <div>
+              <p className="mb-4 text-xs font-bold uppercase tracking-[0.14em] text-[#c96500]">L’équipe Djua</p>
+              <h2 className="max-w-2xl text-3xl font-semibold leading-tight sm:text-5xl">Des expertises réunies autour d’un même projet.</h2>
+            </div>
+            <p className="max-w-md text-sm leading-6 text-[#657168]">De la conception à l’énergie connectée, notre équipe construit Djua avec des compétences complémentaires.</p>
+          </motion.div>
+
+          <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 sm:gap-x-6 lg:grid-cols-5">
+            {teamMembers.map((member, index) => (
+              <motion.article
+                key={member.name}
+                initial={reducedMotion ? false : { opacity: 0, y: 22 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.25 }}
+                transition={{ delay: index * 0.07, duration: 0.45 }}
+                className="group min-w-0"
+              >
+                <div className={`relative grid aspect-[4/4.6] place-items-center overflow-hidden rounded-md ${member.tone}`}>
+                  <span aria-hidden="true" className="absolute inset-3 border border-current/15" />
+                  <span aria-hidden="true" className="absolute -right-7 -top-7 size-24 rounded-full border border-current/20 transition-transform duration-500 group-hover:scale-125" />
+                  <span className="relative font-semibold tracking-[0.08em] text-4xl sm:text-5xl">{member.initials}</span>
+                  <span className="absolute bottom-3 left-3 text-[10px] font-bold uppercase tracking-[0.14em] opacity-60">Djua · {String(index + 1).padStart(2, "0")}</span>
+                </div>
+                <h3 className="mt-4 break-words text-base font-semibold leading-snug sm:text-lg">{member.name}</h3>
+                <p className="mt-1 text-sm leading-5 text-[#657168]">{member.role}</p>
+              </motion.article>
+            ))}
+          </div>
+        </div>
       </section>
 
       <SiteFooter />
