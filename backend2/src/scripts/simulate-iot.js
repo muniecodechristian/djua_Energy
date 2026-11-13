@@ -5,6 +5,7 @@ import EnrichedTelemetry from '../models/EnrichedTelemetry.js';
 import { enrichTelemetry } from '../services/telemetryEnricher.service.js';
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const simulationStartedAt = Date.now();
 
 const runSimulation = async () => {
   try {
@@ -37,38 +38,54 @@ const runSimulation = async () => {
         const loadPower = Number((loadVoltage * loadCurrent).toFixed(2));
 
         const iotPayload = {
+          protocol: 'D2T2',
           message_id: `sim-msg-${kit.kitId}-${Date.now()}`,
-          message_type: 'telemetry',
-          device_id: `device-${kit.kitId}`,
           kit_id: kit.kitId,
-          event_time: String(Math.floor(Date.now() / 1000)),
-          sequence_number: Math.floor(Math.random() * 100000),
-          
-          battery_voltage_v: batteryVoltage,
-          battery_current_a: batteryCurrent,
-          battery_power_w: batteryPower,
-          state_of_charge_pct: Math.floor(20 + Math.random() * 80),
-          state_of_health_pct: Math.floor(70 + Math.random() * 30),
-          
-          solar_voltage_v: solarVoltage,
-          solar_current_a: solarCurrent,
-          solar_power_w: solarPower,
-          energy_generated_wh: Math.floor(100 + Math.random() * 200),
-          
-          load_voltage_v: loadVoltage,
-          load_current_a: loadCurrent,
-          load_power_w: loadPower,
-          energy_consumed_wh: Math.floor(500 + Math.random() * 1000),
-          
-          overload_detected: Math.random() > 0.95,
-          
+          sequence: Math.floor(Math.random() * 100000),
+          uptime_ms: Date.now() - simulationStartedAt,
+          timestamp_ms: Date.now(),
+          interval_seconds: 60,
+          timestamp: new Date().toISOString(),
           // GPS du kit ou petite déviation
           latitude: kit.gpsCoordinates?.latitude ? kit.gpsCoordinates.latitude + (Math.random() - 0.5) * 0.001 : -4.325,
           longitude: kit.gpsCoordinates?.longitude ? kit.gpsCoordinates.longitude + (Math.random() - 0.5) * 0.001 : 15.322,
+          battery: {
+            voltage_v: batteryVoltage,
+            current_a: batteryCurrent,
+            power_w: batteryPower,
+          },
+          solar: {
+            voltage_v: solarVoltage,
+            current_a: solarCurrent,
+            power_w: solarPower,
+            energy_interval_wh: Math.floor(100 + Math.random() * 200),
+          },
+          dc_load: {
+            voltage_v: loadVoltage,
+            current_a: loadCurrent,
+            power_w: loadPower,
+            energy_interval_wh: Math.floor(500 + Math.random() * 1000),
+            measured_count: 1,
+          },
+          ac_load: {
+            voltage_v: 220,
+            current_a: Number((loadPower / 220).toFixed(2)),
+            active_power_w: loadPower,
+            apparent_power_va: loadPower,
+            energy_interval_wh: Math.floor(100 + Math.random() * 300),
+          },
           device_temperature_c: Number((35 + Math.random() * 15).toFixed(1)),
-          battery_error_code: Math.random() > 0.95 ? 'BATT_TEMP_HIGH' : 'NONE',
-          solar_error_code: Math.random() > 0.95 ? 'LOW_INPUT' : 'NONE',
-          schema_version: '1.0'
+          validity: {
+            rtc: true,
+            gps: Boolean(kit.gpsCoordinates?.latitude && kit.gpsCoordinates?.longitude),
+            battery: true,
+            solar: true,
+            solar_energy: true,
+            dc_load: true,
+            dc_load_energy: true,
+            ac: true,
+            ac_energy: true,
+          },
         };
 
         try {

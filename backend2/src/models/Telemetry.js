@@ -55,7 +55,9 @@ const TelemetrySchema = new mongoose.Schema({
   ac_load: {
     voltage_v:          { type: Number, default: null },  // Tension sortie AC (V)
     current_a:          { type: Number, default: null },  // Courant sortie AC (A)
+    active_power_w:     { type: Number, default: null },  // Puissance active AC (W)
     apparent_power_va:  { type: Number, default: null },  // Puissance apparente (VA)
+    energy_interval_wh: { type: Number, default: null },  // Énergie active AC (Wh)
     energy_interval_vah:{ type: Number, default: null },  // Énergie AC (VAh)
   },
 
@@ -70,12 +72,19 @@ const TelemetrySchema = new mongoose.Schema({
   // ── Méta-données du message IoT ────────────────────────────────────────────
   meta: {
     message_id:      { type: String },
+    protocol:        { type: String },
     schema_version:  { type: String, default: '1.0' },
     message_type:    { type: String, default: 'telemetry' },
     event_time:      { type: String },                     // Timestamp ISO ou epoch
     sequence_number: { type: Number, default: 1 },
     interval_seconds:{ type: Number, default: null },
+    uptime_ms:       { type: Number, default: null },
+    timestamp_ms:    { type: Number, default: null },
+    timezone:        { type: String },
+    gateway_received_at: { type: String },
+    auth_status:     { type: String },
   },
+  validity: { type: mongoose.Schema.Types.Mixed, default: {} },
 
   // ── Champ libre pour toute donnée supplémentaire non standard ─────────────
   extraData: {

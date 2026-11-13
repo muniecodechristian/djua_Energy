@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowDown, ArrowRight, BatteryCharging, MapPin, PhoneCall, ShieldCheck, Sun, Wrench } from "lucide-react";
+import { ArrowDown, ArrowRight, BatteryCharging, Bell, MapPin, PhoneCall, ShieldCheck, Sun, Wrench } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useEffect, useState } from "react";
 import Lottie from "lottie-react";
@@ -185,8 +185,8 @@ export default function EnergyHome() {
             transition={{ duration: 0.6 }}
             className="mb-12 text-center"
           >
-            <p className="mb-4 text-xs font-bold uppercase tracking-[0.14em] text-[#ff8a00]">Votre installation, connectée</p>
-            <h2 className="mx-auto max-w-3xl text-3xl font-semibold leading-tight sm:text-5xl">Gardez un œil sur votre énergie.</h2>
+            <p className="mb-4 text-xs font-bold uppercase tracking-[0.14em] text-[#ff8a00]">Le suivi de votre système, à distance</p>
+            <h2 className="mx-auto max-w-3xl text-3xl font-semibold leading-tight sm:text-5xl">Suivez la production solaire et l’état de votre batterie depuis votre espace Djua.</h2>
           </motion.div>
           <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
           <motion.div
@@ -210,7 +210,7 @@ export default function EnergyHome() {
             </div>
             <div className="absolute bottom-4 left-4 inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/60 px-3.5 py-1.5 text-[11px] font-medium text-white backdrop-blur-md shadow-lg">
               <span className="size-2 rounded-full bg-[#39a96b] animate-pulse" />
-              Suivi de l&apos;installation en direct
+              Les données de votre installation
             </div>
           </motion.div>
           <motion.div
@@ -219,8 +219,13 @@ export default function EnergyHome() {
             viewport={{ once: true, amount: 0.3 }}
             transition={{ duration: 0.6 }}
           >
-            <p className="max-w-lg text-sm leading-7 text-[#59615b]">Le boîtier Djua transmet les données de votre kit pour suivre la production solaire, l’état de la batterie et les alertes techniques depuis la plateforme.</p>
-            <Link href="/services" className="mt-7 inline-flex items-center gap-2 text-sm font-bold text-[#c96500] hover:text-[#8f4700]">Découvrir le suivi Djua <ArrowRight size={16} /></Link>
+            <p className="max-w-lg text-sm leading-7 text-[#59615b]">Le boîtier connecté envoie les informations de votre installation à la plateforme Djua. Vous pouvez consulter la production des panneaux, vérifier la charge de la batterie et repérer les alertes techniques, sans vous déplacer jusqu’à votre équipement.</p>
+            <ul className="mt-6 grid gap-3 text-sm text-[#34443a]">
+              <li className="flex items-center gap-3"><Sun size={17} className="shrink-0 text-[#ff8a00]" />Production solaire de votre installation</li>
+              <li className="flex items-center gap-3"><BatteryCharging size={17} className="shrink-0 text-[#ff8a00]" />État de charge de la batterie</li>
+              <li className="flex items-center gap-3"><Bell size={17} className="shrink-0 text-[#ff8a00]" />Alertes techniques à consulter</li>
+            </ul>
+            <Link href="/services" className="mt-7 inline-flex items-center gap-2 text-sm font-bold text-[#c96500] hover:text-[#8f4700]">Comprendre le suivi de votre installation <ArrowRight size={16} /></Link>
           </motion.div>
           </div>
         </div>

@@ -49,6 +49,42 @@ describe('Telemetry Enricher Service Tests', () => {
     expect(normalized.ac_apparent_power_va).toBe(145.8);
   });
 
+  it('should normalize the current D2T2 telemetry payload without losing metadata or units', () => {
+    const normalized = normalizeTelemetryPayload({
+      kit_id: 'DJUA-KIN-000001',
+      protocol: 'D2T2',
+      sequence: 12345,
+      message_id: 'D2:DJUA-KIN-000001:9IX',
+      uptime_ms: 123456789,
+      timestamp_ms: 123456789,
+      interval_seconds: 1800,
+      timestamp: '2026-09-27T16:30:00+01:00',
+      timezone: 'GMT+1',
+      gateway_received_at: '2026-11-13T14:33:39.678995+00:00',
+      auth_status: 'NOT_VERIFIED',
+      latitude: -4.3251,
+      longitude: 15.3222,
+      battery: { voltage_v: 12.4, current_a: 0.5, power_w: 6.2 },
+      solar: { voltage_v: 18.2, current_a: 1.23, power_w: 22.4, energy_interval_wh: 11.2 },
+      dc_load: { voltage_v: 12.35, current_a: 6.4, power_w: 79, energy_interval_wh: 19.76, measured_count: 2 },
+      ac_load: { voltage_v: 230.1, current_a: 1.25, active_power_w: 244.5, apparent_power_va: 287.6, energy_interval_wh: 122.25 },
+      validity: { rtc: true, gps: true, battery: true, solar: true, solar_energy: true, dc_load: true, dc_load_energy: true, ac: true, ac_energy: true },
+    });
+
+    expect(normalized.kit_id).toBe('DJUA-KIN-000001');
+    expect(normalized.device_id).toBeUndefined();
+    expect(normalized.protocol).toBe('D2T2');
+    expect(normalized.sequence_number).toBe(12345);
+    expect(normalized.event_time).toBe('2026-09-27T16:30:00+01:00');
+    expect(normalized.ac_active_power_w).toBe(244.5);
+    expect(normalized.ac_apparent_power_va).toBe(287.6);
+    expect(normalized.ac_energy_interval_wh).toBe(122.25);
+    expect(normalized.ac_energy_interval_vah).toBeUndefined();
+    expect(normalized.validity.ac_energy).toBe(true);
+    expect(normalized.dc_load.measured_count).toBe(2);
+    expect(normalized.gateway_received_at).toBe('2026-11-13T14:33:39.678995+00:00');
+  });
+
   it('should preserve future IoT fields in normalized and enriched telemetry', async () => {
     const payload = {
       protocol: 'D2T2',

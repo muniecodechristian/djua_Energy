@@ -53,9 +53,10 @@ function handleMessage(topic, message) {
       const t = payload;
       console.log(`\n══════════════════ TÉLÉMÉTRIE [${deviceId}] ══════════════════`);
       console.log(`   Timestamp      : ${t.timestamp ?? new Date().toISOString()}`);
-      console.log(`   Batterie       : ${t.batteryVoltage ?? '?'}V  |  ${t.batteryCurrent ?? '?'}A  |  SOC: ${t.batterySOC ?? '?'}%`);
-      console.log(`   Panneau        : ${t.panelVoltage ?? '?'}V  |  ${t.panelCurrent ?? '?'}A  |  Puissance: ${t.panelPower ?? '?'}W`);
-      console.log(`   Firmware       : ${t.firmwareVersion ?? '?'}`);
+      console.log(`   Batterie       : ${t.battery?.voltage_v ?? '?'}V  |  ${t.battery?.current_a ?? '?'}A`);
+      console.log(`   Panneau        : ${t.solar?.voltage_v ?? '?'}V  |  ${t.solar?.current_a ?? '?'}A  |  Puissance: ${t.solar?.power_w ?? '?'}W`);
+      console.log(`   Charge AC      : ${t.ac_load?.active_power_w ?? '?'}W active  |  ${t.ac_load?.apparent_power_va ?? '?'}VA apparente`);
+      console.log(`   Protocole      : ${t.protocol ?? '?'}`);
       console.log(`══════════════════════════════════════════════════════════════\n`);
 
       processTelemetry(deviceId, payload)

@@ -89,7 +89,9 @@ const flattenRawTelemetry = (snapshot) => snapshot ? ({
   overload_detected: snapshot.dc_load?.overload_detected,
   ac_load_voltage_v: snapshot.ac_load?.voltage_v,
   ac_load_current_a: snapshot.ac_load?.current_a,
+  ac_active_power_w: snapshot.ac_load?.active_power_w,
   ac_apparent_power_va: snapshot.ac_load?.apparent_power_va,
+  ac_energy_interval_wh: snapshot.ac_load?.energy_interval_wh,
   latitude: snapshot.gpsCoordinates?.latitude,
   longitude: snapshot.gpsCoordinates?.longitude,
   signal_strength_dbm: snapshot.environment?.signal_strength_dbm,
@@ -852,6 +854,7 @@ const technicians = useTeamTechnicians();
                       <RowList>
                         <Row label="Tension" value={fmt(T?.ac_load_voltage_v, ' V')} />
                         <Row label="Courant" value={fmt(T?.ac_load_current_a, ' A')} />
+                        <Row label="Puissance active" value={fmt(T?.ac_active_power_w, ' W')} />
                         <Row label="Puissance apparente" value={fmt(T?.ac_apparent_power_va, ' VA')} />
                       </RowList>
                     </div>

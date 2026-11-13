@@ -76,7 +76,9 @@ export async function processTelemetry(deviceId, payload) {
     ac_load: {
       voltage_v:           cleanPayload.ac_load_voltage_v       ?? null,
       current_a:           cleanPayload.ac_load_current_a       ?? null,
+      active_power_w:      cleanPayload.ac_active_power_w       ?? null,
       apparent_power_va:   cleanPayload.ac_apparent_power_va    ?? null,
+      energy_interval_wh:  cleanPayload.ac_energy_interval_wh   ?? null,
       energy_interval_vah: cleanPayload.ac_energy_interval_vah  ?? null,
     },
     environment: {
@@ -87,12 +89,19 @@ export async function processTelemetry(deviceId, payload) {
     },
     meta: {
       message_id:       cleanPayload.message_id      ?? null,
+      protocol:         cleanPayload.protocol        ?? null,
       schema_version:   cleanPayload.schema_version  ?? '1.0',
       message_type:     cleanPayload.message_type    ?? 'telemetry',
       event_time:       cleanPayload.event_time      ?? null,
       sequence_number:  cleanPayload.sequence_number ?? 1,
       interval_seconds: cleanPayload.interval_seconds ?? null,
+      uptime_ms:        cleanPayload.uptime_ms       ?? null,
+      timestamp_ms:     cleanPayload.timestamp_ms    ?? null,
+      timezone:         cleanPayload.timezone        ?? null,
+      gateway_received_at: cleanPayload.gateway_received_at ?? null,
+      auth_status:      cleanPayload.auth_status     ?? null,
     },
+    validity: cleanPayload.validity ?? {},
     extraData: cleanPayload,
   });
 

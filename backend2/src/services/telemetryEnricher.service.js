@@ -36,8 +36,9 @@ export function normalizeTelemetryPayload(payload = {}) {
   return stripRetiredTelemetryFields({
     ...payload,
     kit_id: payload.kit_id || payload.kitId,
-    device_id: payload.device_id || payload.deviceId || payload.kit_id || payload.kitId,
+    device_id: payload.device_id || payload.deviceId,
     event_time: payload.event_time || payload.timestamp,
+    sequence_number: payload.sequence_number ?? payload.sequence,
     interval_seconds: payload.interval_seconds,
     solar_voltage_v: payload.solar_voltage_v ?? solar.voltage_v,
     solar_current_a: payload.solar_current_a ?? solar.current_a,
@@ -52,7 +53,9 @@ export function normalizeTelemetryPayload(payload = {}) {
     energy_consumed_wh: payload.energy_consumed_wh ?? dcLoad.energy_interval_wh,
     ac_load_voltage_v: acLoad.voltage_v,
     ac_load_current_a: acLoad.current_a,
+    ac_active_power_w: payload.ac_active_power_w ?? acLoad.active_power_w,
     ac_apparent_power_va: acLoad.apparent_power_va,
+    ac_energy_interval_wh: payload.ac_energy_interval_wh ?? acLoad.energy_interval_wh,
     ac_energy_interval_vah: acLoad.energy_interval_vah,
   });
 }
