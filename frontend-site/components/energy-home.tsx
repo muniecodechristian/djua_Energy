@@ -85,7 +85,7 @@ export default function EnergyHome() {
     <main className="overflow-x-clip bg-white text-[#17211e]">
       <SiteHeader />
 
-      <section id="accueil" className="scroll-mt-24 relative isolate flex min-h-[min(760px,88svh)] items-center justify-center overflow-hidden bg-[#17191b] text-white">
+      <section id="accueil" className="scroll-mt-24 relative isolate flex h-[calc(100svh-65px)] items-center justify-center overflow-hidden bg-[#17191b] text-white">
         <Image
           src="/images/solar-array.jpg"
           alt="Panneaux solaires installés sous le ciel de la RDC"
@@ -102,7 +102,7 @@ export default function EnergyHome() {
             animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
             exit={reducedMotion ? undefined : { opacity: 0, y: -18, filter: 'blur(6px)' }}
             transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
-            className="mx-auto flex w-full max-w-5xl flex-col items-center px-6 pb-28 pt-36 text-center sm:pb-32"
+            className="mx-auto flex w-full max-w-5xl flex-col items-center px-6 py-16 text-center sm:py-20"
           >
             <p className="mb-5 flex items-center gap-3 text-xs font-bold uppercase tracking-[0.18em] text-white/85">
               <span className="h-px w-8 bg-[#ff8a00]" /> {slide.eyebrow} <span className="h-px w-8 bg-[#ff8a00]" />
@@ -129,7 +129,55 @@ export default function EnergyHome() {
         </div>
       </section>
 
-      <section id="solutions" className="mx-auto max-w-7xl px-6 py-20 sm:py-28">
+      <section id="about" className="scroll-mt-24 bg-[#fffaf4] px-5 py-12 sm:px-8 sm:py-16">
+        <div className="mx-auto max-w-[1440px]">
+          <motion.div
+            initial={reducedMotion ? false : { opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.3 }}
+            transition={{ duration: 0.6 }}
+            className="mb-9 text-center"
+          >
+            <p className="mb-4 text-xs font-bold uppercase tracking-[0.14em] text-[#ff8a00]">À propos de Djua</p>
+            <h2 className="mx-auto max-w-3xl text-3xl font-semibold leading-tight sm:text-5xl">
+              Nous rendons l’énergie solaire plus simple à adopter.
+            </h2>
+          </motion.div>
+          <div className="grid gap-8 lg:grid-cols-2 lg:items-center">
+            <motion.div
+              initial={reducedMotion ? false : { opacity: 0, x: -24 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true, amount: 0.3 }}
+              transition={{ duration: 0.6 }}
+              className="relative min-h-[260px] overflow-hidden rounded-2xl shadow-[0_12px_32px_rgba(23,33,30,0.12)] sm:min-h-[360px]"
+            >
+              <Image
+                src="/images/solar-farm.jpg"
+                alt="Rangée de panneaux solaires produisant de l’énergie propre"
+                fill
+                sizes="(max-width: 1024px) 100vw, 50vw"
+                className="object-cover"
+              />
+            </motion.div>
+            <motion.div
+              initial={reducedMotion ? false : { opacity: 0, x: 24 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true, amount: 0.3 }}
+              transition={{ duration: 0.6 }}
+              className="mx-auto max-w-2xl text-center"
+            >
+              <p className="mt-5 text-sm leading-7 text-[#59665c]">
+                Djua Energy accompagne les foyers et les entreprises en RDC, du premier diagnostic jusqu’au suivi de leur installation. Nous prenons le temps de comprendre vos besoins et les contraintes de votre site pour vous proposer une solution adaptée.
+              </p>
+              <Link href="/about" className="mt-7 inline-flex items-center gap-2 text-sm font-bold text-[#c96500] hover:text-[#8f4700]">
+                En savoir plus sur Djua <ArrowRight size={16} />
+              </Link>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
+      <section id="solutions" className="mx-auto max-w-[1440px] px-5 py-14 sm:px-8 sm:py-20">
         <motion.div
           initial={reducedMotion ? false : "hidden"}
           whileInView="visible"
@@ -176,8 +224,8 @@ export default function EnergyHome() {
         </motion.div>
       </section>
 
-      <section id="suivi" className="scroll-mt-24 bg-[#fff8f0] px-6 py-20 sm:py-28">
-        <div className="mx-auto max-w-7xl">
+      <section id="suivi" className="scroll-mt-24 bg-[#fff8f0] px-5 py-14 sm:px-8 sm:py-20">
+        <div className="mx-auto max-w-[1440px]">
           <motion.div
             initial={reducedMotion ? false : { opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -231,30 +279,27 @@ export default function EnergyHome() {
         </div>
       </section>
 
-      <section id="approche" className="bg-[#fffaf4] px-6 py-20 sm:py-28">
-        <div className="mx-auto max-w-7xl">
+      <section id="approche" className="bg-[#fffaf4] px-5 py-14 sm:px-8 sm:py-20">
+        <div className="mx-auto max-w-[1280px]">
           <motion.div
-            initial="hidden"
-            whileInView="visible"
+            initial={reducedMotion ? false : { opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.3 }}
-            variants={revealIn}
-            className="mb-12 text-center"
+            transition={{ duration: 0.55 }}
+            className="mx-auto mb-11 max-w-3xl text-center sm:mb-14"
           >
-            <p className="mb-4 text-xs font-bold uppercase tracking-[0.14em] text-[#ff8a00]">Notre expertise</p>
+            <p className="mb-4 text-xs font-bold uppercase tracking-[0.16em] text-[#c96500]">Notre expertise</p>
             <h2 className="mx-auto max-w-3xl text-3xl font-semibold leading-tight sm:text-5xl">
               La bonne installation, sans complication.
             </h2>
-          </motion.div>
-          <div className="grid gap-8 lg:grid-cols-[.8fr_1.2fr] lg:items-center">
-            <div>
-              <p className="max-w-lg text-sm leading-7 text-[#59665c]">
-              Nous étudions votre consommation, choisissons les équipements adaptés et prenons en charge l’installation. Vous savez ce qui est prévu et pourquoi.
-              </p>
-              <Link href="/about" className="mt-7 inline-flex items-center gap-2 text-sm font-bold text-[#c96500] hover:text-[#8f4700]">
+            <p className="mx-auto mt-5 max-w-2xl text-sm leading-7 text-[#59665c] sm:text-base">
+              Nous étudions votre consommation, sélectionnons les équipements adaptés et prenons en charge l’installation. Vous savez ce qui est prévu, et pourquoi.
+            </p>
+            <Link href="/about" className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[#c96500] transition-colors hover:text-[#8f4700]">
               Découvrir notre approche <ArrowRight size={16} />
-              </Link>
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2">
+            </Link>
+          </motion.div>
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {[
               { icon: Sun, title: "Étude personnalisée", text: "Un système dimensionné selon vos appareils et vos horaires." },
               { icon: ShieldCheck, title: "Matériel sélectionné", text: "Des composants choisis pour leur compatibilité et leur fiabilité." },
@@ -267,25 +312,27 @@ export default function EnergyHome() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, amount: 0.4 }}
                 transition={{ delay: index * 0.08, duration: 0.45 }}
-                className="min-h-[170px] rounded-md border border-[#17211e]/8 bg-white p-5"
+                className="group min-h-[220px] rounded-2xl border border-[#17211e]/8 bg-white p-6 shadow-[0_6px_22px_rgba(23,33,30,0.045)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_14px_34px_rgba(23,33,30,0.1)] sm:p-7"
               >
-                <Icon className="size-5 text-[#ff8a00]" strokeWidth={1.7} />
-                <h3 className="mt-6 text-base font-semibold">{title}</h3>
-                <p className="mt-2 text-sm leading-5 text-[#667168]">{text}</p>
+                <span className="flex size-11 items-center justify-center rounded-xl bg-[#fff3e5] text-[#e8790b] transition-colors group-hover:bg-[#ff8a00] group-hover:text-white">
+                  <Icon className="size-5" strokeWidth={1.7} />
+                </span>
+                <p className="mt-6 text-[11px] font-bold tracking-[0.14em] text-[#a0a89f]">0{index + 1}</p>
+                <h3 className="mt-2 text-lg font-semibold leading-snug">{title}</h3>
+                <p className="mt-2 text-sm leading-6 text-[#667168]">{text}</p>
               </motion.article>
             ))}
-            </div>
           </div>
         </div>
       </section>
 
-      <section id="parcours" className="scroll-mt-24 mx-auto max-w-7xl px-6 py-20 sm:py-28">
+      <section id="parcours" className="scroll-mt-24 mx-auto max-w-[1440px] px-5 py-14 sm:px-8 sm:py-20">
         <div>
           <motion.div initial={reducedMotion ? false : "hidden"} whileInView="visible" viewport={{ once: true }} variants={revealIn} className="mb-12 text-center">
             <p className="mb-4 text-xs font-bold uppercase tracking-[0.14em] text-[#ff8a00]">Votre parcours</p>
             <h2 className="mx-auto max-w-3xl text-3xl font-semibold leading-tight sm:text-5xl">Simple, du besoin à la mise en service.</h2>
           </motion.div>
-          <div className="grid gap-0 sm:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-3">
             {steps.map(([title, text], index) => (
               <motion.article
                 key={title}
@@ -293,7 +340,7 @@ export default function EnergyHome() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, amount: 0.4 }}
                 transition={{ delay: index * 0.1, duration: 0.45 }}
-                className="border-t border-[#17211e]/20 py-5 sm:mr-5"
+                className="rounded-xl border border-[#17211e]/10 bg-white p-6 shadow-[0_8px_24px_rgba(23,33,30,0.07)] transition-shadow hover:shadow-[0_14px_32px_rgba(23,33,30,0.12)] sm:p-7"
               >
                 <span className="text-xs font-bold text-[#ff8a00]">0{index + 1}</span>
                 <h3 className="mt-6 text-lg font-semibold">{title}</h3>
@@ -321,7 +368,7 @@ export default function EnergyHome() {
         </motion.div>
       </section>
 
-      <section id="equipe" className="scroll-mt-24 relative overflow-hidden bg-white px-6 py-20 sm:py-28">
+      <section id="equipe" className="scroll-mt-24 relative overflow-hidden bg-white px-5 py-14 sm:px-8 sm:py-20">
         <div className="relative mx-auto max-w-[1440px]">
           <motion.div
             initial={reducedMotion ? false : { opacity: 0, y: 20 }}

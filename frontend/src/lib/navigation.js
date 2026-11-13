@@ -50,6 +50,10 @@ export function navigationForRole(role) {
     return [];
   }
 
-  // Responsable Shop (shop_manager) : rapports complets sur son équipe, sauf paramètres admin
+  // Responsable Shop (shop_manager) : rapports complets sur son équipe, sans maintenance ni paramètres admin
+  if (normalizedRole === 'shop_manager') {
+    return navigation.filter(item => !['/AdministrationSettings', '/InterventionWizard'].includes(item.path));
+  }
+
   return navigation.filter(item => item.path !== '/AdministrationSettings');
 }
