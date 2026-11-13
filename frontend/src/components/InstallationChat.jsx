@@ -137,7 +137,7 @@ function AudioPlayerBubble({ src, isMe }) {
   );
 }
 
-export default function InstallationChat({ installationId, title, recipientName }) {
+export default function InstallationChat({ installationId, title, recipientName, active = true }) {
   const navigate = useNavigate();
   const currentUser = useAuthStore(state => state.user);
   const stream = useStreamInstallation(installationId);
@@ -179,7 +179,7 @@ export default function InstallationChat({ installationId, title, recipientName 
     if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
   }, []);
 
-  const { data: chatData, refetch } = useGetInstallationMessages(installationId);
+  const { data: chatData, isPending: isMessagesLoading, refetch } = useGetInstallationMessages(installationId, { active });
   const sendMutation = useSendInstallationMessage();
   const markReadMutation = useMarkInstallationMessagesRead();
 
@@ -426,6 +426,8 @@ export default function InstallationChat({ installationId, title, recipientName 
             client={stream.videoClient}
             members={stream.members}
             installationId={installationId}
+            loading={stream.loading}
+            error={stream.error}
           />
         </div>
       </div>
@@ -544,7 +546,12 @@ export default function InstallationChat({ installationId, title, recipientName 
         ref={messagesContainerRef}
         onScroll={handleScroll}
       >
-        {messages.length === 0 ? (
+        {isMessagesLoading ? (
+          <div className="ic-messages-loading" role="status">
+            <span className="ic-messages-loading-spinner" />
+            <span>Chargement des messages…</span>
+          </div>
+        ) : messages.length === 0 ? (
           <div className="ic-empty-state">
             <div className="ic-empty-icon-wrap">
               <Radio size={26} />

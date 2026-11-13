@@ -1388,6 +1388,113 @@
 .quote-payment-unavailable span { color: #667085; }
 .quote-payment-unavailable strong { text-align: right; }
 
+.dark .quote-detail-page { color: #e8edf5; }
+.dark .quote-detail-heading h1,
+.dark .quote-summary-customer strong,
+.dark .quote-summary-fact strong,
+.dark .quote-action-card-heading h2,
+.dark .quote-ready-heading h2,
+.dark .quote-decision-result h2,
+.dark .quote-sidebar-card h2,
+.dark .quote-detail-section h2,
+.dark .quote-detail-facts dd,
+.dark .quote-system-grid strong,
+.dark .quote-line-items-unavailable strong,
+.dark .quote-payment-unavailable strong {
+  color: #e8edf5;
+}
+
+.dark .quote-detail-heading > div > p,
+.dark .quote-summary-customer span,
+.dark .quote-summary-customer small,
+.dark .quote-summary-fact span,
+.dark .quote-action-card-heading p,
+.dark .quote-ready-heading p,
+.dark .quote-decision-result p,
+.dark .quote-action-note,
+.dark .quote-sidebar-card > p,
+.dark .quote-sidebar-card > a,
+.dark .quote-detail-facts dt,
+.dark .quote-system-grid span,
+.dark .quote-system-grid small,
+.dark .quote-line-item-description,
+.dark .quote-line-items-unavailable p,
+.dark .quote-payment-note,
+.dark .quote-payment-unavailable span,
+.dark .quote-detail-empty {
+  color: #a1aab8;
+}
+
+.dark .quote-summary-card,
+.dark .quote-sidebar-card,
+.dark .quote-action-card,
+.dark .quote-detail-section {
+  background: #111113;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.dark .quote-detail-tabs { border-bottom-color: rgba(255, 255, 255, 0.1); }
+.dark .quote-detail-tabs button { color: #a1aab8; }
+.dark .quote-detail-tabs button.is-active { color: #ff8a4c; }
+.dark .quote-summary-fact,
+.dark .quote-summary-amount { border-left-color: rgba(255, 255, 255, 0.1); }
+.dark .quote-summary-icon { background: rgba(240, 90, 26, 0.15); }
+
+.dark .quote-detail-badge.draft { color: #fbbf24; background: rgba(217, 119, 6, 0.16); }
+.dark .quote-detail-badge.approved { color: #4ade80; background: rgba(21, 128, 61, 0.16); }
+.dark .quote-detail-badge.rejected { color: #fca5a5; background: rgba(185, 28, 28, 0.16); }
+.dark .quote-detail-badge.installing { color: #93c5fd; background: rgba(29, 78, 216, 0.18); }
+.dark .quote-detail-badge.installed { color: #6ee7b7; background: rgba(4, 120, 87, 0.18); }
+
+.dark .quote-action-icon.pending { color: #fb923c; background: rgba(234, 88, 12, 0.16); }
+.dark .quote-action-icon.accepted { color: #4ade80; background: rgba(22, 163, 74, 0.16); }
+.dark .quote-action-icon.rejected { color: #fca5a5; background: rgba(220, 38, 38, 0.16); }
+.dark .quote-decision-button.accept { color: #86efac; background: #17251d; border-color: rgba(74, 222, 128, 0.3); }
+.dark .quote-decision-button.reject { color: #fca5a5; background: #2a1718; border-color: rgba(248, 113, 113, 0.3); }
+.dark .quote-decision-button:not(.accept):not(.reject) { color: #e8edf5; background: #161921; border-color: rgba(255, 255, 255, 0.12); }
+.dark .quote-decision-result.rejected { background: #241719; border-color: rgba(248, 113, 113, 0.28); }
+
+.dark .quote-installation-ready {
+  background: linear-gradient(110deg, #13231b, #111a16);
+  border-color: rgba(74, 222, 128, 0.3);
+}
+.dark .quote-ready-facts > div,
+.dark .quote-line-items-unavailable,
+.dark .quote-system-grid > div {
+  background: #161921;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+.dark .quote-ready-facts strong { color: #e8edf5; }
+.dark .quote-ready-facts span,
+.dark .quote-ready-facts small { color: #a1aab8; }
+.dark .quote-create-folder-form label { color: #d3dae5; }
+.dark .quote-create-folder-form label span { color: #8b95a5; }
+.dark .quote-create-folder-form input {
+  color: #e8edf5;
+  background: #161921;
+  border-color: rgba(255, 255, 255, 0.14);
+}
+.dark .quote-create-folder-form input::placeholder { color: #7d8796; }
+.dark .quote-installation-notice { color: #93c5fd; background: #131d2b; border-color: rgba(96, 165, 250, 0.28); }
+.dark .quote-installation-notice span { color: #a1aab8; }
+.dark .quote-installation-error { color: #fca5a5; }
+
+.dark .quote-sidebar-card > p svg,
+.dark .quote-sidebar-card > a svg { color: #a1aab8; }
+.dark .quote-sidebar-total,
+.dark .quote-summary-amount strong { color: #ff8a4c; }
+.dark .quote-detail-section h2 svg,
+.dark .quote-system-grid svg { color: #ff8a4c; }
+.dark .quote-line-item-category { color: #ffad7a; background: rgba(240, 90, 26, 0.16); }
+.dark .quote-appliances-table th,
+.dark .quote-appliances-table td { border-bottom-color: rgba(255, 255, 255, 0.08); }
+.dark .quote-appliances-table th { color: #a1aab8; }
+.dark .quote-appliances-table td,
+.dark .quote-appliances-table tfoot td { color: #e8edf5; }
+.dark .quote-line-items-table tfoot td { border-top-color: rgba(255, 255, 255, 0.12); }
+.dark .quote-line-items-table tfoot td:last-child { color: #ff8a4c; }
+.dark .quote-payment-unavailable { border-top-color: rgba(255, 255, 255, 0.1); }
+
 @media (max-width: 850px) {
   .quote-detail-layout { grid-template-columns: minmax(0, 1fr) 220px; gap: 14px; }
   .quote-summary-card { grid-template-columns: repeat(2, minmax(0, 1fr)); }

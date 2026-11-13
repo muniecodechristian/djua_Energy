@@ -31,6 +31,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
   padding: 14px 18px;
   background: #ffffff;
   border-bottom: 1px solid rgba(0, 0, 0, 0.06);
@@ -46,8 +47,10 @@
 
 .ic-header-left {
   display: flex;
+  flex: 1;
   align-items: center;
   gap: 11px;
+  min-width: 0;
 }
 
 .ic-avatar {
@@ -73,6 +76,8 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .ic-header-name {
@@ -80,6 +85,9 @@
   font-weight: 700;
   color: #0f172a;
   letter-spacing: -0.01em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 :root[data-theme='dark'] .ic-header-name,
@@ -116,8 +124,9 @@
 
 .ic-header-actions {
   display: flex;
+  flex-shrink: 0;
   align-items: center;
-  gap: 4px;
+  gap: 8px;
 }
 
 .ic-icon-btn {
@@ -855,8 +864,116 @@
 
 .ic-stream-call-actions {
   display: flex;
+  flex-shrink: 0;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
+}
+
+.ic-call-start-button {
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 10px;
+  border: 1px solid rgba(241, 156, 32, 0.3);
+  border-radius: 9px;
+  background: rgba(241, 156, 32, 0.1);
+  color: #a85d00;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.ic-call-start-button:hover:not(:disabled) {
+  background: rgba(241, 156, 32, 0.2);
+}
+
+.dark .ic-call-start-button {
+  border-color: rgba(241, 156, 32, 0.3);
+  background: rgba(241, 156, 32, 0.12);
+  color: #ffbd66;
+}
+
+.ic-call-start-button:disabled {
+  opacity: 0.58;
+  cursor: not-allowed;
+}
+
+.ic-messages-loading {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.ic-messages-loading-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(100, 116, 139, 0.24);
+  border-top-color: #f19c20;
+  border-radius: 50%;
+  animation: ic-message-spin 0.8s linear infinite;
+}
+
+@keyframes ic-message-spin {
+  to { transform: rotate(360deg); }
+}
+
+.ic-call-media-controls {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.96);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.3);
+}
+
+.ic-call-media-button {
+  display: inline-flex;
+  min-width: 74px;
+  min-height: 54px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 10px;
+  background: #273449;
+  color: #fff;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ic-call-media-button:hover:not(:disabled) {
+  background: #34445e;
+}
+
+.ic-call-media-button:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+.ic-call-media-button.is-danger {
+  border-color: #b91c1c;
+  background: #dc2626;
+}
+
+.ic-call-media-button.is-danger:hover {
+  background: #b91c1c;
 }
 
 .ic-stream-error,
@@ -945,6 +1062,11 @@
   min-height: 0;
 }
 
+.ic-call-stage .str-video__speaker-layout {
+  flex: 1;
+  min-height: 0;
+}
+
 .ic-call-waiting {
   align-items: center;
   justify-content: center;
@@ -952,6 +1074,28 @@
 }
 
 @media (max-width: 640px) {
+  .ic-header {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    padding: 12px;
+  }
+
+  .ic-header-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .ic-header-actions > button:first-child {
+    min-width: 0;
+    font-size: 11px !important;
+  }
+
+  .ic-call-start-button {
+    min-width: 68px;
+    min-height: 38px;
+    padding: 0 9px;
+  }
+
   .ic-incoming-call {
     left: 8px;
     right: 8px;
@@ -962,5 +1106,16 @@
   .ic-call-waiting {
     width: 100vw;
     height: 100dvh;
+  }
+
+  .ic-call-media-controls {
+    gap: 6px;
+    padding: 8px;
+  }
+
+  .ic-call-media-button {
+    min-width: 64px;
+    min-height: 50px;
+    padding: 5px 8px;
   }
 }

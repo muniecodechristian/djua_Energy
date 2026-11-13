@@ -36,6 +36,7 @@ export default function TechnicianApp() {
   // ── 4 ONGLETS SENIOR TERRAIN ──────────────────────────────────────────────
   // 'missions' | 'chat' | 'notifications' | 'profile'
   const [activeTab, setActiveTab] = useState('missions');
+  const [hasOpenedChat, setHasOpenedChat] = useState(false);
   const [subTabMissions, setSubTabMissions] = useState('installations'); // 'installations' | 'scanner'
 
   // ── REQUÊTES MODULE 2 : INSTALLATIONS ────────────────────────────────────
@@ -285,7 +286,10 @@ export default function TechnicianApp() {
 
           {/* TAB 2: MESSAGERIE DIRECTE & CHAT VOCAL */}
           <button
-            onClick={() => setActiveTab('chat')}
+            onClick={() => {
+              setHasOpenedChat(true);
+              setActiveTab('chat');
+            }}
             className={`flex flex-col sm:flex-row items-center justify-center gap-1.5 py-2.5 px-2 rounded-lg text-xs font-bold transition-all relative ${
               activeTab === 'chat'
                 ? 'bg-[#F59E0B] text-black shadow-md'
@@ -658,8 +662,8 @@ export default function TechnicianApp() {
       )}
 
       {/* ── 4. CONTENU : ONGLET 2 - MESSAGERIE DIRECTE & CHAT VOCAL ───────────── */}
-      {activeTab === 'chat' && (
-        <main className="max-w-4xl mx-auto px-4 pt-4 space-y-4">
+      {hasOpenedChat && (
+        <main className={`${activeTab === 'chat' ? '' : 'hidden'} max-w-4xl mx-auto px-4 pt-4 space-y-4`}>
           <div className="bg-[#121c2e] border border-slate-800 rounded-2xl p-3 shadow-lg flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
@@ -698,6 +702,7 @@ export default function TechnicianApp() {
                 installationId={selectedChatInstallation._id}
                 title={`Chantier ${selectedChatInstallation.folderNumber} • ${selectedChatInstallation.customer?.name}`}
                 recipientName="Superviseur & Direction Djua"
+                active={activeTab === 'chat'}
               />
             </div>
           ) : (

@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowDown, ArrowRight, BatteryCharging, Check, Cpu, MapPin, PhoneCall, ShieldCheck, Sun, Wrench } from "lucide-react";
+import { ArrowDown, ArrowRight, BatteryCharging, MapPin, PhoneCall, ShieldCheck, Sun, Wrench } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useEffect, useState } from "react";
 import Lottie from "lottie-react";
@@ -59,11 +59,13 @@ const heroSlides = [
 ];
 
 const teamMembers = [
-  { name: "Carmel Kongolo", role: "Porteur du projet", initials: "CK", tone: "bg-[#f5dfc4] text-[#7b3d19]" },
-  { name: "Christian Munie", role: "Développeur full-stack", initials: "CM", tone: "bg-[#dce9df] text-[#27553b]" },
-  { name: "Elie Salumu", role: "Ingénieur IoT, IA & data", initials: "ES", tone: "bg-[#f6e5bb] text-[#79520a]" },
-  { name: "Eunice Kapinga", role: "Business project manager", initials: "EK", tone: "bg-[#eadfd8] text-[#754a3a]" },
-  { name: "Guylain", role: "Designer", initials: "G", tone: "bg-[#dce7e9] text-[#31545b]" },
+  { name: "Carmel Kongolo", role: "Porteur du projet", initials: "CK", tone: "bg-[#f5dfc4] text-[#7b3d19]", image: null },
+  { name: "Christian Munie", role: "Développeur full-stack", initials: "CM", tone: "bg-[#dce9df] text-[#27553b]", image: "/images/christian-munie.jpg" },
+  { name: "Elie Salumu", role: "Ingénieur IoT, IA & data", initials: "ES", tone: "bg-[#f6e5bb] text-[#79520a]", image: null },
+  { name: "Eunice Kapinga", role: "Business project manager", initials: "EK", tone: "bg-[#eadfd8] text-[#754a3a]", image: null },
+  { name: "Guylain Boka", role: "Designer", initials: "GB", tone: "bg-[#dce7e9] text-[#31545b]", image: "/images/guylain.jpg" },
+  { name: "Toussaint Madimba", role: "Ingénieur IoT", initials: "TM", tone: "bg-[#e2e6f5] text-[#394b7a]", image: null },
+  { name: "Dieu Merci Nvemba", role: "Ingénieur IoT", initials: "DMN", tone: "bg-[#dcebe7] text-[#285b4a]", image: null },
 ];
 
 export default function EnergyHome() {
@@ -127,43 +129,21 @@ export default function EnergyHome() {
         </div>
       </section>
 
-      <section className="border-b border-[#17211e]/10 bg-[#fffaf4]">
-        <div className="mx-auto grid max-w-7xl gap-5 px-6 py-7 text-sm sm:grid-cols-3 sm:py-8">
-          {[
-            "Étude adaptée à vos usages",
-            "Installation par des techniciens",
-            "Suivi après mise en service",
-          ].map((item, index) => (
-            <motion.p
-              key={item}
-              initial={reducedMotion ? false : { opacity: 0, y: 12 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.7 }}
-              transition={{ delay: index * 0.08, duration: 0.4 }}
-              className="flex items-center gap-3 font-medium text-[#34443a]"
-            >
-              <span className="grid size-7 shrink-0 place-items-center rounded-full bg-white text-[#ff8a00]"><Check size={15} /></span>
-              {item}
-            </motion.p>
-          ))}
-        </div>
-      </section>
-
       <section id="solutions" className="mx-auto max-w-7xl px-6 py-20 sm:py-28">
         <motion.div
           initial={reducedMotion ? false : "hidden"}
           whileInView="visible"
           viewport={{ once: true, amount: 0.35 }}
           variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.1 } } }}
-          className="grid gap-8 md:grid-cols-[.8fr_1.2fr] md:items-end"
+          className="flex flex-col items-center gap-8"
         >
-          <motion.div variants={reveal}>
+          <motion.div variants={reveal} className="text-center">
             <p className="mb-4 text-xs font-bold uppercase tracking-[0.14em] text-[#ff8a00]">Nos solutions</p>
-            <h2 className="max-w-xl text-3xl font-semibold leading-tight sm:text-5xl">
+            <h2 className="mx-auto max-w-3xl text-3xl font-semibold leading-tight sm:text-5xl">
               Le solaire qui répond à vos besoins réels.
             </h2>
           </motion.div>
-          <motion.div variants={reveal} className="relative min-h-[170px] overflow-hidden rounded-md md:justify-self-end md:w-full flex items-center justify-center bg-[#17191b]">
+          <motion.div variants={reveal} className="relative min-h-[170px] w-full overflow-hidden rounded-md flex items-center justify-center bg-[#17191b]">
             <Lottie animationData={solarAnimation} loop autoplay className="h-full w-full max-h-[220px]" />
             <div className="absolute inset-0 bg-gradient-to-r from-[#17191b]/65 to-transparent pointer-events-none" />
             <p className="absolute bottom-4 left-4 text-sm font-semibold text-white">Une solution étudiée pour votre site.</p>
@@ -197,7 +177,18 @@ export default function EnergyHome() {
       </section>
 
       <section className="bg-[#fff8f0] px-6 py-20 sm:py-28">
-        <div className="mx-auto grid max-w-7xl gap-12 lg:grid-cols-[1fr_1fr] lg:items-center">
+        <div className="mx-auto max-w-7xl">
+          <motion.div
+            initial={reducedMotion ? false : { opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.3 }}
+            transition={{ duration: 0.6 }}
+            className="mb-12 text-center"
+          >
+            <p className="mb-4 text-xs font-bold uppercase tracking-[0.14em] text-[#ff8a00]">Votre installation, connectée</p>
+            <h2 className="mx-auto max-w-3xl text-3xl font-semibold leading-tight sm:text-5xl">Gardez un œil sur votre énergie.</h2>
+          </motion.div>
+          <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
           <motion.div
             initial={reducedMotion ? false : { opacity: 0, x: -24 }}
             whileInView={{ opacity: 1, x: 0 }}
@@ -228,34 +219,37 @@ export default function EnergyHome() {
             viewport={{ once: true, amount: 0.3 }}
             transition={{ duration: 0.6 }}
           >
-            <p className="mb-4 text-xs font-bold uppercase tracking-[0.14em] text-[#ff8a00]">Votre installation, connectée</p>
-            <h2 className="max-w-xl text-3xl font-semibold leading-tight sm:text-5xl">Gardez un œil sur votre énergie.</h2>
-            <p className="mt-5 max-w-lg text-sm leading-7 text-[#59615b]">Le boîtier Djua transmet les données de votre kit pour suivre la production solaire, l’état de la batterie et les alertes techniques depuis la plateforme.</p>
+            <p className="max-w-lg text-sm leading-7 text-[#59615b]">Le boîtier Djua transmet les données de votre kit pour suivre la production solaire, l’état de la batterie et les alertes techniques depuis la plateforme.</p>
             <Link href="/services" className="mt-7 inline-flex items-center gap-2 text-sm font-bold text-[#c96500] hover:text-[#8f4700]">Découvrir le suivi Djua <ArrowRight size={16} /></Link>
           </motion.div>
+          </div>
         </div>
       </section>
 
       <section id="approche" className="bg-[#fffaf4] px-6 py-20 sm:py-28">
-        <div className="mx-auto grid max-w-7xl gap-12 lg:grid-cols-[.9fr_1.1fr] lg:items-center">
+        <div className="mx-auto max-w-7xl">
           <motion.div
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true, amount: 0.3 }}
             variants={revealIn}
+            className="mb-12 text-center"
           >
             <p className="mb-4 text-xs font-bold uppercase tracking-[0.14em] text-[#ff8a00]">Notre expertise</p>
-            <h2 className="max-w-xl text-3xl font-semibold leading-tight sm:text-5xl">
+            <h2 className="mx-auto max-w-3xl text-3xl font-semibold leading-tight sm:text-5xl">
               La bonne installation, sans complication.
             </h2>
-            <p className="mt-5 max-w-lg text-sm leading-7 text-[#59665c]">
-              Nous étudions votre consommation, choisissons les équipements adaptés et prenons en charge l’installation. Vous savez ce qui est prévu et pourquoi.
-            </p>
-            <Link href="/about" className="mt-7 inline-flex items-center gap-2 text-sm font-bold text-[#c96500] hover:text-[#8f4700]">
-              Découvrir notre approche <ArrowRight size={16} />
-            </Link>
           </motion.div>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-8 lg:grid-cols-[.8fr_1.2fr] lg:items-center">
+            <div>
+              <p className="max-w-lg text-sm leading-7 text-[#59665c]">
+              Nous étudions votre consommation, choisissons les équipements adaptés et prenons en charge l’installation. Vous savez ce qui est prévu et pourquoi.
+              </p>
+              <Link href="/about" className="mt-7 inline-flex items-center gap-2 text-sm font-bold text-[#c96500] hover:text-[#8f4700]">
+              Découvrir notre approche <ArrowRight size={16} />
+              </Link>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
             {[
               { icon: Sun, title: "Étude personnalisée", text: "Un système dimensionné selon vos appareils et vos horaires." },
               { icon: ShieldCheck, title: "Matériel sélectionné", text: "Des composants choisis pour leur compatibilité et leur fiabilité." },
@@ -275,15 +269,16 @@ export default function EnergyHome() {
                 <p className="mt-2 text-sm leading-5 text-[#667168]">{text}</p>
               </motion.article>
             ))}
+            </div>
           </div>
         </div>
       </section>
 
       <section className="mx-auto max-w-7xl px-6 py-20 sm:py-28">
-        <div className="grid gap-12 lg:grid-cols-[.7fr_1.3fr]">
-          <motion.div initial={reducedMotion ? false : "hidden"} whileInView="visible" viewport={{ once: true }} variants={revealIn}>
+        <div>
+          <motion.div initial={reducedMotion ? false : "hidden"} whileInView="visible" viewport={{ once: true }} variants={revealIn} className="mb-12 text-center">
             <p className="mb-4 text-xs font-bold uppercase tracking-[0.14em] text-[#ff8a00]">Votre parcours</p>
-            <h2 className="text-3xl font-semibold leading-tight sm:text-5xl">Simple, du besoin à la mise en service.</h2>
+            <h2 className="mx-auto max-w-3xl text-3xl font-semibold leading-tight sm:text-5xl">Simple, du besoin à la mise en service.</h2>
           </motion.div>
           <div className="grid gap-0 sm:grid-cols-3">
             {steps.map(([title, text], index) => (
@@ -309,11 +304,11 @@ export default function EnergyHome() {
           initial={reducedMotion ? false : { opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.5 }}
-          className="mx-auto flex max-w-7xl flex-col gap-7 sm:flex-row sm:items-center sm:justify-between"
+          className="mx-auto flex max-w-4xl flex-col items-center gap-7 text-center"
         >
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#ffad45]">Parlons de votre installation</p>
-            <h2 className="mt-3 max-w-2xl text-3xl font-semibold leading-tight sm:text-4xl">Faites le premier pas vers une énergie plus stable.</h2>
+            <h2 className="mx-auto mt-3 max-w-2xl text-3xl font-semibold leading-tight sm:text-4xl">Faites le premier pas vers une énergie plus stable.</h2>
           </div>
           <a href="#contact" className="inline-flex min-h-12 shrink-0 items-center gap-3 rounded-md bg-[#ff8a00] px-5 text-sm font-bold text-[#17191b] hover:bg-[#ffad45]">
             <PhoneCall size={16} /> Contactez Djua <ArrowRight size={16} />
@@ -327,16 +322,16 @@ export default function EnergyHome() {
             initial={reducedMotion ? false : { opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.35 }}
-            className="mb-10 flex flex-col gap-5 md:mb-14 md:flex-row md:items-end md:justify-between"
+            className="mb-10 text-center md:mb-14"
           >
             <div>
               <p className="mb-4 text-xs font-bold uppercase tracking-[0.14em] text-[#c96500]">L’équipe Djua</p>
-              <h2 className="max-w-2xl text-3xl font-semibold leading-tight sm:text-5xl">Des expertises réunies autour d’un même projet.</h2>
+              <h2 className="mx-auto max-w-3xl text-3xl font-semibold leading-tight sm:text-5xl">Des expertises réunies autour d’un même projet.</h2>
             </div>
-            <p className="max-w-md text-sm leading-6 text-[#657168]">De la conception à l’énergie connectée, notre équipe construit Djua avec des compétences complémentaires.</p>
+            <p className="mx-auto mt-5 max-w-md text-sm leading-6 text-[#657168]">De la conception à l’énergie connectée, notre équipe construit Djua avec des compétences complémentaires.</p>
           </motion.div>
 
-          <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 sm:gap-x-6 lg:grid-cols-5">
+          <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 sm:gap-x-6 lg:grid-cols-4">
             {teamMembers.map((member, index) => (
               <motion.article
                 key={member.name}
@@ -347,10 +342,22 @@ export default function EnergyHome() {
                 className="group min-w-0"
               >
                 <div className={`relative grid aspect-[4/4.6] place-items-center overflow-hidden rounded-md ${member.tone}`}>
+                  {member.image && (
+                    <>
+                      <Image
+                        src={member.image}
+                        alt={`Portrait de ${member.name}`}
+                        fill
+                        sizes="(max-width: 640px) 45vw, (max-width: 1024px) 30vw, 24vw"
+                        className="object-cover object-[center_30%]"
+                      />
+                      <span aria-hidden="true" className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/50 to-transparent" />
+                    </>
+                  )}
                   <span aria-hidden="true" className="absolute inset-3 border border-current/15" />
                   <span aria-hidden="true" className="absolute -right-7 -top-7 size-24 rounded-full border border-current/20 transition-transform duration-500 group-hover:scale-125" />
-                  <span className="relative font-semibold tracking-[0.08em] text-4xl sm:text-5xl">{member.initials}</span>
-                  <span className="absolute bottom-3 left-3 text-[10px] font-bold uppercase tracking-[0.14em] opacity-60">Djua · {String(index + 1).padStart(2, "0")}</span>
+                  {!member.image && <span className="relative font-semibold tracking-[0.08em] text-4xl sm:text-5xl">{member.initials}</span>}
+                  <span className={`absolute bottom-3 left-3 text-[10px] font-bold uppercase tracking-[0.14em] opacity-60 ${member.image ? "text-white drop-shadow-md" : ""}`}>Djua · {String(index + 1).padStart(2, "0")}</span>
                 </div>
                 <h3 className="mt-4 break-words text-base font-semibold leading-snug sm:text-lg">{member.name}</h3>
                 <p className="mt-1 text-sm leading-5 text-[#657168]">{member.role}</p>

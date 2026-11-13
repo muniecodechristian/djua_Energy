@@ -149,7 +149,7 @@ export function useMarkInstallationInstalled() {
   });
 }
 
-export function useGetInstallationMessages(id) {
+export function useGetInstallationMessages(id, { active = true } = {}) {
   return useQuery({
     queryKey: ['installation-messages', id],
     queryFn: async () => {
@@ -165,7 +165,8 @@ export function useGetInstallationMessages(id) {
       };
     },
     enabled: Boolean(id),
-    refetchInterval: 5000,
+    staleTime: 30_000,
+    refetchInterval: active ? 30_000 : false,
   });
 }
 
