@@ -129,7 +129,7 @@ describe('Customer quotations and installation lifecycle',()=>{
     createdAt:new Date(now-60*60*1000),
     solar:{power_w:240,energy_interval_wh:750},
     dc_load:{power_w:300},
-    ac_load:{apparent_power_va:360},
+    ac_load:{active_power_w:240,apparent_power_va:360},
    },
    {
     kitId:'KIT-TELEMETRY-SUMMARY',
@@ -151,6 +151,7 @@ describe('Customer quotations and installation lifecycle',()=>{
    productionKwh:1.25,
    averageDcLoadPowerW:200,
    averageAcLoadApparentPowerVa:240,
+   averageAcLoadActivePowerW:240,
   });
 
   const denied=await request(app)

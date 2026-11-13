@@ -468,7 +468,7 @@ export default function SmartKitDetails() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [interventionForm, setInterventionForm] = useState({ title: '', description: '', priority: 'Moyenne', assignedTo: '' });
 
-  const { telemetryRecords, latestTelemetry, isLive, isLoading } = useKitLiveTelemetry(kitId);
+  const { telemetryRecords, latestTelemetry, isLive, isLoading, lastUpdated, dataSource } = useKitLiveTelemetry(kitId);
   const telemetrySummary = useKitTelemetrySummaryQuery(kitId);
   const { data: kits = [] } = useKitsQuery();
   const { data: alerts = [] } = useAlertsQuery();
@@ -477,7 +477,7 @@ const technicians = useTeamTechnicians();
   const kitReference = kits.find((kit) => kit.kitId === kitId);
 
   const rawSnapshot = telemetrySummary.data?.latest || null;
-  const T = isLive
+  const T = dataSource === 'live'
     ? latestTelemetry
     : telemetrySummary.data
       ? flattenRawTelemetry(rawSnapshot)
@@ -517,19 +517,32 @@ const technicians = useTeamTechnicians();
   const hasReferenceGps = hasValidGps(refLat, refLng);
   const currentDistance = hasReferenceGps && hasTelemetryGps ? distanceInMeters(refLat, refLng, lat, lng) : null;
   const isOutsideGeofence = Boolean(liveGeofenceAlert) || (currentDistance != null && currentDistance > 90);
-  const snapshotTime = telemetrySummary.data?.communication?.lastSeen || rawSnapshot?.createdAt || T?.event_time || null;
-  const communicationIsRecent = isLive || Boolean(telemetrySummary.data?.communication?.isRecent);
-  const communicationStatus = communicationIsRecent
-    ? 'Active'
-    : snapshotTime ? 'Inactive' : 'Aucune donnée';
-  const currentConsumption = T?.load_power_w != null
-    ? { value: T.load_power_w, unit: 'W' }
-    : T?.ac_apparent_power_va != null
-      ? { value: T.ac_apparent_power_va, unit: 'VA' }
-      : null;
+  const snapshotTime = dataSource === 'live'
+    ? lastUpdated || T?.event_time || null
+    : telemetrySummary.data?.communication?.lastSeen || rawSnapshot?.createdAt || T?.event_time || null;
+  const communicationIsRecent = isLive || (
+    dataSource !== 'live' && Boolean(telemetrySummary.data?.communication?.isRecent)
+  );
+  const communicationStatus = isLive
+    ? 'En ligne'
+    : communicationIsRecent
+      ? 'Données récentes'
+      : snapshotTime ? 'Hors ligne' : 'Aucune donnée';
+  const dcLoadPower = T?.dc_load?.power_w ?? T?.load_power_w;
+  const currentConsumption = T?.dc_load?.power_w != null
+    ? { value: T.dc_load.power_w, unit: 'W' }
+    : T?.ac_active_power_w != null
+      ? { value: T.ac_active_power_w, unit: 'W' }
+      : dcLoadPower != null
+        ? { value: dcLoadPower, unit: 'W' }
+        : T?.ac_apparent_power_va != null
+          ? { value: T.ac_apparent_power_va, unit: 'VA' }
+          : null;
   const averageConsumption = history30d?.averageDcLoadPowerW != null
     ? { value: history30d.averageDcLoadPowerW, unit: 'W' }
-    : history30d?.averageAcLoadApparentPowerVa != null
+    : history30d?.averageAcLoadActivePowerW != null
+      ? { value: history30d.averageAcLoadActivePowerW, unit: 'W' }
+      : history30d?.averageAcLoadApparentPowerVa != null
       ? { value: history30d.averageAcLoadApparentPowerVa, unit: 'VA' }
       : null;
   const referenceLocation = kitReference?.zone || telemetrySummary.data?.kit?.zone || 'Non renseignée';
@@ -685,7 +698,7 @@ const technicians = useTeamTechnicians();
               <div className="flex flex-wrap items-center gap-2.5">
                 <h1 className="text-xl font-semibold tracking-tight">{kitId || 'Équipement non sélectionné'}</h1>
                 <Pill tone={communicationIsRecent ? 'ok' : 'off'} dot>
-                  {isLive ? 'Connexion en direct' : communicationIsRecent ? 'Données récentes' : 'Sans signal récent'}
+                  {isLive ? 'En ligne · données en direct' : communicationIsRecent ? 'Données récentes' : snapshotTime ? 'Hors ligne' : 'Aucune donnée'}
                 </Pill>
                 {isOutsideGeofence && <Pill tone="bad">Hors périmètre</Pill>}
               </div>

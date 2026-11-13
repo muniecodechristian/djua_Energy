@@ -201,6 +201,10 @@ export async function getKitTelemetrySummary(req, res) {
             acPowerSampleCount: {
               $sum: { $cond: [{ $ne: ['$ac_load.apparent_power_va', null] }, 1, 0] },
             },
+            acActivePowerSampleCount: {
+              $sum: { $cond: [{ $ne: ['$ac_load.active_power_w', null] }, 1, 0] },
+            },
+            averageAcLoadActivePowerW: { $avg: '$ac_load.active_power_w' },
             averageAcLoadApparentPowerVa: { $avg: '$ac_load.apparent_power_va' },
           },
         },
@@ -229,6 +233,9 @@ export async function getKitTelemetrySummary(req, res) {
             : null,
           averageAcLoadApparentPowerVa: history.acPowerSampleCount
             ? history.averageAcLoadApparentPowerVa
+            : null,
+          averageAcLoadActivePowerW: history.acActivePowerSampleCount
+            ? history.averageAcLoadActivePowerW
             : null,
         },
       },

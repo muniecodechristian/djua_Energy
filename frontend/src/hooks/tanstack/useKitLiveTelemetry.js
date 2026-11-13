@@ -66,10 +66,12 @@ export function useKitLiveTelemetry(kitId) {
   const queryClient = useQueryClient();
 
   // ── État local pour les données Socket.io ─────────────────────────────────
-  const [livePayload, setLivePayload] = useState(null);
-  const [isLive, setIsLive] = useState(false);
-  const [lastUpdated, setLastUpdated] = useState(null);
+  const [liveSnapshot, setLiveSnapshot] = useState(null);
+  const [liveStatus, setLiveStatus] = useState(null);
   const liveTimeoutRef = useRef(null);
+  const currentLiveSnapshot = liveSnapshot?.kitId === kitId ? liveSnapshot : null;
+  const isLive = liveStatus?.kitId === kitId && liveStatus.active;
+  const livePayload = currentLiveSnapshot?.payload ?? null;
 
   // ── Fallback BDD via TanStack Query ───────────────────────────────────────
   const {
@@ -78,12 +80,16 @@ export function useKitLiveTelemetry(kitId) {
   } = useKitTelemetryQuery(kitId);
 
   // ── Démarquer comme "plus live" après 60s sans événement ──────────────────
-  const resetLiveFlag = useCallback(() => {
+  const resetLiveFlag = useCallback((intervalSeconds) => {
     if (liveTimeoutRef.current) clearTimeout(liveTimeoutRef.current);
+    const intervalMs = Number(intervalSeconds) * 1000;
+    const timeoutMs = Number.isFinite(intervalMs) && intervalMs > 0
+      ? Math.min(Math.max(60_000, intervalMs * 2), 3_600_000)
+      : 60_000;
     liveTimeoutRef.current = setTimeout(() => {
-      setIsLive(false);
-      console.log(`[Socket.io] Aucun signal live depuis 60s → kit ${kitId} en mode BD`);
-    }, 60_000);
+      setLiveStatus({ kitId, active: false });
+      console.log(`[Socket.io] Délai de réception live dépassé pour le kit ${kitId} → mode historique`);
+    }, timeoutMs);
   }, [kitId]);
 
   // ── Abonnement Socket.io au room du kit ───────────────────────────────────
@@ -94,13 +100,21 @@ export function useKitLiveTelemetry(kitId) {
 
     // Handler de réception de télémétrie live
     const handleLiveTelemetry = (event) => {
-      if (event.kitId !== kitId) return;
+      if (!event || event.kitId !== kitId) return;
 
-      console.log(`[Socket.io] Télémétrie live reçue pour kit ${kitId}`, event);
+      const liveRecord = event.enriched?.records?.at(-1);
+      if (!liveRecord) {
+        console.error(`[Socket.io] Événement live invalide pour le kit ${kitId} : aucun relevé enrichi.`);
+        return;
+      }
 
-      setLivePayload(event.enriched);
-      setIsLive(true);
-      setLastUpdated(event.timestamp);
+      setLiveSnapshot({
+        kitId,
+        payload: event.enriched,
+        latestRecord: liveRecord,
+        receivedAt: event.timestamp,
+      });
+      setLiveStatus({ kitId, active: true });
 
       // Injecter dans le cache TanStack Query pour cohérence
       if (event.enriched) {
@@ -113,9 +127,10 @@ export function useKitLiveTelemetry(kitId) {
           return [newDoc, ...filtered].slice(0, 20);
         });
       }
+      queryClient.invalidateQueries({ queryKey: ['kit-telemetry-summary', kitId] });
 
       // Réinitialiser le timer "live"
-      resetLiveFlag();
+      resetLiveFlag(liveRecord.interval_seconds);
     };
 
     // S'abonner au room du kit
@@ -124,14 +139,9 @@ export function useKitLiveTelemetry(kitId) {
       console.log(`[Socket.io] Souscription au kit : ${kitId}`);
     };
 
-    // S'abonner immédiatement si déjà connecté, sinon attendre la connexion
-    if (socket.connected) {
-      subscribe();
-    } else {
-      socket.once('connect', subscribe);
-    }
-
     socket.on('telemetry:live', handleLiveTelemetry);
+    socket.on('connect', subscribe);
+    if (socket.connected) subscribe();
 
     return () => {
       // Nettoyage : désabonnement du room
@@ -139,13 +149,11 @@ export function useKitLiveTelemetry(kitId) {
       socket.off('connect', subscribe);
       socket.emit('unsubscribe:kit', { kitId });
       if (liveTimeoutRef.current) clearTimeout(liveTimeoutRef.current);
-      setIsLive(false);
-      setLivePayload(null);
     };
   }, [kitId, queryClient, resetLiveFlag]);
 
   // ── Calcul des données finales (live prioritaire sur BD) ──────────────────
-  const effectiveDocs = isLive && livePayload
+  const effectiveDocs = livePayload
     ? [livePayload, ...telemetryDocuments].slice(0, 20)
     : telemetryDocuments;
 
@@ -159,7 +167,9 @@ export function useKitLiveTelemetry(kitId) {
       return ta - tb;
     });
 
-  const latestTelemetry = telemetryRecords[telemetryRecords.length - 1] ?? null;
+  const latestTelemetry = currentLiveSnapshot?.latestRecord
+    ? currentLiveSnapshot.latestRecord
+    : telemetryRecords[telemetryRecords.length - 1] ?? null;
 
   return {
     telemetryDocuments: effectiveDocs,
@@ -167,7 +177,7 @@ export function useKitLiveTelemetry(kitId) {
     latestTelemetry,
     isLive,
     isLoading,
-    lastUpdated: lastUpdated ?? (latestTelemetry?.event_time ?? null),
-    dataSource: isLive ? 'live' : (telemetryDocuments.length > 0 ? 'db' : null),
+    lastUpdated: (isLive ? currentLiveSnapshot?.receivedAt : null) ?? (latestTelemetry?.event_time ?? null),
+    dataSource: currentLiveSnapshot ? 'live' : (telemetryDocuments.length > 0 ? 'db' : null),
   };
 }
