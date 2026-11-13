@@ -3,22 +3,21 @@
 import { Menu, PhoneCall, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { DJUA_LOGO_URL } from "@/lib/brand";
 
 const links = [
-  ["Accueil", "/"],
-  ["À propos", "/about"],
-  ["Services", "/services"],
-  ["Notre approche", "/#approche"],
+  ["Accueil", "/#accueil"],
+  ["Solutions", "/#solutions"],
+  ["Suivi", "/#suivi"],
+  ["Approche", "/#approche"],
+  ["Parcours", "/#parcours"],
+  ["Équipe", "/#equipe"],
 ];
 
 export function SiteHeader() {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const pathname = usePathname();
-
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 24);
     handleScroll();
@@ -34,32 +33,25 @@ export function SiteHeader() {
           <span className="text-xs font-semibold tracking-normal text-[#657168]">Energy</span>
         </Link>
 
-        <nav className="hidden items-center gap-8 text-base font-semibold lg:flex" aria-label="Navigation principale">
-          {links.map(([label, href]) => {
-            const isActive = pathname === href || (href === "/#approche" && pathname === "/");
-            return (
-              <Link
-                key={href}
-                href={href}
-                className={`transition-colors hover:text-[#c96500] ${isActive ? "text-[#c96500]" : "text-[#34443a]"}`}
-              >
-                {label}
-              </Link>
-            );
-          })}
+        <nav className="hidden items-center gap-5 text-sm font-semibold xl:flex" aria-label="Navigation principale">
+          {links.map(([label, href]) => (
+            <Link key={href} href={href} className="whitespace-nowrap text-[#34443a] transition-colors hover:text-[#c96500]">
+              {label}
+            </Link>
+          ))}
         </nav>
 
 
-        <a
-          href="tel:+243995424606"
-          className="hidden min-h-11 items-center gap-2 rounded-md bg-[#ff8a00] px-4 text-base font-bold text-[#17211e] transition-colors hover:bg-[#ff9d26] lg:inline-flex"
+        <Link
+          href="/#contact"
+          className="hidden min-h-11 items-center gap-2 rounded-md bg-[#ff8a00] px-4 text-sm font-bold text-[#17211e] transition-colors hover:bg-[#ff9d26] xl:inline-flex"
         >
           <PhoneCall size={14} /> Contact
-        </a>
+        </Link>
 
         <button
           type="button"
-          className="rounded-lg p-2 text-[#17211e] transition-colors hover:bg-[#17211e]/5 lg:hidden"
+          className="rounded-lg p-2 text-[#17211e] transition-colors hover:bg-[#17211e]/5 xl:hidden"
           aria-expanded={open}
           aria-controls="mobile-navigation"
           aria-label={open ? "Fermer le menu" : "Ouvrir le menu"}
@@ -77,23 +69,20 @@ export function SiteHeader() {
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.25 }}
-            className="overflow-hidden border-t border-[#17211e]/10 bg-white lg:hidden"
+            className="overflow-hidden border-t border-[#17211e]/10 bg-white xl:hidden"
             aria-label="Navigation mobile"
           >
             <div className="mx-auto flex max-w-7xl flex-col px-6 pb-5 pt-2">
-              {links.map(([label, href]) => {
-                const isActive = pathname === href || (href === "/#approche" && pathname === "/");
-                return (
-                  <Link
-                    key={href}
-                    href={href}
-                    onClick={() => setOpen(false)}
-                    className={`border-b border-[#17211e]/10 py-4 text-base font-medium ${isActive ? "text-[#c96500]" : "text-[#34443a] hover:text-[#c96500]"}`}
-                  >
-                    {label}
-                  </Link>
-                );
-              })}
+              {links.map(([label, href]) => (
+                <Link
+                  key={href}
+                  href={href}
+                  onClick={() => setOpen(false)}
+                  className="border-b border-[#17211e]/10 py-4 text-base font-medium text-[#34443a] hover:text-[#c96500]"
+                >
+                  {label}
+                </Link>
+              ))}
               <a href="tel:+243995424606" onClick={() => setOpen(false)} className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-md bg-[#ff8a00] px-4 text-base font-bold text-[#17211e]">
                 <PhoneCall size={15} /> Contact
               </a>

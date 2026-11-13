@@ -21,11 +21,11 @@ export default function AboutPage() {
     <main className="min-h-screen bg-white text-[#17211e]">
       <SiteHeader />
 
-      <section className="mx-auto max-w-7xl px-6 pb-5 pt-12 sm:pt-20">
-        <motion.div initial={reducedMotion ? false : { opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.65 }} className="max-w-3xl">
+      <section className="mx-auto max-w-7xl px-6 pb-5 pt-12 text-center sm:pt-20">
+        <motion.div initial={reducedMotion ? false : { opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.65 }} className="mx-auto max-w-3xl">
           <p className="mb-5 text-xs font-bold uppercase tracking-[0.15em] text-[#ff8a00]">À propos de Djua</p>
           <h1 className="text-4xl font-semibold leading-tight sm:text-6xl">Nous rendons l’énergie solaire plus simple à adopter.</h1>
-          <p className="mt-6 max-w-2xl text-base leading-7 text-[#59665c]">Djua Energy accompagne les foyers et les entreprises en RDC, du premier diagnostic jusqu’au suivi de leur installation.</p>
+          <p className="mx-auto mt-6 max-w-2xl text-base leading-7 text-[#59665c]">Djua Energy accompagne les foyers et les entreprises en RDC, du premier diagnostic jusqu’au suivi de leur installation.</p>
         </motion.div>
       </section>
 
@@ -33,7 +33,7 @@ export default function AboutPage() {
         <motion.div initial={reducedMotion ? false : { opacity: 0, x: -28 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true, amount: 0.25 }} transition={{ duration: 0.65 }} className="relative min-h-[300px] overflow-hidden rounded-md sm:min-h-[440px]">
           <Image src="/images/solar-array.jpg" alt="Installation de panneaux solaires" fill sizes="(max-width: 1024px) 100vw, 55vw" className="object-cover" />
         </motion.div>
-        <motion.div initial={reducedMotion ? false : { opacity: 0, x: 28 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true, amount: 0.25 }} transition={{ duration: 0.65 }}>
+        <motion.div initial={reducedMotion ? false : { opacity: 0, x: 28 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true, amount: 0.25 }} transition={{ duration: 0.65 }} className="text-center">
           <p className="mb-4 text-xs font-bold uppercase tracking-[0.14em] text-[#ff8a00]">Notre mission</p>
           <h2 className="text-3xl font-semibold leading-tight sm:text-4xl">Une installation adaptée, un accompagnement qui continue.</h2>
           <p className="mt-5 text-sm leading-7 text-[#59665c]">Les besoins d’une maison ne sont pas ceux d’un commerce. Nous prenons le temps de comprendre votre site, vos priorités et les contraintes du réseau pour vous recommander une solution cohérente.</p>
@@ -44,9 +44,9 @@ export default function AboutPage() {
 
       <section className="bg-[#fff8f0] px-6 py-16 sm:py-20">
         <div className="mx-auto max-w-7xl">
-          <motion.div initial={reducedMotion ? false : "hidden"} whileInView="visible" viewport={{ once: true, amount: 0.3 }} variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.1 } } }}>
+          <motion.div initial={reducedMotion ? false : "hidden"} whileInView="visible" viewport={{ once: true, amount: 0.3 }} variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.1 } } }} className="text-center">
             <motion.p variants={reveal} className="mb-4 text-xs font-bold uppercase tracking-[0.14em] text-[#ff8a00]">Nos engagements</motion.p>
-            <motion.h2 variants={reveal} className="max-w-2xl text-3xl font-semibold leading-tight sm:text-5xl">Du premier conseil au service après installation.</motion.h2>
+            <motion.h2 variants={reveal} className="mx-auto max-w-2xl text-center text-3xl font-semibold leading-tight sm:text-5xl">Du premier conseil au service après installation.</motion.h2>
             <div className="mt-10 grid gap-7 md:grid-cols-3">
               {commitments.map(({ icon: Icon, title, text }, index) => (
                 <motion.article key={title} variants={reveal} className="border-t border-[#17211e]/20 pt-5">
@@ -61,7 +61,7 @@ export default function AboutPage() {
       </section>
 
       <section className="mx-auto max-w-7xl px-6 py-16 sm:py-20">
-        <motion.div initial={reducedMotion ? false : { opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.4 }} className="flex flex-col gap-6 border-b border-[#17211e]/15 pb-10 sm:flex-row sm:items-center sm:justify-between">
+        <motion.div initial={reducedMotion ? false : { opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.4 }} className="flex flex-col items-center gap-6 border-b border-[#17211e]/15 pb-10 text-center">
           <div className="max-w-2xl"><p className="text-xs font-bold uppercase tracking-[0.14em] text-[#ff8a00]">Votre projet</p><h2 className="mt-3 text-3xl font-semibold">Parlons de l’énergie dont vous avez besoin.</h2></div>
           <Link href="/#contact" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-md bg-[#ff8a00] px-5 text-sm font-bold text-[#17191b] hover:bg-[#ffad45]">Contacter Djua <ArrowRight size={16} /></Link>
         </motion.div>

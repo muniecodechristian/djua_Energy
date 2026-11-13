@@ -29,10 +29,10 @@ export default function ServicesPage() {
       <SiteHeader />
 
       <section className="mx-auto max-w-7xl px-6 pb-12 pt-14 sm:pb-16 sm:pt-20">
-        <motion.div initial={reducedMotion ? false : { opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="max-w-3xl">
+        <motion.div initial={reducedMotion ? false : { opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="mx-auto max-w-3xl text-center">
           <p className="mb-5 text-xs font-bold uppercase tracking-[0.15em] text-[#ff8a00]">Nos services</p>
           <h1 className="text-4xl font-semibold leading-tight sm:text-6xl">Le solaire, de l’étude à la maintenance.</h1>
-          <p className="mt-6 max-w-2xl text-base leading-7 text-[#59665c]">Une équipe pour vous conseiller, installer les bons équipements et rester disponible après la mise en service.</p>
+          <p className="mx-auto mt-6 max-w-2xl text-base leading-7 text-[#59665c]">Une équipe pour vous conseiller, installer les bons équipements et rester disponible après la mise en service.</p>
           <a href="#contact" className="mt-8 inline-flex min-h-12 items-center gap-2 rounded-md bg-[#17211e] px-5 text-sm font-bold text-white hover:bg-[#34443a]">Demander une étude <ArrowRight size={16} /></a>
         </motion.div>
       </section>
@@ -55,10 +55,10 @@ export default function ServicesPage() {
           <motion.div initial={reducedMotion ? false : { opacity: 0, x: -24 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true, amount: 0.25 }} transition={{ duration: 0.55 }} className="relative min-h-[300px] overflow-hidden rounded-md sm:min-h-[420px]">
             <Image src="/images/solar-array.jpg" alt="Panneaux solaires pour une installation fiable" fill sizes="(max-width: 1024px) 100vw, 50vw" className="object-cover" />
           </motion.div>
-          <motion.div initial={reducedMotion ? false : { opacity: 0, x: 24 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true, amount: 0.25 }} transition={{ duration: 0.55 }}>
+          <motion.div initial={reducedMotion ? false : { opacity: 0, x: 24 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true, amount: 0.25 }} transition={{ duration: 0.55 }} className="text-center">
             <p className="mb-4 text-xs font-bold uppercase tracking-[0.14em] text-[#ff8a00]">Votre installation</p>
             <h2 className="text-3xl font-semibold leading-tight sm:text-4xl">Un accompagnement clair, à chaque étape.</h2>
-            <ul className="mt-7 grid gap-4">
+            <ul className="mx-auto mt-7 grid max-w-lg gap-4 text-left">
               {included.map(item => <li key={item} className="flex items-start gap-3 text-sm leading-6 text-[#59665c]"><span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-white text-[#ff8a00]"><Check size={13} /></span>{item}</li>)}
             </ul>
             <p className="mt-8 flex items-center gap-2 text-sm font-medium text-[#52604f]"><BatteryCharging size={17} className="text-[#ff8a00]" />Équipements choisis selon votre dimensionnement</p>
@@ -67,8 +67,8 @@ export default function ServicesPage() {
       </section>
 
       <section className="mx-auto max-w-7xl px-6 py-16 sm:py-20">
-        <motion.div initial={reducedMotion ? false : { opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.35 }} className="flex flex-col gap-5 border-b border-[#17211e]/15 pb-9 sm:flex-row sm:items-center sm:justify-between">
-          <div><p className="text-xs font-bold uppercase tracking-[0.14em] text-[#ff8a00]">Besoin d’un système solaire ?</p><h2 className="mt-3 text-3xl font-semibold">Parlons de votre projet.</h2></div>
+        <motion.div initial={reducedMotion ? false : { opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.35 }} className="flex flex-col items-center gap-5 border-b border-[#17211e]/15 pb-9 text-center">
+          <div className="text-center"><p className="text-xs font-bold uppercase tracking-[0.14em] text-[#ff8a00]">Besoin d’un système solaire ?</p><h2 className="mt-3 text-3xl font-semibold">Parlons de votre projet.</h2></div>
           <Link href="/#contact" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-md bg-[#ff8a00] px-5 text-sm font-bold text-[#17191b] hover:bg-[#ffad45]">Contacter Djua <ArrowRight size={16} /></Link>
         </motion.div>
       </section>

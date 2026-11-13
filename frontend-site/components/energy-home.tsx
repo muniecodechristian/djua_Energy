@@ -85,7 +85,7 @@ export default function EnergyHome() {
     <main className="overflow-x-clip bg-white text-[#17211e]">
       <SiteHeader />
 
-      <section className="relative isolate flex min-h-[min(760px,88svh)] items-center justify-center overflow-hidden bg-[#17191b] text-white">
+      <section id="accueil" className="scroll-mt-24 relative isolate flex min-h-[min(760px,88svh)] items-center justify-center overflow-hidden bg-[#17191b] text-white">
         <Image
           src="/images/solar-array.jpg"
           alt="Panneaux solaires installés sous le ciel de la RDC"
@@ -176,7 +176,7 @@ export default function EnergyHome() {
         </motion.div>
       </section>
 
-      <section className="bg-[#fff8f0] px-6 py-20 sm:py-28">
+      <section id="suivi" className="scroll-mt-24 bg-[#fff8f0] px-6 py-20 sm:py-28">
         <div className="mx-auto max-w-7xl">
           <motion.div
             initial={reducedMotion ? false : { opacity: 0, y: 20 }}
@@ -274,7 +274,7 @@ export default function EnergyHome() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-6 py-20 sm:py-28">
+      <section id="parcours" className="scroll-mt-24 mx-auto max-w-7xl px-6 py-20 sm:py-28">
         <div>
           <motion.div initial={reducedMotion ? false : "hidden"} whileInView="visible" viewport={{ once: true }} variants={revealIn} className="mb-12 text-center">
             <p className="mb-4 text-xs font-bold uppercase tracking-[0.14em] text-[#ff8a00]">Votre parcours</p>
@@ -316,8 +316,8 @@ export default function EnergyHome() {
         </motion.div>
       </section>
 
-      <section id="equipe" className="relative overflow-hidden bg-white px-6 py-20 sm:py-28">
-        <div className="relative mx-auto max-w-7xl">
+      <section id="equipe" className="scroll-mt-24 relative overflow-hidden bg-white px-6 py-20 sm:py-28">
+        <div className="relative mx-auto max-w-[1440px]">
           <motion.div
             initial={reducedMotion ? false : { opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -331,7 +331,7 @@ export default function EnergyHome() {
             <p className="mx-auto mt-5 max-w-md text-sm leading-6 text-[#657168]">De la conception à l’énergie connectée, notre équipe construit Djua avec des compétences complémentaires.</p>
           </motion.div>
 
-          <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 sm:gap-x-6 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 sm:gap-x-6 lg:grid-cols-7 lg:gap-x-3 xl:gap-x-4">
             {teamMembers.map((member, index) => (
               <motion.article
                 key={member.name}
@@ -341,7 +341,7 @@ export default function EnergyHome() {
                 transition={{ delay: index * 0.07, duration: 0.45 }}
                 className="group min-w-0"
               >
-                <div className={`relative grid aspect-[4/4.6] place-items-center overflow-hidden rounded-md ${member.tone}`}>
+                <div className={`relative grid aspect-[4/4.6] w-full place-items-center overflow-hidden rounded-md ${member.tone}`}>
                   {member.image && (
                     <>
                       <Image
@@ -359,7 +359,7 @@ export default function EnergyHome() {
                   {!member.image && <span className="relative font-semibold tracking-[0.08em] text-4xl sm:text-5xl">{member.initials}</span>}
                   <span className={`absolute bottom-3 left-3 text-[10px] font-bold uppercase tracking-[0.14em] opacity-60 ${member.image ? "text-white drop-shadow-md" : ""}`}>Djua · {String(index + 1).padStart(2, "0")}</span>
                 </div>
-                <h3 className="mt-4 break-words text-base font-semibold leading-snug sm:text-lg">{member.name}</h3>
+                <h3 className="mt-4 whitespace-nowrap text-xs font-semibold leading-snug xl:text-sm">{member.name}</h3>
                 <p className="mt-1 text-sm leading-5 text-[#657168]">{member.role}</p>
               </motion.article>
             ))}
