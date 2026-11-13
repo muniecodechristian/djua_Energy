@@ -15,7 +15,29 @@ import { useCatalogProducts } from '../hooks/tanstack/useCatalogProducts';
 import api from '../api/axios';
 import QuoteChat from '../components/QuoteChat';
 import SolarAdvisorResult from '../components/SolarAdvisorResult';
+import usePersistentChatMessages from '../hooks/usePersistentChatMessages';
 import './Devis5Steps.css';
+
+const activeQuoteNumberStorageKey = 'djua:quote:active-number';
+const initialQuoteChatMessages = [{
+  id: 'quote-welcome',
+  role: 'assistant',
+  text: 'Bonjour ! Je suis l’assistant Djúa Solaire IA. Je peux vous aider à présenter ce devis au client, estimer l’autonomie par temps de pluie ou adapter la proposition à son budget.',
+}];
+
+function getActiveQuoteNumber() {
+  try {
+    const storedQuoteNumber = window.localStorage.getItem(activeQuoteNumberStorageKey);
+    if (storedQuoteNumber) return storedQuoteNumber;
+
+    const quoteNumber = `OE-2026-${Math.floor(10000 + Math.random() * 90000)}`;
+    window.localStorage.setItem(activeQuoteNumberStorageKey, quoteNumber);
+    return quoteNumber;
+  } catch (error) {
+    console.error('Impossible de conserver la référence du devis dans le stockage local.', error);
+    return `OE-2026-${Math.floor(10000 + Math.random() * 90000)}`;
+  }
+}
 
 // Fix icône Leaflet par défaut
 delete L.Icon.Default.prototype._getIconUrl;
@@ -228,17 +250,15 @@ export default function Devis() {
   const [aiRecommendation, setAiRecommendation] = useState(null);
 
   // ─── ÉTAPE 5 : DEVIS GÉNÉRÉ & ASSISTANT IA ─────────────────────
-  const [quoteNumber] = useState(() => `OE-2026-${Math.floor(10000 + Math.random() * 90000)}`);
+  const [quoteNumber] = useState(getActiveQuoteNumber);
   const [isSaving, setIsSaving] = useState(false);
 
   // Discussion plein écran avec l'IA après le devis
   const [isAIDiscussionOpen, setIsAIDiscussionOpen] = useState(false);
-  const [aiChatMessages, setAiChatMessages] = useState([
-    {
-      role: 'assistant',
-      text: 'Bonjour ! Je suis l’assistant Djúa Solaire IA. Je peux vous aider à présenter ce devis au client, estimer l’autonomie par temps de pluie ou adapter la proposition à son budget.'
-    }
-  ]);
+  const [aiChatMessages, setAiChatMessages] = usePersistentChatMessages(
+    `djua:quote-chat:${quoteNumber}`,
+    initialQuoteChatMessages,
+  );
   const [aiChatInput, setAiChatInput] = useState('');
   const [isAITyping, setIsAITyping] = useState(false);
 
@@ -443,7 +463,8 @@ export default function Devis() {
           totalWh: totalDailyWh,
           panels: recommendedPanelsCount,
           batteryKwh,
-          totalAmount: totalSystemPrice
+          totalAmount: totalSystemPrice,
+          conversation_history: aiChatMessages.slice(-8).map(({ role, text }) => ({ role, content: text })),
         }
       });
 
@@ -507,6 +528,11 @@ export default function Devis() {
 
       await api.post('/api/quotes', payload);
       toast.success('Devis enregistré avec succès ! Il est maintenant en attente de validation.');
+      try {
+        window.localStorage.removeItem(activeQuoteNumberStorageKey);
+      } catch (error) {
+        console.error('Impossible de réinitialiser la référence active du devis.', error);
+      }
       navigate('/devis');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Erreur lors de l’enregistrement du devis.');

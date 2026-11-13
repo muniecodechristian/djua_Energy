@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useMemo } from 'react';
+import { memo, useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { ArrowLeft, ArrowUp, FilePlus2, Loader2, MessageSquare, User, X } from 'lucide-react';
 import useDialog from '../hooks/useDialog';
@@ -25,19 +25,14 @@ export function QuoteChatButton({ onClick }) {
   );
 }
 
-function StreamingAiMessage({ text, isNew, onTick }) {
+const StreamingAiMessage = memo(function StreamingAiMessage({ text, isNew, onTick }) {
   const clean = useMemo(() => cleanAiText(text), [text]);
   const [displayed, setDisplayed] = useState(() => (isNew ? '' : clean));
   const [isTyping, setIsTyping] = useState(() => Boolean(isNew));
 
   useEffect(() => {
-    if (!isNew) {
-      setDisplayed(clean);
-      setIsTyping(false);
-      return;
-    }
+    if (!isNew) return undefined;
     let idx = 0;
-    setIsTyping(true);
     const interval = setInterval(() => {
       idx += 2;
       if (idx >= clean.length) {
@@ -58,7 +53,7 @@ function StreamingAiMessage({ text, isNew, onTick }) {
       {isTyping && <span className="quote-ai-cursor" aria-hidden="true">▍</span>}
     </p>
   );
-}
+});
 
 export default function QuoteChat({
   open,
@@ -85,13 +80,13 @@ export default function QuoteChat({
   const endRef = useRef(null);
   const started = messages.some(message => message.role === 'user');
 
-  const scrollToBottom = () => {
+  const scrollToBottom = useCallback(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
-  };
+  }, []);
 
   useEffect(() => {
     if (open) scrollToBottom();
-  }, [messages, pending, open]);
+  }, [messages, pending, open, scrollToBottom]);
 
   useEffect(() => {
     if (!open) return;

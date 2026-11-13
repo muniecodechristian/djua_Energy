@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import QuoteChat from '../components/QuoteChat';
 import api from '../api/axios';
+import usePersistentChatMessages from '../hooks/usePersistentChatMessages';
 
 const suggestedQuestions = [
   { label: 'Comment choisir un kit solaire ?', prompt: 'Aide-moi à choisir un kit solaire adapté, et pose-moi les questions nécessaires.' },
@@ -10,9 +11,11 @@ const suggestedQuestions = [
   { label: 'Dimensionner selon mes appareils', prompt: 'Quels renseignements dois-je te donner pour dimensionner un système selon mes appareils ?' },
 ];
 
+const initialMessages = [];
+
 export default function QuoteAdvice() {
   const navigate = useNavigate();
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = usePersistentChatMessages('djua:quote-advice:chat', initialMessages);
   const [input, setInput] = useState('');
   const [pending, setPending] = useState(false);
 
