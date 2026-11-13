@@ -61,10 +61,10 @@ const heroSlides = [
 const teamMembers = [
   { name: "Carmel Kongolo", role: "Porteur du projet", initials: "CK", tone: "bg-[#f5dfc4] text-[#7b3d19]", image: null },
   { name: "Christian Munie", role: "Développeur full-stack", initials: "CM", tone: "bg-[#dce9df] text-[#27553b]", image: "/images/christian-munie.jpg" },
-  { name: "Elie Salumu", role: "Ingénieur IoT, IA & data", initials: "ES", tone: "bg-[#f6e5bb] text-[#79520a]", image: null },
+  { name: "Elie Salumu", role: "Ingénieur IoT, IA & data", initials: "ES", tone: "bg-[#f6e5bb] text-[#79520a]", image: "/images/elie-salumu.jpg" },
   { name: "Eunice Kapinga", role: "Business project manager", initials: "EK", tone: "bg-[#eadfd8] text-[#754a3a]", image: null },
   { name: "Guylain Boka", role: "Designer", initials: "GB", tone: "bg-[#dce7e9] text-[#31545b]", image: "/images/guylain.jpg" },
-  { name: "Toussaint Madimba", role: "Ingénieur IoT", initials: "TM", tone: "bg-[#e2e6f5] text-[#394b7a]", image: null },
+  { name: "Toussaint Madimba", role: "Ingénieur IoT", initials: "TM", tone: "bg-[#e2e6f5] text-[#394b7a]", image: "/images/toussaint-madimba.jpg" },
   { name: "Dieu Merci Nvemba", role: "Ingénieur IoT", initials: "DMN", tone: "bg-[#dcebe7] text-[#285b4a]", image: null },
 ];
 
