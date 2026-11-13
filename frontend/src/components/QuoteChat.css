@@ -32,7 +32,7 @@
 .quote-ai-message-bubble{position:relative;width:fit-content;max-width:min(84%,720px);padding:12px 16px;border:1px solid var(--panel-border);border-radius:16px 16px 16px 3px;background:var(--panel-alt);color:var(--app-foreground);font-size:13px;line-height:1.65;overflow-wrap:anywhere;box-shadow:0 1px 3px #0000000d}
 .quote-ai-message-bubble p{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;font-size:inherit;line-height:inherit}
 .quote-ai-message-bubble.is-user{max-width:85%;border-color:var(--brand-orange,#f19c20);background:var(--brand-orange,#f19c20);color:#111827;font-weight:500;border-radius:16px 16px 3px 16px}
-.quote-ai-message-bubble.is-error{border-color:#7f1d1d;background:rgb(69 10 10 / .35);color:#fecaca}
+.quote-ai-message-bubble.is-error{border-color:var(--panel-border);background:var(--panel);color:var(--muted-foreground)}
 .quote-ai-message-user-avatar{display:flex;width:24px;height:24px;flex-shrink:0;align-items:center;justify-content:center;margin-bottom:4px;border:1px solid var(--panel-border);border-radius:50%;background:var(--panel-alt);color:var(--muted-foreground)}
 .quote-ai-thinking{display:flex;align-items:center;gap:10px;color:var(--muted-foreground)}
 .quote-ai-thinking-dots{display:flex;align-items:center;gap:5px;padding:12px 14px;border:1px solid var(--panel-border);border-radius:16px 16px 16px 3px;background:var(--panel-alt)}

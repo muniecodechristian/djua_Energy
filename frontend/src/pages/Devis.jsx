@@ -479,10 +479,12 @@ export default function Devis() {
         throw new Error(providerError || 'Le service IA n’a pas retourné de réponse exploitable.');
       }
     } catch (error) {
+      console.error('Erreur lors de la réponse du conseiller IA pour le devis.', error);
       setAiChatMessages(prev => [...prev, {
+        id: `error-${Date.now()}`,
         role: 'assistant',
         isError: true,
-        text: error.response?.data?.error?.message || error.response?.data?.message || error.message || 'Le service IA est indisponible. Réessayez dans quelques instants.'
+        text: 'Nous ne pouvons pas traiter votre demande pour le moment. Votre conversation est conservée. Veuillez réessayer dans quelques instants.',
       }]);
     } finally {
       setIsAITyping(false);
