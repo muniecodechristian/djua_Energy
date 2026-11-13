@@ -1,6 +1,6 @@
 /* Dashboard: quiet surfaces and a clear reading order, scoped to this page. */
 .dashboard-home.dashboard-refined { min-height:100%; height:auto; background:var(--ops-canvas); color:var(--ops-ink); }
-.dashboard-refined .dashboard-layout { width:100%; max-width:1440px; height:auto; min-height:0; padding:22px 24px 36px; gap:20px; }
+.dashboard-refined .dashboard-layout { width:100%; max-width:none; margin-inline:0; height:auto; min-height:0; padding:22px 24px 36px 16px; gap:20px; }
 .dashboard-refined .dashboard-heading { align-items:center; }
 .dashboard-refined .dashboard-heading h1 { font-size:26px; font-weight:650; letter-spacing:-1px; line-height:1.2; }
 .dashboard-refined .dashboard-heading > div > p:last-child { font-size:13px; margin-top:10px; line-height:1.6; color:var(--ops-muted); }
