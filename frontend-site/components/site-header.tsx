@@ -28,9 +28,8 @@ export function SiteHeader() {
   return (
     <header className={`sticky top-0 z-50 border-b text-[#17211e] backdrop-blur-md transition-[box-shadow,border-color] duration-300 ${scrolled ? "border-[#ff8a00]/25 bg-white/95 shadow-md shadow-[#17211e]/10" : "border-[#17211e]/10 bg-white shadow-sm shadow-transparent"}`}>
       <div className={`mx-auto flex max-w-7xl items-center justify-between gap-5 px-6 transition-[padding] duration-300 ${scrolled ? "py-2.5" : "py-3.5"}`}>
-        <Link href="/" onClick={() => setOpen(false)} className="flex items-center gap-2 text-lg font-bold tracking-tight">
-          <span className="rounded-sm bg-white px-1.5 py-0.5"><img src={DJUA_LOGO_URL} alt="Djua" className="h-9 w-[76px] object-contain" /></span>
-          <span className="text-xs font-semibold tracking-normal text-[#657168]">Energy</span>
+        <Link href="/" onClick={() => setOpen(false)} className="flex items-center text-lg font-bold tracking-tight" aria-label="Djua Energy - Accueil">
+          <span className="rounded-sm bg-white px-1.5 py-0.5"><img src={DJUA_LOGO_URL} alt="Djua" className="h-12 w-[102px] object-contain" /></span>
         </Link>
 
         <nav className="hidden items-center gap-5 text-sm font-semibold xl:flex" aria-label="Navigation principale">
