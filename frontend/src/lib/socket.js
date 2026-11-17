@@ -15,7 +15,7 @@ export function getAppSocket() {
       transports: ['websocket', 'polling'],
       reconnection: true,
       reconnectionDelay: 2000,
-      reconnectionAttempts: 10,
+      reconnectionAttempts: Infinity,
     });
   }
   return socketInstance;

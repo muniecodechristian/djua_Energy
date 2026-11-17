@@ -12,41 +12,8 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { io } from 'socket.io-client';
 import { useKitTelemetryQuery } from './useKitQueries.js';
-
-// ─── Singleton Socket.io ───────────────────────────────────────────────────────
-// On réutilise une seule connexion pour toute l'app (évite les reconnexions).
-let socketInstance = null;
-
-function getSocket() {
-  if (!socketInstance) {
-    const isLocalHost = typeof window !== 'undefined'
-      && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-
-    const serverUrl = import.meta.env.VITE_API_URL
-      ?? (isLocalHost ? 'http://localhost:5000' : 'https://djua-energy-backend.onrender.com');
-
-    socketInstance = io(serverUrl, {
-      withCredentials: true,
-      transports: ['websocket', 'polling'],
-      reconnection: true,
-      reconnectionDelay: 2000,
-      reconnectionAttempts: 10,
-    });
-
-    socketInstance.on('connect', () => {
-      console.log('[Socket.io] Connecté au serveur :', socketInstance.id);
-    });
-    socketInstance.on('disconnect', (reason) => {
-      console.warn('[Socket.io] Déconnecté :', reason);
-    });
-    socketInstance.on('connect_error', (err) => {
-      console.warn('[Socket.io] Erreur de connexion :', err.message);
-    });
-  }
-  return socketInstance;
-}
+import { getAppSocket } from '../../lib/socket.js';
 
 /**
  * Hook principal — télémétrie live + fallback BDD.
@@ -96,7 +63,7 @@ export function useKitLiveTelemetry(kitId) {
   useEffect(() => {
     if (!kitId) return;
 
-    const socket = getSocket();
+    const socket = getAppSocket();
 
     // Handler de réception de télémétrie live
     const handleLiveTelemetry = (event) => {
@@ -139,14 +106,24 @@ export function useKitLiveTelemetry(kitId) {
       console.log(`[Socket.io] Souscription au kit : ${kitId}`);
     };
 
+    const handleDisconnect = () => {
+      if (liveTimeoutRef.current) clearTimeout(liveTimeoutRef.current);
+      setLiveStatus({ kitId, active: false });
+      setLiveSnapshot((snapshot) => snapshot?.kitId === kitId ? null : snapshot);
+      queryClient.invalidateQueries({ queryKey: ['telemetry', kitId] });
+      queryClient.invalidateQueries({ queryKey: ['kit-telemetry-summary', kitId] });
+    };
+
     socket.on('telemetry:live', handleLiveTelemetry);
     socket.on('connect', subscribe);
+    socket.on('disconnect', handleDisconnect);
     if (socket.connected) subscribe();
 
     return () => {
       // Nettoyage : désabonnement du room
       socket.off('telemetry:live', handleLiveTelemetry);
       socket.off('connect', subscribe);
+      socket.off('disconnect', handleDisconnect);
       socket.emit('unsubscribe:kit', { kitId });
       if (liveTimeoutRef.current) clearTimeout(liveTimeoutRef.current);
     };
