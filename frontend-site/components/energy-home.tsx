@@ -125,7 +125,7 @@ export default function EnergyHome() {
           {heroSlides.map((item, index) => <button key={item.eyebrow} type="button" onClick={() => setActiveSlide(index)} aria-label={`Afficher le message ${index + 1}`} aria-pressed={activeSlide === index} className={`h-1.5 rounded-full transition-all duration-300 ${activeSlide === index ? 'w-10 bg-[#ff8a00]' : 'w-2.5 bg-white/55 hover:bg-white'}`} />)}
         </div>
         <div className="absolute bottom-7 right-6 hidden items-center gap-2 text-xs text-white/80 sm:flex sm:right-10">
-          <MapPin size={14} className="text-[#ff8a00]" /> Kinshasa et provinces
+          <MapPin size={14} /> Kinshasa et provinces
         </div>
       </section>
 
@@ -170,7 +170,7 @@ export default function EnergyHome() {
                 Djua Energy accompagne les foyers et les entreprises en RDC, du premier diagnostic jusqu’au suivi de leur installation. Nous prenons le temps de comprendre vos besoins et les contraintes de votre site pour vous proposer une solution adaptée.
               </p>
               <Link href="/about" className="mt-7 inline-flex items-center gap-2 text-sm font-bold text-[#c96500] hover:text-[#8f4700]">
-                En savoir plus sur Djua <ArrowRight size={16} />
+                En savoir plus sur Djua <ArrowRight size={16} className="text-[#17211e]" />
               </Link>
             </motion.div>
           </div>
@@ -191,9 +191,9 @@ export default function EnergyHome() {
               Le solaire qui répond à vos besoins réels.
             </h2>
           </motion.div>
-          <motion.div variants={reveal} className="relative min-h-[170px] w-full overflow-hidden rounded-md flex items-center justify-center bg-[#17191b]">
-            <Lottie animationData={solarAnimation} loop autoplay className="h-full w-full max-h-[220px]" />
-            <div className="absolute inset-0 bg-gradient-to-r from-[#17191b]/65 to-transparent pointer-events-none" />
+          <motion.div variants={reveal} className="relative h-[180px] w-full overflow-hidden rounded-md flex items-center justify-center bg-[#17191b] sm:h-[220px]">
+            <Lottie animationData={solarAnimation} loop autoplay aria-hidden="true" className="h-full w-full" />
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#17191b]/25 to-transparent" />
             <p className="absolute bottom-4 left-4 text-sm font-semibold text-white">Une solution étudiée pour votre site.</p>
           </motion.div>
         </motion.div>
@@ -215,7 +215,7 @@ export default function EnergyHome() {
             >
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold tabular-nums text-[#8b978c]">{number}</span>
-                <Icon className="size-6 text-[#ff8a00] transition-transform duration-300 group-hover:rotate-[-8deg]" strokeWidth={1.6} />
+                <Icon className="size-6 text-[#17211e] transition-transform duration-300 group-hover:rotate-[-8deg]" strokeWidth={1.6} />
               </div>
               <h3 className="mt-10 text-xl font-semibold">{title}</h3>
               <p className="mt-3 max-w-sm text-sm leading-6 text-[#657168]">{text}</p>
@@ -269,11 +269,11 @@ export default function EnergyHome() {
           >
             <p className="max-w-lg text-sm leading-7 text-[#59615b]">Le boîtier connecté envoie les informations de votre installation à la plateforme Djua. Vous pouvez consulter la production des panneaux, vérifier la charge de la batterie et repérer les alertes techniques, sans vous déplacer jusqu’à votre équipement.</p>
             <ul className="mt-6 grid gap-3 text-sm text-[#34443a]">
-              <li className="flex items-center gap-3"><Sun size={17} className="shrink-0 text-[#ff8a00]" />Production solaire de votre installation</li>
-              <li className="flex items-center gap-3"><BatteryCharging size={17} className="shrink-0 text-[#ff8a00]" />État de charge de la batterie</li>
-              <li className="flex items-center gap-3"><Bell size={17} className="shrink-0 text-[#ff8a00]" />Alertes techniques à consulter</li>
+              <li className="flex items-center gap-3"><Sun size={17} className="shrink-0 text-[#17211e]" />Production solaire de votre installation</li>
+              <li className="flex items-center gap-3"><BatteryCharging size={17} className="shrink-0 text-[#17211e]" />État de charge de la batterie</li>
+              <li className="flex items-center gap-3"><Bell size={17} className="shrink-0 text-[#17211e]" />Alertes techniques à consulter</li>
             </ul>
-            <Link href="/services" className="mt-7 inline-flex items-center gap-2 text-sm font-bold text-[#c96500] hover:text-[#8f4700]">Comprendre le suivi de votre installation <ArrowRight size={16} /></Link>
+            <Link href="/services" className="mt-7 inline-flex items-center gap-2 text-sm font-bold text-[#c96500] hover:text-[#8f4700]">Comprendre le suivi de votre installation <ArrowRight size={16} className="text-[#17211e]" /></Link>
           </motion.div>
           </div>
         </div>
@@ -296,7 +296,7 @@ export default function EnergyHome() {
               Nous étudions votre consommation, sélectionnons les équipements adaptés et prenons en charge l’installation. Vous savez ce qui est prévu, et pourquoi.
             </p>
             <Link href="/about" className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[#c96500] transition-colors hover:text-[#8f4700]">
-              Découvrir notre approche <ArrowRight size={16} />
+              Découvrir notre approche <ArrowRight size={16} className="text-[#17211e]" />
             </Link>
           </motion.div>
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -314,7 +314,7 @@ export default function EnergyHome() {
                 transition={{ delay: index * 0.08, duration: 0.45 }}
                 className="group min-h-[220px] rounded-2xl border border-[#17211e]/8 bg-white p-6 shadow-[0_6px_22px_rgba(23,33,30,0.045)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_14px_34px_rgba(23,33,30,0.1)] sm:p-7"
               >
-                <span className="flex size-11 items-center justify-center rounded-xl bg-[#fff3e5] text-[#e8790b] transition-colors group-hover:bg-[#ff8a00] group-hover:text-white">
+                <span className="flex size-11 items-center justify-center rounded-xl bg-[#fff3e5] text-[#17211e] transition-colors group-hover:bg-[#ff8a00]">
                   <Icon className="size-5" strokeWidth={1.7} />
                 </span>
                 <p className="mt-6 text-[11px] font-bold tracking-[0.14em] text-[#a0a89f]">0{index + 1}</p>

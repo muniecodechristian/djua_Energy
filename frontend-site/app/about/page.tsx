@@ -38,7 +38,7 @@ export default function AboutPage() {
           <h2 className="text-3xl font-semibold leading-tight sm:text-4xl">Une installation adaptée, un accompagnement qui continue.</h2>
           <p className="mt-5 text-sm leading-7 text-[#59665c]">Les besoins d’une maison ne sont pas ceux d’un commerce. Nous prenons le temps de comprendre votre site, vos priorités et les contraintes du réseau pour vous recommander une solution cohérente.</p>
           <p className="mt-4 text-sm leading-7 text-[#59665c]">Notre travail ne s’arrête pas à la pose : nous restons disponibles pour le suivi, le diagnostic et la maintenance.</p>
-          <Link href="/services" className="mt-7 inline-flex items-center gap-2 text-sm font-bold text-[#c96500] hover:text-[#8f4700]">Voir nos services <ArrowRight size={16} /></Link>
+          <Link href="/services" className="mt-7 inline-flex items-center gap-2 text-sm font-bold text-[#c96500] hover:text-[#8f4700]">Voir nos services <ArrowRight size={16} className="text-[#17211e]" /></Link>
         </motion.div>
       </section>
 
@@ -50,7 +50,7 @@ export default function AboutPage() {
             <div className="mt-10 grid gap-7 md:grid-cols-3">
               {commitments.map(({ icon: Icon, title, text }, index) => (
                 <motion.article key={title} variants={reveal} className="border-t border-[#17211e]/20 pt-5">
-                  <div className="flex items-center justify-between"><span className="text-xs font-semibold text-[#879288]">0{index + 1}</span><Icon className="size-5 text-[#ff8a00]" strokeWidth={1.7} /></div>
+                  <div className="flex items-center justify-between"><span className="text-xs font-semibold text-[#879288]">0{index + 1}</span><Icon className="size-5 text-[#17211e]" strokeWidth={1.7} /></div>
                   <h3 className="mt-7 text-lg font-semibold">{title}</h3>
                   <p className="mt-3 text-sm leading-6 text-[#657168]">{text}</p>
                 </motion.article>

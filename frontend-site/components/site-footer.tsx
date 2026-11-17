@@ -39,9 +39,9 @@ export function SiteFooter() {
         <div>
           <h3 className="text-sm font-semibold">Nous contacter</h3>
           <div className="mt-4 grid gap-3 text-sm text-white/65">
-            <p><MapPin className="mr-2 inline size-4 text-[#ff8a00]" />Kinshasa, RDC</p>
-            <a href="tel:+243995424606" className="hover:text-white"><Phone className="mr-2 inline size-4 text-[#ff8a00]" />099 542 4606</a>
-            <a href="mailto:contact@djua-energy.cd" className="hover:text-white"><Mail className="mr-2 inline size-4 text-[#ff8a00]" />contact@djua-energy.cd</a>
+            <p><MapPin className="mr-2 inline size-4" />Kinshasa, RDC</p>
+            <a href="tel:+243995424606" className="hover:text-white"><Phone className="mr-2 inline size-4" />099 542 4606</a>
+            <a href="mailto:contact@djua-energy.cd" className="hover:text-white"><Mail className="mr-2 inline size-4" />contact@djua-energy.cd</a>
           </div>
         </div>
       </div>

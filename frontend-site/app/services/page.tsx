@@ -41,10 +41,10 @@ export default function ServicesPage() {
         <motion.div initial={reducedMotion ? false : "hidden"} whileInView="visible" viewport={{ once: true, amount: 0.2 }} variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.12 } } }} className="grid gap-8 md:grid-cols-3">
           {services.map(({ icon: Icon, title, text }, index) => (
             <motion.article key={title} variants={reveal} whileHover={reducedMotion ? undefined : { y: -6 }} transition={{ duration: 0.35 }} className="group border-t border-[#17211e]/20 pt-6">
-              <div className="flex items-center justify-between"><span className="text-xs font-semibold text-[#879288]">0{index + 1}</span><Icon className="size-6 text-[#ff8a00]" strokeWidth={1.6} /></div>
+              <div className="flex items-center justify-between"><span className="text-xs font-semibold text-[#879288]">0{index + 1}</span><Icon className="size-6 text-[#17211e]" strokeWidth={1.6} /></div>
               <h2 className="mt-9 text-xl font-semibold">{title}</h2>
               <p className="mt-3 min-h-[72px] text-sm leading-6 text-[#657168]">{text}</p>
-              <a href="#contact" className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[#c96500]">Parler à un conseiller <ArrowRight size={15} className="transition-transform group-hover:translate-x-1" /></a>
+              <a href="#contact" className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[#c96500]">Parler à un conseiller <ArrowRight size={15} className="text-[#17211e] transition-transform group-hover:translate-x-1" /></a>
             </motion.article>
           ))}
         </motion.div>
@@ -59,9 +59,9 @@ export default function ServicesPage() {
             <p className="mb-4 text-xs font-bold uppercase tracking-[0.14em] text-[#ff8a00]">Votre installation</p>
             <h2 className="text-3xl font-semibold leading-tight sm:text-4xl">Un accompagnement clair, à chaque étape.</h2>
             <ul className="mx-auto mt-7 grid max-w-lg gap-4 text-left">
-              {included.map(item => <li key={item} className="flex items-start gap-3 text-sm leading-6 text-[#59665c]"><span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-white text-[#ff8a00]"><Check size={13} /></span>{item}</li>)}
+              {included.map(item => <li key={item} className="flex items-start gap-3 text-sm leading-6 text-[#59665c]"><span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-white text-[#17211e]"><Check size={13} /></span>{item}</li>)}
             </ul>
-            <p className="mt-8 flex items-center gap-2 text-sm font-medium text-[#52604f]"><BatteryCharging size={17} className="text-[#ff8a00]" />Équipements choisis selon votre dimensionnement</p>
+            <p className="mt-8 flex items-center gap-2 text-sm font-medium text-[#52604f]"><BatteryCharging size={17} className="text-[#17211e]" />Équipements choisis selon votre dimensionnement</p>
           </motion.div>
         </div>
       </section>
