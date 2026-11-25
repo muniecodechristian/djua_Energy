@@ -71,7 +71,7 @@ export const createTeamUser = async (req, res) => {
   const { nom, prenom, postNom = '', identifier, whatsapp, password, role, zone, shopId } = req.body;
   const actorRole = req.user.role === 'administration' ? 'admin' : req.user.role;
 
-  if (actorRole === 'admin' && !['admin', 'shop_manager', 'technician', 'commercial'].includes(role)) {
+  if (actorRole === 'admin' && !['admin', 'shop_manager'].includes(role)) {
     return sendError(res, 'Rôle de compte non autorisé', [], 403);
   }
   if (actorRole === 'shop_manager' && !['technician', 'commercial'].includes(role)) {
@@ -156,7 +156,7 @@ export const getTeamUsers = async (req, res) => {
   try {
     const actorRole = req.user.role === 'administration' ? 'admin' : req.user.role;
     const filter = actorRole === 'admin'
-      ? { role: { $in: ['shop_manager', 'technician', 'commercial'] } }
+      ? { role: { $in: ['shop_manager'] } }
       : {
         role: { $in: ['technician', 'commercial'] },
         $or: [
@@ -254,6 +254,10 @@ export const updateTeamUser = async (req, res) => {
       }
     }
 
+    if (actorRole === 'admin' && role && role !== user.role) {
+      return sendError(res, 'Un administrateur ne peut pas modifier le rôle d’un compte existant', [], 403);
+    }
+
     if (nom) user.nom = nom.trim();
     if (prenom) user.prenom = prenom.trim();
     if (postNom !== undefined) user.postNom = postNom.trim();
@@ -264,7 +268,7 @@ export const updateTeamUser = async (req, res) => {
       user.whatsapp = String(whatsapp).trim();
     }
     if (role && (actorRole === 'admin'
-      ? ['shop_manager', 'technician', 'commercial'].includes(role)
+      ? role === user.role
       : ['technician', 'commercial'].includes(role))) {
       user.role = role;
     }
@@ -311,7 +315,7 @@ export const updateTeamUserStatus = async (req, res) => {
   try {
     const actorRole = req.user.role === 'administration' ? 'admin' : req.user.role;
     const filter = actorRole === 'admin'
-      ? { _id: req.params.userId, role: { $in: ['shop_manager', 'technician', 'commercial'] } }
+      ? { _id: req.params.userId, role: { $in: ['shop_manager'] } }
       : {
         _id: req.params.userId,
         role: { $in: ['technician', 'commercial'] },
@@ -339,7 +343,7 @@ export const deleteTeamUser = async (req, res) => {
   try {
     const actorRole = req.user.role === 'administration' ? 'admin' : req.user.role;
     const filter = actorRole === 'admin'
-      ? { _id: req.params.userId, role: { $in: ['shop_manager', 'technician', 'commercial'] } }
+      ? { _id: req.params.userId, role: { $in: ['shop_manager'] } }
       : {
         _id: req.params.userId,
         role: { $in: ['technician', 'commercial'] },

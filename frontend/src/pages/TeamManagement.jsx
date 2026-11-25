@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { Ban, Pencil, RotateCcw, Trash2, Users, X } from 'lucide-react';
 import { toast } from 'sonner';
 import PageEntrance from '../components/PageEntrance';
@@ -24,7 +24,7 @@ export default function TeamManagement() {
     let active = true;
     api.get('/auth/team-users')
       .then(response => { if (active) setMembers(response.data?.data || []); })
-      .catch(error => { if (active) toast.error(error.response?.data?.message || 'Impossible de charger l’équipe.'); })
+      .catch(error => { if (active) toast.error(error.response?.data?.message || 'Impossible de charger l\'équipe.'); })
       .finally(() => { if (active) setIsLoading(false); });
     return () => { active = false; };
   }, []);
@@ -109,55 +109,151 @@ export default function TeamManagement() {
 
   if (user?.role !== 'shop_manager' && !isAdmin) return <Navigate to="/dashboard" replace/>;
 
-  return <PageEntrance className="ops-page">
-    <div className="ops-page-heading"><div><p className="ops-eyebrow">ÉQUIPE DE TERRAIN</p><h1>Gestion de l’équipe</h1><p>{isAdmin ? 'Gérez les comptes et les affectations de toutes les zones.' : 'Créez et gérez les comptes des techniciens et commerciaux affectés à votre zone.'}</p></div></div>
-    <section className="ops-card">
-      <div className="ops-card-heading"><h2 className="inline-flex items-center gap-2"><Users size={17}/>Nouveau membre</h2><small>{isAdmin ? 'Toutes les fonctions et toutes les zones' : `Zone : ${user.zone || 'Non attribuée'}`}</small></div>
-      <div className="ops-form"><TeamAccountForm onCreated={member => setMembers(previous => [member, ...previous])}/></div>
-    </section>
-    <section className="ops-card" style={{ marginTop: 18 }}>
-      <div className="ops-card-heading"><h2>Membres de l'équipe</h2><small>{members.length} compte(s)</small></div>
-      {isLoading ? <TableSkeleton/> : members.length === 0 ? <div className="ops-empty"><span className="ops-empty-icon"><Users size={24}/></span><h3>Aucun membre dans votre équipe</h3><p>Les techniciens et commerciaux créés apparaîtront ici.</p></div> : <div className="ops-table-scroll"><table className="ops-table"><thead><tr><th>Nom</th><th>Fonction</th><th>Shop</th><th>WhatsApp</th><th>Identifiant</th><th>Zone</th><th>État</th><th>Actions</th></tr></thead><tbody>{members.map(member => <tr key={member._id}><td><strong>{member.prenom} {member.nom}</strong>{member.postNom ? <small className="block text-xs opacity-75">{member.postNom}</small> : null}</td><td>{roleLabels[member.role] || member.role}</td><td>{member.shopId?.name || '—'}</td><td><span className="font-mono text-xs">{member.whatsapp || '—'}</span></td><td>{member.identifier}</td><td>{member.zone || '—'}</td><td><span className={'ops-badge ' + (member.status === 'suspended' ? 'medium' : 'low')}>{member.status === 'suspended' ? 'Suspendu' : 'Actif'}</span></td><td><div className="ops-inline-actions"><button className="ops-icon-button" type="button" title="Modifier les informations" aria-label={`Modifier ${member.prenom} ${member.nom}`} disabled={pendingId === member._id} onClick={() => openEdit(member)}><Pencil size={16}/></button><button className="ops-icon-button" type="button" title={member.status === 'suspended' ? 'Réactiver le compte' : 'Suspendre le compte'} aria-label={member.status === 'suspended' ? `Réactiver ${member.prenom} ${member.nom}` : `Suspendre ${member.prenom} ${member.nom}`} disabled={pendingId === member._id} onClick={() => updateStatus(member)}>{member.status === 'suspended' ? <RotateCcw size={16}/> : <Ban size={16}/>}</button><button className="ops-icon-button" type="button" title="Supprimer le compte" aria-label={`Supprimer ${member.prenom} ${member.nom}`} disabled={pendingId === member._id} onClick={() => deleteMember(member)}><Trash2 size={16}/></button></div></td></tr>)}</tbody></table></div>}
-    </section>
-
-    {/* Modal de modification de membre */}
-    {editingMember && (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-        <div className="bg-[var(--app-surface,#18181b)] border border-[var(--panel-border,#27272a)] rounded-xl max-w-lg w-full p-6 shadow-2xl relative text-left">
-          <div className="flex items-center justify-between pb-3 border-b border-[var(--panel-border,#27272a)] mb-4">
-            <div>
-              <h2 className="text-base font-bold text-white">Modifier les informations</h2>
-              <small className="text-xs text-zinc-400">Zone : {editingMember.zone || user.zone || 'Zone locale'}</small>
-            </div>
-            <button
-              type="button"
-              onClick={() => setEditingMember(null)}
-              className="text-zinc-400 hover:text-white p-1 rounded-lg"
-              aria-label="Fermer"
-            >
-              <X size={18} />
-            </button>
-          </div>
-
-          <form onSubmit={handleEditSubmit} className="ops-form">
-            <div className="ops-form-row">
-              <label>Prénom<input name="prenom" value={editForm.prenom} onChange={handleEditChange} minLength={2} required /></label>
-              <label>Nom<input name="nom" value={editForm.nom} onChange={handleEditChange} minLength={2} required /></label>
-            </div>
-            <label>Post-nom <span>(facultatif)</span><input name="postNom" value={editForm.postNom} onChange={handleEditChange} /></label>
-            <label>Fonction<select name="role" value={editForm.role} onChange={handleEditChange}><option value="technician">Technicien</option><option value="commercial">Commercial</option>{isAdmin && <option value="shop_manager">Responsable shop</option>}</select></label>
-            {isAdmin && <label>Zone d’affectation<input name="zone" value={editForm.zone} onChange={handleEditChange} required/></label>}
-            <label>Numéro WhatsApp <span style={{ color: '#ea580c' }}>*</span><input name="whatsapp" type="tel" placeholder="+243…" value={editForm.whatsapp} onChange={handleEditChange} required /><small>Requis pour joindre le membre par WhatsApp.</small></label>
-            <label>Email ou téléphone<input name="identifier" type="text" value={editForm.identifier} onChange={handleEditChange} required /></label>
-            <label>Nouveau mot de passe <span>(laisser vide pour ne pas modifier)</span><input name="password" type="password" placeholder="••••••••" value={editForm.password} onChange={handleEditChange} minLength={8} /><small>8 caractères min, majuscule, chiffre et symbole.</small></label>
-
-            <div className="flex items-center justify-end gap-3 pt-4 border-t border-[var(--panel-border,#27272a)] mt-4">
-              <button type="button" className="ops-button" onClick={() => setEditingMember(null)} disabled={isSavingEdit}>Annuler</button>
-              <button type="submit" className="ops-button primary" disabled={isSavingEdit}>{isSavingEdit ? 'Enregistrement…' : 'Enregistrer'}</button>
-            </div>
-          </form>
+  return (
+    <PageEntrance className="ops-page">
+      <div className="ops-page-heading">
+        <div>
+          <p className="ops-eyebrow">ÉQUIPE DE TERRAIN</p>
+          <h1>Gestion de l'équipe</h1>
+          <p>
+            {isAdmin
+              ? 'Vue globale des responsables shops. Pour créer des comptes, utilisez Paramètres → Shops & équipes.'
+              : 'Créez et gérez les comptes des techniciens et commerciaux affectés à votre zone.'}
+          </p>
         </div>
       </div>
-    )}
-  </PageEntrance>;
+
+      {/* L'admin ne crée pas ici — il est redirigé vers les Paramètres */}
+      {isAdmin ? (
+        <section className="ops-card">
+          <div className="ops-card-heading">
+            <h2 className="inline-flex items-center gap-2"><Users size={17}/>Responsables de shop</h2>
+            <small>Vision globale — tous les shops</small>
+          </div>
+          <p className="text-sm opacity-70 px-4 pb-4">
+            Pour créer un responsable shop ou un administrateur, utilisez{' '}
+            <Link to="/parametres" className="underline text-amber-500">
+              Paramètres → Shops &amp; équipes
+            </Link>.
+          </p>
+        </section>
+      ) : (
+        <section className="ops-card">
+          <div className="ops-card-heading">
+            <h2 className="inline-flex items-center gap-2"><Users size={17}/>Nouveau membre</h2>
+            <small>Zone : {user.zone || 'Non attribuée'}</small>
+          </div>
+          <div className="ops-form">
+            <TeamAccountForm onCreated={member => setMembers(previous => [member, ...previous])}/>
+          </div>
+        </section>
+      )}
+
+      <section className="ops-card" style={{ marginTop: 18 }}>
+        <div className="ops-card-heading">
+          <h2>{isAdmin ? 'Responsables de shop' : 'Membres de l\'équipe'}</h2>
+          <small>{members.length} compte(s)</small>
+        </div>
+        {isLoading ? <TableSkeleton/> : members.length === 0 ? (
+          <div className="ops-empty">
+            <span className="ops-empty-icon"><Users size={24}/></span>
+            <h3>{isAdmin ? 'Aucun responsable shop enregistré' : 'Aucun membre dans votre équipe'}</h3>
+            <p>{isAdmin ? 'Créez d\'abord un shop et un responsable depuis les Paramètres.' : 'Les techniciens et commerciaux créés apparaîtront ici.'}</p>
+          </div>
+        ) : (
+          <div className="ops-table-scroll">
+            <table className="ops-table">
+              <thead>
+                <tr>
+                  <th>Nom</th>
+                  <th>Fonction</th>
+                  <th>Shop</th>
+                  <th>WhatsApp</th>
+                  <th>Identifiant</th>
+                  <th>Zone</th>
+                  <th>État</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {members.map(member => (
+                  <tr key={member._id}>
+                    <td>
+                      <strong>{member.prenom} {member.nom}</strong>
+                      {member.postNom ? <small className="block text-xs opacity-75">{member.postNom}</small> : null}
+                    </td>
+                    <td>{roleLabels[member.role] || member.role}</td>
+                    <td>{member.shopId?.name || '—'}</td>
+                    <td><span className="font-mono text-xs">{member.whatsapp || '—'}</span></td>
+                    <td>{member.identifier}</td>
+                    <td>{member.zone || '—'}</td>
+                    <td>
+                      <span className={'ops-badge ' + (member.status === 'suspended' ? 'medium' : 'low')}>
+                        {member.status === 'suspended' ? 'Suspendu' : 'Actif'}
+                      </span>
+                    </td>
+                    <td>
+                      <div className="ops-inline-actions">
+                        <button className="ops-icon-button" type="button" title="Modifier les informations" aria-label={`Modifier ${member.prenom} ${member.nom}`} disabled={pendingId === member._id} onClick={() => openEdit(member)}>
+                          <Pencil size={16}/>
+                        </button>
+                        <button className="ops-icon-button" type="button" title={member.status === 'suspended' ? 'Réactiver le compte' : 'Suspendre le compte'} aria-label={member.status === 'suspended' ? `Réactiver ${member.prenom} ${member.nom}` : `Suspendre ${member.prenom} ${member.nom}`} disabled={pendingId === member._id} onClick={() => updateStatus(member)}>
+                          {member.status === 'suspended' ? <RotateCcw size={16}/> : <Ban size={16}/>}
+                        </button>
+                        <button className="ops-icon-button" type="button" title="Supprimer le compte" aria-label={`Supprimer ${member.prenom} ${member.nom}`} disabled={pendingId === member._id} onClick={() => deleteMember(member)}>
+                          <Trash2 size={16}/>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      {/* Modal de modification de membre */}
+      {editingMember && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-[var(--app-surface,#18181b)] border border-[var(--panel-border,#27272a)] rounded-xl max-w-lg w-full p-6 shadow-2xl relative text-left">
+            <div className="flex items-center justify-between pb-3 border-b border-[var(--panel-border,#27272a)] mb-4">
+              <div>
+                <h2 className="text-base font-bold text-white">Modifier les informations</h2>
+                <small className="text-xs text-zinc-400">Zone : {editingMember.zone || user.zone || 'Zone locale'}</small>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingMember(null)}
+                className="text-zinc-400 hover:text-white p-1 rounded-lg"
+                aria-label="Fermer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleEditSubmit} className="ops-form">
+              <div className="ops-form-row">
+                <label>Prénom<input name="prenom" value={editForm.prenom} onChange={handleEditChange} minLength={2} required /></label>
+                <label>Nom<input name="nom" value={editForm.nom} onChange={handleEditChange} minLength={2} required /></label>
+              </div>
+              <label>Post-nom <span>(facultatif)</span><input name="postNom" value={editForm.postNom} onChange={handleEditChange} /></label>
+              {isAdmin
+                ? <label>Fonction<input value={roleLabels[editForm.role] || editForm.role} readOnly/></label>
+                : <label>Fonction<select name="role" value={editForm.role} onChange={handleEditChange}><option value="technician">Technicien</option><option value="commercial">Commercial</option></select></label>}
+              {isAdmin && <label>Zone d'affectation<input name="zone" value={editForm.zone} onChange={handleEditChange} required/></label>}
+              <label>Numéro WhatsApp <span style={{ color: '#ea580c' }}>*</span><input name="whatsapp" type="tel" placeholder="+243…" value={editForm.whatsapp} onChange={handleEditChange} required /><small>Requis pour joindre le membre par WhatsApp.</small></label>
+              <label>Email ou téléphone<input name="identifier" type="text" value={editForm.identifier} onChange={handleEditChange} required /></label>
+              <label>Nouveau mot de passe <span>(laisser vide pour ne pas modifier)</span><input name="password" type="password" placeholder="••••••••" value={editForm.password} onChange={handleEditChange} minLength={8} /><small>8 caractères min, majuscule, chiffre et symbole.</small></label>
+
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-[var(--panel-border,#27272a)] mt-4">
+                <button type="button" className="ops-button" onClick={() => setEditingMember(null)} disabled={isSavingEdit}>Annuler</button>
+                <button type="submit" className="ops-button primary" disabled={isSavingEdit}>{isSavingEdit ? 'Enregistrement…' : 'Enregistrer'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </PageEntrance>
+  );
 }

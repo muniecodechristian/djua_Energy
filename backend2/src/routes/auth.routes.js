@@ -29,8 +29,8 @@ router.get('/team-users', protect, authorizeRoles('shop_manager', 'admin', 'comm
 router.get('/technicians', protect, authorizeRoles('admin', 'administration', 'shop_manager', 'commercial'), getTechnicians);
 router.get('/all-users', protect, authorizeRoles('admin', 'administration', 'shop_manager', 'commercial'), getTechnicians);
 router.patch('/team-users/:userId', protect, authorizeRoles('shop_manager', 'admin'), validate(updateTeamUserSchema), updateTeamUser);
-router.patch('/team-users/:userId/status', protect, authorizeRoles('shop_manager'), validate(teamMemberStatusSchema), updateTeamUserStatus);
-router.delete('/team-users/:userId', protect, authorizeRoles('shop_manager'), validate(teamMemberParamsSchema), deleteTeamUser);
+router.patch('/team-users/:userId/status', protect, authorizeRoles('shop_manager', 'admin'), validate(teamMemberStatusSchema), updateTeamUserStatus);
+router.delete('/team-users/:userId', protect, authorizeRoles('shop_manager', 'admin'), validate(teamMemberParamsSchema), deleteTeamUser);
 router.patch('/password', protect, validate(changePasswordSchema), changePassword);
 
 // POST /auth/login

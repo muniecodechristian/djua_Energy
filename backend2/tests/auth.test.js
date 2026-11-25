@@ -140,29 +140,29 @@ describe('Authentication API - Integration Tests', () => {
       zone,
     });
 
-    it('should require and assign an existing shop to admin-created team members', async () => {
+    it('should let admins create only shop managers and admins, not technicians or commercial users', async () => {
       const { cookie } = await createSession('admin');
-      const missingShop = await request(app)
-        .post('/auth/team-users')
-        .set('Cookie', cookie)
-        .send(newTeamUser('technician', `missing-shop-${Date.now()}@example.com`, 'Goma'));
       const shop = await createShop(cookie, 'Shop des techniciens');
-      const createdMembers = await Promise.all(['technician', 'commercial'].map(role => request(app)
+      const deniedMembers = await Promise.all(['technician', 'commercial'].map(role => request(app)
         .post('/auth/team-users')
         .set('Cookie', cookie)
         .send({
-          ...newTeamUser(role, `assigned-${role}-${Date.now()}@example.com`, 'Autre région'),
+          ...newTeamUser(role, `admin-${role}-${Date.now()}@example.com`, 'Kinshasa'),
           shopId: shop.body.data._id,
         })));
+      const manager = await request(app)
+        .post('/auth/team-users')
+        .set('Cookie', cookie)
+        .send({
+          ...newTeamUser('shop_manager', `assigned-manager-${Date.now()}@example.com`, 'Autre région'),
+          shopId: shop.body.data._id,
+        });
 
-      expect(missingShop.status).toBe(400);
-      for (const [index, response] of createdMembers.entries()) {
-        expect(response.status).toBe(201);
-        expect(response.body.data.role).toBe(['technician', 'commercial'][index]);
-        expect(response.body.data.zone).toBe('Kinshasa');
-        expect(response.body.data.shopId._id).toBe(shop.body.data._id);
-        expect(response.body.data).not.toHaveProperty('password');
-      }
+      expect(deniedMembers.map(response => response.status)).toEqual([403, 403]);
+      expect(manager.status).toBe(201);
+      expect(manager.body.data.role).toBe('shop_manager');
+      expect(manager.body.data.zone).toBe('Kinshasa');
+      expect(manager.body.data.shopId._id).toBe(shop.body.data._id);
     });
 
     it('should allow an admin to create another admin without assigning a zone', async () => {
@@ -197,23 +197,6 @@ describe('Authentication API - Integration Tests', () => {
       }
     });
 
-    it('should allow an admin to create a technician directly', async () => {
-      const { cookie } = await createSession('administration');
-      const shop = await createShop(cookie);
-      const res = await request(app)
-        .post('/auth/team-users')
-        .set('Cookie', cookie)
-        .send({
-          ...newTeamUser('technician', `admin-tech-${Date.now()}@example.com`, 'Goma'),
-          shopId: shop.body.data._id,
-        });
-
-      expect(res.status).toBe(201);
-      expect(res.body.data.role).toBe('technician');
-      expect(res.body.data.zone).toBe('Kinshasa');
-      expect(res.body.data.shopId.name).toBe(shop.body.data.name);
-    });
-
     it('should let an admin manage non-admin team accounts without suspending admins', async () => {
       const { cookie } = await createSession('admin');
       const identifier = `admin-manager-${Date.now()}@example.com`;
@@ -231,16 +214,13 @@ describe('Authentication API - Integration Tests', () => {
       expect(listed.status).toBe(200);
       expect(listed.body.data.map(member => member._id)).toContain(created.body.data._id);
 
-      const technician = await request(app)
-        .post('/auth/team-users')
-        .set('Cookie', cookie)
-        .send({
-          ...newTeamUser('technician', `shop-tech-${Date.now()}@example.com`, 'Kinshasa'),
-          shopId: shop.body.data._id,
-        });
       const managerLogin = await request(app)
         .post('/auth/login')
         .send({ identifier, password: 'Password123!' });
+      const technician = await request(app)
+        .post('/auth/team-users')
+        .set('Cookie', managerLogin.headers['set-cookie'])
+        .send(newTeamUser('technician', `shop-tech-${Date.now()}@example.com`, 'Kinshasa'));
       const managerTeam = await request(app)
         .get('/auth/team-users')
         .set('Cookie', managerLogin.headers['set-cookie']);
@@ -248,6 +228,12 @@ describe('Authentication API - Integration Tests', () => {
       expect(technician.status).toBe(201);
       expect(managerTeam.status).toBe(200);
       expect(managerTeam.body.data.find(member => member._id === technician.body.data._id)?.shopId.name).toBe(shop.body.data.name);
+
+      const forbiddenRoleChange = await request(app)
+        .patch(`/auth/team-users/${created.body.data._id}`)
+        .set('Cookie', cookie)
+        .send({ role: 'technician' });
+      expect(forbiddenRoleChange.status).toBe(403);
 
       const suspended = await request(app)
         .patch(`/auth/team-users/${created.body.data._id}/status`)
@@ -271,7 +257,16 @@ describe('Authentication API - Integration Tests', () => {
     });
 
     it('should assign a manager zone to technicians and commercial users', async () => {
-      const { cookie } = await createSession('shop_manager', 'Goma');
+      const { cookie, identifier } = await createSession('shop_manager', 'Goma');
+      const manager = await User.findOne({ identifier });
+      const shop = await Shop.create({
+        name: `Shop manager ${Date.now()}`,
+        address: '12 Avenue de la Paix',
+        region: 'Goma',
+        createdBy: manager._id,
+      });
+      manager.shopId = shop._id;
+      await manager.save();
 
       for (const role of ['technician', 'commercial']) {
         const res = await request(app)
@@ -282,6 +277,7 @@ describe('Authentication API - Integration Tests', () => {
         expect(res.status).toBe(201);
         expect(res.body.data.role).toBe(role);
         expect(res.body.data.zone).toBe('Goma');
+        expect(res.body.data.shopId._id).toBe(String(shop._id));
         expect(res.body.data.mustChangePassword).toBe(role === 'technician');
       }
     });

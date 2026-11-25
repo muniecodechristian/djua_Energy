@@ -15,7 +15,7 @@ export default function TeamAccountForm({ onCreated, initialRole, allowedRoles }
   const isAdmin = role === 'admin';
   const { data: shops = [], isError: shopsError } = useShopsQuery(isAdmin);
   const [form, setForm] = useState(emptyForm);
-  const availableRoles = allowedRoles || (isAdmin ? ['shop_manager', 'technician', 'commercial', 'admin'] : ['technician', 'commercial']);
+  const availableRoles = allowedRoles || (isAdmin ? ['shop_manager', 'admin'] : ['technician', 'commercial']);
   const [teamRole, setTeamRole] = useState(initialRole || (isAdmin ? 'shop_manager' : 'technician'));
   const [isSubmitting, setIsSubmitting] = useState(false);
   const assignedShop = shops.find(shop => shop._id === form.shopId);

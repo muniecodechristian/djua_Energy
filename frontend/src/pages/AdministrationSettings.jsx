@@ -33,8 +33,6 @@ const preferenceStorageKey = 'djua-admin-preferences';
 const createUserRoleLabels = {
   admin: 'un administrateur',
   shop_manager: 'un responsable de shop',
-  technician: 'un technicien',
-  commercial: 'un commercial',
 };
 
 const sections = [
@@ -184,18 +182,6 @@ function SettingsSectionContent({ activeSection, user, onSelectSection }) {
             <div><h2><Users size={17} />Créer un responsable shop</h2><p>Choisissez le shop auquel son équipe sera rattachée.</p></div>
           </header>
           <div className="admin-settings-card-body"><TeamAccountForm initialRole="shop_manager" allowedRoles={["shop_manager"]} /></div>
-        </section>
-        <section className="admin-settings-card">
-          <header className="admin-settings-card-heading">
-            <div><h2><Wrench size={17} />Créer un technicien</h2><p>Affectez le technicien à un shop existant.</p></div>
-          </header>
-          <div className="admin-settings-card-body"><TeamAccountForm initialRole="technician" allowedRoles={["technician"]} /></div>
-        </section>
-        <section className="admin-settings-card">
-          <header className="admin-settings-card-heading">
-            <div><h2><FileText size={17} />Créer un commercial</h2><p>Affectez le commercial à un shop existant.</p></div>
-          </header>
-          <div className="admin-settings-card-body"><TeamAccountForm initialRole="commercial" allowedRoles={["commercial"]} /></div>
         </section>
         <SectionLink to="/equipe">Voir la liste complète des équipes</SectionLink>
       </div>
@@ -408,18 +394,6 @@ export default function AdministrationSettings() {
                   <span><Users size={19} /></span>
                   <strong>Responsable de shop</strong>
                   <small>Gère l’équipe de son shop</small>
-                  <ChevronRight size={16} />
-                </button>
-                <button type="button" className="admin-create-role-option" onClick={() => setCreateUserRole('technician')}>
-                  <span><Wrench size={19} /></span>
-                  <strong>Technicien</strong>
-                  <small>Affecté à un shop existant</small>
-                  <ChevronRight size={16} />
-                </button>
-                <button type="button" className="admin-create-role-option" onClick={() => setCreateUserRole('commercial')}>
-                  <span><FileText size={19} /></span>
-                  <strong>Commercial</strong>
-                  <small>Affecté à un shop existant</small>
                   <ChevronRight size={16} />
                 </button>
               </div>
