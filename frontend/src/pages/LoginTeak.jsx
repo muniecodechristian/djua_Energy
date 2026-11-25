@@ -317,18 +317,6 @@ export default function LoginDjuaEnergy() {
         </form>
         <Link to="/dashboard" className="mt-5 text-xs font-medium text-amber-600 hover:text-amber-500 underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-4">Consulter la supervision sans connexion</Link>
 
-        {/* LIENS INFÉRIEURS */}
-        <motion.div 
-          variants={fadeInUp}
-          className="mt-8 flex items-center gap-3 text-[10px] font-bold uppercase tracking-wider text-neutral-500"
-        >
-          <a href="#" className="hover:text-amber-500 transition-colors">Mot de passe oublié ?</a>
-          <span className={`w-1 h-1 rounded-full ${isDark ? 'bg-neutral-800' : 'bg-neutral-300'}`} />
-          <a href="#" className="hover:text-amber-500 transition-colors">S'inscrire</a>
-          <span className={`w-1 h-1 rounded-full ${isDark ? 'bg-neutral-800' : 'bg-neutral-300'}`} />
-          <a href="#" className="hover:text-amber-500 transition-colors">Mentions légales</a>
-        </motion.div>
-
       </motion.div>
     </div>
   );
