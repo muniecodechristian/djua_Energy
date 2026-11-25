@@ -26,7 +26,7 @@ export function navigationForRole(role) {
   
   // L’administrateur accède aux écrans globaux de gestion et de supervision avec vision complète.
   if (normalizedRole === 'admin') {
-    const adminPaths = ['/installations', '/rapports', '/devis', '/parc', '/notification', '/catalogue', '/AdministrationSettings'];
+    const adminPaths = ['/rapports', '/devis', '/parc', '/notification', '/catalogue', '/AdministrationSettings'];
     return navigation
       .filter(item => adminPaths.includes(item.path))
       .sort((left, right) => adminPaths.indexOf(left.path) - adminPaths.indexOf(right.path))

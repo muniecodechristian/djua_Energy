@@ -106,21 +106,31 @@
   gap: 9px;
   padding: 12px 20px;
   border-radius: 9999px;
-  background: #0f172a;
-  color: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: #f59e0b;
+  color: #111827;
+  border: 1px solid #fbbf24;
   font-size: 13px;
   font-weight: 650;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 8px 24px rgba(245, 158, 11, 0.35), 0 3px 8px rgba(0, 0, 0, 0.2);
   cursor: pointer;
   transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .admin-fab-create-user:hover {
   transform: translateY(-2px);
-  background: #1e293b;
+  background: #d97706;
+}
+.admin-fab-create-user:focus-visible {
+  outline: 3px solid #111827;
+  outline-offset: 3px;
 }
 .admin-fab-create-user:active {
   transform: translateY(0) scale(0.98);
+}
+@media (max-width: 650px) {
+  .admin-fab-create-user {
+    right: 16px;
+    bottom: 16px;
+  }
 }
 .admin-create-user-modal-backdrop {
   position: fixed;
