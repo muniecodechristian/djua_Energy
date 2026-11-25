@@ -147,20 +147,22 @@ describe('Authentication API - Integration Tests', () => {
         .set('Cookie', cookie)
         .send(newTeamUser('technician', `missing-shop-${Date.now()}@example.com`, 'Goma'));
       const shop = await createShop(cookie, 'Shop des techniciens');
-      const res = await request(app)
+      const createdMembers = await Promise.all(['technician', 'commercial'].map(role => request(app)
         .post('/auth/team-users')
         .set('Cookie', cookie)
         .send({
-          ...newTeamUser('technician', `assigned-tech-${Date.now()}@example.com`, 'Autre région'),
+          ...newTeamUser(role, `assigned-${role}-${Date.now()}@example.com`, 'Autre région'),
           shopId: shop.body.data._id,
-        });
+        })));
 
       expect(missingShop.status).toBe(400);
-      expect(res.status).toBe(201);
-      expect(res.body.data.role).toBe('technician');
-      expect(res.body.data.zone).toBe('Kinshasa');
-      expect(res.body.data.shopId._id).toBe(shop.body.data._id);
-      expect(res.body.data).not.toHaveProperty('password');
+      for (const [index, response] of createdMembers.entries()) {
+        expect(response.status).toBe(201);
+        expect(response.body.data.role).toBe(['technician', 'commercial'][index]);
+        expect(response.body.data.zone).toBe('Kinshasa');
+        expect(response.body.data.shopId._id).toBe(shop.body.data._id);
+        expect(response.body.data).not.toHaveProperty('password');
+      }
     });
 
     it('should allow an admin to create another admin without assigning a zone', async () => {

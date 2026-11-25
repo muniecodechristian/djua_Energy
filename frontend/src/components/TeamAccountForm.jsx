@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { MapPin, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../api/axios';
@@ -20,10 +20,6 @@ export default function TeamAccountForm({ onCreated, initialRole, allowedRoles }
   const [isSubmitting, setIsSubmitting] = useState(false);
   const assignedShop = shops.find(shop => shop._id === form.shopId);
   const assignedZone = isAdmin ? (teamRole === 'admin' ? '' : assignedShop?.region || '') : (user?.zone || '').trim();
-
-  useEffect(() => {
-    if (shopsError) toast.error('Impossible de charger la liste des shops.');
-  }, [shopsError]);
 
   const update = event => setForm(previous => ({ ...previous, [event.target.name]: event.target.value }));
 
@@ -100,7 +96,9 @@ export default function TeamAccountForm({ onCreated, initialRole, allowedRoles }
           {shops.map(shop => <option key={shop._id} value={shop._id}>{shop.name} — {shop.region}</option>)}
         </select>
         {assignedShop && <small>{assignedShop.address}</small>}
-        {!shops.length && <small>Créez d’abord un shop dans Paramètres → Shops & équipes.</small>}
+        {shopsError
+          ? <small role="alert">Impossible de charger les shops. Réessayez ou contactez un administrateur.</small>
+          : !shops.length && <small>Créez d’abord un shop dans Paramètres → Shops & équipes.</small>}
       </label>
       : <label><span className="inline-flex items-center gap-2"><MapPin size={14}/>Zone d’affectation</span><input value={user?.zone || ''} readOnly placeholder="Zone du responsable" required/></label>)}
     <div className="ops-inline-actions"><button className="ops-button primary" type="submit" disabled={isSubmitting || (!isAdmin && !assignedZone) || (isAdmin && teamRole !== 'admin' && !assignedShop)}><UserPlus size={16}/>{isSubmitting ? 'Création…' : `Créer ${roleLabels[teamRole].toLowerCase()}`}</button></div>
