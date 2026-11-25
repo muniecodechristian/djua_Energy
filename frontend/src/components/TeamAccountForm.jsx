@@ -6,6 +6,7 @@ import useAuthStore from '../hooks/Zustand/useAuthStore';
 
 const emptyForm = { nom: '', prenom: '', postNom: '', identifier: '', whatsapp: '', password: '', zone: '' };
 const roleLabels = { admin: 'Administrateur', shop_manager: 'Responsable shop', technician: 'Technicien', commercial: 'Commercial' };
+const roleDescriptions = { technician: 'Interventions et missions de terrain', commercial: 'Devis et suivi commercial' };
 
 export default function TeamAccountForm({ onCreated, initialRole, allowedRoles }) {
   const user = useAuthStore(state => state.user);
@@ -58,7 +59,25 @@ export default function TeamAccountForm({ onCreated, initialRole, allowedRoles }
       <label>Nom<input name="nom" autoComplete="family-name" value={form.nom} onChange={update} minLength={2} required/></label>
     </div>
     <label>Post-nom <span>(facultatif)</span><input name="postNom" autoComplete="additional-name" value={form.postNom} onChange={update}/></label>
-    {availableRoles.length === 1 ? <label>Fonction<input value={roleLabels[teamRole]} readOnly/></label> : <label>Fonction<select value={teamRole} onChange={event => setTeamRole(event.target.value)}>{availableRoles.map(option => <option key={option} value={option}>{roleLabels[option]}</option>)}</select></label>}
+    {availableRoles.length === 1 ? <label>Fonction<input value={roleLabels[teamRole]} readOnly/></label> : role === 'shop_manager' ? (
+      <fieldset className="ops-team-role-picker">
+        <legend>Type de compte à créer</legend>
+        <div className="ops-team-role-options">
+          {availableRoles.map(option => (
+            <button
+              key={option}
+              type="button"
+              className="ops-team-role-option"
+              aria-pressed={teamRole === option}
+              onClick={() => setTeamRole(option)}
+            >
+              <strong>{roleLabels[option]}</strong>
+              <small>{roleDescriptions[option]}</small>
+            </button>
+          ))}
+        </div>
+      </fieldset>
+    ) : <label>Fonction<select value={teamRole} onChange={event => setTeamRole(event.target.value)}>{availableRoles.map(option => <option key={option} value={option}>{roleLabels[option]}</option>)}</select></label>}
     <label>Numéro WhatsApp <span style={{ color: '#ea580c' }}>*</span><input name="whatsapp" type="tel" autoComplete="tel" placeholder="+243…" value={form.whatsapp} onChange={update} required={['technician', 'commercial'].includes(teamRole)}/><small>Numéro WhatsApp obligatoire pour la coordination de terrain.</small></label>
     <label>Email ou téléphone<input name="identifier" type="text" autoComplete="username" placeholder="nom@exemple.com ou +243…" value={form.identifier} onChange={update} required/></label>
     <label>Mot de passe initial<input name="password" type="password" autoComplete="new-password" minLength={8} value={form.password} onChange={update} required/><small>8 caractères minimum, avec majuscule, minuscule, chiffre et caractère spécial.</small></label>
