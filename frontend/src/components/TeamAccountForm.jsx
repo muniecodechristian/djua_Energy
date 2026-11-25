@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { MapPin, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../api/axios';
 import useAuthStore from '../hooks/Zustand/useAuthStore';
+import { useShopsQuery } from '../hooks/tanstack/useShops';
 
-const emptyForm = { nom: '', prenom: '', postNom: '', identifier: '', whatsapp: '', password: '', zone: '' };
+const emptyForm = { nom: '', prenom: '', postNom: '', identifier: '', whatsapp: '', password: '', shopId: '' };
 const roleLabels = { admin: 'Administrateur', shop_manager: 'Responsable shop', technician: 'Technicien', commercial: 'Commercial' };
 const roleDescriptions = { technician: 'Interventions et missions de terrain', commercial: 'Devis et suivi commercial' };
 
@@ -12,18 +13,28 @@ export default function TeamAccountForm({ onCreated, initialRole, allowedRoles }
   const user = useAuthStore(state => state.user);
   const role = user?.role === 'administration' ? 'admin' : user?.role;
   const isAdmin = role === 'admin';
+  const { data: shops = [], isError: shopsError } = useShopsQuery(isAdmin);
   const [form, setForm] = useState(emptyForm);
   const availableRoles = allowedRoles || (isAdmin ? ['shop_manager', 'technician', 'commercial', 'admin'] : ['technician', 'commercial']);
   const [teamRole, setTeamRole] = useState(initialRole || (isAdmin ? 'shop_manager' : 'technician'));
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const assignedZone = isAdmin ? (teamRole === 'admin' ? '' : form.zone.trim()) : (user?.zone || '').trim();
+  const assignedShop = shops.find(shop => shop._id === form.shopId);
+  const assignedZone = isAdmin ? (teamRole === 'admin' ? '' : assignedShop?.region || '') : (user?.zone || '').trim();
+
+  useEffect(() => {
+    if (shopsError) toast.error('Impossible de charger la liste des shops.');
+  }, [shopsError]);
 
   const update = event => setForm(previous => ({ ...previous, [event.target.name]: event.target.value }));
 
   const submit = async event => {
     event.preventDefault();
+    if (isAdmin && teamRole !== 'admin' && !assignedShop) {
+      toast.error('Sélectionnez un shop avant de créer ce compte.');
+      return;
+    }
     if (!assignedZone && teamRole !== 'admin') {
-      toast.error(isAdmin ? 'Indiquez la zone du responsable.' : 'Votre compte n’a pas de zone attribuée. Contactez un administrateur.');
+      toast.error('Votre compte n’a pas de zone attribuée. Contactez un administrateur.');
       return;
     }
     if (['technician', 'commercial'].includes(teamRole) && !form.whatsapp.trim()) {
@@ -42,8 +53,9 @@ export default function TeamAccountForm({ onCreated, initialRole, allowedRoles }
         password: form.password,
         role: teamRole,
         ...(assignedZone ? { zone: assignedZone } : {}),
+        ...(isAdmin && teamRole !== 'admin' ? { shopId: assignedShop._id } : {}),
       });
-      toast.success(assignedZone ? `${roleLabels[teamRole]} créé pour la zone ${assignedZone}.` : 'Compte administrateur créé.');
+      toast.success(assignedShop ? `${roleLabels[teamRole]} affecté au shop ${assignedShop.name}.` : 'Compte administrateur créé.');
       onCreated?.(response.data?.data);
       setForm(emptyForm);
     } catch (error) {
@@ -81,7 +93,16 @@ export default function TeamAccountForm({ onCreated, initialRole, allowedRoles }
     <label>Numéro WhatsApp <span style={{ color: '#ea580c' }}>*</span><input name="whatsapp" type="tel" autoComplete="tel" placeholder="+243…" value={form.whatsapp} onChange={update} required={['technician', 'commercial'].includes(teamRole)}/><small>Numéro WhatsApp obligatoire pour la coordination de terrain.</small></label>
     <label>Email ou téléphone<input name="identifier" type="text" autoComplete="username" placeholder="nom@exemple.com ou +243…" value={form.identifier} onChange={update} required/></label>
     <label>Mot de passe initial<input name="password" type="password" autoComplete="new-password" minLength={8} value={form.password} onChange={update} required/><small>8 caractères minimum, avec majuscule, minuscule, chiffre et caractère spécial.</small></label>
-    {teamRole !== 'admin' && <label><span className="inline-flex items-center gap-2"><MapPin size={14}/>Zone d’affectation</span><input name="zone" value={isAdmin ? form.zone : (user?.zone || '')} onChange={isAdmin ? update : undefined} readOnly={!isAdmin} placeholder={isAdmin ? 'Ex. Kinshasa, Goma…' : 'Zone du responsable'} required/></label>}
-    <div className="ops-inline-actions"><button className="ops-button primary" type="submit" disabled={isSubmitting || (!isAdmin && !assignedZone)}><UserPlus size={16}/>{isSubmitting ? 'Création…' : `Créer ${roleLabels[teamRole].toLowerCase()}`}</button></div>
+    {teamRole !== 'admin' && (isAdmin
+      ? <label><span className="inline-flex items-center gap-2"><MapPin size={14}/>Shop d’affectation</span>
+        <select name="shopId" value={form.shopId} onChange={update} required>
+          <option value="">Sélectionner un shop</option>
+          {shops.map(shop => <option key={shop._id} value={shop._id}>{shop.name} — {shop.region}</option>)}
+        </select>
+        {assignedShop && <small>{assignedShop.address}</small>}
+        {!shops.length && <small>Créez d’abord un shop dans Paramètres → Shops & équipes.</small>}
+      </label>
+      : <label><span className="inline-flex items-center gap-2"><MapPin size={14}/>Zone d’affectation</span><input value={user?.zone || ''} readOnly placeholder="Zone du responsable" required/></label>)}
+    <div className="ops-inline-actions"><button className="ops-button primary" type="submit" disabled={isSubmitting || (!isAdmin && !assignedZone) || (isAdmin && teamRole !== 'admin' && !assignedShop)}><UserPlus size={16}/>{isSubmitting ? 'Création…' : `Créer ${roleLabels[teamRole].toLowerCase()}`}</button></div>
   </form>;
 }

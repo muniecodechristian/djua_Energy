@@ -25,10 +25,17 @@ import {
 import PageEntrance from '../components/PageEntrance';
 import ThemeToggle from '../components/ThemeToggle';
 import TeamAccountForm from '../components/TeamAccountForm';
+import ShopManagementPanel from '../components/ShopManagementPanel';
 import useAuthStore from '../hooks/Zustand/useAuthStore';
 import './AdministrationSettings.css';
 
 const preferenceStorageKey = 'djua-admin-preferences';
+const createUserRoleLabels = {
+  admin: 'un administrateur',
+  shop_manager: 'un responsable de shop',
+  technician: 'un technicien',
+  commercial: 'un commercial',
+};
 
 const sections = [
   { id: 'organisation', label: 'Organisation', icon: Building2 },
@@ -168,15 +175,17 @@ function SettingsSectionContent({ activeSection, user, onSelectSection }) {
       <div className="admin-settings-single-column">
         <section className="admin-settings-card">
           <header className="admin-settings-card-heading">
-            <div><h2><Users size={17} />Créer un responsable shop</h2><p>Le responsable pourra créer les comptes technicien et commercial de sa zone.</p></div>
+            <div><h2><Building2 size={17} />Créer et gérer les shops</h2><p>Renseignez le nom, l’adresse et la région avant d’affecter des comptes.</p></div>
+          </header>
+          <div className="admin-settings-card-body"><ShopManagementPanel /></div>
+        </section>
+        <section className="admin-settings-card">
+          <header className="admin-settings-card-heading">
+            <div><h2><Users size={17} />Créer un responsable shop</h2><p>Choisissez le shop auquel son équipe sera rattachée.</p></div>
           </header>
           <div className="admin-settings-card-body"><TeamAccountForm initialRole="shop_manager" allowedRoles={["shop_manager"]} /></div>
         </section>
         <SectionLink to="/equipe">Voir la liste complète des équipes</SectionLink>
-        <SettingsNotice>
-          Le serveur permet la création de comptes responsables. Il ne propose pas encore à l’administrateur
-          une liste centralisée des shops et des équipes existants.
-        </SettingsNotice>
       </div>
     );
   }
@@ -364,7 +373,7 @@ export default function AdministrationSettings() {
                 <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center">
                   <UserPlus size={18} />
                 </div>
-                <h2 id="modal-create-user-title" className="text-base font-bold text-zinc-900 dark:text-white">{createUserRole ? `Créer ${createUserRole === 'admin' ? 'un administrateur' : 'un responsable de shop'}` : 'Quel compte souhaitez-vous créer ?'}</h2>
+                <h2 id="modal-create-user-title" className="text-base font-bold text-zinc-900 dark:text-white">{createUserRole ? `Créer ${createUserRoleLabels[createUserRole]}` : 'Quel compte souhaitez-vous créer ?'}</h2>
               </div>
               <button
                 type="button"
@@ -386,7 +395,19 @@ export default function AdministrationSettings() {
                 <button type="button" className="admin-create-role-option" onClick={() => setCreateUserRole('shop_manager')}>
                   <span><Users size={19} /></span>
                   <strong>Responsable de shop</strong>
-                  <small>Gère l’équipe et sa zone</small>
+                  <small>Gère l’équipe de son shop</small>
+                  <ChevronRight size={16} />
+                </button>
+                <button type="button" className="admin-create-role-option" onClick={() => setCreateUserRole('technician')}>
+                  <span><Wrench size={19} /></span>
+                  <strong>Technicien</strong>
+                  <small>Affecté à un shop existant</small>
+                  <ChevronRight size={16} />
+                </button>
+                <button type="button" className="admin-create-role-option" onClick={() => setCreateUserRole('commercial')}>
+                  <span><FileText size={19} /></span>
+                  <strong>Commercial</strong>
+                  <small>Affecté à un shop existant</small>
                   <ChevronRight size={16} />
                 </button>
               </div>

@@ -46,6 +46,12 @@ const UserSchema = new mongoose.Schema({
     trim: true,
     default: '',
   },
+  shopId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Shop',
+    default: null,
+    index: true,
+  },
   seniority: {
     type: String,
     enum: ['junior', 'intermediate', 'senior'],

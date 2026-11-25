@@ -46,6 +46,7 @@ export const teamUserSchema = z.object({
     password: passwordStrengthSchema,
     role: z.enum(['admin', 'shop_manager', 'technician', 'commercial']),
     zone: z.string().trim().optional(),
+    shopId: z.string().regex(/^[a-f\d]{24}$/i).optional(),
   }),
 });
 

@@ -14,6 +14,7 @@ import hpp from "hpp";
 import { rateLimit } from "express-rate-limit";
 import deviceRoutes from "./routes/device.routes.js";
 import authRoutes from "./routes/auth.routes.js";
+import shopRoutes from "./routes/shop.routes.js";
 import orangeEnergyRoutes from "./routes/orangeEnergy.routes.js";
 import iaRoutes from "./routes/ia.routes.js";
 import mlRoutes from "./routes/ml.routes.js";
@@ -115,6 +116,7 @@ if (swaggerEnabled) {
 
 // Routes applicatives ──────────────────────────────────────────────────────
 app.use("/auth", authRoutes);
+app.use("/api/shops", shopRoutes);
 
 app.use("/api/quotes", quoteRoutes);
 app.use("/api/installations", installationRoutes);

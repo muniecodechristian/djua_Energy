@@ -1,7 +1,7 @@
 import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from 'framer-motion';
 import { quickSpring } from '../lib/motion';
 import { useEffect, useRef, useState } from 'react';
-import { NavLink, Link } from 'react-router-dom';
+import { NavLink, Link, useNavigate } from 'react-router-dom';
 import { Sun, PanelLeftClose, PanelLeftOpen, X, LogOut, LogIn, FilePlus2 } from 'lucide-react';
 import { navigationForRole } from '../lib/navigation';
 import useAuthStore from '../hooks/Zustand/useAuthStore';
@@ -11,6 +11,7 @@ const LOGO_URL = "https://lh3.googleusercontent.com/aida-public/AB6AXuBjEVP6WMcr
 
 export default function Sidebar({ isSidebarOpen, setIsSidebarOpen }) {
  const reduced = useReducedMotion();
+  const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
   const [mobile, setMobile] = useState(() => window.matchMedia('(max-width: 900px)').matches);
   const panel = useRef(null);
@@ -72,7 +73,7 @@ export default function Sidebar({ isSidebarOpen, setIsSidebarOpen }) {
       </nav></LayoutGroup>
       <div className="ops-sidebar-bottom">
         <div className="ops-workspace ops-nav-label"><span className="ops-status-dot"/><span>Espace de supervision<small>Parc solaire · RDC</small></span></div>
-        <div className="ops-account"><div className="ops-avatar">{user?.prenom?.[0] || 'V'}</div><div className="ops-nav-label"><strong>{user ? [user.prenom, user.nom].filter(Boolean).join(' ') || 'Utilisateur' : 'Visiteur'}</strong><small>{user ? 'Session connectée' : 'Navigation libre'}</small></div>{user ? <button className="ops-icon-button" aria-label="Se déconnecter" disabled={logout.isPending} onClick={() => logout.mutate()}><LogOut size={17}/></button> : <Link className="ops-icon-button" to="/login" aria-label="Se connecter"><LogIn size={17}/></Link>}</div>
+        <div className="ops-account"><div className="ops-avatar">{user?.prenom?.[0] || 'V'}</div><div className="ops-nav-label"><strong>{user ? [user.prenom, user.nom].filter(Boolean).join(' ') || 'Utilisateur' : 'Visiteur'}</strong><small>{user ? 'Session connectée' : 'Navigation libre'}</small></div>{user ? <button className="ops-icon-button" aria-label="Se déconnecter" disabled={logout.isPending} onClick={() => logout.mutate(undefined, { onSettled: () => navigate('/login', { replace: true }) })}><LogOut size={17}/></button> : <Link className="ops-icon-button" to="/login" aria-label="Se connecter"><LogIn size={17}/></Link>}</div>
         <button className="ops-collapse" aria-label={collapsed ? 'Développer la navigation' : 'Réduire la navigation'} onClick={() => setCollapsed(!collapsed)}>{collapsed ? <PanelLeftOpen size={17}/> : <><PanelLeftClose size={17}/><span>Réduire le menu</span></>}</button>
       </div>
     </aside>

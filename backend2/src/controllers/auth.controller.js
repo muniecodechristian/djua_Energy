@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/user.model.js';
+import Shop from '../models/Shop.model.js';
 import config from '../config/env.config.js';
 import { sendSuccess, sendError } from '../utils/apiResponse.js';
 
@@ -67,7 +68,7 @@ export const register = async (req, res) => {
 };
 
 export const createTeamUser = async (req, res) => {
-  const { nom, prenom, postNom = '', identifier, whatsapp, password, role, zone } = req.body;
+  const { nom, prenom, postNom = '', identifier, whatsapp, password, role, zone, shopId } = req.body;
   const actorRole = req.user.role === 'administration' ? 'admin' : req.user.role;
 
   if (actorRole === 'admin' && !['admin', 'shop_manager', 'technician', 'commercial'].includes(role)) {
@@ -84,12 +85,27 @@ export const createTeamUser = async (req, res) => {
     return sendError(res, 'Le numéro WhatsApp est obligatoire pour créer un technicien ou un commercial', [], 400);
   }
 
-  const assignedZone = actorRole === 'admin' ? zone?.trim() : (req.user.zone?.trim() || 'Kinshasa');
-  if (!assignedZone && role !== 'admin') {
-    return sendError(res, 'A zone is required for this account', [], 400);
-  }
-
   try {
+    let assignedShop = null;
+    if (actorRole === 'admin' && role !== 'admin') {
+      if (!shopId) {
+        return sendError(res, 'Un shop doit être sélectionné pour ce compte', [], 400);
+      }
+      assignedShop = await Shop.findById(shopId);
+      if (!assignedShop) {
+        return sendError(res, 'Le shop sélectionné est introuvable', [], 404);
+      }
+    } else if (actorRole !== 'admin' && req.user.shopId) {
+      assignedShop = await Shop.findById(req.user.shopId);
+    }
+
+    const assignedZone = actorRole === 'admin'
+      ? (assignedShop?.region || zone?.trim())
+      : (req.user.zone?.trim() || assignedShop?.region || 'Kinshasa');
+    if (!assignedZone && role !== 'admin') {
+      return sendError(res, 'A zone is required for this account', [], 400);
+    }
+
     const normalizedIdentifier = identifier.toLowerCase();
     const existingUser = await User.findOne({ identifier: normalizedIdentifier });
     if (existingUser) {
@@ -105,6 +121,7 @@ export const createTeamUser = async (req, res) => {
       password,
       role,
       zone: assignedZone,
+      shopId: assignedShop?._id || (actorRole === 'admin' ? null : req.user.shopId || null),
       status: 'active',
       mustChangePassword: role === 'technician',
       createdBy: req.user._id,
@@ -119,6 +136,12 @@ export const createTeamUser = async (req, res) => {
       whatsapp: user.whatsapp,
       role: user.role,
       zone: user.zone,
+      shopId: assignedShop ? {
+        _id: assignedShop._id,
+        name: assignedShop.name,
+        address: assignedShop.address,
+        region: assignedShop.region,
+      } : user.shopId,
       status: user.status,
       mustChangePassword: user.mustChangePassword,
       createdBy: user.createdBy,
@@ -134,9 +157,16 @@ export const getTeamUsers = async (req, res) => {
     const actorRole = req.user.role === 'administration' ? 'admin' : req.user.role;
     const filter = actorRole === 'admin'
       ? { role: { $in: ['shop_manager', 'technician', 'commercial'] } }
-      : { createdBy: req.user._id, role: { $in: ['technician', 'commercial'] } };
+      : {
+        role: { $in: ['technician', 'commercial'] },
+        $or: [
+          { createdBy: req.user._id },
+          ...(req.user.shopId ? [{ shopId: req.user.shopId }] : []),
+        ],
+      };
     const users = await User.find(filter)
-      .select('nom prenom postNom identifier whatsapp role zone status mustChangePassword createdAt')
+      .select('nom prenom postNom identifier whatsapp role zone shopId status mustChangePassword createdAt')
+      .populate('shopId', 'name address region')
       .sort({ createdAt: -1 })
       .lean();
 
@@ -167,22 +197,30 @@ export const getTechnicians = async (req, res) => {
       const shopManager = req.user.createdBy
         ? await User.findOne({ _id: req.user.createdBy, role: 'shop_manager' }).select('_id').lean()
         : null;
-      if (!shopManager) {
+      if (!shopManager && !req.user.shopId) {
         return sendSuccess(res, 'Techniciens récupérés avec succès', []);
       }
-      filter = { role: 'technician', createdBy: shopManager._id };
+      filter = {
+        role: 'technician',
+        $or: [
+          ...(shopManager ? [{ createdBy: shopManager._id }] : []),
+          ...(req.user.shopId ? [{ shopId: req.user.shopId }] : []),
+        ],
+      };
     } else if (actorRole === 'shop_manager') {
       filter = {
         role: 'technician',
         $or: [
           { createdBy: req.user._id },
+          ...(req.user.shopId ? [{ shopId: req.user.shopId }] : []),
           ...(req.user.zone ? [{ zone: req.user.zone }] : [])
         ]
       };
     }
 
     const technicians = await User.find(filter)
-      .select('nom prenom postNom identifier whatsapp phone role zone seniority status createdBy createdAt')
+      .select('nom prenom postNom identifier whatsapp phone role zone shopId seniority status createdBy createdAt')
+      .populate('shopId', 'name address region')
       .sort({ prenom: 1, nom: 1 })
       .lean();
 
@@ -206,8 +244,9 @@ export const updateTeamUser = async (req, res) => {
     // Un responsable shop ne peut modifier que les membres qu'il a créés ou de sa zone (techniciens/commerciaux)
     if (actorRole === 'shop_manager') {
       const isOwner = user.createdBy && user.createdBy.toString() === req.user._id.toString();
+      const isSameShop = req.user.shopId && user.shopId && user.shopId.toString() === req.user.shopId.toString();
       const isSameZone = user.zone && user.zone === req.user.zone;
-      if (!isOwner && !isSameZone) {
+      if (!isOwner && !isSameShop && !isSameZone) {
         return sendError(res, 'Vous n’êtes pas autorisé à modifier ce compte', [], 403);
       }
       if (!['technician', 'commercial'].includes(user.role)) {
@@ -273,7 +312,14 @@ export const updateTeamUserStatus = async (req, res) => {
     const actorRole = req.user.role === 'administration' ? 'admin' : req.user.role;
     const filter = actorRole === 'admin'
       ? { _id: req.params.userId, role: { $in: ['shop_manager', 'technician', 'commercial'] } }
-      : { _id: req.params.userId, createdBy: req.user._id, role: { $in: ['technician', 'commercial'] } };
+      : {
+        _id: req.params.userId,
+        role: { $in: ['technician', 'commercial'] },
+        $or: [
+          { createdBy: req.user._id },
+          ...(req.user.shopId ? [{ shopId: req.user.shopId }] : []),
+        ],
+      };
     const user = await User.findOne(filter);
     if (!user) return sendError(res, 'Team member not found', [], 404);
 
@@ -294,7 +340,14 @@ export const deleteTeamUser = async (req, res) => {
     const actorRole = req.user.role === 'administration' ? 'admin' : req.user.role;
     const filter = actorRole === 'admin'
       ? { _id: req.params.userId, role: { $in: ['shop_manager', 'technician', 'commercial'] } }
-      : { _id: req.params.userId, createdBy: req.user._id, role: { $in: ['technician', 'commercial'] } };
+      : {
+        _id: req.params.userId,
+        role: { $in: ['technician', 'commercial'] },
+        $or: [
+          { createdBy: req.user._id },
+          ...(req.user.shopId ? [{ shopId: req.user.shopId }] : []),
+        ],
+      };
     const user = await User.findOneAndDelete(filter);
     if (!user) return sendError(res, 'Team member not found', [], 404);
     return sendSuccess(res, 'Team member deleted successfully', { _id: user._id });
@@ -353,6 +406,7 @@ export const login = async (req, res) => {
       identifier: user.identifier,
       role: user.role,
       zone: user.zone,
+      shopId: user.shopId,
       mustChangePassword: user.mustChangePassword,
     };
 
@@ -394,6 +448,7 @@ export const getMe = async (req, res) => {
       identifier: req.user.identifier,
       role: req.user.role,
       zone: req.user.zone,
+      shopId: req.user.shopId,
       mustChangePassword: req.user.mustChangePassword,
       createdAt: req.user.createdAt,
     };
