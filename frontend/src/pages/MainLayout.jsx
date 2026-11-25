@@ -90,7 +90,7 @@ export default function MainLayout() {
   if (!isAdmin && location.pathname.toLowerCase() === '/administrationsettings') return <Navigate to={role === 'shop_manager' ? '/equipe' : '/dashboard'} replace/>;
   if (isTeamPage && role !== 'shop_manager' && !isAdmin) return <Navigate to="/dashboard" replace/>;
   const isShopManager = role === 'shop_manager';
-  if (isShopManager && !['/dashboard', '/parc', '/notification', '/InterventionWizard', '/equipe', '/devis', '/devis/nouveau', '/installations'].includes(location.pathname.toLowerCase()) && !/smartkit|customerprofile|installations|devis/i.test(location.pathname)) return <Navigate to="/dashboard" replace/>;
+  if (isShopManager && !['/dashboard', '/parc', '/notification', '/InterventionWizard', '/equipe', '/devis', '/devis/nouveau', '/installations', '/rapports'].includes(location.pathname.toLowerCase()) && !/smartkit|customerprofile|installations|devis/i.test(location.pathname)) return <Navigate to="/dashboard" replace/>;
 
   return <div className="ops-shell">
     <a className="ops-skip-link" href="#main-content">Aller au contenu</a>

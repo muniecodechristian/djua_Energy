@@ -50,9 +50,13 @@ export function navigationForRole(role) {
     return [];
   }
 
-  // Responsable Shop (shop_manager) : rapports complets sur son équipe, sans maintenance ni paramètres admin
+  // Responsable Shop (shop_manager) : accès aux rapports et à la gestion de son équipe.
   if (normalizedRole === 'shop_manager') {
-    return navigation.filter(item => !['/AdministrationSettings', '/InterventionWizard'].includes(item.path));
+    return navigation
+      .filter(item => !['/AdministrationSettings', '/InterventionWizard'].includes(item.path))
+      .map(item => item.path === '/equipe'
+        ? { ...item, label: 'Paramètres', icon: Settings, description: 'Gérez les comptes et les affectations de votre équipe.' }
+        : item);
   }
 
   return navigation.filter(item => item.path !== '/AdministrationSettings');

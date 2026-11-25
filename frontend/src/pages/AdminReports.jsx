@@ -83,10 +83,6 @@ function getProvince(item) {
   return item?.customer?.details?.province || item?.site?.province || item?.province || item?.region || '';
 }
 
-function entityId(value) {
-  return String(value?._id ?? value ?? '');
-}
-
 function dateInside(item, range, ...fields) {
   const date = dateOf(item, ...fields);
   if (!date) return false;
@@ -202,8 +198,8 @@ function KpiCard({ label, value, note, icon: Icon, tone = 'orange' }) {
 
 export default function AdminReports() {
   const user = useAuthStore(state => state.user);
-  const isCommercial = user?.role === 'commercial';
   const isShopManager = user?.role === 'shop_manager';
+  const isCommercialReport = user?.role === 'commercial' || isShopManager;
   const [initialReportTemplate] = useState(readReportTemplate);
   const [tab, setTab] = useState('overview');
   const [period, setPeriod] = useState('30');
@@ -242,37 +238,9 @@ export default function AdminReports() {
     },
     staleTime: 60_000,
   });
-  const managerInstallationsQuery = useQuery({
-    queryKey: ['report-installations', user?._id],
-    queryFn: async () => {
-      const pageSize = 100;
-      const firstPage = (await api.get('/api/installations', { params: { page: 1, limit: pageSize } })).data?.data;
-      if (!firstPage || !Array.isArray(firstPage.installations)) {
-        throw new Error('Format de réponse des installations inattendu.');
-      }
-
-      const pages = [firstPage.installations];
-      const pageCount = Math.ceil((firstPage.total || firstPage.installations.length) / (firstPage.limit || pageSize));
-      for (let first = 2; first <= pageCount; first += 4) {
-        const batch = await Promise.all(
-          Array.from({ length: Math.min(4, pageCount - first + 1) }, (_, offset) =>
-            api.get('/api/installations', { params: { page: first + offset, limit: pageSize } }),
-          ),
-        );
-        batch.forEach(response => {
-          const installations = response.data?.data?.installations;
-          if (!Array.isArray(installations)) throw new Error('Format de réponse des installations inattendu.');
-          pages.push(installations);
-        });
-      }
-      return pages.flat();
-    },
-    enabled: isShopManager,
-    staleTime: 60_000,
-  });
-  const kitsQuery = useKitsQuery({ enabled: !isCommercial });
-  const alertsQuery = useAlertsQuery({ enabled: !isCommercial });
-  const telemetryQuery = useTelemetryQuery({ enabled: !isCommercial });
+  const kitsQuery = useKitsQuery({ enabled: !isCommercialReport });
+  const alertsQuery = useAlertsQuery({ enabled: !isCommercialReport });
+  const telemetryQuery = useTelemetryQuery({ enabled: !isCommercialReport });
   const interventionsQuery = useQuery({
     queryKey: ['report-interventions', user?._id, user?.role],
     queryFn: async () => {
@@ -283,53 +251,14 @@ export default function AdminReports() {
       return response.data.data;
     },
     staleTime: 30_000,
-    enabled: !isCommercial,
+    enabled: !isCommercialReport,
   });
 
   const allQuotes = asList(quotesQuery.data);
-  const managerInstallations = useMemo(() => {
-    if (!isShopManager) return [];
-    const managerId = entityId(user?._id);
-    const managerQuoteNumbers = new Set(allQuotes.map(quote => quote.number).filter(Boolean));
-    return asList(managerInstallationsQuery.data).filter(installation =>
-      entityId(installation.shopManager) === managerId
-      || managerQuoteNumbers.has(installation.quoteNumber),
-    );
-  }, [isShopManager, user?._id, allQuotes, managerInstallationsQuery.data]);
-  const managerKitIds = useMemo(() => {
-    if (!isShopManager) return new Set();
-    const managerId = entityId(user?._id);
-    return new Set([
-      ...allQuotes.map(quote => quote.kitId),
-      ...managerInstallations.map(installation => installation.kitId),
-      ...asList(kitsQuery.data)
-        .filter(kit => entityId(kit.shopManager) === managerId)
-        .map(kit => kit.kitId),
-    ].filter(Boolean));
-  }, [isShopManager, user?._id, allQuotes, managerInstallations, kitsQuery.data]);
-  const kits = useMemo(() => {
-    if (isCommercial) return [];
-    const allKits = asList(kitsQuery.data);
-    if (!isShopManager) return allKits;
-    return allKits.filter(kit => managerKitIds.has(kit.kitId));
-  }, [isCommercial, isShopManager, kitsQuery.data, managerKitIds]);
-  const alerts = useMemo(() => {
-    if (isCommercial) return [];
-    const allAlerts = activeAlerts(alertsQuery.data);
-    if (!isShopManager) return allAlerts;
-    const managerId = entityId(user?._id);
-    return allAlerts.filter(alert =>
-      entityId(alert.createdBy) === managerId || managerKitIds.has(alert.kitId),
-    );
-  }, [isCommercial, isShopManager, alertsQuery.data, user?._id, managerKitIds]);
-  const telemetry = useMemo(() => {
-    if (isCommercial) return [];
-    const allTelemetry = asList(telemetryQuery.data);
-    if (!isShopManager) return allTelemetry;
-    return allTelemetry.filter(record => managerKitIds.has(record.kitId));
-  }, [isCommercial, isShopManager, telemetryQuery.data, managerKitIds]);
-  const interventions = useMemo(() => isCommercial ? [] : asList(interventionsQuery.data), [isCommercial, interventionsQuery.data]);
-  const managerScopeReady = !isShopManager || managerInstallationsQuery.isSuccess;
+  const kits = useMemo(() => isCommercialReport ? [] : asList(kitsQuery.data), [isCommercialReport, kitsQuery.data]);
+  const alerts = useMemo(() => isCommercialReport ? [] : activeAlerts(alertsQuery.data), [isCommercialReport, alertsQuery.data]);
+  const telemetry = useMemo(() => isCommercialReport ? [] : asList(telemetryQuery.data), [isCommercialReport, telemetryQuery.data]);
+  const interventions = useMemo(() => isCommercialReport ? [] : asList(interventionsQuery.data), [isCommercialReport, interventionsQuery.data]);
   const range = period === 'custom' ? customRange : initialRange(period);
   const provinces = useMemo(() => [...new Set([
     ...allQuotes.map(getProvince),
@@ -365,13 +294,13 @@ export default function AdminReports() {
   const allKpis = [
     { label: 'Devis créés', value: quotesQuery.isSuccess ? numberFormat.format(quotes.length) : '—', note: 'Sur la période sélectionnée', icon: FileText, tone: 'orange' },
     { label: 'Devis validés', value: quotesQuery.isSuccess ? numberFormat.format(validatedCount) : '—', note: 'Validés ou en cours d’installation', icon: CheckCircle2, tone: 'green' },
-    { label: 'Installations suivies', value: isCommercial ? numberFormat.format(quotes.filter(quote => quote.status === 'installed').length) : managerScopeReady && kitsQuery.isSuccess ? numberFormat.format(filteredKits.length) : '—', note: isCommercial ? 'Issues des devis validés' : province === 'all' ? 'Parc enregistré' : province, icon: Users, tone: 'purple' },
-    { label: isCommercial ? 'Devis en attente' : 'Alertes ouvertes', value: isCommercial ? numberFormat.format(quotes.filter(quote => quote.status === 'draft').length) : managerScopeReady && alertsQuery.isSuccess ? numberFormat.format(filteredAlerts.length) : '—', note: isCommercial ? 'Réponse client attendue ou relance à effectuer' : 'Actives ou prises en charge', icon: isCommercial ? Clock3 : AlertTriangle, tone: 'red' },
+    { label: 'Installations suivies', value: isCommercialReport ? numberFormat.format(quotes.filter(quote => quote.status === 'installed').length) : kitsQuery.isSuccess ? numberFormat.format(filteredKits.length) : '—', note: isCommercialReport ? 'Issues des devis validés' : province === 'all' ? 'Parc enregistré' : province, icon: Users, tone: 'purple' },
+    { label: isCommercialReport ? 'Devis en attente' : 'Alertes ouvertes', value: isCommercialReport ? numberFormat.format(quotes.filter(quote => quote.status === 'draft').length) : alertsQuery.isSuccess ? numberFormat.format(filteredAlerts.length) : '—', note: isCommercialReport ? 'Réponse client attendue ou relance à effectuer' : 'Actives ou prises en charge', icon: isCommercialReport ? Clock3 : AlertTriangle, tone: 'red' },
   ];
   const kpis = allKpis;
 
   const anomalies = useMemo(() => {
-    if (isCommercial) {
+    if (isCommercialReport) {
       const pending = quotes.filter(quote => quote.status === 'draft').length;
       return pending ? [{ name: 'Devis en attente de validation', count: pending }] : [];
     }
@@ -381,7 +310,7 @@ export default function AdminReports() {
       counts.set(name, (counts.get(name) || 0) + 1);
     });
     return [...counts].map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count).slice(0, 5);
-  }, [filteredAlerts, isCommercial, quotes]);
+  }, [filteredAlerts, isCommercialReport, quotes]);
   const products = useMemo(() => {
     const counts = new Map();
     quotes.forEach(quote => {
@@ -398,11 +327,11 @@ export default function AdminReports() {
     return [...counts.values()].sort((a, b) => b.count - a.count).slice(0, 5);
   }, [quotes]);
   const summaryInsight = useMemo(() => {
-    if (isCommercial) return null;
-    if (quotesQuery.isPending || kitsQuery.isPending || alertsQuery.isPending || (isShopManager && managerInstallationsQuery.isPending)) {
+    if (isCommercialReport) return null;
+    if (quotesQuery.isPending || kitsQuery.isPending || alertsQuery.isPending) {
       return { message: 'Chargement des données du parc et des devis…', target: 'fleet' };
     }
-    if (quotesQuery.isError || kitsQuery.isError || alertsQuery.isError || (isShopManager && managerInstallationsQuery.isError)) {
+    if (quotesQuery.isError || kitsQuery.isError || alertsQuery.isError) {
       return { message: 'Cette analyse est indisponible car certaines données du serveur n’ont pas pu être chargées.', target: 'fleet' };
     }
     if (anomalies.length > 0) {
@@ -425,7 +354,7 @@ export default function AdminReports() {
         : 'Aucune alerte ni aucun article de devis ne sont enregistrés pour les filtres sélectionnés.',
       target: 'fleet',
     };
-  }, [isCommercial, isShopManager, managerInstallationsQuery.isPending, managerInstallationsQuery.isError, quotesQuery.isPending, kitsQuery.isPending, alertsQuery.isPending, quotesQuery.isError, kitsQuery.isError, alertsQuery.isError, anomalies, products, filteredKits.length]);
+  }, [isCommercialReport, quotesQuery.isPending, kitsQuery.isPending, alertsQuery.isPending, quotesQuery.isError, kitsQuery.isError, alertsQuery.isError, anomalies, products, filteredKits.length]);
   const currencyTotals = useMemo(() => {
     const totals = new Map();
     quotes.forEach(quote => {
@@ -459,7 +388,7 @@ export default function AdminReports() {
       .filter(days => Number.isFinite(days) && days >= 0);
     return durations.length ? durations.reduce((total, days) => total + days, 0) / durations.length : null;
   }, [quotes]);
-  const contractStatuses = useMemo(() => (isCommercial ? [
+  const contractStatuses = useMemo(() => (isCommercialReport ? [
     { name: 'Créés', value: quotes.length, color: '#ff6a00' },
     { name: 'Acceptés', value: validatedCount, color: '#2eaa70' },
     { name: 'En attente', value: Math.max(quotes.length - validatedCount, 0), color: '#f6a623' },
@@ -467,7 +396,8 @@ export default function AdminReports() {
     { name: 'Actifs', value: filteredKits.filter(kit => kit.status === 'active').length, color: '#2eaa70' },
     { name: 'Suspendus', value: filteredKits.filter(kit => kit.status === 'suspended').length, color: '#f6a623' },
     { name: 'Résiliés', value: filteredKits.filter(kit => kit.status === 'terminated').length, color: '#aeb8c7' },
-  ]).filter(item => item.value), [isCommercial, quotes, validatedCount, filteredKits]);
+  ]).filter(item => item.value), [isCommercialReport, quotes, validatedCount, filteredKits]);
+  const statusTotal = isCommercialReport ? quotes.length : filteredKits.length;
   const reportClients = useMemo(() => [...new Set(quotes.map(quote => quote.customer?.name).filter(Boolean))].sort((left, right) => left.localeCompare(right, 'fr')), [quotes]);
   const reportQuotes = useMemo(() => reportClient === 'all' ? quotes : quotes.filter(quote => quote.customer?.name === reportClient), [quotes, reportClient]);
   const reportTrend = useMemo(() => createTrend(reportQuotes, [], range), [reportQuotes, range]);
@@ -490,19 +420,19 @@ export default function AdminReports() {
         revenue: quotesQuery.isSuccess ? revenue : '—',
       },
       fleet: {
-        installations: managerScopeReady && kitsQuery.isSuccess ? numberFormat.format(filteredKits.length) : '—',
-        active: managerScopeReady && kitsQuery.isSuccess ? numberFormat.format(contractStatuses.find(item => item.name === 'Actifs')?.value || 0) : '—',
-        alerts: managerScopeReady && alertsQuery.isSuccess ? numberFormat.format(filteredAlerts.length) : '—',
-        production: managerScopeReady && telemetryQuery.isSuccess ? `${numberFormat.format(produced)} Wh` : '—',
-        consumption: managerScopeReady && telemetryQuery.isSuccess ? `${numberFormat.format(consumed)} Wh` : '—',
+        installations: kitsQuery.isSuccess ? numberFormat.format(filteredKits.length) : '—',
+        active: kitsQuery.isSuccess ? numberFormat.format(contractStatuses.find(item => item.name === 'Actifs')?.value || 0) : '—',
+        alerts: alertsQuery.isSuccess ? numberFormat.format(filteredAlerts.length) : '—',
+        production: telemetryQuery.isSuccess ? `${numberFormat.format(produced)} Wh` : '—',
+        consumption: telemetryQuery.isSuccess ? `${numberFormat.format(consumed)} Wh` : '—',
       },
       interventions: {
         reports: interventionsQuery.isSuccess ? numberFormat.format(filteredInterventions.length) : '—',
         completed: interventionsQuery.isSuccess ? numberFormat.format(completed) : '—',
-        installations: managerScopeReady && kitsQuery.isSuccess ? numberFormat.format(filteredKits.length) : '—',
+        installations: kitsQuery.isSuccess ? numberFormat.format(filteredKits.length) : '—',
       },
     };
-  }, [reportQuotes, trend, filteredInterventions, filteredKits, contractStatuses, filteredAlerts, managerScopeReady, quotesQuery.isSuccess, kitsQuery.isSuccess, alertsQuery.isSuccess, telemetryQuery.isSuccess, interventionsQuery.isSuccess]);
+  }, [reportQuotes, trend, filteredInterventions, filteredKits, contractStatuses, filteredAlerts, quotesQuery.isSuccess, kitsQuery.isSuccess, alertsQuery.isSuccess, telemetryQuery.isSuccess, interventionsQuery.isSuccess]);
   const selectedReportMetrics = reportMetricOptions[reportType].filter(metric => reportMetrics.includes(metric.id));
   const selectedReportRows = selectedReportMetrics.map(metric => [metric.label, reportMetricsData[reportType][metric.id]]);
   const saveReportTemplate = () => {
@@ -528,26 +458,24 @@ export default function AdminReports() {
 
   const refresh = () => {
     quotesQuery.refetch();
-    if (!isCommercial) {
+    if (!isCommercialReport) {
       kitsQuery.refetch();
       alertsQuery.refetch();
       telemetryQuery.refetch();
       interventionsQuery.refetch();
     }
-    if (isShopManager) managerInstallationsQuery.refetch();
   };
-  const refreshing = isCommercial
+  const refreshing = isCommercialReport
     ? quotesQuery.isFetching
-    : [quotesQuery, kitsQuery, alertsQuery, telemetryQuery, interventionsQuery, ...(isShopManager ? [managerInstallationsQuery] : [])].some(query => query.isFetching);
+    : [quotesQuery, kitsQuery, alertsQuery, telemetryQuery, interventionsQuery].some(query => query.isFetching);
   const errors = [
     quotesQuery.isError && 'devis',
-    !isCommercial && kitsQuery.isError && 'installations',
-    !isCommercial && alertsQuery.isError && 'alertes',
-    !isCommercial && telemetryQuery.isError && 'télémétrie',
-    !isCommercial && interventionsQuery.isError && 'comptes-rendus',
-    isShopManager && managerInstallationsQuery.isError && 'installations de la boutique',
+    !isCommercialReport && kitsQuery.isError && 'installations',
+    !isCommercialReport && alertsQuery.isError && 'alertes',
+    !isCommercialReport && telemetryQuery.isError && 'télémétrie',
+    !isCommercialReport && interventionsQuery.isError && 'comptes-rendus',
   ].filter(Boolean);
-  const visibleTabs = isCommercial ? tabs.filter(item => ['overview', 'sales'].includes(item.id)) : tabs;
+  const visibleTabs = isCommercialReport ? tabs.filter(item => ['overview', 'sales'].includes(item.id)) : tabs;
 
   const exportQuotes = () => downloadCsv('devis', ['Numéro', 'Client', 'Province', 'Statut', 'Date', 'Montant', 'Devise'], quotes.map(quote => [
     quote.number, quote.customer?.name, getProvince(quote), statusLabels[quote.status] || quote.status,
@@ -568,7 +496,7 @@ export default function AdminReports() {
         <div>
           <p className="ops-eyebrow">PILOTAGE DE L’ACTIVITÉ</p>
           <h1>Rapports</h1>
-          <p>{isShopManager ? 'Suivez les ventes de votre boutique, les installations et l’activité de vos techniciens.' : 'Suivez vos ventes, vos installations et les événements du parc solaire.'}</p>
+          <p>{isShopManager ? 'Suivez les devis, les conversions et les ventes de votre boutique.' : 'Suivez vos ventes, vos installations et les événements du parc solaire.'}</p>
         </div>
         <div className="reports-controls">
           <div className="reports-period-control">
@@ -592,8 +520,8 @@ export default function AdminReports() {
             <button className="reports-export-button" aria-expanded={exportOpen} onClick={() => setExportOpen(open => !open)}><ArrowDownToLine size={15} />Exporter<ChevronDown size={14} /></button>
             {exportOpen && <div className="reports-export-menu" role="menu">
               <button role="menuitem" onClick={() => { exportQuotes(); setExportOpen(false); }}>Devis de la période</button>
-              {!isCommercial && <button role="menuitem" onClick={() => { exportFleet(); setExportOpen(false); }}>Installations filtrées</button>}
-              {!isCommercial && <button role="menuitem" onClick={() => { exportInterventions(); setExportOpen(false); }}>Comptes-rendus filtrés</button>}
+              {!isCommercialReport && <button role="menuitem" onClick={() => { exportFleet(); setExportOpen(false); }}>Installations filtrées</button>}
+              {!isCommercialReport && <button role="menuitem" onClick={() => { exportInterventions(); setExportOpen(false); }}>Comptes-rendus filtrés</button>}
             </div>}
           </div>
           <button className="reports-refresh-button" aria-label="Actualiser les rapports" title="Actualiser les données" disabled={refreshing} onClick={refresh}><RefreshCw size={15} className={refreshing ? 'ops-spin' : ''} /></button>
@@ -609,33 +537,33 @@ export default function AdminReports() {
         {visibleTabs.map(item => <button key={item.id} id={`reports-tab-${item.id}`} role="tab" aria-controls={`reports-panel-${item.id}`} aria-selected={tab === item.id} tabIndex={tab === item.id ? 0 : -1} className={tab === item.id ? 'is-active' : ''} onClick={() => setTab(item.id)}>{item.label}</button>)}
       </nav>
 
-      {tab === 'overview' && <div id="reports-panel-overview" className={`reports-overview-panel${isCommercial ? ' is-commercial' : ''}`} role="tabpanel" aria-labelledby="reports-tab-overview" tabIndex={0}>
-        <section className={`reports-kpis${isCommercial ? ' commercial-only' : ''}`} aria-label="Indicateurs clés">
+      {tab === 'overview' && <div id="reports-panel-overview" className={`reports-overview-panel${isCommercialReport ? ' is-commercial' : ''}`} role="tabpanel" aria-labelledby="reports-tab-overview" tabIndex={0}>
+        <section className={`reports-kpis${isCommercialReport ? ' commercial-only' : ''}`} aria-label="Indicateurs clés">
           {kpis.map(item => <KpiCard key={item.label} {...item} />)}
         </section>
-        <div className={`reports-main-grid${isCommercial ? ' commercial-only' : ''}`}>
+        <div className={`reports-main-grid${isCommercialReport ? ' commercial-only' : ''}`}>
           <ChartCard title="Activité commerciale" description="Devis créés, validés et installés sur la période.">
             {quotesQuery.isPending ? <EmptyChart>Chargement des devis…</EmptyChart> : quotes.length === 0 ? <EmptyChart /> : <div className="reports-chart"><ResponsiveContainer width="100%" height="100%"><LineChart data={trend} margin={{ top: 10, right: 10, bottom: 0, left: -18 }}><CartesianGrid stroke="#edf0f4" vertical={false} /><XAxis dataKey="day" tickLine={false} axisLine={false} minTickGap={24} /><YAxis allowDecimals={false} tickLine={false} axisLine={false} /><Tooltip content={<ChartTooltip />} /><Legend verticalAlign="bottom" height={32} iconType="circle" /><Line name="Devis créés" dataKey="created" stroke="#ff6a00" strokeWidth={2.5} dot={false} activeDot={{ r: 4 }} /><Line name="Devis validés" dataKey="validated" stroke="#3984f7" strokeWidth={2.5} dot={false} activeDot={{ r: 4 }} /><Line name="Installés" dataKey="installed" stroke="#2eaa70" strokeWidth={2.5} dot={false} activeDot={{ r: 4 }} /></LineChart></ResponsiveContainer></div>}
           </ChartCard>
-          <ChartCard title={isCommercial ? 'Suivi des conversions' : 'Production solaire et charge DC'} description={isCommercial ? 'Devis créés, acceptés et installations réalisées.' : 'Énergie mesurée par les dernières télémétries disponibles (Wh).'}>
-            {isCommercial ? <div className="reports-chart"><ResponsiveContainer width="100%" height="100%"><LineChart data={trend} margin={{ top: 10, right: 10, bottom: 0, left: -12 }}><CartesianGrid stroke="#edf0f4" vertical={false} /><XAxis dataKey="day" tickLine={false} axisLine={false} minTickGap={24} /><YAxis allowDecimals={false} tickLine={false} axisLine={false} /><Tooltip content={<ChartTooltip />} /><Legend verticalAlign="bottom" height={32} iconType="circle" /><Line name="Devis créés" dataKey="created" stroke="#ff6a00" strokeWidth={2.5} dot={false} /><Line name="Devis acceptés" dataKey="validated" stroke="#3984f7" strokeWidth={2.5} dot={false} /><Line name="Installés" dataKey="installed" stroke="#2eaa70" strokeWidth={2.5} dot={false} /></LineChart></ResponsiveContainer></div> : telemetryQuery.isPending ? <EmptyChart>Chargement de la télémétrie…</EmptyChart> : filteredTelemetry.length === 0 || !trend.some(row => row.produced || row.consumed) ? <EmptyChart>Aucune mesure d’énergie exploitable pour cette période.</EmptyChart> : <div className="reports-chart"><ResponsiveContainer width="100%" height="100%"><AreaChart data={trend} margin={{ top: 10, right: 10, bottom: 0, left: -12 }}><CartesianGrid stroke="#edf0f4" vertical={false} /><XAxis dataKey="day" tickLine={false} axisLine={false} minTickGap={24} /><YAxis tickLine={false} axisLine={false} /><Tooltip content={<ChartTooltip />} /><Legend verticalAlign="bottom" height={32} iconType="circle" /><Area name="Production solaire (Wh)" dataKey="produced" type="monotone" stroke="#ff6a00" fill="#ff6a00" fillOpacity={0.12} strokeWidth={2} /><Area name="Charge DC (Wh)" dataKey="consumed" type="monotone" stroke="#3984f7" fill="#3984f7" fillOpacity={0.10} strokeWidth={2} /></AreaChart></ResponsiveContainer></div>}
+          <ChartCard title={isCommercialReport ? 'Suivi des conversions' : 'Production solaire et charge DC'} description={isCommercialReport ? 'Devis créés, acceptés et installations réalisées.' : 'Énergie mesurée par les dernières télémétries disponibles (Wh).'}>
+            {isCommercialReport ? <div className="reports-chart"><ResponsiveContainer width="100%" height="100%"><LineChart data={trend} margin={{ top: 10, right: 10, bottom: 0, left: -12 }}><CartesianGrid stroke="#edf0f4" vertical={false} /><XAxis dataKey="day" tickLine={false} axisLine={false} minTickGap={24} /><YAxis allowDecimals={false} tickLine={false} axisLine={false} /><Tooltip content={<ChartTooltip />} /><Legend verticalAlign="bottom" height={32} iconType="circle" /><Line name="Devis créés" dataKey="created" stroke="#ff6a00" strokeWidth={2.5} dot={false} /><Line name="Devis acceptés" dataKey="validated" stroke="#3984f7" strokeWidth={2.5} dot={false} /><Line name="Installés" dataKey="installed" stroke="#2eaa70" strokeWidth={2.5} dot={false} /></LineChart></ResponsiveContainer></div> : telemetryQuery.isPending ? <EmptyChart>Chargement de la télémétrie…</EmptyChart> : filteredTelemetry.length === 0 || !trend.some(row => row.produced || row.consumed) ? <EmptyChart>Aucune mesure d’énergie exploitable pour cette période.</EmptyChart> : <div className="reports-chart"><ResponsiveContainer width="100%" height="100%"><AreaChart data={trend} margin={{ top: 10, right: 10, bottom: 0, left: -12 }}><CartesianGrid stroke="#edf0f4" vertical={false} /><XAxis dataKey="day" tickLine={false} axisLine={false} minTickGap={24} /><YAxis tickLine={false} axisLine={false} /><Tooltip content={<ChartTooltip />} /><Legend verticalAlign="bottom" height={32} iconType="circle" /><Area name="Production solaire (Wh)" dataKey="produced" type="monotone" stroke="#ff6a00" fill="#ff6a00" fillOpacity={0.12} strokeWidth={2} /><Area name="Charge DC (Wh)" dataKey="consumed" type="monotone" stroke="#3984f7" fill="#3984f7" fillOpacity={0.10} strokeWidth={2} /></AreaChart></ResponsiveContainer></div>}
           </ChartCard>
         </div>
-        <div className={`reports-bottom-grid${isCommercial ? ' commercial-only' : ''}`}>
+        <div className={`reports-bottom-grid${isCommercialReport ? ' commercial-only' : ''}`}>
           <section className="reports-card reports-status-card">
-            <header className="reports-card-title"><div><h2>Répartition des installations par statut</h2><p>Statut contractuel des kits du parc filtré.</p></div></header>
-            {kitsQuery.isPending ? <EmptyChart>Chargement du parc…</EmptyChart> : contractStatuses.length === 0 ? <EmptyChart>Aucune installation enregistrée pour ces filtres.</EmptyChart> : <div className="reports-status-content"><div className="reports-donut"><ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={contractStatuses} dataKey="value" nameKey="name" innerRadius="66%" outerRadius="92%" paddingAngle={2} stroke="none">{contractStatuses.map(item => <Cell key={item.name} fill={item.color} />)}</Pie><Tooltip content={<ChartTooltip />} /></PieChart></ResponsiveContainer><span><strong>{numberFormat.format(filteredKits.length)}</strong><small>installations</small></span></div><ul className="reports-legend-list">{contractStatuses.map(item => <li key={item.name}><i style={{ background: item.color }} /><span>{item.name}</span><strong>{numberFormat.format(item.value)}</strong><small>{filteredKits.length ? `${Math.round(item.value / filteredKits.length * 100)} %` : '0 %'}</small></li>)}</ul></div>}
+            <header className="reports-card-title"><div><h2>{isCommercialReport ? 'Répartition des devis par statut' : 'Répartition des installations par statut'}</h2><p>{isCommercialReport ? 'Progression des devis de votre activité commerciale.' : 'Statut contractuel des kits du parc filtré.'}</p></div></header>
+            {(isCommercialReport ? quotesQuery.isPending : kitsQuery.isPending) ? <EmptyChart>{isCommercialReport ? 'Chargement des devis…' : 'Chargement du parc…'}</EmptyChart> : contractStatuses.length === 0 ? <EmptyChart>{isCommercialReport ? 'Aucun devis enregistré pour ces filtres.' : 'Aucune installation enregistrée pour ces filtres.'}</EmptyChart> : <div className="reports-status-content"><div className="reports-donut"><ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={contractStatuses} dataKey="value" nameKey="name" innerRadius="66%" outerRadius="92%" paddingAngle={2} stroke="none">{contractStatuses.map(item => <Cell key={item.name} fill={item.color} />)}</Pie><Tooltip content={<ChartTooltip />} /></PieChart></ResponsiveContainer><span><strong>{numberFormat.format(statusTotal)}</strong><small>{isCommercialReport ? 'devis' : 'installations'}</small></span></div><ul className="reports-legend-list">{contractStatuses.map(item => <li key={item.name}><i style={{ background: item.color }} /><span>{item.name}</span><strong>{numberFormat.format(item.value)}</strong><small>{statusTotal ? `${Math.round(item.value / statusTotal * 100)} %` : '0 %'}</small></li>)}</ul></div>}
           </section>
           <section className="reports-card reports-list-card">
-            <header className="reports-card-title"><div><h2>{isCommercial ? 'Priorités commerciales' : 'Top 5 des anomalies'}</h2><p>{isCommercial ? 'Devis nécessitant une action.' : 'Alertes ouvertes les plus fréquentes pour les filtres choisis.'}</p></div><button className="reports-inline-action" onClick={() => setTab(isCommercial ? 'sales' : 'fleet')}>Voir tout <ChevronRight size={14} /></button></header>
-            {(isCommercial ? quotesQuery.isPending : alertsQuery.isPending) ? <EmptyChart>Chargement des données…</EmptyChart> : anomalies.length === 0 ? <EmptyChart>{isCommercial ? 'Aucun devis prioritaire sur cette période.' : 'Aucune alerte ouverte sur cette période.'}</EmptyChart> : <ul className="reports-data-list">{anomalies.map((item, index) => <li key={item.name}><span className="reports-rank">{index + 1}</span><span>{item.name}</span><strong>{numberFormat.format(item.count)}</strong></li>)}</ul>}
+            <header className="reports-card-title"><div><h2>{isCommercialReport ? 'Priorités commerciales' : 'Top 5 des anomalies'}</h2><p>{isCommercialReport ? 'Devis nécessitant une action.' : 'Alertes ouvertes les plus fréquentes pour les filtres choisis.'}</p></div><button className="reports-inline-action" onClick={() => setTab(isCommercialReport ? 'sales' : 'fleet')}>Voir tout <ChevronRight size={14} /></button></header>
+            {(isCommercialReport ? quotesQuery.isPending : alertsQuery.isPending) ? <EmptyChart>Chargement des données…</EmptyChart> : anomalies.length === 0 ? <EmptyChart>{isCommercialReport ? 'Aucun devis prioritaire sur cette période.' : 'Aucune alerte ouverte sur cette période.'}</EmptyChart> : <ul className="reports-data-list">{anomalies.map((item, index) => <li key={item.name}><span className="reports-rank">{index + 1}</span><span>{item.name}</span><strong>{numberFormat.format(item.count)}</strong></li>)}</ul>}
           </section>
           <section className="reports-card reports-list-card">
             <header className="reports-card-title"><div><h2>Produits les plus utilisés</h2><p>Quantités des articles enregistrés dans les devis de la période.</p></div><button className="reports-inline-action" onClick={() => setTab('sales')}>Voir les ventes <ChevronRight size={14} /></button></header>
             {quotesQuery.isPending ? <EmptyChart>Chargement des devis…</EmptyChart> : products.length === 0 ? <EmptyChart>Aucun article dans les devis de cette période.</EmptyChart> : <div className="reports-mini-table"><div><span>Produit</span><span>Catégorie</span><span>Utilisations</span></div>{products.map(item => <div key={item.name}><strong title={item.name}>{item.name}</strong><span>{item.category}</span><b>{numberFormat.format(item.count)}</b></div>)}</div>}
           </section>
         </div>
-        {!isCommercial && summaryInsight && <section className="reports-insight" aria-live="polite">
+        {!isCommercialReport && summaryInsight && <section className="reports-insight" aria-live="polite">
           <Lightbulb size={24} aria-hidden="true" />
           <div><h2>Conseil Djua</h2><p>{summaryInsight.message}</p></div>
           <button type="button" onClick={() => setTab(summaryInsight.target)}>Voir l’analyse détaillée <ChevronRight size={16} /></button>
