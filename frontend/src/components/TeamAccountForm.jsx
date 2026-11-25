@@ -37,7 +37,7 @@ export default function TeamAccountForm({ onCreated, initialRole, allowedRoles }
         prenom: form.prenom,
         postNom: form.postNom,
         identifier: form.identifier.trim(),
-        whatsapp: form.whatsapp.trim(),
+        ...(form.whatsapp.trim() ? { whatsapp: form.whatsapp.trim() } : {}),
         password: form.password,
         role: teamRole,
         ...(assignedZone ? { zone: assignedZone } : {}),

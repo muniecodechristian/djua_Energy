@@ -39,7 +39,10 @@ export const teamUserSchema = z.object({
     prenom: z.string().trim().min(2),
     postNom: z.string().trim().optional(),
     identifier: identifierSchema,
-    whatsapp: z.string().trim().min(6, 'Le numéro WhatsApp est requis (ex: +243...)').optional(),
+    whatsapp: z.preprocess(
+      value => typeof value === 'string' && value.trim() === '' ? undefined : value,
+      z.string().trim().min(6, 'Le numéro WhatsApp est requis (ex: +243...)').optional()
+    ),
     password: passwordStrengthSchema,
     role: z.enum(['admin', 'shop_manager', 'technician', 'commercial']),
     zone: z.string().trim().optional(),

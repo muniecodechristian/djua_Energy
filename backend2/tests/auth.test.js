@@ -132,6 +132,24 @@ describe('Authentication API - Integration Tests', () => {
       expect(res.body.data.zone).toBe('');
     });
 
+    it('should allow admin-created accounts without an optional WhatsApp number', async () => {
+      const { cookie } = await createSession('admin');
+
+      for (const [role, zone] of [['shop_manager', 'Kinshasa'], ['admin', '']]) {
+        const res = await request(app)
+          .post('/auth/team-users')
+          .set('Cookie', cookie)
+          .send({
+            ...newTeamUser(role, `${role}-no-whatsapp-${Date.now()}@example.com`, zone),
+            whatsapp: '',
+          });
+
+        expect(res.status).toBe(201);
+        expect(res.body.data.role).toBe(role);
+        expect(res.body.data.whatsapp).toBe('');
+      }
+    });
+
     it('should allow an admin to create a technician directly', async () => {
       const { cookie } = await createSession('administration');
       const res = await request(app)
